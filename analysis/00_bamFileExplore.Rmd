@@ -1,0 +1,351 @@
+---
+title: "00_bamFileExplore"
+author: "Caitlin Page"
+date: "2025-06-11"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+## Introduction
+
+```{r}
+library(plyranges)
+library(dplyr)
+library(ggplot2)
+
+library(Rsamtools)
+library(bamsignals)
+library(NanoMethViz)
+library(ctDNAtools)
+```
+
+```{r}
+bam_files <- list.files("../data/cfnano_paper/bam/megalodonModBams")
+bam_files <- paste0("../data/cfnano_paper/bam/megalodonModBams/", bam_files)
+bam_files[grep("HU005.10", bam_files)]
+```
+
+
+# nanoMethViz (bioconductor)
+[vignette](https://bioconductor.org/packages/release/bioc/vignettes/NanoMethViz/inst/doc/UsersGuide.html#importing-data)
+```{r}
+exon_anno <- get_exons_hg38()
+exon_anno
+```
+
+```{r}
+mbr <- ModBamResult(
+  methy = ModBamFiles(samples = "sample1", bam_files[1]),
+  samples = data.frame(sample = "sample1", group = 1),
+  exons = exon_anno
+)
+mbr
+```
+
+
+```{r}
+plot_gene(mbr, "ADA", heatmap = TRUE)
+```
+* I need to know genes of interest to use this
+* Guessing randomly is getting me: no methylation data in region, returning empty plot
+* And none of the parts of the object show me the methylation data
+* And it doesn't seem like I can see fragment lengths
+
+# bamsignals analysis (Bioconductor)
+[vignette](https://bioconductor.org/packages/release/bioc/vignettes/bamsignals/inst/doc/bamsignals.html)
+* uses Rsamtools to read in data
+```{r}
+genes <- 
+  get(load(system.file("extdata", "randomAnnot.Rdata", package="bamsignals")))
+genes
+```
+
+* Get coverage
+```{r}
+?bamCoverage
+```
+```{r}
+library(TxDb.Hsapiens.UCSC.hg38.knownGene)
+genes <- genes(TxDb.Hsapiens.UCSC.hg38.knownGene)
+genes <- genes %>% data.frame() %>% filter(!seqnames %in% (genes %>% data.frame() %>% .$seqnames %>% .[grep("_", .)])) %>% as_granges()
+```
+```{r}
+genes %>% data.frame() %>% .$seqnames %>% .[grep("_", .)]
+```
+
+
+```{r}
+covSigs <- bamCoverage(bam_files[1], genes, verbose=FALSE)
+puSigs <- bamProfile(bam_files[1], genes, verbose=FALSE)
+xlab <- "offset from start of the region"
+ylab <- "reads per base pair"
+main <- paste0("read coverage and profile of the region ", seqnames(genes)[1],
+  ":", start(genes)[1], "-", end(genes)[1])
+plot(covSigs[1], ylim=c(0, max(covSigs[1])), ylab=ylab, xlab=xlab, main=main,
+  type="l")
+lines(puSigs[1], lty=2)
+legend("topright", c("covering the base pair", "5' end maps to the base pair"), 
+  lty=c(1,2))
+```
+
+# ctDNAtools (CRAN/github)
+[vignette](https://alkodsi.github.io/ctDNAtools/articles/ctDNAtools.html)
+[github](https://github.com/alkodsi/ctDNAtools)
+* builds off Rsamtools
+* not long read or methylation specific
+* but has function for fragment length for bam file
+* so should still work
+```{r}
+fragment_length <- get_fragment_size(bam = bam_files[1])
+```
+* did not work
+```{r}
+fragment_length
+```
+
+* hypothesis: something to do with the nanopore and/or methylation part of the bam
+* start looking at [code](https://github.com/alkodsi/ctDNAtools/blob/master/R/get_fragment_size.R)
+
+*documentation says read length comes from isize parameter from bam
+* and in code this is taken using scanBamParam
+```{r}
+flag <- Rsamtools::scanBamFlag(
+    isPaired = TRUE, isProperPair = NA, isUnmappedQuery = FALSE,
+    hasUnmappedMate = FALSE, isSecondaryAlignment = FALSE,
+    isNotPassingQualityControls = FALSE, isDuplicate = FALSE, isSupplementaryAlignment = FALSE
+  )
+
+sbp <- Rsamtools::ScanBamParam(
+      flag = flag, mapqFilter = 30, simpleCigar = FALSE,
+      what = c("qname", "flag", "qwidth", "isize"))
+```
+
+```{r}
+get_bam_SM <- function(bam, tag = "") {
+  header <- Rsamtools::scanBamHeader(bam)
+  if (tag == "") {
+    rg <- header[[1]]$text$`@RG`
+    sm <- gsub("SM:", "", rg[grepl("SM", rg)])
+  } else {
+    header_text <- header[[1]]$text
+    rg <- header_text[names(header_text) == "@RG"]
+    rg <- rg[[which(grepl(tag, purrr::map_chr(rg, 1)))]]
+    sm <- gsub("SM:", "", rg[grepl("SM", rg)])
+  }
+  if (is.null(rg)) {
+    sm <- basename(bam)
+  }
+
+  return(sm)
+}
+sm <- get_bam_SM(bam_files[1])
+```
+```{r}
+reads <- GenomicAlignments::readGAlignments(file = bam_files[1], param = sbp)
+```
+* this is what has failed
+* genomicAlignments is designed for short fragments
+```{r}
+GenomicAlignments::readGAlignmentPairs(file = bamT1, param = sbp)
+```
+
+
+```{r}
+bamT1 <- system.file('extdata', 'T1.bam', package = 'ctDNAtools')
+get_fragment_size(bam = bamT1)
+```
+
+# nanoR (github)
+[vignette](https://davidebolo1993.github.io/nanordoc/usage/usage.html#use-cases)
+```{r}
+library(NanoR)
+```
+* nope uses a sequencing summarised file - which I do not have
+
+# wait duh follow the paper
+[zenodo all analysis](https://zenodo.org/records/6641763)
+* which includes fragmentomics code
+* and I want to figure out fragment length
+* download folder
+
+paper quote:
+"Fragment length was calculated from the Minimap2 BAM CIGAR column by summing all counts"
+
+* code in folder is confusing
+```{r}
+samples_info_readlength <- read.table("../code/Fragmentomics_GenomBiol-main/Utility/samples_info_readlength.tsv")
+```
+```{r}
+read.table("../code/Fragmentomics_GenomBiol-main/Utility/chr_list.txt")
+#read.table("../code/Fragmentomics_GenomBiol-main/Utility/endmotifs.txt")
+read.table("../code/Fragmentomics_GenomBiol-main/Utility/samples_info_heatmap.tsv")
+```
+* heatmap and readlength file are exactly the same
+* and I don't think they have the information they're supposed to
+* final column is tumour fraction accordinng to github
+
+* huzzah the github link has the tutorial (it's the readme file i hadn't opened)
+[github](https://github.com/Puputnik/Fragmentomics_GenomBiol)
+* except it wants the fastq files??
+* but that's going backwards?
+* I don't want to make fastq files
+```{r}
+header <- scanBamHeader(bam_files[1])
+
+```
+```{r}
+sbp <- Rsamtools::ScanBamParam(
+      flag = flag, mapqFilter = 30, simpleCigar = TRUE,
+      what = c("qname", "flag", "qwidth", "isize"))
+```
+```{r}
+countBam(bam_files[1], param = sbp)
+```
+
+# try just with the minimap/samtools/basics??
+
+
+# try another [paper](https://www.biorxiv.org/content/10.1101/2024.05.02.592182v1.full)
+* bioarchive but looks cool maybe?
+* [zenodo code](https://zenodo.org/records/11092490)
+
+* they do a thing to make an epibed so have fragment and meth in bed file
+* and then its compat with celfie which is one of the deconvolv stuff
+* also this could all be python again
+
+zenodo quote:
+"Level 2: In order to provide combined fragmentation and methylation information, Biscuit was used to create “epiBED” files (see Methods). epiBED files contain each read on a separate line, with each DNA methylation call on the read. epiBED files can be used for combined methylation/fragmentomic analysis, and are compatible with the CelFiE-ISH software that was used for cell of origin deconvolution.
+
+Creation of Biscuit EpiBED files:
+Biscuit (https://huishenlab.github.io/biscuit/) v. 1.4.1-dev  was used with the command “biscuit epiread -M -b 0 -m 0 -a 0 -5 0 -3 0 -y 0.9 -L 1000000 hg38.analysisSet.fa”, where the reference is the same UCSC reference genome used for alignment. Files are available in the Zenodo repository listed in Data Availability."
+
+ok need biscuit
+this is a python tool
+but it's ok it can run in terminal
+needs a fasta reference to set it up
+conda environment named: bikkie
+[conda env instructions](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html)
+* paper methods reveals reference version
+" Minimap2 alignments were performed to GCF_000001405.39_GRCh38.p13 with minimap2 (version 2.13-r850)"
+[download fasta from gencode](https://www.gencodegenes.org/human/release_38.html)
+*[biscuit vignette](https://huishenlab.github.io/biscuit//docs/epiread)
+
+it's 2 commands
+a)
+biscuit epiread -M -y 0.9 -L 10000 data/GRCh38.p13.genome.fa data/cfnano_paper/bam/megalodonModBams/HU005.10.meg242.remora1.edgefix.mod_mappings.sorted.hg38.bam |
+b)
+\ sort -k1,1 -k2,2n > output/HU005.10.epibed
+
+and a is failing
+it's saying:
+ERROR: must be a methylation modification ('m')
+which is a very bad implication
+as it's implying that there is no methylation content on this bam
+
+I took out the -M tag and it ran (potentially concerning but that's a later problem)
+now problem of how to save
+because > ../output/file is having a new error
+reference doesn't have random segment bits
+what if i prefilter the bams??
+and then i would know the reference will cover everything
+
+[epibed](https://huishenlab.github.io/biscuit/epibed_format/)
+```{r}
+epibed_ispro.bc01 <- read.table("../output/ispro.bc01.epiread")
+names(epibed_ispro.bc01) <- c("seqnames", "start", "end", "read_name", "read_num", "strand", "cpg_rle_string", "gpc_rle_string", "variant_rle_string")
+head(epibed_ispro.bc01)
+```
+
+```{r}
+distinct(epibed_ispro.bc01, seqnames)
+```
+3 chr b/c then it got stuck with the random chromosome 
+```{r}
+nrow(epibed_ispro.bc01)
+```
+* note: 3 chr mean > 1m reads 
+* this is going to get computationally rough early
+```{r}
+epibed_ispro.bc01 %>% group_by(read_num) %>% summarise(n = n())
+```
+* so all single end reads I think
+```{r}
+epibed_ispro.bc01 <- epibed_ispro.bc01 %>% as_granges() %>% data.frame()
+```
+```{r}
+summary(epibed_ispro.bc01$width)
+```
+
+```{r}
+epibed_ispro.bc01 %>%
+  ggplot(aes(x = log2(width))) +
+  geom_density()
+epibed_ispro.bc01 %>%
+  ggplot(aes(x = log2(width), colour = seqnames)) +
+  geom_density()
+epibed_ispro.bc01 %>%
+  ggplot(aes(x = log2(width), colour = seqnames)) +
+  geom_histogram()
+```
+
+
+# try to filter bam to just the nice chromosomes
+but also try downloading different fasta from ebi
+https://www.ebi.ac.uk/ena/browser/view/GCA_000001405.28
+* that one it didn't like at all
+* could be chrom are written differently
+* so basically I'm stuck on this
+```{r}
+
+```
+
+#maybe try modbam2bed?? it has a python package thing
+and this issue is interesting https://github.com/epi2me-labs/modbam2bed/issues/2
+modbam2bed was used to make the bed files I have - that's what the paper used
+but there is a package thing that does a good thing
+
+
+# NanoPlot (python)
+[github](https://github.com/wdecoster/NanoPlot)
+* this one looks promising
+* except for the nanopore thing
+
+* can take bam file: good
+* new conda enviro for it: nanoplot_report
+* too many pre-req that were refusing to install, install instead with pip
+* and pip was already on machine (got installed with python)
+
+* runs in terminal
+* lots options
+* trying with 2 cores: start 10.43, finish:10.43
+code: NanoPlot -t 2 -o ../output --maxlength 100000 --bam bam_file
+[report hu005.10](file:///Users/pagecaitlin/Library/CloudStorage/OneDrive-PeterMac/Desktop/r/phd/3_cf_nano/output/nanoplot/hu005.10/NanoPlot-report.html)
+* also outputs a bunch of plots
+* and a txt file: but txt file is just the table at top of the report: summary stuff
+
+# nanoqc
+[github](https://github.com/wdecoster/nanoQC)
+* wants fastq
+* also this is part of [NanoPack](https://github.com/wdecoster/nanopack) which NanoPlot is part of
+
+# instead try another from NanoPack
+[paper](https://academic.oup.com/bioinformatics/article/34/15/2666/4934939?login=false)
+[nanoget](https://github.com/wdecoster/nanoget)
+* has a fn to process bams
+process_bam(file, thread)
+but had error
+* maybe because it's a module??
+
+# wgbs_tools
+* does the read based thing
+* try to adjust it for long-read
+
+# methylartist
+[paper](https://academic.oup.com/bioinformatics/article/38/11/3109/6575433)
+[github](https://github.com/adamewing/methylartist)
+* makes pretty plots
+* python again
+* takes bam files
+* but it's confusing as to how it takes the bam files?
+* the functions for plots are talking about the wrong thing
