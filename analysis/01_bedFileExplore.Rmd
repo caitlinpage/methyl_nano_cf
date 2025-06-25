@@ -1,0 +1,220 @@
+---
+title: "00_bedFileExplore"
+author: "Caitlin Page"
+date: "2025-06-06"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+[paper](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-022-02710-1#availability-of-data-and-materials)
+
+## Introduction
+
+```{r}
+library(rtracklayer)
+library(NanoMethViz)
+
+library(dplyr)
+library(ggplot2)
+```
+```{r}
+#NanoMethViz
+exon_anno <- get_exons_hg38()
+exon_anno$seqnames <- exon_anno$chr
+```
+
+```{r}
+list_bed <- paste0("../data/cfnano_paper/bed/", list.files("../data/cfnano_paper/bed"))
+```
+
+```{r}
+import.bed(list_bed[1])
+```
+Column 11 corresponds to the percent of reads methylated. Modbam2bed does not provide a column for the actual number of reads that this percentage is based on, but it can be calculated from the other columns. readCount=(col5*col10)/1000
+
+```{r}
+try_bed <- import.bed(list_bed[1]) %>% data.frame()
+try_bed
+```
+
+```{r}
+summary(try_bed$score)
+summary(try_bed$blockCount)
+summary(as.double(try_bed$blockSizes))
+```
+[modbam2bed](https://github.com/epi2me-labs/modbam2bed)
+* % is out of 100 so that must mean blockSizes: so beta = blockSizes
+* which means 5 must be score and 10 must be blockCount
+* and 10 = blockCount = read coverage = "Read coverage at reference position including all canonical, modified, undecided (no calls and filtered), substitutions from reference, and deletions. Nmod + Ncanon + Nno call + Nalt mod + Nfilt + Nsub + Ndel"
+* and 5 = score = "1000 * (Nmod + Ncanon) / (Nmod + Ncanon + Nno call + Nalt mod + Nfilt + Nsub + Ndel). The quantity reflects the extent to which the calculated modification frequency in Column 11 is confounded by the alternative calls. The denominator here is the total read coverage as given in Column 10."
+
+```{r}
+try_bed$readCount <- (try_bed$score*try_bed$blockCount)/1000
+```
+```{r}
+try_bed
+```
+
+# make a coverage plot
+* readCoverage = 10 = blockCount
+```{r}
+try_bed %>% 
+  ggplot(aes(x = log2(blockCount))) +
+  geom_density()
+```
+
+```{r}
+try_bed %>%
+  ggplot(aes(y = blockCount)) +
+  geom_boxplot()
+
+try_bed %>%
+  ggplot(aes(y = log2(blockCount))) +
+  geom_boxplot()
+```
+
+* filter to just autosomes
+```{r}
+seqs <- try_bed %>% distinct(seqnames) %>% .$seqnames
+try_bed_filt <- try_bed %>% filter(seqnames %in% seqs[1:22])
+```
+```{r}
+try_bed_filt
+```
+
+```{r}
+try_bed_filt %>% group_by(seqnames) %>% summarise(n_site=n(), sum_readcov = sum(blockCount))
+try_bed_filt %>% group_by(seqnames) %>% summarise(n_site=n(), sum_readcov = sum(blockCount)) %>%
+  ggplot(aes(x = n_site, y = sum_readcov, colour = seqnames)) +
+  geom_point()
+```
+
+
+```{r}
+try_bed_filt %>%
+  ggplot(aes(x = log2(blockCount), colour = seqnames)) +
+  geom_density()
+```
+
+* vast majority has very low read coverage
+* so look at what has higher coverage
+
+
+
+```{r}
+summary(try_bed_filt$score)
+summary(try_bed_filt$blockCount)
+summary(as.double(try_bed_filt$blockSizes))
+summary(try_bed_filt$readCount)
+```
+```{r}
+try_bed_filt %>% filter(blockCount > 1)
+```
+
+```{r}
+try_bed_filt %>% group_by(blockCount) %>% summarise(n=n())
+try_bed_filt %>% group_by(blockCount) %>% summarise(n=n()) %>% filter(blockCount > 10) %>%
+  ggplot(aes(x = blockCount, y = n)) +
+  geom_point()
+```
+
+```{r}
+try_bed_filt %>% filter(blockCount > 800)
+```
+* wait these 2 are the same but on opposite strands??
+* should this even be counted twice???
+```{r}
+txdb <- TxDb.Hsapiens.UCSC.hg38.knownGene::TxDb.Hsapiens.UCSC.hg38.knownGene
+genes_txdb <- GenomicFeatures::genes(txdb)
+```
+
+```{r}
+exon_anno %>% filter(chr == "chr3", start > 93400000) 
+```
+
+```{r}
+plyranges::find_overlaps(plyranges::as_granges(exon_anno), plyranges::as_granges(filter(try_bed_filt, blockCount > 800))) %>% data.frame()
+```
+
+```{r}
+plyranges::pair_nearest(genes_txdb, plyranges::as_granges(filter(try_bed_filt, blockCount > 800))) %>% data.frame()
+```
+* no genes overlap those 2 sites
+* so just weird outliers?
+```{r}
+exon_anno$seqnames <- exon_anno$chr
+```
+```{r}
+library(BSgenome.Hsapiens.UCSC.hg38)
+```
+
+```{r}
+seq_names <- seqnames(BSgenome.Hsapiens.UCSC.hg38)[1:22]
+cg_sites <- lapply(seq_names, function(x) {
+  cbind(data.frame(matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38[[x]])),
+        seqnames = x
+  )
+}) %>%
+  dplyr::bind_rows()
+cg_sites <- cg_sites %>% mutate(pos = paste0(seqnames, "-", start)) %>%
+  relocate(pos, seqnames)
+```
+
+# look at bedgraph file
+
+
+```{r}
+list.files("../data/cfnano_paper")
+```
+
+```{r}
+import.bedGraph(paste0("../data/cfnano_paper/", list.files("../data/cfnano_paper"))[3])
+import.bedGraph(paste0("../data/cfnano_paper/", list.files("../data/cfnano_paper"))[3]) %>% data.frame()
+```
+* bed file is better - has more detail
+* bedgraph only has beta value
+
+* but neither bed or bedgraph has the fragment length information
+* and that is bad
+* because one of first things we wanted was fragment length
+* could plot meth values across though
+
+# nanomethviz
+https://bioconductor.org/packages/release/bioc/vignettes/NanoMethViz/inst/doc/UsersGuide.html 
+* tabix format methylation values
+* exon annotation
+* sample annotation
+```{r}
+exon_anno <- get_exons_hg38()
+exon_anno
+```
+
+```{r}
+try_bed
+```
+```{r}
+viz_bed <- try_bed %>% mutate(sample = "a", chr = seqnames, pos = start, statistic = as.double(blockSizes)) %>% .[,c(15,16,17,5,18)]
+```
+
+```{r}
+viz_bed
+```
+
+
+
+```{r}
+samples <- cbind(sample = "a", group = "healthy") %>% data.frame()
+```
+
+```{r}
+NanoMethResult(viz_bed, samples, exon_anno)
+```
+
+```{r}
+plot_gene(NanoMethResult(viz_bed, samples, exon_anno), "AIBG")
+```
+
+# bams
+* downloading bams
+* is there any other way to figure out the fragment lengths?
