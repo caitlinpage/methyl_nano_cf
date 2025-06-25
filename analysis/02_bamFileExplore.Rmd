@@ -244,6 +244,7 @@ which is a very bad implication
 as it's implying that there is no methylation content on this bam
 
 I took out the -M tag and it ran (potentially concerning but that's a later problem)
+biscuit epiread -L 100000 data/GRCh38.p13.genome.fa data/cfnano_paper/bam/megalodonModBams/HU005.10.meg242.remora1.edgefix.mod_mappings.sorted.hg38.bam
 now problem of how to save
 because > ../output/file is having a new error
 reference doesn't have random segment bits
@@ -297,8 +298,18 @@ https://www.ebi.ac.uk/ena/browser/view/GCA_000001405.28
 * could be chrom are written differently
 * so basically I'm stuck on this
 ```{r}
-
+header <- scanBamHeader(bam_files[1])
+header
 ```
+
+new idea: make fasta out of bam
+then it will have all the seq bits
+but having trouble installing samtools with conda
+bunch of package req and funny business
+but homebrew says its already installed
+but I can't use it
+and now terminal is frozen so I can't do anything anyway
+was going to load it on cluster
 
 #maybe try modbam2bed?? it has a python package thing
 and this issue is interesting https://github.com/epi2me-labs/modbam2bed/issues/2
