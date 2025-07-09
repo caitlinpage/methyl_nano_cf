@@ -1,0 +1,437 @@
+---
+title: "00_bedFilePlot"
+author: "Caitlin Page"
+date: "2025-06-20"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+## Introduction
+
+```{r}
+library(rtracklayer)
+library(NanoMethViz)
+library(BSgenome.Hsapiens.UCSC.hg38)
+library(TxDb.Hsapiens.UCSC.hg38.knownGene)
+library(plyranges)
+library(dplyr)
+library(ggplot2)
+library(ComplexHeatmap)
+
+```
+
+
+```{r}
+#NanoMethViz
+exon_anno <- get_exons_hg38()
+exon_anno$seqnames <- exon_anno$chr
+
+seq_names <- seqnames(BSgenome.Hsapiens.UCSC.hg38)[1:22]
+cg_sites <- lapply(seq_names, function(x) {
+  cbind(data.frame(matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38[[x]])),
+        seqnames = x
+  )
+}) %>%
+  dplyr::bind_rows()
+cg_sites <- cg_sites %>% mutate(pos = paste0(seqnames, "-", start)) %>%
+  relocate(pos, seqnames)
+```
+
+```{r}
+list_bed <- paste0("../data/cfnano_paper/bed/", list.files("../data/cfnano_paper/bed"))
+list_bed
+```
+```{r}
+bed_info <- cbind(type = c("he", "he", "he", "lc", "lc", "he", "he", "he", "he", "lc", "lc", "lc", "lc"),
+                  id = c("hu5.10", "hu5.11", "hu5.12", "ispro.s1", "ispro.bc1", "ispro.bc2", "ispro.bc3", "ispro.bc4", "ispro.bc5", "ispro.bc8", "ispro.bc9", "ispro.bc10", "ispro.bc11"))
+bed_info
+```
+```{r}
+paste0(bed_info[4,1], "_", bed_info[4,2])
+```
+
+```{r}
+bed_he_hu5.10 <- import.bed(list_bed[1]) %>% data.frame()
+bed_he_hu5.10$readCount <- (bed_he_hu5.10$score*bed_he_hu5.10$blockCount)/1000
+
+bed_he_hu5.11 <- import.bed(list_bed[2]) %>% data.frame()
+bed_he_hu5.11$readCount <- (bed_he_hu5.11$score*bed_he_hu5.11$blockCount)/1000
+
+bed_he_hu5.10$position <- paste0(bed_he_hu5.10$seqnames, "-", bed_he_hu5.10$start)
+bed_he_hu5.11$position <- paste0(bed_he_hu5.11$seqnames, "-", bed_he_hu5.11$start)
+```
+```{r}
+compare_beta <- cg_sites
+compare_beta <- 
+  compare_beta %>% mutate(he_hu5.10 = bed_he_hu5.10[match(.$pos, bed_he_hu5.10$position), "blockSizes"],
+                        he_hu5.11 = bed_he_hu5.11[match(.$pos, bed_he_hu5.11$position), "blockSizes"]) %>%
+  replace(is.na(.), 0) %>%
+  mutate(he_hu5.10 = as.double(he_hu5.10), he_hu5.11 = as.double(he_hu5.11))
+```
+
+
+```{r}
+for(i in 3:length(list_bed)) {
+  bed <- import.bed(list_bed[i]) %>% data.frame()
+  bed$position <- paste0(bed$seqnames, "-", bed$start)
+  new_col <- paste0(bed_info[i,1], "_", bed_info[i,2])
+  compare_beta[, new_col] <- bed[match(compare_beta$pos, bed$position), "blockSizes"]
+  compare_beta[, new_col] <- as.double(compare_beta[,new_col])
+}
+compare_beta <- compare_beta %>% replace(is.na(.), 0)
+```
+
+
+```{r}
+bed_info
+```
+
+```{r}
+compare_beta %>%
+  ggplot(aes(x = he_hu5.10, y = he_hu5.11)) +
+  geom_bin2d()
+```
+```{r}
+cor.test(compare_beta$he_hu5.10, compare_beta$he_hu5.11, method = "spearman")
+```
+
+followed [link](https://epi2me.nanoporetech.com/how-to-mod/) that made correlation plots from bedMethyl files
+in this example it was comparing to a bisulfite sequencing sample
+in their example, high correlation between the bedMethyl and the BSeq
+code is in Python and I used chatgpt to translate it to R
+```{r}
+make_heatmap <- function(bis, nano, title_x, title_y) {
+
+  # Calculate Pearson correlation coefficient
+  r_coeff <- cor(bis, nano, method = "pearson")
+
+  # Calculate RMSE
+  rmse <- sqrt(mean((bis - nano)^2))
+
+  # Combine data into a data frame
+  df <- data.frame(bis = bis, nano = nano)
+
+  # Create heatmap using 2D bins
+  p <- ggplot(df, aes(x = bis, y = nano)) +
+    geom_bin2d(bins = 53) +
+    scale_fill_viridis_c(trans = "log10", limits = c(100, 100000), name = "Count") +
+    xlim(0, 100) +
+    ylim(0, 100) +
+    labs(
+      title = sprintf("Methylation comparison. R=%.3f, RMSE=%.3f", r_coeff, rmse),
+      x = paste(title_x, "Methylation Frequency"),
+      y = paste(title_y, "Methylation Frequency")
+    ) +
+    coord_fixed(ratio = 1.2) +
+    theme_minimal()
+
+  return(p)
+}
+make_heatmap(filter(compare_beta, seqnames == "chr1")$he_hu5.10, filter(compare_beta, seqnames == "chr1")$he_hu5.11, "healthy_5.10", "healthy_5.11")
+```
+```{r}
+r_coeff <- cor.test(compare_beta$he_hu5.10, compare_beta$he_hu5.11, method = "kendall")
+```
+So I thought there would be higher correlation between beta values
+
+```{r}
+make_heatmap(compare_beta$he_hu5.10, compare_beta$he_hu5.11, "healthy_5.10", "healthy_5.11")
+```
+
+ok so I did it wrong
+the code beforehand - they filtered to one chrom, removed the Nas (that I replaced with 0s) and filtered to sites with coverage of at least 20 - and they combined the strands
+
+# correlation heatmap all samples
+
+```{r}
+compare_beta
+```
+
+
+```{r}
+plotCorrHeatmap <- function(df, method="spearman") {
+    if (!is.data.frame(df)) {
+        stop("data.frame of counts is required")
+    }
+    if (missing(method)) {
+        message("default spearman's method is used")
+    }
+
+    corr_res <- cor(df[, grepl("_", colnames(df), ignore.case = TRUE)], method = method)
+    Heatmap(corr_res, name = "Colour Legend")
+}
+plotCorrHeatmap(compare_beta, "spearman")
+```
+
+so none of the samples are correlated?
+that seems strange and wrong
+does the paper do any correlation plots?
+paper only talks about correlation in relation to fragment length and comparing to wgbs: and says the fragment lengths are correlated
+
+```{r}
+compare_beta
+```
+
+oh could it be because of the strand issue?
+wait the bedgraph file fixes that - it only has one strand
+```{r}
+bed_he_hu5.10
+```
+```{r}
+compare_beta %>% filter(seqnames == "chr1", start > 11290)
+```
+
+```{r}
+bed_he_hu5.10 %>% filter(seqnames == "chr1", start > 11298) %>% mutate(beta = blockSizes) %>% .[,c(1:6,16)]
+```
+
+```{r}
+bedgraph_he_hu5.10 <- import.bedGraph(paste0("../data/cfnano_paper/", list.files("../data/cfnano_paper"))[3]) %>% data.frame()
+bedgraph_he_hu5.10 %>% filter(seqnames == "chr1", start > 11290)
+```
+
+ok so strandedness is not compiled in the bedgraph the strand information is just removed
+look at the method again and see if we can figure out how it should be treated
+because the way I got the cg sites will miss some of them - maybe that's why they weren't correlated
+```{r}
+seq_names <- seqnames(BSgenome.Hsapiens.UCSC.hg38)[1:22]
+cg_sites <- lapply(seq_names, function(x) {
+  cbind(data.frame(matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38[[x]])),
+        seqnames = x
+  )
+}) %>%
+  dplyr::bind_rows()
+cg_sites <- cg_sites %>% mutate(pos = paste0(seqnames, "-", start)) %>%
+  relocate(pos, seqnames)
+```
+
+```{r}
+bed_he_hu5.10
+```
+
+```{r}
+bed_he_hu5.10 <- import.bed(list_bed[1]) %>% data.frame()
+bed_he_hu5.10$readCount <- (bed_he_hu5.10$score*bed_he_hu5.10$blockCount)/1000
+```
+
+```{r}
+bed_he_hu5.10_mod <- bed_he_hu5.10
+```
+```{r}
+#this is the code from the article that combines the strands
+bed_he_hu5.10_mod <- bed_he_hu5.10_mod %>% mutate(start = ifelse(strand == "-", start - 1, start)) %>%
+      group_by(seqnames, start) %>%
+      summarise(across(c(readCount, blockCount), sum, na.rm = TRUE), .groups = "drop") %>%
+      mutate(freq = 100 * readCount / blockCount)
+
+bed_he_hu5.11_mod <- bed_he_hu5.11 %>% mutate(start = ifelse(strand == "-", start - 1, start)) %>%
+      group_by(seqnames, start) %>%
+      summarise(across(c(readCount, blockCount), sum, na.rm = TRUE), .groups = "drop") %>%
+      mutate(freq = 100 * readCount / blockCount)
+```
+```{r}
+bed_he_hu5.10_mod$end <- bed_he_hu5.10_mod$start
+bed_he_hu5.11_mod$end <- bed_he_hu5.11_mod$start
+bed_he_hu5.10_mod$position <- paste0(bed_he_hu5.10_mod$seqnames, "-", bed_he_hu5.10_mod$start)
+bed_he_hu5.11_mod$position <- paste0(bed_he_hu5.11_mod$seqnames, "-", bed_he_hu5.11_mod$start)
+bed_he_hu5.10_mod <- data.frame(bed_he_hu5.10_mod)
+bed_he_hu5.11_mod <- data.frame(bed_he_hu5.11_mod)
+```
+```{r}
+union_all(mutate(bed_he_hu5.10_mod, source_a = "a"), mutate(bed_he_hu5.11_mod, source_b = "b")) %>% distinct(position)
+```
+
+```{r}
+compare_again <- union_ranges(as_granges(bed_he_hu5.10_mod), as_granges(bed_he_hu5.11_mod)) %>% data.frame()
+compare_again$position <- paste0(compare_again$seqnames, "-", compare_again$start)
+
+seqs <- bed_he_hu5.10_mod %>% distinct(seqnames) %>% .$seqnames
+compare_again <- compare_again %>% filter(seqnames %in% seqs[1:22])
+```
+
+```{r}
+compare_again <- compare_again %>% mutate(he_hu5.10 = bed_he_hu5.10_mod[match(.$position, bed_he_hu5.10_mod$position), "freq"],
+                         he_hu5.11 = bed_he_hu5.11_mod[match(.$position, bed_he_hu5.11_mod$position), "freq"]) %>%
+  replace(is.na(.), 0)
+```
+
+```{r}
+make_heatmap(filter(compare_again, seqnames == "chr1")$he_hu5.10, filter(compare_again, seqnames == "chr1")$he_hu5.11, "a")
+```
+yay that fixed it!
+so maybe that also means can't have the 0s
+we now have correlation
+still have weird count thing in the plot but that's ok I can figure that out later
+```{r}
+make_heatmap(compare_again$he_hu5.10, compare_again$he_hu5.11, "healthy_5.10", "healthy_5.11")
+```
+```{r}
+bed_info <- cbind(bed_info, combo = paste0(bed_info[,1], "_", bed_info[,2])) 
+```
+
+```{r}
+compare_again
+```
+
+```{r}
+seqs <- seqs[1:22]
+```
+```{r}
+list_bed
+```
+
+- can't figure out how to automate so here we go
+
+```{r}
+bed.3
+```
+```{r}
+bed.4
+```
+```{r}
+cg_sites
+```
+
+```{r}
+#this is the code from the article that combines the strands
+bed.3 <- import.bed(list_bed[3]) %>% data.frame()
+bed.3 <- bed.3 %>% filter(seqnames %in% seqs)
+bed.3$readCount <- (bed.3$score*bed.3$blockCount)/1000
+bed.3 <- bed.3 %>% mutate(start = ifelse(strand == "-", start - 1, start)) %>%
+      group_by(seqnames, start) %>%
+      summarise(across(c(readCount, blockCount), sum, na.rm = TRUE), .groups = "drop") %>%
+      mutate(freq = 100 * readCount / blockCount)
+
+bed.3$end <- bed.3$start
+bed.3$position <- paste0(bed.3$seqnames, "-", bed.3$start)
+bed.3 <- data.frame(bed.3)
+
+compare_again2 <- union_ranges(as_granges(compare_again), as_granges(bed.3)) %>% data.frame()
+```
+
+4 doesn't want to run
+(I think it's just way way bigger than 3)
+-look at the num of obs 28m vs 3m
+-and now 5 is the same
+
+So let's just not deal with that right now - and just focus on the 3 samples i have managed to organise
+
+```{r}
+compare_again2$position <- paste0(compare_again2$seqnames, "-", compare_again2$start)
+compare_again2 <- compare_again2 %>% 
+  mutate(he_hu5.10 = bed_he_hu5.10_mod[match(.$position, bed_he_hu5.10_mod$position), "freq"],
+         he_hu5.11 = bed_he_hu5.11_mod[match(.$position, bed_he_hu5.11_mod$position), "freq"],
+         he_hu5.12 = bed.3[match(.$position, bed.3$position), "freq"]) %>%
+  replace(is.na(.), 0)
+compare_again2
+```
+
+
+```{r}
+make_heatmap(compare_again2$he_hu5.10, compare_again2$he_hu5.11, "healthy_5.10", "healthy_5.11")
+make_heatmap(compare_again2$he_hu5.10, compare_again2$he_hu5.12, "healthy_5.10", "healthy_5.12")
+make_heatmap(compare_again2$he_hu5.11, compare_again2$he_hu5.12, "healthy_5.11", "healthy_5.12")
+```
+wait how did the correlation change again?? - for 5.10 vs 5.11
+must be because of the extra sites added with 5.12
+
+```{r}
+make_heatmap(filter(compare_again2, he_hu5.10 != 0 | he_hu5.11 != 0)$he_hu5.10, 
+             filter(compare_again2, he_hu5.10 != 0 | he_hu5.11 != 0)$he_hu5.11, "healthy_5.10", "healthy_5.11")
+make_heatmap(filter(compare_again2, he_hu5.10 != 0 | he_hu5.12 != 0)$he_hu5.10, 
+             filter(compare_again2, he_hu5.10 != 0 | he_hu5.12 != 0)$he_hu5.12, "healthy_5.10", "healthy_5.12")
+make_heatmap(filter(compare_again2, he_hu5.11 != 0 | he_hu5.12 != 0)$he_hu5.11, 
+             filter(compare_again2, he_hu5.11 != 0 | he_hu5.12 != 0)$he_hu5.12, "healthy_5.11", "healthy_5.12")
+```
+
+yep that fixed it
+
+```{r}
+compare_again2 %>% filter(compare_again2, he_hu5.10 != 0 | he_hu5.11 != 0)
+```
+
+```{r}
+compare_again2 %>% filter(he_hu5.10 == 0, he_hu5.11 == 0, he_hu5.12 != 0)
+```
+
+```{r}
+plotCorrHeatmap(compare_again2, "spearman")
+```
+
+##########
+```{r}
+for(i in 3:length(list_bed)) {
+  bed <- import.bed(list_bed[i]) %>% data.frame()
+  bed <- bed %>% mutate(start = ifelse(strand == "-", start - 1, start)) %>%
+      group_by(seqnames, start) %>%
+      summarise(across(c(readCount, blockCount), sum, na.rm = TRUE), .groups = "drop") %>%
+      mutate(freq = 100 * readCount / blockCount)
+  bed$end <- bed$start
+  bed$position <- paste0(bed$seqnames, "-", bed$start)
+  bed <- data.frame(bed)
+  
+  new_ranges <- union_ranges(as_granges(compare_again), as_granges(bed)) %>% data.frame()
+  new_ranges$position <- paste0(new_ranges$seqnames, "-", new_ranges$start)
+  
+  
+  new_col <- bed_info[i,3]
+  compare_beta[, new_col] <- bed[match(compare_beta$pos, bed$position), "blockSizes"]
+  compare_beta[, new_col] <- as.double(compare_beta[,new_col])
+}
+compare_beta <- compare_beta %>% replace(is.na(.), 0)
+```
+
+```{r}
+compare_again
+bed_he_hu5.10
+bed_he_hu5.10_mod
+```
+```{r}
+compare_beta
+```
+
+
+compare_again <- union_ranges(as_granges(bed_he_hu5.10_mod), as_granges(bed_he_hu5.11_mod)) %>% data.frame()
+compare_again$position <- paste0(compare_again$seqnames, "-", compare_again$start)
+
+seqs <- bed_he_hu5.10_mod %>% distinct(seqnames) %>% .$seqnames
+compare_again <- compare_again %>% filter(seqnames %in% seqs[1:22])
+
+compare_again <- compare_again %>% mutate(he_hu5.10 = bed_he_hu5.10_mod[match(.$position, bed_he_hu5.10_mod$position), "freq"],
+                         he_hu5.11 = bed_he_hu5.11_mod[match(.$position, bed_he_hu5.11_mod$position), "freq"]) %>%
+  replace(is.na(.), 0)
+
+```{r}
+compare_beta
+```
+
+```{r}
+for (ver in c("modbam2bed", "modkit")) {
+  df <- if (ver == "modbam2bed") modbam else modkit
+  
+  # Filter to chromosome 20 and drop rows with NAs
+  sel <- df %>%
+    filter(chrom %in% select) %>%
+    drop_na()
+  
+  if (ver == "modbam2bed") {
+    # Adjust reverse strand start positions
+    sel <- sel %>%
+      mutate(start = ifelse(strand == "-", start - 1, start)) %>%
+      group_by(chrom, start) %>%
+      summarise(across(c(mod, coverage), sum, na.rm = TRUE), .groups = "drop") %>%
+      mutate(freq = 100 * mod / coverage)
+  }
+
+  # Inner join with bisulfite data on chrom and start
+  combined <- inner_join(bis_sel, sel, by = c("chrom", "start"), suffix = c(".bis", ".nano"))
+  
+  # Filter to positions with >20 coverage in both datasets
+  plot_data <- combined %>%
+    filter(coverage.bis > 20, coverage.nano > 20)
+
+  # Optionally, store or print `plot_data` if needed
+}
+```
+
