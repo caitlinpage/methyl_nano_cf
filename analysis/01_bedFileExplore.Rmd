@@ -118,6 +118,9 @@ try_bed_filt %>% group_by(blockCount) %>% summarise(n=n()) %>% filter(blockCount
   ggplot(aes(x = blockCount, y = n)) +
   geom_point()
 ```
+```{r}
+try_bed_filt
+```
 
 ```{r}
 try_bed_filt %>% filter(blockCount > 800)
