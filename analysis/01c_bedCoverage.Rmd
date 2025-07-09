@@ -1,0 +1,220 @@
+---
+title: "01c_bedCoverage"
+author: "Caitlin Page"
+date: "2025-06-27"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+finally managed to install bedtools
+try and use it to look at coverage and read/fragment length
+
+[genomecov](https://bedtools.readthedocs.io/en/latest/content/tools/genomecov.html#usage-and-option-summary)
+use option -bga to output as bedgraph style format and have regions with 0 coverage
+use option -fs to use fragment size instead of read length
+
+## Introduction
+
+```{r}
+bedcov_he_5.10 <- read.table("../output/bedtools/bedcov_he_5.10.txt")
+names(bedcov_he_5.10) <- c("seqnames", "start", "end", "coverage")
+
+bedcov_fs_he_5.10 <- read.table("../output/bedtools/bedcov_fs_he_5.10.txt")
+names(bedcov_fs_he_5.10) <- c("seqnames", "start", "end", "coverage")
+```
+
+```{r}
+nrow(bedcov_he_5.10)
+nrow(bedcov_fs_he_5.10)
+```
+
+```{r}
+bedcov_he_5.10 %>% distinct(seqnames)
+```
+```{r}
+seqs <- as.character(seqs)
+seqs
+```
+
+```{r}
+bedcov_he_5.10 <- filter(bedcov_he_5.10, seqnames %in% seqs)
+bedcov_fs_he_5.10 <- filter(bedcov_fs_he_5.10, seqnames %in% seqs)
+nrow(bedcov_he_5.10)
+nrow(bedcov_fs_he_5.10)
+```
+
+```{r}
+bedcov_he_5.10$pos_full <- paste0(bedcov_he_5.10$seqnames, ":", bedcov_he_5.10$start, "-", bedcov_he_5.10$end)
+bedcov_fs_he_5.10$pos_full <- paste0(bedcov_fs_he_5.10$seqnames, ":", bedcov_fs_he_5.10$start, "-", bedcov_fs_he_5.10$end)
+```
+
+```{r}
+bedcov_he_5.10 %>% mutate(same_site = pos_full == bedcov_fs_he_5.10$pos_full) %>% distinct(same_site)
+```
+* in this sample, read length and fragment size are the same thing
+```{r}
+bedcov_he_5.10 <- bedcov_he_5.10 %>% as_granges() %>% data.frame()
+bedcov_fs_he_5.10 <- bedcov_fs_he_5.10 %>% as_granges() %>% data.frame()
+```
+```{r}
+summary(bedcov_he_5.10$width)
+summary(bedcov_fs_he_5.10$width)
+```
+
+```{r}
+bedcov_he_5.10 %>%
+  ggplot(aes(x = log2(width))) +
+  geom_density() +
+  labs(title = "Density read length")
+
+bedcov_fs_he_5.10 %>%
+  ggplot(aes(x = log2(width))) +
+  geom_density() +
+  labs(title = "Density fragment length")
+```
+
+```{r}
+summary(bedcov_he_5.10$coverage)
+summary(bedcov_fs_he_5.10$coverage)
+```
+
+```{r}
+bedcov_he_5.10 %>%
+  ggplot(aes(x = log2(coverage + 1))) +
+  geom_density() +
+  labs(title = "Density read coverage")
+
+bedcov_fs_he_5.10 %>%
+  ggplot(aes(x = log2(coverage + 1))) +
+  geom_density() +
+  labs(title = "Density fragment coverage")
+```
+
+```{r}
+cor.test(bedcov_he_5.10$width, bedcov_he_5.10$coverage)
+cor.test(bedcov_fs_he_5.10$width, bedcov_fs_he_5.10$coverage)
+```
+
+```{r}
+bedcov_he_5.10 %>%
+  ggplot(aes(x = width, y = coverage)) +
+  geom_point()
+
+bedcov_fs_he_5.10 %>%
+  ggplot(aes(x = width, y = coverage)) +
+  geom_point()
+```
+
+* try filtering width to <= 183 (median)
+```{r}
+bedcov_he_5.10 %>% filter(width <= 183) %>%
+  ggplot(aes(x = width, y = coverage)) +
+  geom_point()
+
+bedcov_fs_he_5.10 %>% filter(width <= 183) %>%
+  ggplot(aes(x = width, y = coverage)) +
+  geom_point()
+```
+
+* ok this isn't actually reporting the read/fragment length oops
+* I think it's what it's using to calculate the coverage for the regions but it's not the read length being outputted
+* ok looking at the website
+
+
+# samtools - get the proper read lengths
+
+* for that - I need samtools - but samtools doesn't like to work for me
+* it doesn't like installing
+* try to install again but try pip this time
+*still won't work
+*cheat and do interactive on cluster - already installed
+```{r}
+library(sumsamstats)
+```
+
+```{r}
+sam_stats_he_5.10 <- readSamtoolsStats("../output/samtools/sam_stats_he_5.10.txt", section = c("RL", "COV"))
+sam_stats_he_5.10$RL$read_length <- as.double(sam_stats_he_5.10$RL$read_length)
+sam_stats_he_5.10$RL$count <- as.double(sam_stats_he_5.10$RL$count)
+sam_stats_he_5.10$COV$coverage <- as.double(sam_stats_he_5.10$COV$coverage)
+sam_stats_he_5.10$COV$bases <- as.double(sam_stats_he_5.10$COV$bases)
+```
+yay this is more like it: read lengths: RL
+
+```{r}
+summary(sam_stats_he_5.10$RL$read_length)
+```
+
+```{r}
+sam_stats_he_5.10$RL %>%
+  ggplot(aes(x = read_length, y = count)) +
+  geom_point(alpha = 0.3)
+```
+* this is not read length and coverage - it is read length and count
+```{r}
+sam_stats_he_5.10$RL %>%
+  ggplot(aes(x = log2(read_length), y = count)) +
+  geom_point(alpha = 0.3)
+```
+
+```{r}
+sam_stats_he_5.10$RL %>% filter(read_length < 500) %>%
+  ggplot(aes(x = read_length, y = count)) +
+  geom_point(alpha = 0.3)
+
+sam_stats_he_5.10$RL %>% filter(read_length < 500) %>%
+  ggplot(aes(x = log2(read_length), y = count)) +
+  geom_point(alpha = 0.3)
+```
+
+```{r}
+sam_stats_he_5.10$COV %>%
+  ggplot(aes(x = log2(coverage), y = bases)) +
+  geom_point()
+```
+
+* should be using a cancer and healthy samples
+```{r}
+sam_stats_lc_bc1 <- readSamtoolsStats("../output/samtools/sam_stats_lc_bc1.txt", section = c("RL", "COV"))
+sam_stats_lc_bc1$RL$read_length <- as.double(sam_stats_lc_bc1$RL$read_length)
+sam_stats_lc_bc1$RL$count <- as.double(sam_stats_lc_bc1$RL$count)
+sam_stats_lc_bc1$COV$coverage <- as.double(sam_stats_lc_bc1$COV$coverage)
+sam_stats_lc_bc1$COV$bases <- as.double(sam_stats_lc_bc1$COV$bases)
+```
+```{r}
+sam_stats_lc_bc1$RL %>%
+  ggplot(aes(x = log2(read_length), y = count)) +
+  geom_point(alpha = 0.3) +
+  labs(title = "Lung cancer")
+
+sam_stats_he_5.10$RL %>%
+  ggplot(aes(x = log2(read_length), y = count)) +
+  geom_point(alpha = 0.3) +
+  labs(title = "Healthy")
+```
+ok so the read lengths are about the same for cancer/normal
+fragment length is supposed to be available through samtools stats IS field - but there's nothing in there
+
+```{r}
+bed_info
+```
+
+#####
+# figured out read position
+* now could add that to the coverage stuff
+```{r}
+sam_readpos_he_5.10 <- read.table("../output/samtools/sam_readpos_he_5.10.txt")
+names(sam_readpos_he_5.10) <- c("seqnames", "start", "width")
+sam_readpos_he_5.10 <- sam_readpos_he_5.10 %>% as_granges() %>% data.frame()
+```
+
+```{r}
+sam_readpos_he_5.10 %>%
+  ggplot(aes(x = log2(width))) +
+  geom_density()
+```
+
+- bump is likely at nucleosome lengths
+- because it fragments at nucleosome lengths - which is around 144bp, so 2nd bump is 2 nucleosmoes, 3rd bump is 3
+
