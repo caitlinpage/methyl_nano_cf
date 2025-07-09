@@ -1,7 +1,7 @@
-name: "3_cf_nano"
+name: 3_cf_nano
 output_dir: ../docs
 navbar:
-  title: "3_cf_nano"
+  title: 3_cf_nano
   left:
   - text: Home
     href: index.html
@@ -9,6 +9,10 @@ navbar:
     href: about.html
   - text: License
     href: license.html
+  right:
+  - icon: fab fa-github
+    text: Source code
+    href: https://github.com/caitlinpage/3_cf_nano
 output:
   workflowr::wflow_html:
     toc: yes
