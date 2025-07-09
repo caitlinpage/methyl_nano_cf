@@ -1,0 +1,80 @@
+---
+title: "03_bedModkit"
+author: "Caitlin Page"
+date: "2025-07-08"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+## Introduction
+
+```{r}
+library(rtracklayer)
+library(plyranges)
+library(dplyr)
+library(ggplot2)
+```
+
+```{r}
+import.bed("../output/modkit/basic_he_hu5.10.bed")
+```
+
+```{r}
+table_bed <- read.table("../output/modkit/basic_he_hu5.10.bed")
+table_bed
+```
+- ok so these are all the columns listed in modkit so that's good
+- and this is the basic version of modkit pileup which ran in 15 minutes as opposed to the cpg one which is ongoing at ~6 days
+
+[website details](https://github.com/nanoporetech/modkit)
+```{r}
+cols <- c("seqnames", "start", "end", "mod_type", "score_same_val_cov", "strand", "start_pos", "end_pos", "colour_always_same", "val_cov", "frac_mod", "mod", "canon", "other_mod", "delete", "fail", "diff", "nocall")
+colnames(table_bed) <- cols
+table_bed
+```
+
+```{r}
+library(bsseq)
+```
+
+```{r}
+bsseq_bed <- read.modkit("../output/modkit/basic_he_hu5.10.bed")
+bsseq_bed@assays@data
+```
+```{r}
+bsseq_bed@rowRanges %>% data.frame() %>% mutate(full_pos = paste0(seqnames, ":", start, "-", end)) %>% group_by(full_pos) %>% summarise(distinct_pos = n()) %>% ungroup() %>% group_by(distinct_pos) %>% summarise(count = n())
+```
+
+table is simpler to work with to explore
+
+ok so if i just overlapped this with cpg sites - would it give me the cg level results?
+or is this the cg level results?
+either way I have too many - so I think they're not all unique positions, should get double ups
+```{r}
+unique(table_bed$mod_type)
+```
+
+so then this is a per read result? - but without any information about which other rows are on the same read
+oh damn it's per strand still
+```{r}
+table_bed %>% group_by(strand) %>% summarise(n=n())
+```
+I thought I had set the parameters to get rid of that
+looks like we have to start another job running
+add in --combine-strands 
+looks like cluster is busy so may need to wait a bit
+
+in the meantime - check the other things of it
+DAMN: need cpg or motif to do the combine-strands
+which means I just need to keep waiting for this to finish running :(
+wait hold on but did bsseq sort it out?
+filter to one strand and see if there is still multiples
+
+```{r}
+table_bed %>% filter(strand == "+") %>% mutate(full_pos = paste0(seqnames, ":", start, "-", end)) %>% group_by(full_pos) %>% summarise(distinct_pos = n()) %>% ungroup() %>% group_by(distinct_pos) %>% summarise(count = n())
+```
+ok so no to the multiples
+
+is it just then they don't all line up with cpg sites?
+because it just seems like more than there should be in the genome
