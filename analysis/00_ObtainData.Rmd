@@ -1,0 +1,20 @@
+---
+title: "00_ObtainData"
+author: "Caitlin Page"
+date: "2025-06-23"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+## Introduction
+
+1. Nanopore cell-free Methylation
+Paper: [Detecting cell-of-origin and cancer-specific methylation features of cell-free DNA from Nanopore sequencing](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-022-02710-1#availability-of-data-and-materials)
+Data:
+Data located:
+* [Zenodo](https://zenodo.org/records/6642503)
+* [GEO](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE185307)
+Zenodo is the method recommended by the authors
+Data accessed by:
+
