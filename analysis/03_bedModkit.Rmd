@@ -22,7 +22,7 @@ import.bed("../output/modkit/basic_he_hu5.10.bed")
 
 ```{r}
 table_bed <- read.table("../output/modkit/basic_he_hu5.10.bed")
-table_bed
+head(table_bed)
 ```
 - ok so these are all the columns listed in modkit so that's good
 - and this is the basic version of modkit pileup which ran in 15 minutes as opposed to the cpg one which is ongoing at ~6 days
@@ -31,7 +31,23 @@ table_bed
 ```{r}
 cols <- c("seqnames", "start", "end", "mod_type", "score_same_val_cov", "strand", "start_pos", "end_pos", "colour_always_same", "val_cov", "frac_mod", "mod", "canon", "other_mod", "delete", "fail", "diff", "nocall")
 colnames(table_bed) <- cols
-table_bed
+head(table_bed)
+nrow(table_bed)
+```
+filter out coverage of 1 plus the extra chrom
+```{r}
+table_bed <- table_bed %>% filter(!seqnames %in%  table_bed[grep("_", table_bed$seqnames),"seqnames"])
+nrow(table_bed)
+```
+cuts out almost 500k sites - pretty good
+```{r}
+table_bed %>% filter(val_cov > 1) %>% nrow(.)
+```
+oh yeah that's what cuts stuff out
+
+
+```{r}
+table_bed %>% group_by(seqnames) %>% summarise(n())
 ```
 
 ```{r}
@@ -78,3 +94,12 @@ ok so no to the multiples
 
 is it just then they don't all line up with cpg sites?
 because it just seems like more than there should be in the genome
+
+
+### the read output
+it's chonky
+we will need to work on cluster
+```{r}
+read.table("../output/modkit/extract_calls_he_hu5.10.tsv")
+```
+
