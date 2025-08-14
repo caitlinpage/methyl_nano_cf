@@ -1,0 +1,214 @@
+---
+title: "alpha_beta"
+output: html_document
+date: "2025-07-23"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+pat_format
+attempt_pat
+```
+
+```{r}
+length(gregexpr("aa", pat_format$`methylation pattern`[1]))
+```
+
+```{r}
+try_alpha <- gregexpr("T", pat_format$`methylation pattern`[2])[[1]]
+```
+```{r}
+as.integer(try_alpha)
+```
+```{r}
+wgbs_epiread
+```
+
+```{r}
+pat_format
+wgbs_epiread
+```
+
+```{r}
+alpha_format <- pat_format
+alpha_format %>% 
+  mutate(num_meth = gregexpr("C", `methylation pattern`)[[1]])
+```
+
+```{r}
+alpha_format <- alpha_format %>%
+  mutate(num_meth = stringr::str_count(alpha_format$`methylation pattern`, "C"), 
+         total = stringr::str_length(alpha_format$`methylation pattern`),
+         alpha = num_meth/total)
+alpha_format %>% distinct(alpha)
+table(alpha_format$alpha)
+```
+
+```{r}
+alpha_format %>%
+  ggplot(aes(x = alpha)) +
+  geom_density()
+```
+
+```{r}
+alpha_format %>%
+  ggplot(aes(x = total)) +
+  geom_histogram(bins = 100)
+
+alpha_format %>%
+  ggplot(aes(x = total)) +
+  geom_density()
+
+alpha_format %>%
+  ggplot(aes(x = log2(total))) +
+  geom_density()
+```
+
+
+
+```{r}
+alpha_format %>%
+  ggplot(aes(x = num_meth, y = total)) +
+  geom_point()
+```
+
+
+```{r}
+alpha_format %>%
+  ggplot(aes(x = total, y = alpha)) +
+  geom_point()
+```
+
+```{r}
+alpha_format %>%
+  ggplot(aes(x = log2(total), y = alpha)) +
+  geom_point()
+
+alpha_format %>%
+  ggplot(aes(x = log2(total), y = log2(alpha))) +
+  geom_point()
+
+alpha_format %>%
+  ggplot(aes(x = total, y = log2(alpha))) +
+  geom_point()
+```
+
+
+```{r}
+overlap
+```
+
+```{r}
+pat_format %>% group_by(count) %>% summarise(dplyr::n())
+```
+
+```{r}
+alpha_format %>% group_by(`CpG index`) %>% mutate(n=dplyr::n()) %>% filter(n > 1) %>% mutate(cpg_difference = abs(total - lead(total)))
+```
+```{r}
+alpha_format %>% filter(total > 2) %>% distinct(count)
+```
+```{r}
+cg_sites %>% 
+```
+
+```{r}
+alpha_format %>% group_by(`CpG index`) %>% mutate(n=dplyr::n()) %>% filter(n > 1) %>% .[1:50,] %>%
+  ggplot(aes(x = `CpG index`, y = total)) +
+  geom_point()
+```
+```{r}
+alpha_format <- data.frame(alpha_format)
+alpha_format %>% filter(CpG.index == 53)
+```
+```{r}
+indiv_reads %>% filter(read_id == "e9abf215-8192-48f4-a50f-ef92241e5de3") %>% mutate(tested_cg = ifelse(grepl("..CG.", query_kmer), TRUE, FALSE)) %>% filter(tested_cg == TRUE)
+```
+
+```{r}
+overlap
+```
+
+
+```{r}
+overlap
+```
+
+```{r}
+overlap %>% mutate(num_meth = alpha_format[match(.$min_index_cg, alpha_format$CpG.index), "num_meth"],
+                   alpha = alpha_format[match(.$min_index_cg, alpha_format$CpG.index), "alpha"]) %>%
+  group_by(index) %>% mutate(beta)
+  
+```
+```{r}
+cg_sites
+```
+
+```{r}
+pat_format
+alpha_format
+```
+
+```{r}
+indiv_reads_cg %>% filter(read_id == "e9abf215-8192-48f4-a50f-ef92241e5de3")
+indiv_reads_cg22 %>% filter(read_id == "e9abf215-8192-48f4-a50f-ef92241e5de3")
+```
+well that's chaotic
+
+```{r}
+read_positions %>% filter(read_id == "e9abf215-8192-48f4-a50f-ef92241e5de3")
+```
+
+
+```{r}
+overlap
+```
+
+something somewhere has gone wrong
+so I need to go backwards
+
+###################
+
+I think I need to use the info I have
+use the read_id and read positions to overlap to cg sites - to check that it matches the number of rows per read id
+```{r}
+cg_sites <- cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38[["chr22"]])),seqnames = "chr22") %>% 
+  mutate(pos = paste0(seqnames, "-", start)) %>%
+  relocate(pos, seqnames)
+cg_sites$index <- 1:nrow(cg_sites)
+```
+
+
+```{r}
+indiv_reads_cg22 <- indiv_reads %>% mutate(tested_cg = ifelse(grepl("..CG.", query_kmer), TRUE, FALSE)) %>% filter(tested_cg == TRUE)
+```
+
+```{r}
+indiv_reads_cg22[,c(1:5,10:14)]
+```
+
+```{r}
+indiv_reads_cg22 <- indiv_reads_cg22[,c(1:5,10:14)] %>% group_by(read_id) %>% mutate(num_cg_read = dplyr::n())
+indiv_reads_cg22 <- dplyr::ungroup(indiv_reads_cg22)
+```
+
+```{r}
+indiv_reads_cg22 %>% mutate(cg_pos = paste0(chrom, "-", ref_position)) %>% 
+                            mutate(cg_index = cg_sites[match(.$cg_pos, cg_sites$pos), "index"])
+```
+* it's 1 base off
+I think maybe because that one the aligned strand is positive - for the first one aligned strand is negative
+so maybe I do want to let it overlap in a very small window
+
+maybe I don't need this??
+though I think i actually do
+
+```{r}
+cg_sites
+```
+
+
+
