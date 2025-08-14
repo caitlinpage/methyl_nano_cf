@@ -1,0 +1,245 @@
+---
+title: "make_pat_file"
+output: html_document
+date: "2025-07-23"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(plyranges)
+library(dplyr)
+library(BSgenome.Hsapiens.UCSC.hg38)
+library(ggplot2)
+```
+
+
+```{r}
+all_readss <- read.table("/researchers/caitlin.page/cf_nano/extract_calls_he_hu5.10.tsv", header = TRUE)
+all_reads <- all_reads[all_reads$chrom %in% c("chr19", "chr20", "chr21", "chr22"),]
+nrow(all_reads)
+```
+
+```{r}
+all_reads <- all_reads[grep("..CG.", all_reads$query_kmer),]
+nrow(all_reads)
+```
+```{r}
+unique(unfactor(wgbs_beta$seqnames))[1:22]
+```
+
+```{r}
+seq_names <- unique(unfactor(wgbs_beta$seqnames))[1:22]
+```
+
+```{r}
+cg_sites <- lapply(seq_names, function(x) {
+    cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38[[x]])),
+          seqnames = x
+    )
+  }) %>%
+    dplyr::bind_rows() %>% 
+  mutate(pos = paste0(seqnames, "-", start)) %>%
+  relocate(pos, seqnames)
+cg_sites$index <- 1:nrow(cg_sites)
+
+```
+
+```{r}
+read_positions <- distinct(all_reads, read_id, chrom, alignment_start, alignment_end, read_length)
+colnames(read_positions) <- c("read_id", "seqnames", "start", "end", "width")
+read_positions <- read_positions %>% mutate(width = end - start + 1)
+```
+
+```{r}
+overlap <- plyranges::find_overlaps(plyranges::as_granges(read_positions), plyranges::as_granges(cg_sites)) %>% data.frame()
+overlap <- overlap %>% group_by(read_id) %>% mutate(num_cg = n(), min_index_cg = min(index)) %>% ungroup()
+overlap <- data.frame(overlap)
+```
+
+# use this to make a pat file
+
+```{r}
+attempt_pat_all <- all_reads
+attempt_pat_all$num_cg <- overlap[match(attempt_pat_all$read_id, overlap$read_id), "num_cg"]
+attempt_pat_all$index_cg <- overlap[match(attempt_pat_all$read_id, overlap$read_id), "min_index_cg"]
+
+attempt_pat_all
+```
+
+
+
+Better is higher than 0.8
+But if we don't ignore it - what do we call it? - as unknown?
+Leave as is for the minute but also maybe try running it
+
+```{r}
+attempt_pat_all <- attempt_pat_all %>% group_by(read_id, chrom, alignment_start, alignment_end, read_length, num_cg, index_cg) %>% 
+  mutate(call_code2 = ifelse(call_code == "m", "C", "T")) %>%
+  summarise(meth_pattern = paste(call_code2, collapse = "")) %>% .[order(.$alignment_start),] %>% ungroup() 
+attempt_pat_all
+```
+```{r}
+attempt_pat_all <- attempt_pat_all %>% group_by(chrom, index_cg, meth_pattern) %>% mutate(n=n()) %>% ungroup() 
+attempt_pat_all
+```
+
+
+# final pat form
+4 columns
+*chrom
+*cpg index
+(may have done this wrong - possibly supposed to start with 1:n in the range)
+*meth pattern
+*count
+```{r}
+pat_format_all <- attempt_pat_all[,c(2,7:9)]
+colnames(pat_format_all) <- c("chrom", "CpG index", "methylation pattern", "count")
+pat_format_all <- distinct(pat_format_all)
+pat_format_all 
+```
+
+```{r}
+write.table(pat_format_all, file = "/researchers/caitlin.page/cf_nano/chr19tochr22.pat.gz", sep = "\t", row.names = FALSE, col.names = FALSE, quote = FALSE)
+```
+
+
+```{r}
+pat_format_all
+```
+
+###
+# Using Pat in deconvolution
+* To use pat in deconvolution - the other files need to be in the same format
+* so that's the cpg file and the marker region file
+```{r}
+wgbs_pat
+```
+
+# cpg sites
+```{r}
+cg_pat <- read_bed("/researchers/caitlin.page/cf_nano/sample_cpg_file.bed.gz") %>% data.frame()
+cg_pat
+```
+
+* well I'm just going to hope that these match up because there's nothing else I can do
+
+```{r}
+cg_pat$start_index <- 1:nrow(cg_pat)
+cg_pat$end_index <- 2:(nrow(cg_pat) + 1)
+cg_pat$name <- paste0("CpG", cg_pat$start_index)
+cg_pat$pos <- paste0(cg_pat$seqnames, "-", cg_pat$start)
+cg_pat[,c(1:3,6)] %>% as_granges()
+```
+```{r}
+write_bed(cg_pat[,c(1:3,6)] %>% as_granges(), "/researchers/caitlin.page/cf_nano/cg_pat.bed")
+```
+```{r}
+Rsamtools::bgzip("/researchers/caitlin.page/cf_nano/cg_pat.bed")
+
+Rsamtools::indexTabix("/researchers/caitlin.page/cf_nano/cg_pat.bed.bgz", format = "bed")
+```
+
+# markers
+```{r}
+markers_pat <- read_bed("/researchers/caitlin.page/cf_nano/U250.bed") %>% data.frame()
+```
+
+```{r}
+markers_pat <- markers
+colnames(markers_pat) <- c("seqnames", "start", "end", "cell_type")
+markers_pat$region_id <- 1:nrow(markers_pat)
+```
+
+
+```{r}
+markers_pat <- find_overlaps(as_granges(markers_pat), as_granges(cg_pat)) %>% data.frame() %>% group_by(region_id) %>% mutate(start_cg = min(start_index), end_cg = max(start_index))
+markers_pat <- markers_pat %>% ungroup()
+```
+
+```{r}
+markers_pat$start <- markers_pat$start_cg
+markers_pat$end <- markers_pat$end_cg
+markers_pat[,c(1:3)] %>% as_granges()
+```
+```{r}
+write_bed(markers_pat[,c(1:3)] %>% as_granges(), "/researchers/caitlin.page/cf_nano/markers_pat.bed")
+```
+
+
+# atlas
+```{r}
+atlas_pat <- read.table("/researchers/caitlin.page/cf_nano/beta_atlas.txt", header = TRUE)
+atlas_pat <- atlas
+```
+
+```{r}
+colnames(atlas_pat)[1:3] <- c("seqnames", "start", "end")
+atlas_pat$atlas_id <- 1:nrow(atlas_pat)
+atlas_pat <- find_overlaps(as_granges(atlas_pat), as_granges(cg_pat)) %>% data.frame()
+atlas_pat
+```
+
+```{r}
+atlas_pat$start <- atlas_pat$start_index
+atlas_pat$end <- atlas_pat$end_index
+atlas_pat[,c(1:3,6:67)]
+```
+```{r}
+write.table(atlas_pat[,c(1:3,6:67)], "/researchers/caitlin.page/cf_nano/beta_atlas_pat.txt")
+```
+
+### 
+## trying to run celfie-ish with the pat formats
+new bug from epiparser (epiread_tools)
+and it's a fn that's working with the epiread format
+so it seems like what's happened is a mismatch between cpg in pat file and cpg in my cpg coords
+maybe it's possible the cpg file is hg19???
+or I use the beta file that matches the pat and then they're the same
+```{r}
+read.csv("/researchers/caitlin.page/cf_nano/wgbs_cf.beta")
+```
+
+```{r}
+fname <- "/researchers/caitlin.page/cf_nano/wgbs_cf.beta"
+N <- file.info(fname)$size
+wgbs_beta <- data.frame(matrix(readBin(fname, "integer", N, size = 1, signed = FALSE), N / 2, 2, byrow=TRUE))
+colnames(wgbs_beta) <- c("meth", "coverage")
+```
+
+```{r}
+wgbs_beta <- cbind(read_bigwig("/researchers/caitlin.page/cf_nano/wgbs_cf.bigwig") %>% data.frame(), wgbs_beta)
+wgbs_beta
+```
+* now use this to remake the cpg sites and etc
+```{r}
+cg_sites
+```
+
+```{r}
+wgbs_cg_pat <- wgbs_beta[,1:3]
+wgbs_cg_pat$start_index <- 1:nrow(wgbs_cg_pat)
+wgbs_cg_pat$name <- paste0("CpG", wgbs_cg_pat$start_index)
+wgbs_cg_pat %>% filter(start > 12559400)
+```
+weird that the end of the first region isn't a cpg site - makes me a bit nervous
+
+```{r}
+markers_pat <- read_bed("/researchers/caitlin.page/cf_nano/U250.bed") %>% data.frame()
+markers_pat %>% filter(seqnames == "chr1")
+```
+
+
+```{r}
+cg_pat 
+cg_sites %>% filter(start > 12559400)
+```
+```{r}
+cg_pat %>%
+  ggplot(aes(x = seqnames)) +
+  geom_bar()
+wgbs_pat
+```
+
