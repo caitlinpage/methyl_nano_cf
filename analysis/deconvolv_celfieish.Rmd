@@ -1,0 +1,156 @@
+---
+title: "deconvolv_celfieish"
+output: html_document
+date: "2025-07-23"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+* now I just have to figure out how to save it like this and then I can try and shove it into celfieish
+* also downloading a pat file from the old cell atlas paper to check if mine looks the same
+
+```{r}
+write.table(pat_format, file = "/researchers/caitlin.page/cf_nano/he_hu5.10.pat.gz", sep = "\t", row.names = FALSE, col.names = FALSE, quote = FALSE)
+```
+
+* ok I do need other things before I can just push this into celfieish
+* need a bed file of cpg coords
+* can make that
+```{r}
+export(plyranges::as_granges(cg_sites[,2:4]), "/researchers/caitlin.page/cf_nano/cg_chr22.bed", format = "bed")
+```
+
+# compare to existing pat file:
+```{r}
+wgbs_pat <- read.table("/researchers/caitlin.page/cf_nano/wgbs_cf.pat.gz")
+```
+- looks good
+- just don't know if it matters that my cpg index doesn't start at 1
+```{r}
+wgbs_pat %>% filter(V1 == "chr22")
+```
+
+# also needs input of atlas and marker regions
+* which I will just steal from the atlas paper
+* but I will need to cut them down to just chr22
+
+```{r}
+atlas <- read.table("/researchers/caitlin.page/cf_nano/beta_atlas.txt", header = TRUE)
+atlas_chr22 <- atlas %>% filter(CHROM == "chr22")
+write.table(atlas_chr22, "/researchers/caitlin.page/cf_nano/beta_atlas_chr22.txt")
+
+atlas_2 <- atlas %>% filter(CHROM %in% c("chr19", "chr20", "chr21", "chr22"))
+write.table(atlas_2, "/researchers/caitlin.page/cf_nano/beta_atlas_chr19tochr22.txt")
+```
+
+```{r}
+write.table(markers[,1:3], "/researchers/caitlin.page/cf_nano/U250_just_pos.tsv", sep = "\t", quote = FALSE, row.names = FALSE, col.names = FALSE)
+```
+
+```{r}
+write.csv(markers[,1:3], "/researchers/caitlin.page/cf_nano/U250_just_pos.csv", quote = FALSE, row.names = FALSE, col.names = FALSE)
+```
+
+
+```{r}
+write.table(markers %>% mutate(new = paste0(V1, ":", V2, "-", V3)) %>% .[,5], "/researchers/caitlin.page/cf_nano/U250_just_pos_col.tsv", sep = ",", quote = FALSE, row.names = FALSE, col.names = FALSE)
+```
+```{r}
+write.csv(markers %>% mutate(new = paste0(V1, ":", V2, "-", V3)) %>% .[,5], "/researchers/caitlin.page/cf_nano/U250_just_pos_col.csv", quote = FALSE, row.names = FALSE, col.names = NA)
+write.csv(col)
+```
+
+```{r}
+markers
+```
+
+```{r}
+read.table("/researchers/caitlin.page/cf_nano/U250_just_pos.tsv", sep = "\t")
+```
+
+```{r}
+markers_bed <- markers[,1:3]
+colnames(markers_bed) <- c("seqnames", "start", "end")
+markers_bed <- as_granges(markers_bed)
+
+export.bed(markers_bed, "/researchers/caitlin.page/cf_nano/U250.bed")
+```
+
+```{r}
+markers <- read.table("/researchers/caitlin.page/cf_nano/U250.tsv")
+markers_chr22 <- markers %>% filter(V1 == "chr22")
+write.table(markers_chr22, "/researchers/caitlin.page/cf_nano/U250_chr22.tsv", col.names = FALSE)
+
+markers_2 <- markers %>% filter(V1 %in% c("chr19", "chr20", "chr21", "chr22"))
+write.table(markers_2, "/researchers/caitlin.page/cf_nano/U250_chr19tochr22.tsv", col.names = FALSE)
+```
+
+```{r}
+export(plyranges::as_granges(cg_sites[,2:4]), "/researchers/caitlin.page/cf_nano/cg_chr19tochr22.bed", format = "bed")
+```
+
+
+# failing to run
+* and I'm not sure if it's because of me or not
+* well it's running with the wgbs
+* but also that is with an atlas appriopriate for it and regions appropriate for it lol
+* so i need to do that then
+oh something about it expecting 3 and getting 1
+I think that would be number of chromosomes
+One way to test that
+
+tried with chr19-chr22
+and failed with same error
+so I give up on that for now
+ValueError: not enough values to unpack (expected 3, got 1)
+
+
+File "/home/cpage/.local/lib/python3.9/site-packages/epiread_tools/em_utils.py", line 57, in set_interval
+    self.chrom, self.start, self.end = interval.replace(":", TAB).replace("-", TAB).split(TAB)
+ValueError: not enough values to unpack (expected 3, got 1)
+
+em_utils.py is a genomic ranges thing - which means it's used by 
+
+or just save a bed file: that fixed it
+new error: need a tbi file for pat file
+which is just index file with genomic positions
+which is in the data geo b/c i'm using a sample from the atlas paper https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSM6810023
+that file is a .csi which it didn't like so let's change the name to the extension it does want (.tbi) and see what happens
+ok new error
+ File "/home/cpage/.local/lib/python3.9/site-packages/epiread_tools/epiparser.py", line 372, in to_csr
+    if mapper.abs_to_rel[abs] in mapper.all_rel:
+KeyError: 1045595
+I think it's that the coordinates don't match up with the mapping
+which could be b/c the pat file is in hg38
+so let's try with their demo epiread file
+working... now dummy error of can't find the atlas file: silly error was missing / at the start
+anyway it completed!!
+
+```{r}
+output <- read.table("/researchers/caitlin.page/cf_nano/celfieish_wgbs_cf.txt")
+rowSums(output)
+```
+* well this isn't intuitive
+* so it's a %
+```{r}
+colnames(output) <- cell_types
+output
+output %>% t(.) %>% 
+  ggplot(aes())
+```
+
+```{r}
+colnames(atlas)[4:65]
+```
+so I think it should all line up with this
+```{r}
+cell_types <- sub("_.*", "", colnames(atlas)[4:65]) %>% unique()
+```
+but 
+
+
+oh if you use pat - the cpg file needs to be in same form
+cpg number instead of genomic coordinates
+and same with marker regions

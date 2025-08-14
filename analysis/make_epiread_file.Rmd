@@ -1,0 +1,135 @@
+---
+title: "make_epiread_file"
+output: html_document
+date: "2025-08-05"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(plyranges)
+library(dplyr)
+library(ggplot2)
+```
+
+I need individual read level info to make this
+which I don't have from the atlas cfDNA
+but I can maybe make it for the long read if it's a nightmare doing stuff to do the simple
+
+Chromosome name
+Read name
+Read position in paired-end sequencing
+Bisulfite strand (OT/CTOT (+) or OB/CTOB (-))
+Position of the cytosine in the first CpG (0-based)
+Retention pattern (“C” for retention or “T” for conversion) for all CpGs covered
+Position of the first SNP, if a SNP location file is provided (“.” if no SNPs)
+Base call of all SNPs covered (“.” if no SNPs)
+```{r}
+wgbs_epiread
+```
+my first idk is likely to be read position in paired end - either read 1 or 2
+then the other 2 idk would be about snp
+the thing I have as the cg ids I don't know i think that might be a read id, they all have 7 sectons - hopefully it doesn't matter what I call it
+
+
+```{r}
+indiv_reads
+pat_format
+```
+
+```{r}
+epiread_format <- pat_first
+epiread_format
+```
+lol this is when I realise I've almost made it already
+```{r}
+cg_sites_22 <- cg_sites %>% filter(seqnames == "chr22")
+cg_sites_22$index <- 1:nrow(cg_sites_22)
+```
+
+```{r}
+seq(from = 53, length = 4)
+```
+
+```{r}
+epiread_format %>% mutate(cpg_pos = c(seq(from = index_cg, length = num_cg)))
+```
+```{r}
+cbind(data.frame(start = c(1,2)), rbind(data.frame(cpg_pos = as.character(48)), "48,49,50"))
+```
+
+```{r}
+cpg_positions <- data.frame(cpg_positions = as.character(48))
+for(i in 2:nrow(epiread_format)) {
+  cpg_positions <- rbind(cpg_positions, paste0(seq(from = epiread_format$index_cg[i], length = epiread_format$num_cg[i]), collapse = ","))
+  
+}
+cpg_positions
+epiread_format <- cbind(epiread_format, cpg_positions)
+```
+
+```{r}
+cg_sites_22 <- cg_sites_22 %>% mutate(index = as.integer(index), start = as.character(start))
+```
+
+```{r}
+library(stringr)
+```
+
+```{r}
+cg_sites_22
+```
+
+```{r}
+cg_sites_22
+```
+
+```{r}
+epiread_format %>% mutate(cpg_genom = cg_sites_22[match(.$index_cg, cg_sites_22$index), "start"])
+```
+
+```{r}
+paste0(cg_sites_22[seq(from = epiread_format$index_cg[1], length = epiread_format$num_cg[1]), "start"], collapse = ",")
+```
+
+```{r}
+genom_positions <- data.frame(genom_positions = as.character(10521180))
+for(i in 2:nrow(epiread_format)) {
+  genom_positions <- rbind(genom_positions, paste0(cg_sites_22[seq(from = epiread_format$index_cg[i], length = epiread_format$num_cg[i]), "start"], collapse = ","))
+  
+}
+genom_positions
+epiread_format <- cbind(epiread_format, genom_positions)
+epiread_format
+```
+
+
+```{r}
+paste0(seq(from = epiread_format$index_cg[i], length = epiread_format$num_cg[i]), collapse = ",")
+```
+
+
+
+```{r}
+cg_sites_22 %>% mutate(index = as.character(index)) %>% mutate(check = ifelse(index %in% unlist(strsplit(epiread_format$cpg_positions, ",")), TRUE, FALSE))
+```
+
+
+```{r}
+cpg_positions <- data.frame(cpg_positions = as.character(48))
+for(i in 2:nrow(epiread_format)) {
+  cpg_positions <- rbind(cpg_positions, paste0(seq(from = epiread_format$index_cg[i], length = epiread_format$num_cg[i]), collapse = ","))
+  
+}
+```
+
+```{r}
+1+1
+```
+
+
+attempt_pat_all %>% group_by(read_id, chrom, alignment_start, alignment_end, read_length, num_cg, index_cg) %>% 
+  mutate(call_code2 = ifelse(call_code == "m", "C", "T")) %>%
+  summarise(meth_pattern = paste(call_code2, collapse = "")) %>% .[order(.$alignment_start),] %>% ungroup()

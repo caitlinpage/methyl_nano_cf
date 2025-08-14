@@ -1,0 +1,309 @@
+---
+title: "individual_reads"
+output: html_document
+date: "2025-07-22"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r}
+library(plyranges)
+library(dplyr)
+library(ggplot2)
+library(BSgenome.Hsapiens.UCSC.hg38)
+```
+
+
+```{r}
+indiv_reads <- read.table("/researchers/caitlin.page/cf_nano/modkit_output/extract_calls_he_hu5.10.tsv", header = TRUE)
+indiv_reads <- indiv_reads[indiv_reads$chrom == "chr22",]
+```
+
+```{r}
+saveRDS(indiv_reads, "/researchers/caitlin.page/cf_nano/r_output/extract_calls_he_hu5.10_chr22.rds")
+```
+
+
+```{r}
+indiv_reads
+```
+
+ok so this has 1 row per mod per read
+so basically reads are repeated
+
+ok so I don't really know the methylation pattern through this? idk hard to interpret
+and I wasn't a
+
+
+but let's look at read length
+
+```{r}
+indiv_reads %>%
+  ggplot(aes(x = read_length)) +
+  geom_density()
+
+indiv_reads %>%
+  ggplot(aes(x = read_length)) +
+  geom_density() +
+  scale_x_continuous(limits = c(0,1000))
+```
+
+yep it follows that pattern to do with the chromatin
+
+# where is the meth info?
+```{r}
+indiv_reads
+```
+
+* cheated and asked perplexity b/c reading the documentation is not helping enough
+
+* call_code is the kicker
+  * - means unmethylated, m means methylated
+  * and when I found a methylated one, the query_kmer column had CG in it so that's a bonus
+* call_prob - prob of call
+  * want higher than 0.8 - which I think should have b/c it did filtering
+
+#how many rows does each read have?
+```{r}
+c(num_reads = indiv_reads %>% distinct(read_id) %>% nrow(.), 
+  num_rows = indiv_reads %>% nrow(.),
+  prop = indiv_reads %>% distinct(read_id) %>% nrow(.)/indiv_reads %>% nrow(.))
+indiv_reads %>% distinct(read_id) %>% nrow(.)
+indiv_reads %>% nrow(.)
+indiv_reads %>% distinct(read_id) %>% nrow(.)/indiv_reads %>% nrow(.)
+```
+```{r}
+indiv_reads %>% group_by(read_id) %>% summarise(mod_by_read = n()) %>% ungroup() %>% group_by(mod_by_read) %>% summarise(n())
+```
+
+```{r}
+indiv_reads %>% group_by(read_id) %>% summarise(mod_by_read = n()) %>%
+  ggplot(aes(x = mod_by_read)) +
+  geom_density()
+indiv_reads %>% group_by(read_id) %>% summarise(mod_by_read = n()) %>%
+  ggplot(aes(x = mod_by_read)) +
+  geom_histogram(bins = 50)
+```
+
+# are more mods associated with longer reads?
+```{r}
+indiv_reads %>% group_by(read_id, read_length) %>% summarise(mod_by_read = n()) %>%
+  ggplot(aes(x = read_length, y = mod_by_read)) +
+  geom_point(alpha = 0.3)
+```
+
+```{r}
+cor.test(indiv_reads %>% group_by(read_id, read_length) %>% summarise(mod_by_read = n()) %>% .$read_length, indiv_reads %>% group_by(read_id, read_length) %>% summarise(mod_by_read = n()) %>% .$mod_by_read)
+```
+
+# how many rows have call_code = m?
+```{r}
+indiv_reads %>% group_by(call_code) %>% summarise(n = n()) %>% ungroup() %>% mutate(prop_total = n/sum(n))
+```
+
+# how many reads have call_code = m?
+```{r}
+indiv_reads %>% group_by(read_id, call_code) %>% summarise(n=n()) %>% ungroup() %>% group_by(read_id) %>% mutate(read_prop = n/sum(n)) %>% mutate(check_rows = n())
+```
+
+```{r}
+indiv_reads %>% group_by(read_id, call_code) %>% summarise(n=n()) %>% ungroup() %>% group_by(read_id) %>% mutate(read_prop = n/sum(n)) %>% mutate(check_rows = n()) %>%
+  mutate(call_code2 = ifelse(call_code == "-" & check_rows == 1, "m2", call_code),
+         read_prop2 = ifelse(call_code2 == "m2", 0, read_prop),
+         call_code2 = ifelse(call_code2 == "m2", "m", call_code2)) %>% filter(call_code2 == "m")
+```
+
+
+```{r}
+indiv_reads %>% group_by(read_id, call_code) %>% summarise(n=n()) %>% ungroup() %>% group_by(read_id) %>% mutate(read_prop = n/sum(n)) %>% mutate(check_rows = n()) %>%
+  mutate(call_code2 = ifelse(call_code == "-" & check_rows == 1, "m2", call_code),
+         read_prop2 = ifelse(call_code2 == "m2", 0, read_prop),
+         call_code2 = ifelse(call_code2 == "m2", "m", call_code2)) %>% filter(call_code2 == "m") %>%
+  ggplot(aes(x = read_prop2)) +
+  geom_density()
+
+indiv_reads %>% group_by(read_id, call_code) %>% summarise(n=n()) %>% ungroup() %>% group_by(read_id) %>% mutate(read_prop = n/sum(n)) %>% mutate(check_rows = n()) %>%
+  mutate(call_code2 = ifelse(call_code == "-" & check_rows == 1, "m2", call_code),
+         read_prop2 = ifelse(call_code2 == "m2", 0, read_prop),
+         call_code2 = ifelse(call_code2 == "m2", "m", call_code2)) %>% filter(call_code2 == "m") %>%
+  ggplot(aes(x = read_prop2)) +
+  geom_histogram(bins = 50)
+```
+
+* how many reads only have call_code = m?
+```{r}
+indiv_reads %>% group_by(read_id, call_code) %>% summarise(n=n()) %>% ungroup() %>% group_by(read_id) %>% mutate(read_prop = n/sum(n)) %>% mutate(check_rows = n()) %>% filter(check_rows == 1) %>% group_by(call_code) %>% summarise(n())
+```
+
+## Filter to rows with CG in kmer
+
+```{r}
+indiv_reads_cg <- indiv_reads[grep("CG", indiv_reads$query_kmer),]
+```
+
+## get cg sites with BSgenome
+```{r}
+library(BSgenome.Hsapiens.UCSC.hg38)
+```
+```{r}
+cg_sites <- cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38[["chr22"]])),seqnames = "chr22") %>% 
+  mutate(pos = paste0(seqnames, "-", start)) %>%
+  relocate(pos, seqnames)
+cg_sites$index <- 1:nrow(cg_sites)
+```
+```{r}
+indiv_reads
+```
+```{r}
+indiv_reads_cg22 <- indiv_reads %>% mutate(tested_cg = ifelse(grepl("..CG.", query_kmer), TRUE, FALSE)) %>% filter(tested_cg == TRUE)
+```
+
+```{r}
+read_positions <- distinct(indiv_reads_cg22, read_id, chrom, alignment_start, alignment_end, read_length, call_code)
+colnames(read_positions) <- c("read_id", "seqnames", "start", "end", "width", "call_code")
+read_positions <- read_positions %>% mutate(width = end - start + 1)
+```
+
+```{r}
+overlap <- plyranges::find_overlaps(plyranges::as_granges(read_positions), plyranges::as_granges(cg_sites)) %>% data.frame()
+overlap <- overlap %>% group_by(read_id) %>% mutate(num_cg = n(), min_index_cg = min(index)) %>% ungroup()
+overlap <- data.frame(overlap)
+```
+
+# use this to make a pat file
+4 columns - ok so there's is like a summarised form already
+so i need to go back a step
+want read id, chrom, index first cpg, pattern of meth (CT)
+
+(and then they ask how many times does that exact pattern show up)
+
+ok so the modified base for every row is the middle of the kmer - the 3rd base - which seems to be a c
+```{r}
+attempt_pat <- indiv_reads
+attempt_pat$num_cg <- overlap[match(attempt_pat$read_id, overlap$read_id), "num_cg"]
+attempt_pat$index_cg <- overlap[match(attempt_pat$read_id, overlap$read_id), "min_index_cg"]
+
+attempt_pat
+```
+```{r}
+attempt_pat %>% group_by(mod_strand) %>% summarise(n())
+```
+- don't need to worry about strand (GC vs CG)
+```{r}
+attempt_pat <- attempt_pat %>% mutate(tested_cg = ifelse(grepl("..CG.", query_kmer), TRUE, FALSE))
+```
+```{r}
+attempt_pat <- attempt_pat %>% filter(tested_cg == TRUE)
+nrow(attempt_pat)
+```
+
+now I have all the rows for cg sites
+I have the number of cg sites in the read
+I have the index of the first cg site
+now I need the sequence of methylation
+so per read get the -m to make a string somehow
+
+Pat file format: C is methylated c, t is unmethylated C
+So: m = C, - = T
+
+but also I need to check quality of call prob
+```{r}
+attempt_pat %>%
+  ggplot(aes(y = call_prob, x = call_code, colour = call_code)) +
+  geom_boxplot()
+
+attempt_pat %>%
+  ggplot(aes(y = call_prob, x = call_code, colour = call_code)) +
+  geom_violin()
+```
+Do we ignore the low probabilities?
+Better is higher than 0.8
+But if we don't ignore it - what do we call it? - as unknown?
+Leave as is for the minute but also maybe try running it
+```{r}
+attempt_pat <- attempt_pat %>% group_by(read_id, chrom, alignment_start, alignment_end, read_length, num_cg, index_cg) %>% 
+  mutate(call_code2 = ifelse(call_code == "m", "C", "T")) %>%
+  summarise(meth_pattern = paste(call_code2, collapse = "")) %>% .[order(.$alignment_start),] %>% ungroup() 
+attempt_pat
+```
+```{r}
+attempt_pat <- attempt_pat %>% group_by(chrom, index_cg, meth_pattern) %>% mutate(n=n()) %>% ungroup() 
+attempt_pat
+```
+
+# final pat form
+4 columns
+*chrom
+*cpg index
+(may have done this wrong - possibly supposed to start with 1:n in the range)
+*meth pattern
+*count
+```{r}
+pat_format <- attempt_pat[,c(2,7:9)]
+colnames(pat_format) <- c("chrom", "CpG index", "methylation pattern", "count")
+pat_format <- distinct(pat_format)
+pat_format
+```
+
+* now I just have to figure out how to save it like this and then I can try and shove it into celfieish
+* also downloading a pat file from the old cell atlas paper to check if mine looks the same
+
+```{r}
+write.table(pat_format, file = "/researchers/caitlin.page/cf_nano/he_hu5.10.pat.gz", sep = "\t", row.names = FALSE, col.names = FALSE, quote = FALSE)
+```
+
+* ok I do need other things before I can just push this into celfieish
+* need a bed file of cpg coords
+* can make that
+```{r}
+export(plyranges::as_granges(cg_sites[,2:4]), "/researchers/caitlin.page/cf_nano/cg_chr22.bed", format = "bed")
+```
+
+# compare to existing pat file:
+```{r}
+wgbs_pat <- read.table("/researchers/caitlin.page/cf_nano/wgbs_cf.pat.gz")
+```
+- looks good
+- just don't know if it matters that my cpg index doesn't start at 1
+
+```{r}
+read.table("/researchers/caitlin.page/cf_nano/mixture.epiread.gz")
+```
+* may need this format instead of pat - b/c of the tbi and positions thing
+* unless I just make it
+
+```{r}
+wgbs_pat %>% filter(V1 == "chr22")
+```
+
+
+
+## deconvolution
+Q: do I need the cg info to push it through something like celfieish??
+A: yes
+I need either pat file format or old epiread
+both are python tools
+
+Downloaded models for celfieish and wgbs_tools in cluster
+Don't know if either will work
+
+Let's try to work with what I have here as well
+
+pat file has less columns so let's try to recreate that first
+
+[pat file](https://github.com/nloyfer/wgbs_tools/blob/master/docs/pat_format.md)
+
+
+# need cg sites
+```{r}
+renv::install("bioc::BSgenome.Hsapiens.UCSC.hg38")
+```
+
+```{r}
+saveRDS(alpha_format, "/researchers/caitlin.page/cf_nano/r_output/alpha_format.rds")
+saveRDS(epiread_and_genes, "/researchers/caitlin.page/cf_nano/r_output/epiread_and_genes.rds")
+saveRDS(epiread_format, "/researchers/caitlin.page/cf_nano/r_output/epiread_format.rds")
+saveRDS(pat_format, "/researchers/caitlin.page/cf_nano/r_output/pat_format.rds")
+```
+

@@ -1,0 +1,34 @@
+---
+title: "other_files"
+output: html_document
+date: "2025-08-14"
+---
+
+```{r}
+hu5.11 <- read.table("/researchers/caitlin.page/cf_nano/extract_calls_hu5.11.tsv", header = TRUE)
+hu5.11 <- hu5.11[hu5.11$chrom == "chr22",]
+```
+
+```{r}
+hu5.11 %>% group_by(mod_strand) %>% summarise(n())
+hu5.11 %>% group_by(ref_strand) %>% summarise(n())
+hu5.11 %>% group_by(ref_mod_strand) %>% summarise(n())
+```
+
+
+```{r}
+hu5.11 <- hu5.11[grep("..CG.", hu5.11$query_kmer),]
+```
+
+```{r}
+saveRDS(hu5.11, "/researchers/caitlin.page/cf_nano/r_output/extract_calls_hu5.11_chr22.rds")
+```
+```{r}
+hu5.11 <- readRDS("/researchers/caitlin.page/cf_nano/r_output/extract_calls_hu5.11_chr22.rds")
+```
+
+
+```{r}
+indiv_reads_cg22
+```
+

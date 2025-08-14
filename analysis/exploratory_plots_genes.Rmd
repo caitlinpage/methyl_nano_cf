@@ -1,0 +1,121 @@
+---
+title: "exploratory_plots_genes"
+output: html_document
+date: "2025-08-08"
+---
+```{r}
+library(plyranges)
+library(dplyr)
+library(ggplot2)
+```
+
+# where in the genome are reads with alpha = 1 vs alpha = 0?
+* promoters, intergenic, exons etc??
+```{r}
+library("TxDb.Hsapiens.UCSC.hg38.knownGene")
+genes <- genes(TxDb.Hsapiens.UCSC.hg38.knownGene)
+```
+```{r}
+genes %>% data.frame() %>% filter(seqnames == "chr22") %>% nrow()
+```
+
+```{r}
+colnames(epiread_format)[2:4] <- c("seqnames", "start", "end")
+epiread_format$read_start <- epiread_format$start
+epiread_format$read_end <- epiread_format$end
+```
+
+
+* ok for some silly reason I can't make this granges a data.frame - it doesn't like the duplicate row names or something - never had any issues before
+* but find_overlaps still works
+```{r}
+epiread_and_genes <- plyranges::find_overlaps(genes, plyranges::as_granges(epiread_format)) %>% data.frame()
+colnames(epiread_and_genes)[2:5] <- c("gene_start", "gene_end", "gene_width", "gene_strand")
+
+epiread_and_genes <- epiread_and_genes[,c(1,19:20,2:18)]
+```
+
+```{r}
+epiread_and_genes %>% group_by(gene_id) %>% summarise(n=n()) %>%
+  ggplot(aes(x = n)) +
+  geom_bar() +
+  labs(title = "Frequency of a certain number of reads overlapping a gene",
+       x = "Number of reads overlapping a gene", 
+       y = "How many genes have the same number of overlaps")
+```
+
+```{r}
+epiread_and_genes %>%
+  ggplot(aes(x = gene_width, y = read_length)) +
+  geom_point(alpha = 0.3)
+```
+```{r}
+epiread_and_genes
+```
+
+
+* 609 out of 680 genes: 90%
+* I don't really like this plot
+
+```{r}
+c(overlap_genes = length(unique(epiread_and_genes$gene_id)), 
+  total_genes = length(unique(filter(genes, seqnames == "chr22")$gene_id)), 
+  prop_genes = length(unique(epiread_and_genes$gene_id))/length(unique(filter(genes, seqnames == "chr22")$gene_id)))
+
+c(overlap_reads = length(unique(epiread_and_genes$read_id)), 
+  total_reads = length(unique(epiread_format$read_id)), 
+  prop_reads = length(unique(epiread_and_genes$read_id))/length(unique(epiread_format$read_id)))
+```
+
+# where in the gene?
+* I only have start and end gene coords from the TxDb file
+* Let's fake some promoter coordinates from this
+
+* 1kb in front of start, to 500bp after start
+* strand dependent: so if strand is negative it's based around the end coordinate
+```{r}
+genes_22 <- genes %>% data.frame() %>% filter(seqnames == "chr22")
+
+genes_22_promoter <- genes_22 %>% mutate(start = ifelse(strand == "+", start - 1000, end - 500),
+                                         end = ifelse(strand == "+", start + 1500, end + 1000),
+                                         width = end - start + 1)
+```
+
+```{r}
+epireads_and_promoters_1500 <- plyranges::find_overlaps(plyranges::as_granges(epiread_format), plyranges::as_granges(genes_22_promoter)) %>% data.frame()
+```
+
+```{r}
+epiread_format %>% mutate(in_promoter = ifelse(read_id %in% epireads_and_promoters_1500$read_id, TRUE, FALSE)) %>%
+  ggplot(aes(x = in_promoter, y = alpha, fill = in_promoter)) +
+  geom_boxplot() +
+  theme(legend.position = "none")
+```
+
+```{r}
+epiread_format %>% mutate(in_gene = ifelse(read_id %in% epiread_and_genes$read_id, TRUE, FALSE)) %>%
+  ggplot(aes(x = in_gene, y = alpha, fill = in_gene)) +
+  geom_boxplot() +
+  theme(legend.position = "none")
+```
+* this is useful
+* lower methylation in overlap than in gene body - good b/c we know that gene bodies should be methylated
+
+```{r}
+epiread_format %>% mutate(where = ifelse(read_id %in% epiread_and_genes$read_id, "Gene", "Random"),
+                          where = ifelse(read_id %in% epireads_and_promoters_1500$read_id, "Promoter", where)) %>%
+  ggplot(aes(x = where, y = alpha, fill = where)) +
+  geom_boxplot() +
+  theme(legend.position = "none")
+```
+
+
+```{r}
+epiread_format
+```
+
+
+```{r}
+epiread_and_genes
+```
+

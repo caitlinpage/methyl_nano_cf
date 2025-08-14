@@ -1,0 +1,49 @@
+---
+title: "webs_vs_nano"
+output: html_document
+date: "2025-08-01"
+---
+
+```{r}
+library(plyranges)
+library(dplyr)
+library(ggplot2)
+```
+
+
+```{r}
+wgbs_pat_22 <- wgbs_pat %>% filter(V1 == "chr22")
+```
+```{r}
+pat_format
+```
+
+```{r}
+wgbs_epiread <- read.table("/researchers/caitlin.page/cf_nano/mixture.epiread.gz")
+colnames(wgbs_epiread) <- c("seqnames", "start", "end", "cg_ids", "idk", "strand", "cg_pos", "cg_pattern", "idk2", "idk3", "cell_type")
+wgbs_epiread_22 <-wgbs_epiread %>% filter(seqnames == "chr22")
+```
+```{r}
+indiv_reads_cg22
+```
+
+```{r}
+wgbs_epiread_22 %>% mutate(width = end - start + 1) %>%
+  ggplot(aes(x = width)) +
+  geom_density() +
+  labs(title = "WGBS read length")
+```
+
+```{r}
+indiv_reads_cg22 %>%
+  ggplot(aes(x = read_length)) +
+  geom_density() +
+  labs(title = "Nanopore read length")
+
+indiv_reads_cg22 %>%
+  ggplot(aes(x = read_length)) +
+  geom_density() +
+  labs(title = "Nanopore read length") +
+  scale_x_continuous(limits = c(0,1000))
+```
+
