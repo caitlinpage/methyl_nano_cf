@@ -1,0 +1,19 @@
+---
+title: "testingKnowncfDNAFeatures"
+author: "caitlinpage"
+date: "2025-08-15"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+* This file will have some overlap to the exploratory plots files - just trying to have it a bit more organised
+
+## Introduction
+
+```{r}
+library(plyranges)
+library(dplyr)
+library(ggplot2)
+```
+
