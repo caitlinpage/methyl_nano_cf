@@ -5,6 +5,38 @@ date: "2025-08-14"
 ---
 
 ```{r}
+library(plyranges)
+library(dplyr)
+library(ggplot2)
+
+library(BSgenome.Hsapiens.UCSC.hg38)
+```
+
+
+13 files:
+(main one - epiread format) hu5.10
+
+Healthy samples
+* hu5.10
+* hu5.11
+* hu5.12
+* ispro.bc2
+* ispro.bc3
+* ispro.bc4
+* ispro.bc5
+
+LUAD cancer samples
+* ispro.s1
+* ispro.bc1
+* ispro.bc8
+* ispro.bc9
+* ispro.bc10
+* ispro.bc11
+
+
+
+
+```{r}
 hu5.11 <- read.table("/researchers/caitlin.page/cf_nano/extract_calls_hu5.11.tsv", header = TRUE)
 hu5.11 <- hu5.11[hu5.11$chrom == "chr22",]
 ```
@@ -27,8 +59,84 @@ saveRDS(hu5.11, "/researchers/caitlin.page/cf_nano/r_output/extract_calls_hu5.11
 hu5.11 <- readRDS("/researchers/caitlin.page/cf_nano/r_output/extract_calls_hu5.11_chr22.rds")
 ```
 
+```{r}
+cg_sites <- cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38[["chr22"]])),seqnames = "chr22") %>% 
+  mutate(pos = paste0(seqnames, "-", start)) %>%
+  relocate(pos, seqnames)
+cg_sites$index <- 1:nrow(cg_sites)
+```
 
 ```{r}
-indiv_reads_cg22
+hu5.11 <- hu5.11 %>% group_by(read_id) %>% mutate(n_cg_row = n()) %>% ungroup()
+```
+
+
+```{r}
+read_positions <- distinct(hu5.11, read_id, chrom, alignment_start, alignment_end, read_length, call_code, n_cg_row)
+colnames(read_positions) <- c("read_id", "seqnames", "start", "end", "width", "call_code", "n_cg_row")
+read_positions <- read_positions %>% mutate(width = end - start + 1)
+```
+
+```{r}
+overlap <- plyranges::find_overlaps(plyranges::as_granges(read_positions), plyranges::as_granges(cg_sites)) %>% data.frame()
+overlap <- overlap %>% group_by(read_id) %>% mutate(num_cg = n(), min_index_cg = min(index)) %>% ungroup()
+overlap <- data.frame(overlap)
+```
+```{r}
+distinct(overlap)
+```
+
+* not good 2 different things of how many cpg sites
+* ok that means everything else is wrong - yippee for me
+* it's not wrong on everything but basically the call code messed it around - it wanted to put a cg for each
+```{r}
+overlap %>% distinct(read_id, n_cg_row, num_cg) %>% mutate(match = ifelse(n_cg_row == num_cg, TRUE, FALSE)) %>% group_by(match) %>% summarise(n=n())
+overlap %>% distinct(read_id, n_cg_row, num_cg) %>% mutate(match = ifelse(n_cg_row == num_cg, TRUE, FALSE)) %>%
+  ggplot(aes(x = n_cg_row, y = num_cg)) +
+  geom_point(alpha = 0.3) +
+  labs(x = "From the file: rows from same read", y = "By overlapping to cg sites (was using and is wrong)")
+```
+* so if I take out the call code they should match up
+
+```{r}
+read_positions <- distinct(read_positions[,c(1:5,7)])
+overlap <- plyranges::find_overlaps(plyranges::as_granges(read_positions), plyranges::as_granges(cg_sites)) %>% data.frame()
+overlap <- overlap %>% group_by(read_id) %>% mutate(num_cg = n(), min_index_cg = min(index)) %>% ungroup()
+overlap <- data.frame(overlap)
+```
+* this appears to have fixed the doubling problem that was happening
+```{r}
+overlap %>% distinct(read_id, n_cg_row, num_cg) %>% mutate(match = ifelse(n_cg_row == num_cg, TRUE, FALSE)) %>% filter(match == FALSE) %>% mutate(size_diff = num_cg - n_cg_row) %>% group_by(size_diff) %>% summarise(n=n())
+overlap %>% distinct(read_id, n_cg_row, num_cg) %>% mutate(match = ifelse(n_cg_row == num_cg, TRUE, FALSE)) %>% group_by(match) %>% summarise(n=n())
+```
+* hmm still some that don't match
+* but it's mostly off by 1 cpg
+* which makes me think it's an alignment based thing - of is the read looking at the c or the g in the cpg
+
+```{r}
+overlap %>% distinct(read_id, n_cg_row, num_cg, start, end) %>% mutate(match = ifelse(n_cg_row == num_cg, TRUE, FALSE)) %>% filter(match == FALSE) %>% .[1,]
+
+```
+```{r}
+hu5.11 %>% filter(read_id == "275f55a8-0d46-4993-af71-3dae0d319a0e") %>% nrow()
+cg_sites %>% filter(start >= 10628771, end <= 10629119) %>% nrow()
+```
+* ok well it added in an extra one somewhere weird
+* so just use the row positions
+
+```{r}
+hu5.11[1,]
+```
+```{r}
+cg_sites %>% filter(start >= hu5.11[1,]$alignment_start, end <= hu5.11[1,]$alignment_end) 
+```
+
+
+```{r}
+attempt_pat <- indiv_reads
+attempt_pat$num_cg <- overlap[match(attempt_pat$read_id, overlap$read_id), "num_cg"]
+attempt_pat$index_cg <- overlap[match(attempt_pat$read_id, overlap$read_id), "min_index_cg"]
+
+attempt_pat
 ```
 
