@@ -15,3 +15,6 @@ Welcome to my research website.
 [exploratory plots](exploratory_plots.html)
 
 [explore relationship with genes](exploratory_plots_genes.html)
+
+
+[same plots with cancer sample](healthyVsLuad.html)

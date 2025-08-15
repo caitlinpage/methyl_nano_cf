@@ -398,6 +398,15 @@ epiread_format %>% filter(histone_groups %in% levels(epiread_format$histone_grou
 * perplexity says longer cfDNA fragments associated with more methylated reads, hypomethylation for shorter fragments
 * which is the opposite of what we're seeing here
 * try just looking at the first bin (it has half the reads)
+
+```{r}
+epiread_format %>% filter(histone_groups %in% levels(epiread_format$histone_groups)[1]) %>%
+  ggplot(aes(x = read_length, y = alpha)) +
+  geom_boxplot() +
+  labs(title = "Alpha distrib in read lengths 175bp")
+```
+
+
 ```{r}
 aov.res <- aov(alpha ~ histone_groups, data = epiread_format)
 summary(aov.res)
