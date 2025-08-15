@@ -1,0 +1,21 @@
+---
+title: "modkitOutputToReadFormat"
+author: "caitlinpage"
+date: "2025-08-15"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+## Introduction
+
+```{r}
+library(plyranges)
+library(dplyr)
+library(ggplot2)
+
+library(stringr)
+
+library(BSgenome.Hsapiens.UCSC.hg38)
+```
+
