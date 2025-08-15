@@ -519,15 +519,15 @@ project makes it easier to run your code on other machines.</p>
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpagemethylnanocftreebfb9b48745407b3b5e084950c21769123793e84ftargetblankbfb9b48a">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpagemethylnanocftreedc74c0a0b2f17fc2e3498e41ec9880ae45508d1atargetblankdc74c0aa">
 <span class="glyphicon glyphicon-ok text-success"
 aria-hidden="true"></span> <strong>Repository version:</strong>
-<a href="https://github.com/caitlinpage/methyl_nano_cf/tree/bfb9b48745407b3b5e084950c21769123793e84f" target="_blank">bfb9b48</a>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/tree/dc74c0a0b2f17fc2e3498e41ec9880ae45508d1a" target="_blank">dc74c0a</a>
 </a>
 </p>
 </div>
 <div
-id="strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpagemethylnanocftreebfb9b48745407b3b5e084950c21769123793e84ftargetblankbfb9b48a"
+id="strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpagemethylnanocftreedc74c0a0b2f17fc2e3498e41ec9880ae45508d1atargetblankdc74c0aa"
 class="panel-collapse collapse">
 <div class="panel-body">
 <p>
@@ -537,7 +537,7 @@ reproducibility.
 </p>
 <p>
 The results in this page were generated with repository version
-<a href="https://github.com/caitlinpage/methyl_nano_cf/tree/bfb9b48745407b3b5e084950c21769123793e84f" target="_blank">bfb9b48</a>.
+<a href="https://github.com/caitlinpage/methyl_nano_cf/tree/dc74c0a0b2f17fc2e3498e41ec9880ae45508d1a" target="_blank">dc74c0a</a>.
 See the <em>Past versions</em> tab to see a history of the changes made
 to the R Markdown and HTML files.
 </p>
@@ -554,13 +554,17 @@ were generated:
 Ignored files:
     Ignored:    .Rhistory
     Ignored:    .Rproj.user/
-
-Untracked files:
-    Untracked:  renv.lock
-    Untracked:  renv/
+    Ignored:    renv.lock
+    Ignored:    renv/
 
 Unstaged changes:
+    Modified:   .gitignore
+    Modified:   analysis/00_ObtainData.Rmd
     Modified:   analysis/exploratory_plots_genes.Rmd
+    Modified:   analysis/healthyVsLuad.Rmd
+    Modified:   analysis/modkitOutputToReadFormat.Rmd
+    Modified:   analysis/other_files.Rmd
+    Modified:   analysis/testingKnowncfDNAFeatures.Rmd
 
 </code></pre>
 <p>
@@ -605,6 +609,40 @@ Message
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/dc74c0a0b2f17fc2e3498e41ec9880ae45508d1a/analysis/exploratory_plots.Rmd" target="_blank">dc74c0a</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-08-15
+</td>
+<td>
+wflow_publish(c("analysis/index.Rmd", "analysis/exploratory_plots.Rmd"))
+</td>
+</tr>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/caitlinpage/methyl_nano_cf/59166fd20661f9af4d097277d03c5fce8b94954a/docs/exploratory_plots.html" target="_blank">59166fd</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-08-15
+</td>
+<td>
+Build site.
+</td>
+</tr>
 <tr>
 <td>
 Rmd
@@ -659,52 +697,45 @@ Attaching package: &#39;dplyr&#39;</code></pre>
 <pre class="r"><code>epiread_format &lt;- readRDS(&quot;/researchers/caitlin.page/cf_nano/r_output/epiread_format.rds&quot;)
 epiread_format$chrom &lt;- epiread_format$seqnames
 head(epiread_format)</code></pre>
-<pre><code>                               read_id seqnames    start      end read_length
-1 7f095597-d2c5-47a2-93aa-d84b7f9abc94    chr22 10521100 10521455         355
-2 e9abf215-8192-48f4-a50f-ef92241e5de3    chr22 10522473 10522658         185
-3 4203dd9d-9bff-4d14-b046-7716315e9699    chr22 10524645 10524786         141
-4 baf45276-b37b-43fd-8a33-6727de6255fa    chr22 10527072 10527210         138
-5 a75ce5a8-42f2-4fe2-b62b-35aba109507d    chr22 10529269 10529453         184
-6 b5e822b7-e149-4ae2-8937-fe4d570a274e    chr22 10534032 10534204         172
-  num_cg index_cg      meth_pattern
-1      1       48                 T
-2      4       53              CCTT
-3      1       68                 T
-4     18      299 CCCCCCCCCCCCCCCCC
-5      2      374                TT
-6      2      408                TT
-                                                            cpg_positions
-1                                                                      48
-2                                                             53,54,55,56
-3                                                                      68
-4 299,300,301,302,303,304,305,306,307,308,309,310,311,312,313,314,315,316
-5                                                                 374,375
-6                                                                 408,409
-                                                                                                                                                    genom_positions
-1                                                                                                                                                          10521180
-2                                                                                                                               10522481,10522501,10522591,10522649
-3                                                                                                                                                          10524771
-4 10527071,10527087,10527090,10527093,10527108,10527114,10527116,10527119,10527130,10527136,10527138,10527153,10527156,10527172,10527189,10527191,10527194,10527199
-5                                                                                                                                                 10529326,10529356
-6                                                                                                                                                 10534125,10534167
-  num_meth total alpha gap_to_next_read histone_groups read_start read_end
-1        0     1   0.0             1018      (350,525]   10521100 10521455
-2        2     4   0.5             1987      (175,350]   10522473 10522658
-3        0     1   0.0             2286        (0,175]   10524645 10524786
-4       17    17   1.0             2059        (0,175]   10527072 10527210
-5        0     2   0.0             4579      (175,350]   10529269 10529453
-6        0     2   0.0             3201        (0,175]   10534032 10534204
-  chrom
-1 chr22
-2 chr22
-3 chr22
-4 chr22
-5 chr22
-6 chr22</code></pre>
+<pre><code>                               read_id chrom alignment_start alignment_end
+1 7f095597-d2c5-47a2-93aa-d84b7f9abc94 chr22        10521100      10521455
+2 e9abf215-8192-48f4-a50f-ef92241e5de3 chr22        10522473      10522658
+3 4203dd9d-9bff-4d14-b046-7716315e9699 chr22        10524645      10524786
+4 baf45276-b37b-43fd-8a33-6727de6255fa chr22        10527072      10527210
+5 a75ce5a8-42f2-4fe2-b62b-35aba109507d chr22        10529269      10529453
+6 b5e822b7-e149-4ae2-8937-fe4d570a274e chr22        10534032      10534204
+  read_length num_cg      meth_pattern seqnames    start      end width
+1         355      1                 T    chr22 10521100 10521455   356
+2         185      4              CCTT    chr22 10522473 10522658   186
+3         141      1                 T    chr22 10524645 10524786   142
+4         138     17 CCCCCCCCCCCCCCCCC    chr22 10527072 10527210   139
+5         184      2                TT    chr22 10529269 10529453   185
+6         172      2                TT    chr22 10534032 10534204   173
+  index_cg                                                       cpg_positions
+1       48                                                                  48
+2       53                                                         53,54,55,56
+3       68                                                                  68
+4      299 299,300,301,302,303,304,305,306,307,308,309,310,311,312,313,314,315
+5      374                                                             374,375
+6      408                                                             408,409
+                                                                                                                                           genom_positions
+1                                                                                                                                                 10521180
+2                                                                                                                      10522481,10522501,10522591,10522649
+3                                                                                                                                                 10524771
+4 10527071,10527087,10527090,10527093,10527108,10527114,10527116,10527119,10527130,10527136,10527138,10527153,10527156,10527172,10527189,10527191,10527194
+5                                                                                                                                        10529326,10529356
+6                                                                                                                                        10534125,10534167
+  num_meth total alpha
+1        0     1   0.0
+2        2     4   0.5
+3        0     1   0.0
+4       17    17   1.0
+5        0     2   0.0
+6        0     2   0.0</code></pre>
 <p>indiv_reads indiv_reads_cg22 pat_format alpha_format
 epiread_format</p>
 <pre class="r"><code>epiread_format %&gt;% filter(num_cg == 1) %&gt;% nrow()</code></pre>
-<pre><code>[1] 6195</code></pre>
+<pre><code>[1] 6422</code></pre>
 <ul>
 <li>add alpha information to epiread format</li>
 </ul>
@@ -714,48 +745,41 @@ epiread_format</p>
          alpha = num_meth/total)
 
 head(epiread_format)</code></pre>
-<pre><code>                               read_id seqnames    start      end read_length
-1 7f095597-d2c5-47a2-93aa-d84b7f9abc94    chr22 10521100 10521455         355
-2 e9abf215-8192-48f4-a50f-ef92241e5de3    chr22 10522473 10522658         185
-3 4203dd9d-9bff-4d14-b046-7716315e9699    chr22 10524645 10524786         141
-4 baf45276-b37b-43fd-8a33-6727de6255fa    chr22 10527072 10527210         138
-5 a75ce5a8-42f2-4fe2-b62b-35aba109507d    chr22 10529269 10529453         184
-6 b5e822b7-e149-4ae2-8937-fe4d570a274e    chr22 10534032 10534204         172
-  num_cg index_cg      meth_pattern
-1      1       48                 T
-2      4       53              CCTT
-3      1       68                 T
-4     18      299 CCCCCCCCCCCCCCCCC
-5      2      374                TT
-6      2      408                TT
-                                                            cpg_positions
-1                                                                      48
-2                                                             53,54,55,56
-3                                                                      68
-4 299,300,301,302,303,304,305,306,307,308,309,310,311,312,313,314,315,316
-5                                                                 374,375
-6                                                                 408,409
-                                                                                                                                                    genom_positions
-1                                                                                                                                                          10521180
-2                                                                                                                               10522481,10522501,10522591,10522649
-3                                                                                                                                                          10524771
-4 10527071,10527087,10527090,10527093,10527108,10527114,10527116,10527119,10527130,10527136,10527138,10527153,10527156,10527172,10527189,10527191,10527194,10527199
-5                                                                                                                                                 10529326,10529356
-6                                                                                                                                                 10534125,10534167
-  num_meth total alpha gap_to_next_read histone_groups read_start read_end
-1        0     1   0.0             1018      (350,525]   10521100 10521455
-2        2     4   0.5             1987      (175,350]   10522473 10522658
-3        0     1   0.0             2286        (0,175]   10524645 10524786
-4       17    17   1.0             2059        (0,175]   10527072 10527210
-5        0     2   0.0             4579      (175,350]   10529269 10529453
-6        0     2   0.0             3201        (0,175]   10534032 10534204
-  chrom
-1 chr22
-2 chr22
-3 chr22
-4 chr22
-5 chr22
-6 chr22</code></pre>
+<pre><code>                               read_id chrom alignment_start alignment_end
+1 7f095597-d2c5-47a2-93aa-d84b7f9abc94 chr22        10521100      10521455
+2 e9abf215-8192-48f4-a50f-ef92241e5de3 chr22        10522473      10522658
+3 4203dd9d-9bff-4d14-b046-7716315e9699 chr22        10524645      10524786
+4 baf45276-b37b-43fd-8a33-6727de6255fa chr22        10527072      10527210
+5 a75ce5a8-42f2-4fe2-b62b-35aba109507d chr22        10529269      10529453
+6 b5e822b7-e149-4ae2-8937-fe4d570a274e chr22        10534032      10534204
+  read_length num_cg      meth_pattern seqnames    start      end width
+1         355      1                 T    chr22 10521100 10521455   356
+2         185      4              CCTT    chr22 10522473 10522658   186
+3         141      1                 T    chr22 10524645 10524786   142
+4         138     17 CCCCCCCCCCCCCCCCC    chr22 10527072 10527210   139
+5         184      2                TT    chr22 10529269 10529453   185
+6         172      2                TT    chr22 10534032 10534204   173
+  index_cg                                                       cpg_positions
+1       48                                                                  48
+2       53                                                         53,54,55,56
+3       68                                                                  68
+4      299 299,300,301,302,303,304,305,306,307,308,309,310,311,312,313,314,315
+5      374                                                             374,375
+6      408                                                             408,409
+                                                                                                                                           genom_positions
+1                                                                                                                                                 10521180
+2                                                                                                                      10522481,10522501,10522591,10522649
+3                                                                                                                                                 10524771
+4 10527071,10527087,10527090,10527093,10527108,10527114,10527116,10527119,10527130,10527136,10527138,10527153,10527156,10527172,10527189,10527191,10527194
+5                                                                                                                                        10529326,10529356
+6                                                                                                                                        10534125,10534167
+  num_meth total alpha
+1        0     1   0.0
+2        2     4   0.5
+3        0     1   0.0
+4       17    17   1.0
+5        0     2   0.0
+6        0     2   0.0</code></pre>
 <div id="section" class="section level6">
 <h6></h6>
 </div>
@@ -789,26 +813,211 @@ reads to have alpha = 1</li>
   geom_density() +
   labs(title = &quot;Distribution of alpha across reads in chr22&quot;)</code></pre>
 <p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-6-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-6-1">
+Past versions of unnamed-chunk-6-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-6-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/59166fd20661f9af4d097277d03c5fce8b94954a/docs/figure/exploratory_plots.Rmd/unnamed-chunk-6-1.png" target="_blank">59166fd</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-08-15
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>epiread_format %&gt;%
   ggplot(aes(x = log2(alpha + 1))) +
   geom_density() +
   labs(title = &quot;Log2 Distribution of alpha across reads in chr22&quot;)</code></pre>
 <p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-6-2.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-6-2">
+Past versions of unnamed-chunk-6-2.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-6-2" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/59166fd20661f9af4d097277d03c5fce8b94954a/docs/figure/exploratory_plots.Rmd/unnamed-chunk-6-2.png" target="_blank">59166fd</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-08-15
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>epiread_format %&gt;%
   ggplot(aes(x = alpha)) +
   geom_histogram(bins = 50) +
   labs(title = &quot;Distribution of alpha across reads in chr22&quot;)</code></pre>
 <p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-6-3.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-6-3">
+Past versions of unnamed-chunk-6-3.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-6-3" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/59166fd20661f9af4d097277d03c5fce8b94954a/docs/figure/exploratory_plots.Rmd/unnamed-chunk-6-3.png" target="_blank">59166fd</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-08-15
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>epiread_format %&gt;%
   ggplot(aes(x = chrom, y = alpha)) +
   geom_boxplot() +
   labs(title = &quot;Distribution of alpha across reads in chr22&quot;)</code></pre>
 <p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-6-4.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-6-4">
+Past versions of unnamed-chunk-6-4.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-6-4" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/59166fd20661f9af4d097277d03c5fce8b94954a/docs/figure/exploratory_plots.Rmd/unnamed-chunk-6-4.png" target="_blank">59166fd</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-08-15
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>epiread_format %&gt;%
   ggplot(aes(x = chrom, y = alpha)) +
   geom_violin() +
   labs(title = &quot;Distribution of alpha across reads in chr22&quot;)</code></pre>
 <p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-6-5.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-6-5">
+Past versions of unnamed-chunk-6-5.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-6-5" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/59166fd20661f9af4d097277d03c5fce8b94954a/docs/figure/exploratory_plots.Rmd/unnamed-chunk-6-5.png" target="_blank">59166fd</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-08-15
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <ul>
 <li>As expected, higher proportion of alpha = 1</li>
 <li>log2 scale doesn’t significantly affect the shape of the
@@ -830,6 +1039,43 @@ nanopore data</li>
   geom_density() +
   labs(title = &quot;Distribution of read length in chr22&quot;)</code></pre>
 <p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-8-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-8-1">
+Past versions of unnamed-chunk-8-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-8-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/59166fd20661f9af4d097277d03c5fce8b94954a/docs/figure/exploratory_plots.Rmd/unnamed-chunk-8-1.png" target="_blank">59166fd</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-08-15
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>epiread_format %&gt;%
   ggplot(aes(x = read_length)) +
   geom_density() +
@@ -838,33 +1084,222 @@ nanopore data</li>
 <pre><code>Warning: Removed 68 rows containing non-finite outside the scale range
 (`stat_density()`).</code></pre>
 <p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-8-2.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-8-2">
+Past versions of unnamed-chunk-8-2.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-8-2" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/59166fd20661f9af4d097277d03c5fce8b94954a/docs/figure/exploratory_plots.Rmd/unnamed-chunk-8-2.png" target="_blank">59166fd</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-08-15
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>epiread_format %&gt;%
   ggplot(aes(x = log2(read_length))) +
   geom_density() +
   labs(title = &quot;Log2 Distribution of read length in chr22&quot;)</code></pre>
 <p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-8-3.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-8-3">
+Past versions of unnamed-chunk-8-3.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-8-3" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/59166fd20661f9af4d097277d03c5fce8b94954a/docs/figure/exploratory_plots.Rmd/unnamed-chunk-8-3.png" target="_blank">59166fd</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-08-15
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>epiread_format %&gt;%
   ggplot(aes(x = read_length)) +
   geom_histogram(bins = 75) +
   labs(title = &quot;Distribution of read length in chr22 in 75 bins&quot;)</code></pre>
 <p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-8-4.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-8-4">
+Past versions of unnamed-chunk-8-4.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-8-4" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/59166fd20661f9af4d097277d03c5fce8b94954a/docs/figure/exploratory_plots.Rmd/unnamed-chunk-8-4.png" target="_blank">59166fd</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-08-15
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>epiread_format %&gt;%
   ggplot(aes(x = chrom, y = log2(read_length))) +
   geom_boxplot() +
   labs(title = &quot;Log2 Distribution of read length in chr22&quot;)</code></pre>
 <p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-8-5.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-8-5">
+Past versions of unnamed-chunk-8-5.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-8-5" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/59166fd20661f9af4d097277d03c5fce8b94954a/docs/figure/exploratory_plots.Rmd/unnamed-chunk-8-5.png" target="_blank">59166fd</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-08-15
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>epiread_format %&gt;%
   ggplot(aes(x = chrom, y = log2(read_length))) +
   geom_violin() +
   labs(title = &quot;Log2 Distribution of read length in chr22&quot;)</code></pre>
-<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-8-6.png" width="672" style="display: block; margin: auto;" />
-* There is variability in read length * Plot looks better in log2 format
-- max is very far away from mean * 2nd plot is trimmed to 1kbp: and can
-see as expected that read length doubles with known histone lengths
-~140bp * Hey this is a type of grouping-esque thing that I could look at
-in other contexts!! ** wait what is the length supposed to be? - is it
-more like 175? I can’t find where I wrote it down ** or just calculate
-from the plot to find the peak values</p>
+<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-8-6.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-8-6">
+Past versions of unnamed-chunk-8-6.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-8-6" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/59166fd20661f9af4d097277d03c5fce8b94954a/docs/figure/exploratory_plots.Rmd/unnamed-chunk-8-6.png" target="_blank">59166fd</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-08-15
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<ul>
+<li>There is variability in read length</li>
+<li>Plot looks better in log2 format - max is very far away from
+mean</li>
+<li>2nd plot is trimmed to 1kbp: and can see as expected that read
+length doubles with known histone lengths ~140bp</li>
+<li>Hey this is a type of grouping-esque thing that I could look at in
+other contexts!! ** wait what is the length supposed to be? - is it more
+like 175? I can’t find where I wrote it down ** or just calculate from
+the plot to find the peak values</li>
+</ul>
 <pre class="r"><code>plot &lt;- epiread_format %&gt;%
   ggplot(aes(x = read_length)) +
   geom_density()
@@ -894,34 +1329,221 @@ class="section level1">
   labs(title = &quot;Distribution of cpgs in reads in chr22&quot;, 
        x = &quot;number of cpgs in read&quot;)</code></pre>
 <p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-11-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-11-1">
+Past versions of unnamed-chunk-11-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-11-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/59166fd20661f9af4d097277d03c5fce8b94954a/docs/figure/exploratory_plots.Rmd/unnamed-chunk-11-1.png" target="_blank">59166fd</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-08-15
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>epiread_format %&gt;%
   ggplot(aes(x = log2(total))) +
   geom_density() +
   labs(title = &quot;Log2 Distribution of cpgs in reads in chr22&quot;, 
        x = &quot;log2(number of cpgs in read)&quot;)</code></pre>
 <p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-11-2.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-11-2">
+Past versions of unnamed-chunk-11-2.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-11-2" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/59166fd20661f9af4d097277d03c5fce8b94954a/docs/figure/exploratory_plots.Rmd/unnamed-chunk-11-2.png" target="_blank">59166fd</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-08-15
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>epiread_format %&gt;%
   ggplot(aes(x = total)) +
   geom_histogram(bins = 50) +
   labs(title = &quot;Distribution of cpgs in reads in chr22&quot;, 
        x = &quot;number of cpgs in read&quot;)</code></pre>
 <p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-11-3.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-11-3">
+Past versions of unnamed-chunk-11-3.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-11-3" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/59166fd20661f9af4d097277d03c5fce8b94954a/docs/figure/exploratory_plots.Rmd/unnamed-chunk-11-3.png" target="_blank">59166fd</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-08-15
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>epiread_format %&gt;%
   ggplot(aes(x = chrom, y = total)) +
   geom_boxplot() +
   labs(title = &quot;Distribution of cpgs in reads in chr22&quot;, 
        y = &quot;number of cpgs in read&quot;)</code></pre>
 <p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-11-4.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-11-4">
+Past versions of unnamed-chunk-11-4.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-11-4" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/59166fd20661f9af4d097277d03c5fce8b94954a/docs/figure/exploratory_plots.Rmd/unnamed-chunk-11-4.png" target="_blank">59166fd</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-08-15
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>epiread_format %&gt;%
   ggplot(aes(x = chrom, y = log2(total))) +
   geom_violin() +
   labs(title = &quot;Log2 Distribution of cpgs in reads in chr22&quot;, 
        y = &quot;number of cpgs in read&quot;)</code></pre>
-<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-11-5.png" width="672" style="display: block; margin: auto;" />
-* Distribution plot is a bit weird the way it jumps up and down * Mean
-and median way way smaller than max * Log2 doesn’t really make it look
-better - kinda makes me think of harmonic distrib (if I have the right
-one)</p>
+<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-11-5.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-11-5">
+Past versions of unnamed-chunk-11-5.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-11-5" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/59166fd20661f9af4d097277d03c5fce8b94954a/docs/figure/exploratory_plots.Rmd/unnamed-chunk-11-5.png" target="_blank">59166fd</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-08-15
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<ul>
+<li>Distribution plot is a bit weird the way it jumps up and down</li>
+<li>Mean and median way way smaller than max</li>
+<li>Log2 doesn’t really make it look better - kinda makes me think of
+harmonic distrib (if I have the right one)</li>
+</ul>
 </div>
 <div id="read-length-and-number-of-cpgs" class="section level1">
 <h1>read length and number of cpgs</h1>
@@ -957,11 +1579,85 @@ sample estimates:
   geom_point(alpha = 0.3) +
   labs(y = &quot;number of cpgs in read&quot;, title = &quot;Slight correlation between read length and number of cpgs in read&quot;)</code></pre>
 <p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-13-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-13-1">
+Past versions of unnamed-chunk-13-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-13-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/59166fd20661f9af4d097277d03c5fce8b94954a/docs/figure/exploratory_plots.Rmd/unnamed-chunk-13-1.png" target="_blank">59166fd</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-08-15
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>epiread_format %&gt;%
   ggplot(aes(x = log2(read_length), y = total)) +
   geom_point(alpha = 0.3) +
   labs(y = &quot;number of cpgs in read&quot;, title = &quot;log2(read length) and number of cpgs in read&quot;)</code></pre>
 <p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-13-2.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-13-2">
+Past versions of unnamed-chunk-13-2.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-13-2" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/59166fd20661f9af4d097277d03c5fce8b94954a/docs/figure/exploratory_plots.Rmd/unnamed-chunk-13-2.png" target="_blank">59166fd</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-08-15
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>epiread_format %&gt;%
   ggplot(aes(x = read_length, y = total)) +
   geom_point(alpha = 0.3) +
@@ -970,6 +1666,43 @@ sample estimates:
 <pre><code>Warning: Removed 68 rows containing missing values or values outside the scale range
 (`geom_point()`).</code></pre>
 <p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-13-3.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-13-3">
+Past versions of unnamed-chunk-13-3.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-13-3" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/59166fd20661f9af4d097277d03c5fce8b94954a/docs/figure/exploratory_plots.Rmd/unnamed-chunk-13-3.png" target="_blank">59166fd</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-08-15
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>summary(epiread_format$read_length)</code></pre>
 <pre><code>   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
    45.0   159.0   173.0   212.2   199.0  5541.0 </code></pre>
@@ -1009,26 +1742,211 @@ sample estimates:
   ggplot(aes(x = read_length, y = alpha)) +
   geom_point(alpha = 0.1)</code></pre>
 <p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-16-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-16-1">
+Past versions of unnamed-chunk-16-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-16-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/59166fd20661f9af4d097277d03c5fce8b94954a/docs/figure/exploratory_plots.Rmd/unnamed-chunk-16-1.png" target="_blank">59166fd</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-08-15
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>epiread_format %&gt;% 
   ggplot(aes(x = alpha, y = read_length)) +
   geom_point(alpha = 0.1) +
   labs(title = &quot;Dot plot of read length and alpha values for chr22&quot;)</code></pre>
 <p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-17-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-17-1">
+Past versions of unnamed-chunk-17-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-17-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/59166fd20661f9af4d097277d03c5fce8b94954a/docs/figure/exploratory_plots.Rmd/unnamed-chunk-17-1.png" target="_blank">59166fd</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-08-15
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>epiread_format %&gt;% 
   ggplot(aes(x = alpha, y = log2(read_length))) +
   geom_point(alpha = 0.1) +
   labs(title = &quot;Dot plot of log2(read length) and alpha values for chr22&quot;)</code></pre>
 <p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-17-2.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-17-2">
+Past versions of unnamed-chunk-17-2.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-17-2" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/59166fd20661f9af4d097277d03c5fce8b94954a/docs/figure/exploratory_plots.Rmd/unnamed-chunk-17-2.png" target="_blank">59166fd</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-08-15
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>epiread_format %&gt;% filter(alpha %in% c(0, 0.5, 1)) %&gt;%
   ggplot(aes(x = as.factor(alpha), y = read_length)) +
   geom_boxplot() +
   labs(title = &quot;Boxplot of read length for alpha = 0,0.5,1 for chr22&quot;)</code></pre>
 <p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-17-3.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-17-3">
+Past versions of unnamed-chunk-17-3.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-17-3" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/59166fd20661f9af4d097277d03c5fce8b94954a/docs/figure/exploratory_plots.Rmd/unnamed-chunk-17-3.png" target="_blank">59166fd</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-08-15
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>epiread_format %&gt;% filter(alpha %in% c(0, 0.5, 1)) %&gt;%
   ggplot(aes(x = as.factor(alpha), y = log2(read_length))) +
   geom_boxplot() +
   labs(title = &quot;Log2 Boxplot of read length for alpha = 0,0.5,1 for chr22&quot;)</code></pre>
 <p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-17-4.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-17-4">
+Past versions of unnamed-chunk-17-4.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-17-4" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/59166fd20661f9af4d097277d03c5fce8b94954a/docs/figure/exploratory_plots.Rmd/unnamed-chunk-17-4.png" target="_blank">59166fd</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-08-15
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <ul>
 <li>No they are not correlated</li>
 </ul>
@@ -1054,48 +1972,41 @@ histones</code></pre>
 [31] 5250 5425 5600</code></pre>
 <pre class="r"><code>epiread_format &lt;- data.frame(epiread_format, histone_groups = cut(epiread_format$read_length, breaks = histones, include.lowest = FALSE, right = TRUE))
 head(epiread_format)</code></pre>
-<pre><code>                               read_id seqnames    start      end read_length
-1 7f095597-d2c5-47a2-93aa-d84b7f9abc94    chr22 10521100 10521455         355
-2 e9abf215-8192-48f4-a50f-ef92241e5de3    chr22 10522473 10522658         185
-3 4203dd9d-9bff-4d14-b046-7716315e9699    chr22 10524645 10524786         141
-4 baf45276-b37b-43fd-8a33-6727de6255fa    chr22 10527072 10527210         138
-5 a75ce5a8-42f2-4fe2-b62b-35aba109507d    chr22 10529269 10529453         184
-6 b5e822b7-e149-4ae2-8937-fe4d570a274e    chr22 10534032 10534204         172
-  num_cg index_cg      meth_pattern
-1      1       48                 T
-2      4       53              CCTT
-3      1       68                 T
-4     18      299 CCCCCCCCCCCCCCCCC
-5      2      374                TT
-6      2      408                TT
-                                                            cpg_positions
-1                                                                      48
-2                                                             53,54,55,56
-3                                                                      68
-4 299,300,301,302,303,304,305,306,307,308,309,310,311,312,313,314,315,316
-5                                                                 374,375
-6                                                                 408,409
-                                                                                                                                                    genom_positions
-1                                                                                                                                                          10521180
-2                                                                                                                               10522481,10522501,10522591,10522649
-3                                                                                                                                                          10524771
-4 10527071,10527087,10527090,10527093,10527108,10527114,10527116,10527119,10527130,10527136,10527138,10527153,10527156,10527172,10527189,10527191,10527194,10527199
-5                                                                                                                                                 10529326,10529356
-6                                                                                                                                                 10534125,10534167
-  num_meth total alpha gap_to_next_read histone_groups read_start read_end
-1        0     1   0.0             1018      (350,525]   10521100 10521455
-2        2     4   0.5             1987      (175,350]   10522473 10522658
-3        0     1   0.0             2286        (0,175]   10524645 10524786
-4       17    17   1.0             2059        (0,175]   10527072 10527210
-5        0     2   0.0             4579      (175,350]   10529269 10529453
-6        0     2   0.0             3201        (0,175]   10534032 10534204
-  chrom histone_groups.1
-1 chr22        (350,525]
-2 chr22        (175,350]
-3 chr22          (0,175]
-4 chr22          (0,175]
-5 chr22        (175,350]
-6 chr22          (0,175]</code></pre>
+<pre><code>                               read_id chrom alignment_start alignment_end
+1 7f095597-d2c5-47a2-93aa-d84b7f9abc94 chr22        10521100      10521455
+2 e9abf215-8192-48f4-a50f-ef92241e5de3 chr22        10522473      10522658
+3 4203dd9d-9bff-4d14-b046-7716315e9699 chr22        10524645      10524786
+4 baf45276-b37b-43fd-8a33-6727de6255fa chr22        10527072      10527210
+5 a75ce5a8-42f2-4fe2-b62b-35aba109507d chr22        10529269      10529453
+6 b5e822b7-e149-4ae2-8937-fe4d570a274e chr22        10534032      10534204
+  read_length num_cg      meth_pattern seqnames    start      end width
+1         355      1                 T    chr22 10521100 10521455   356
+2         185      4              CCTT    chr22 10522473 10522658   186
+3         141      1                 T    chr22 10524645 10524786   142
+4         138     17 CCCCCCCCCCCCCCCCC    chr22 10527072 10527210   139
+5         184      2                TT    chr22 10529269 10529453   185
+6         172      2                TT    chr22 10534032 10534204   173
+  index_cg                                                       cpg_positions
+1       48                                                                  48
+2       53                                                         53,54,55,56
+3       68                                                                  68
+4      299 299,300,301,302,303,304,305,306,307,308,309,310,311,312,313,314,315
+5      374                                                             374,375
+6      408                                                             408,409
+                                                                                                                                           genom_positions
+1                                                                                                                                                 10521180
+2                                                                                                                      10522481,10522501,10522591,10522649
+3                                                                                                                                                 10524771
+4 10527071,10527087,10527090,10527093,10527108,10527114,10527116,10527119,10527130,10527136,10527138,10527153,10527156,10527172,10527189,10527191,10527194
+5                                                                                                                                        10529326,10529356
+6                                                                                                                                        10534125,10534167
+  num_meth total alpha histone_groups
+1        0     1   0.0      (350,525]
+2        2     4   0.5      (175,350]
+3        0     1   0.0        (0,175]
+4       17    17   1.0        (0,175]
+5        0     2   0.0      (175,350]
+6        0     2   0.0        (0,175]</code></pre>
 <pre class="r"><code>levels(epiread_format$histone_groups)</code></pre>
 <pre><code> [1] &quot;(0,175]&quot;             &quot;(175,350]&quot;           &quot;(350,525]&quot;          
  [4] &quot;(525,700]&quot;           &quot;(700,875]&quot;           &quot;(875,1.05e+03]&quot;     
@@ -1115,6 +2026,43 @@ head(epiread_format)</code></pre>
   theme(legend.position = &quot;none&quot;) +
   labs(title = &quot;Number of reads in each group (175bp groups)&quot;)</code></pre>
 <p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-21-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-21-1">
+Past versions of unnamed-chunk-21-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-21-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/59166fd20661f9af4d097277d03c5fce8b94954a/docs/figure/exploratory_plots.Rmd/unnamed-chunk-21-1.png" target="_blank">59166fd</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-08-15
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>epiread_format %&gt;% filter(histone_groups %in% levels(epiread_format$histone_groups)[1:6]) %&gt;%
   ggplot(aes(x = histone_groups, fill = histone_groups)) +
   geom_bar() +
@@ -1122,6 +2070,43 @@ head(epiread_format)</code></pre>
   theme(legend.position = &quot;none&quot;) +
   labs(title = &quot;Number of reads in first 6 groups (175bp groups)&quot;)</code></pre>
 <p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-21-2.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-21-2">
+Past versions of unnamed-chunk-21-2.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-21-2" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/59166fd20661f9af4d097277d03c5fce8b94954a/docs/figure/exploratory_plots.Rmd/unnamed-chunk-21-2.png" target="_blank">59166fd</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-08-15
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>epiread_format %&gt;% filter(histone_groups %in% levels(epiread_format$histone_groups)[4:8]) %&gt;%
   ggplot(aes(x = histone_groups, fill = histone_groups)) +
   geom_bar() +
@@ -1129,6 +2114,43 @@ head(epiread_format)</code></pre>
   theme(legend.position = &quot;none&quot;) +
   labs(title = &quot;Number of reads in groups 4-8 (175bp groups)&quot;)</code></pre>
 <p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-21-3.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-21-3">
+Past versions of unnamed-chunk-21-3.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-21-3" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/59166fd20661f9af4d097277d03c5fce8b94954a/docs/figure/exploratory_plots.Rmd/unnamed-chunk-21-3.png" target="_blank">59166fd</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-08-15
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>epiread_format %&gt;% filter(histone_groups %in% levels(epiread_format$histone_groups)[7:32]) %&gt;%
   ggplot(aes(x = histone_groups, fill = histone_groups)) +
   geom_bar() +
@@ -1136,37 +2158,262 @@ head(epiread_format)</code></pre>
   theme(legend.position = &quot;none&quot;) +
   labs(title = &quot;Number of reads in groups 7-32 (175bp groups)&quot;)</code></pre>
 <p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-21-4.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-21-4">
+Past versions of unnamed-chunk-21-4.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-21-4" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/59166fd20661f9af4d097277d03c5fce8b94954a/docs/figure/exploratory_plots.Rmd/unnamed-chunk-21-4.png" target="_blank">59166fd</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-08-15
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>epiread_format %&gt;% filter(histone_groups %in% levels(epiread_format$histone_groups)[1:6]) %&gt;%
   ggplot(aes(x = &quot;&quot;, fill = histone_groups)) +
   geom_bar(position = &quot;fill&quot;) +
   labs(title = &quot;Proportion of reads in groups 1-6 (175bp groups)&quot;)</code></pre>
 <p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-21-5.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-21-5">
+Past versions of unnamed-chunk-21-5.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-21-5" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/59166fd20661f9af4d097277d03c5fce8b94954a/docs/figure/exploratory_plots.Rmd/unnamed-chunk-21-5.png" target="_blank">59166fd</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-08-15
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>epiread_format %&gt;%
   ggplot(aes(x = &quot;&quot;, fill = histone_groups)) +
   geom_bar(position = &quot;fill&quot;) +
   labs(title = &quot;Proportion of reads in each group (175bp groups)&quot;)</code></pre>
 <p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-21-6.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-21-6">
+Past versions of unnamed-chunk-21-6.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-21-6" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/59166fd20661f9af4d097277d03c5fce8b94954a/docs/figure/exploratory_plots.Rmd/unnamed-chunk-21-6.png" target="_blank">59166fd</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-08-15
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>epiread_format %&gt;%
   ggplot(aes(x = &quot;&quot;, fill = histone_groups)) +
   geom_bar(position = &quot;fill&quot;) +
   coord_polar(&quot;y&quot;, start = 0) +
   labs(title = &quot;Proportion of reads in each group (175bp groups)&quot;)</code></pre>
 <p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-21-7.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-21-7">
+Past versions of unnamed-chunk-21-7.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-21-7" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/59166fd20661f9af4d097277d03c5fce8b94954a/docs/figure/exploratory_plots.Rmd/unnamed-chunk-21-7.png" target="_blank">59166fd</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-08-15
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>epiread_format %&gt;% filter(histone_groups %in% levels(epiread_format$histone_groups)[1:6]) %&gt;%
   ggplot(aes(x = &quot;&quot;, fill = histone_groups)) +
   geom_bar(position = &quot;fill&quot;) +
   coord_polar(&quot;y&quot;, start = 0) +
   labs(title = &quot;Proportion of reads in groups 1-6 (175bp groups)&quot;)</code></pre>
 <p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-21-8.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-21-8">
+Past versions of unnamed-chunk-21-8.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-21-8" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/59166fd20661f9af4d097277d03c5fce8b94954a/docs/figure/exploratory_plots.Rmd/unnamed-chunk-21-8.png" target="_blank">59166fd</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-08-15
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>epiread_format %&gt;% filter(histone_groups %in% levels(epiread_format$histone_groups)[7:32]) %&gt;%
   ggplot(aes(x = &quot;&quot;, fill = histone_groups)) +
   geom_bar(position = &quot;fill&quot;) +
   coord_polar(&quot;y&quot;, start = 0) +
   labs(title = &quot;Proportion of reads in groups 7-32 (175bp groups)&quot;)</code></pre>
-<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-21-9.png" width="672" style="display: block; margin: auto;" />
-* group sizes are very different * reads with 1 histone are more than
-&gt;50% of all reads * this will probably affect any other analysis I
-try to do: because groups are very much not evenly sized</p>
+<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-21-9.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-21-9">
+Past versions of unnamed-chunk-21-9.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-21-9" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/59166fd20661f9af4d097277d03c5fce8b94954a/docs/figure/exploratory_plots.Rmd/unnamed-chunk-21-9.png" target="_blank">59166fd</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-08-15
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<ul>
+<li>group sizes are very different</li>
+<li>reads with 1 histone are more than &gt;50% of all reads</li>
+<li>this will probably affect any other analysis I try to do: because
+groups are very much not evenly sized</li>
+</ul>
 <pre class="r"><code>epiread_format %&gt;%
   ggplot(aes(x = alpha, colour = histone_groups)) +
   geom_density() +
@@ -1199,6 +2446,43 @@ Warning in max(ids, na.rm = TRUE): no non-missing arguments to max; returning
 Warning in max(ids, na.rm = TRUE): no non-missing arguments to max; returning
 -Inf</code></pre>
 <p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-22-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-22-1">
+Past versions of unnamed-chunk-22-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-22-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/59166fd20661f9af4d097277d03c5fce8b94954a/docs/figure/exploratory_plots.Rmd/unnamed-chunk-22-1.png" target="_blank">59166fd</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-08-15
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>epiread_format %&gt;% filter(histone_groups %in% levels(epiread_format$histone_groups)[1:4]) %&gt;%
   ggplot(aes(x = alpha, colour = histone_groups)) +
   geom_density() +
@@ -1206,6 +2490,43 @@ Warning in max(ids, na.rm = TRUE): no non-missing arguments to max; returning
   scale_y_continuous(limits = c(0, 5.5)) +
   scale_x_continuous(limits = c(0, 1))</code></pre>
 <p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-22-2.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-22-2">
+Past versions of unnamed-chunk-22-2.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-22-2" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/59166fd20661f9af4d097277d03c5fce8b94954a/docs/figure/exploratory_plots.Rmd/unnamed-chunk-22-2.png" target="_blank">59166fd</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-08-15
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>epiread_format %&gt;% filter(histone_groups %in% levels(epiread_format$histone_groups)[5:8]) %&gt;%
   ggplot(aes(x = alpha, colour = histone_groups)) +
   geom_density() +
@@ -1213,6 +2534,43 @@ Warning in max(ids, na.rm = TRUE): no non-missing arguments to max; returning
   scale_y_continuous(limits = c(0, 5.5)) +
   scale_x_continuous(limits = c(0, 1))</code></pre>
 <p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-22-3.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-22-3">
+Past versions of unnamed-chunk-22-3.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-22-3" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/59166fd20661f9af4d097277d03c5fce8b94954a/docs/figure/exploratory_plots.Rmd/unnamed-chunk-22-3.png" target="_blank">59166fd</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-08-15
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>epiread_format %&gt;% filter(histone_groups %in% levels(epiread_format$histone_groups)[9:12]) %&gt;%
   ggplot(aes(x = alpha, colour = histone_groups)) +
   geom_density() +
@@ -1220,6 +2578,43 @@ Warning in max(ids, na.rm = TRUE): no non-missing arguments to max; returning
   scale_y_continuous(limits = c(0, 5.5)) +
   scale_x_continuous(limits = c(0, 1))</code></pre>
 <p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-22-4.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-22-4">
+Past versions of unnamed-chunk-22-4.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-22-4" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/59166fd20661f9af4d097277d03c5fce8b94954a/docs/figure/exploratory_plots.Rmd/unnamed-chunk-22-4.png" target="_blank">59166fd</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-08-15
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>epiread_format %&gt;%
   ggplot(aes(x = histone_groups, y = alpha, colour = histone_groups)) +
   geom_boxplot() +
@@ -1227,17 +2622,100 @@ Warning in max(ids, na.rm = TRUE): no non-missing arguments to max; returning
         axis.text.x = element_text(angle = 90)) +
   labs(title = &quot;Distribution of alpha divided into 175bp histone groups chr22&quot;)</code></pre>
 <p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-22-5.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-22-5">
+Past versions of unnamed-chunk-22-5.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-22-5" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/59166fd20661f9af4d097277d03c5fce8b94954a/docs/figure/exploratory_plots.Rmd/unnamed-chunk-22-5.png" target="_blank">59166fd</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-08-15
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>epiread_format %&gt;% filter(histone_groups %in% levels(epiread_format$histone_groups)[1:12]) %&gt;%
   ggplot(aes(x = histone_groups, y = alpha, colour = histone_groups)) +
   geom_boxplot() +
   theme(legend.position = &quot;none&quot;, 
         axis.text.x = element_text(angle = 90)) +
   labs(title = &quot;Distribution of alpha divided into 175bp histone groups chr22&quot;)</code></pre>
-<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-22-6.png" width="672" style="display: block; margin: auto;" />
-* perplexity says longer cfDNA fragments associated with more methylated
-reads, hypomethylation for shorter fragments * which is the opposite of
-what we’re seeing here * try just looking at the first bin (it has half
-the reads)</p>
+<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-22-6.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-22-6">
+Past versions of unnamed-chunk-22-6.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-22-6" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/59166fd20661f9af4d097277d03c5fce8b94954a/docs/figure/exploratory_plots.Rmd/unnamed-chunk-22-6.png" target="_blank">59166fd</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-08-15
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<ul>
+<li>perplexity says longer cfDNA fragments associated with more
+methylated reads, hypomethylation for shorter fragments</li>
+<li>which is the opposite of what we’re seeing here</li>
+<li>try just looking at the first bin (it has half the reads)</li>
+</ul>
+<pre class="r"><code>epiread_format %&gt;% filter(histone_groups %in% levels(epiread_format$histone_groups)[1]) %&gt;%
+  ggplot(aes(x = read_length, y = alpha)) +
+  geom_boxplot() +
+  labs(title = &quot;Alpha distrib in read lengths 175bp&quot;)</code></pre>
+<pre><code>Warning: Continuous x aesthetic
+ℹ did you forget `aes(group = ...)`?</code></pre>
+<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-23-1.png" width="672" style="display: block; margin: auto;" /></p>
 <pre class="r"><code>aov.res &lt;- aov(alpha ~ histone_groups, data = epiread_format)
 summary(aov.res)</code></pre>
 <pre><code>                  Df Sum Sq Mean Sq F value   Pr(&gt;F)    
@@ -1698,17 +3176,54 @@ different between different histone sizes/read length groups?</li>
   ggplot(aes(x = histone_groups, fill = as.factor(alpha))) +
   geom_bar() +
   labs(title = &quot;Number of reads with alpha = 1 or 0 in first 4 histone groups (175bp bins)&quot;)</code></pre>
-<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-24-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-25-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-25-1">
+Past versions of unnamed-chunk-25-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-25-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/59166fd20661f9af4d097277d03c5fce8b94954a/docs/figure/exploratory_plots.Rmd/unnamed-chunk-25-1.png" target="_blank">59166fd</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-08-15
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>epiread_format %&gt;% filter(histone_groups %in% levels(epiread_format$histone_groups)[1:4]) %&gt;% filter(alpha %in% c(0,1)) %&gt;%
   ggplot(aes(x = histone_groups, fill = as.factor(alpha))) +
   geom_bar(position = &quot;fill&quot;) +
   labs(title = &quot;Proportion of reads with alpha = 1 or 0 in first 4 histone groups (175bp bins)&quot;)</code></pre>
-<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-24-2.png" width="672" style="display: block; margin: auto;" /></p>
+<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-25-2.png" width="672" style="display: block; margin: auto;" /></p>
 <pre class="r"><code>epiread_format %&gt;% filter(histone_groups %in% levels(epiread_format$histone_groups)[1:4]) %&gt;% filter(alpha %in% c(0,0.25,0.5,0.75,1)) %&gt;%
   ggplot(aes(x = histone_groups, fill = as.factor(alpha))) +
   geom_bar(position = &quot;fill&quot;) +
   labs(title = &quot;Proportion of reads with alpha =0,0.25,0.5,0.75,1 in first 4 histone groups (175bp bins)&quot;)</code></pre>
-<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-24-3.png" width="672" style="display: block; margin: auto;" /></p>
+<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-25-3.png" width="672" style="display: block; margin: auto;" /></p>
 <pre class="r"><code>epiread_format %&gt;% filter(histone_groups %in% levels(epiread_format$histone_groups)[1:2]) %&gt;% group_by(histone_groups) %&gt;% mutate(reads_in_group = n()) %&gt;% ungroup() %&gt;% group_by(histone_groups, alpha, reads_in_group) %&gt;% summarise(reads_per_alpha = n()) %&gt;% ungroup() %&gt;% mutate(prop = reads_per_alpha/reads_in_group) %&gt;% head()</code></pre>
 <pre><code>`summarise()` has grouped output by &#39;histone_groups&#39;, &#39;alpha&#39;. You can override
 using the `.groups` argument.</code></pre>
@@ -1724,7 +3239,7 @@ using the `.groups` argument.</code></pre>
 <pre class="r"><code>epiread_format %&gt;% filter(histone_groups %in% levels(epiread_format$histone_groups)[1:4]) %&gt;% filter(alpha %in% c(0,1)) %&gt;%
   ggplot(aes(x = histone_groups, fill = as.factor(alpha))) +
   geom_bar()</code></pre>
-<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-25-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-26-1.png" width="672" style="display: block; margin: auto;" /></p>
 <pre class="r"><code>epiread_format %&gt;% filter(histone_groups %in% levels(epiread_format$histone_groups)[1:2]) %&gt;% group_by(histone_groups) %&gt;% mutate(reads_in_group = n()) %&gt;% ungroup() %&gt;% group_by(histone_groups, alpha, reads_in_group) %&gt;% summarise(reads_per_alpha = n()) %&gt;% ungroup() %&gt;% mutate(prop = reads_per_alpha/reads_in_group) %&gt;% filter(alpha %in% c(0,1)) %&gt;% group_by(histone_groups) %&gt;% mutate(remaining_prop_for_other_alpha = 1- sum(prop))</code></pre>
 <pre><code>`summarise()` has grouped output by &#39;histone_groups&#39;, &#39;alpha&#39;. You can override
 using the `.groups` argument.</code></pre>
@@ -1801,15 +3316,92 @@ sample estimates:
   ggplot(aes(x = read_length, y = total, colour = histone_groups)) +
   geom_point(alpha = 0.3) +
   labs(y = &quot;number of cpgs in read&quot;, title = &quot;Slight correlation between read length and number of cpgs in read&quot;)</code></pre>
-<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-28-1.png" width="672" style="display: block; margin: auto;" />
-* Q: by binning the reads (histone groups) does the relationship become
-clearer? * ok that does make a nice rainbow (which it should because it
-just groups read lengths together)</p>
+<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-29-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-29-1">
+Past versions of unnamed-chunk-29-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-29-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/59166fd20661f9af4d097277d03c5fce8b94954a/docs/figure/exploratory_plots.Rmd/unnamed-chunk-29-1.png" target="_blank">59166fd</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-08-15
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<ul>
+<li>Q: by binning the reads (histone groups) does the relationship
+become clearer?</li>
+<li>ok that does make a nice rainbow (which it should because it just
+groups read lengths together)</li>
+</ul>
 <pre class="r"><code>epiread_format %&gt;%
   ggplot(aes(y = log2(total), x = histone_groups, colour = histone_groups)) +
   geom_boxplot() +
   theme(axis.text.x = element_text(angle = 90), legend.position = &quot;none&quot;)</code></pre>
-<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-29-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-30-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-30-1">
+Past versions of unnamed-chunk-30-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-30-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/59166fd20661f9af4d097277d03c5fce8b94954a/docs/figure/exploratory_plots.Rmd/unnamed-chunk-30-1.png" target="_blank">59166fd</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-08-15
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>epiread_format %&gt;%
   ggplot(aes(x = total, colour = histone_groups)) +
   geom_density() +
@@ -1842,7 +3434,7 @@ Warning in max(ids, na.rm = TRUE): no non-missing arguments to max; returning
 -Inf
 Warning in max(ids, na.rm = TRUE): no non-missing arguments to max; returning
 -Inf</code></pre>
-<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-29-2.png" width="672" style="display: block; margin: auto;" /></p>
+<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-30-2.png" width="672" style="display: block; margin: auto;" /></p>
 <pre class="r"><code>epiread_format %&gt;%
   ggplot(aes(x = log2(total), colour = histone_groups)) +
   geom_density() +
@@ -1875,19 +3467,19 @@ Warning in max(ids, na.rm = TRUE): no non-missing arguments to max; returning
 -Inf
 Warning in max(ids, na.rm = TRUE): no non-missing arguments to max; returning
 -Inf</code></pre>
-<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-29-3.png" width="672" style="display: block; margin: auto;" /></p>
+<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-30-3.png" width="672" style="display: block; margin: auto;" /></p>
 <pre class="r"><code>epiread_format %&gt;% filter(histone_groups %in% levels(epiread_format$histone_groups)[1:6]) %&gt;%
   ggplot(aes(x = total, colour = histone_groups)) +
   geom_density() +
   labs(x = &quot;number of cpgs in read&quot;,
        title = &quot;Distribution of cpgs in reads by first 6 histone groups (175bp bins)&quot;)</code></pre>
-<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-29-4.png" width="672" style="display: block; margin: auto;" /></p>
+<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-30-4.png" width="672" style="display: block; margin: auto;" /></p>
 <pre class="r"><code>epiread_format %&gt;% filter(histone_groups %in% levels(epiread_format$histone_groups)[1:6]) %&gt;%
   ggplot(aes(x = log2(total), colour = histone_groups)) +
   geom_density() +
   labs(x = &quot;log2(number of cpgs in read)&quot;,
        title = &quot;Log2 Distribution of cpgs in reads by first 6 histone groups (175bp bins)&quot;)</code></pre>
-<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-29-5.png" width="672" style="display: block; margin: auto;" /></p>
+<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-30-5.png" width="672" style="display: block; margin: auto;" /></p>
 <pre class="r"><code>epiread_format %&gt;% filter(histone_groups %in% levels(epiread_format$histone_groups)[7:32]) %&gt;%
   ggplot(aes(x = log2(total), colour = histone_groups)) +
   geom_density() +
@@ -1920,12 +3512,12 @@ Warning in max(ids, na.rm = TRUE): no non-missing arguments to max; returning
 -Inf
 Warning in max(ids, na.rm = TRUE): no non-missing arguments to max; returning
 -Inf</code></pre>
-<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-29-6.png" width="672" style="display: block; margin: auto;" />
+<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-30-6.png" width="672" style="display: block; margin: auto;" />
 * boxplots again</p>
 <pre class="r"><code>epiread_format %&gt;% filter(histone_groups %in% levels(epiread_format$histone_groups)[1]) %&gt;%
   ggplot(aes(x = read_length)) +
   geom_density()</code></pre>
-<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-30-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-31-1.png" width="672" style="display: block; margin: auto;" /></p>
 </div>
 <div id="alpha-1-vs-alpha-0-and-number-of-cpgs-in-read"
 class="section level1">
@@ -1952,23 +3544,60 @@ sample estimates:
 <pre class="r"><code>epiread_format %&gt;%
   ggplot(aes(x = alpha, y = total)) +
   geom_point(alpha = 0.1)</code></pre>
-<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-32-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-33-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-33-1">
+Past versions of unnamed-chunk-33-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-33-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/59166fd20661f9af4d097277d03c5fce8b94954a/docs/figure/exploratory_plots.Rmd/unnamed-chunk-33-1.png" target="_blank">59166fd</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-08-15
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>epiread_format %&gt;%
   ggplot(aes(x = log2(alpha), y = total)) +
   geom_point(alpha = 0.1)</code></pre>
-<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-32-2.png" width="672" style="display: block; margin: auto;" /></p>
+<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-33-2.png" width="672" style="display: block; margin: auto;" /></p>
 <pre class="r"><code>epiread_format %&gt;%
   ggplot(aes(x = alpha, y = log2(total))) +
   geom_point(alpha = 0.1)</code></pre>
-<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-32-3.png" width="672" style="display: block; margin: auto;" /></p>
+<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-33-3.png" width="672" style="display: block; margin: auto;" /></p>
 <pre class="r"><code>epiread_format %&gt;%
   ggplot(aes(x = log2(alpha), y = log2(total))) +
   geom_point(alpha = 0.1)</code></pre>
-<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-32-4.png" width="672" style="display: block; margin: auto;" /></p>
+<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-33-4.png" width="672" style="display: block; margin: auto;" /></p>
 <pre class="r"><code>epiread_format %&gt;% filter(alpha %in% c(0, 0.5, 1)) %&gt;%
   ggplot(aes(x = as.factor(alpha), y = total)) +
   geom_boxplot()</code></pre>
-<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-33-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-34-1.png" width="672" style="display: block; margin: auto;" /></p>
 <pre class="r"><code>aov.res &lt;- aov(total ~ as.factor(alpha), data = epiread_format)
 TukeyHSD(aov.res)</code></pre>
 <pre><code>  Tukey multiple comparisons of means
@@ -51991,7 +53620,7 @@ need to group that</p></li>
 <pre class="r"><code>epiread_format %&gt;%
   ggplot(aes(x = total, y = alpha)) +
   geom_point(alpha = 0.1)</code></pre>
-<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-35-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-36-1.png" width="672" style="display: block; margin: auto;" /></p>
 <pre class="r"><code>length(unique(epiread_format$total))</code></pre>
 <pre><code>[1] 64</code></pre>
 <pre class="r"><code>table(epiread_format$total)</code></pre>
@@ -52009,24 +53638,98 @@ need to group that</p></li>
   geom_boxplot() +
   labs(x = &quot;number of cpgs in a read&quot;, 
        title = &quot;Distribution of alpha values based on num cpg in read&quot;)</code></pre>
-<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-37-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-38-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-38-1">
+Past versions of unnamed-chunk-38-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-38-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/59166fd20661f9af4d097277d03c5fce8b94954a/docs/figure/exploratory_plots.Rmd/unnamed-chunk-38-1.png" target="_blank">59166fd</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-08-15
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>epiread_format %&gt;% filter(total %in% 1:10) %&gt;%
   ggplot(aes(x = alpha, colour = as.factor(total))) +
   geom_density() +
   labs( 
        title = &quot;Distribution of alpha values based on num cpg in read&quot;)</code></pre>
-<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-37-2.png" width="672" style="display: block; margin: auto;" /></p>
+<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-38-2.png" width="672" style="display: block; margin: auto;" /></p>
 <pre class="r"><code>epiread_format %&gt;% filter(total %in% 1:10) %&gt;%
   ggplot(aes(x = log2(alpha + 1), colour = as.factor(total))) +
   geom_density()</code></pre>
-<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-37-3.png" width="672" style="display: block; margin: auto;" />
+<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-38-3.png" width="672" style="display: block; margin: auto;" />
 * right at 1 cpg it can only be 0 or 1 and similar thing with the
 smaller numbers that’s why we get the little spikes * and then by 10 it
 gets a bit mixed in together and just a gradual build</p>
 <pre class="r"><code>epiread_format %&gt;% filter(total %in% 11:64) %&gt;%
   ggplot(aes(x = as.factor(total), y = alpha)) +
   geom_boxplot()</code></pre>
-<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-38-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-39-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-39-1">
+Past versions of unnamed-chunk-39-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-39-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/59166fd20661f9af4d097277d03c5fce8b94954a/docs/figure/exploratory_plots.Rmd/unnamed-chunk-39-1.png" target="_blank">59166fd</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-08-15
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>epiread_format %&gt;% filter(total %in% 11:64) %&gt;%
   ggplot(aes(x = alpha, colour = as.factor(total))) +
   geom_density()</code></pre>
@@ -52057,7 +53760,44 @@ Warning in max(ids, na.rm = TRUE): no non-missing arguments to max; returning
 -Inf
 Warning in max(ids, na.rm = TRUE): no non-missing arguments to max; returning
 -Inf</code></pre>
-<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-39-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-40-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-40-1">
+Past versions of unnamed-chunk-40-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-40-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/59166fd20661f9af4d097277d03c5fce8b94954a/docs/figure/exploratory_plots.Rmd/unnamed-chunk-40-1.png" target="_blank">59166fd</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-08-15
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>epiread_format %&gt;% 
   ggplot(aes(x = alpha, colour = as.factor(total))) +
   geom_density()</code></pre>
@@ -52118,9 +53858,48 @@ Warning in max(ids, na.rm = TRUE): no non-missing arguments to max; returning
 -Inf
 Warning in max(ids, na.rm = TRUE): no non-missing arguments to max; returning
 -Inf</code></pre>
-<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-39-2.png" width="672" style="display: block; margin: auto;" />
-* so that’s hard to read haha * ooh but what’s that weird one? - it’s in
-the 45-70 range</p>
+<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-40-2.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-40-2">
+Past versions of unnamed-chunk-40-2.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-40-2" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/59166fd20661f9af4d097277d03c5fce8b94954a/docs/figure/exploratory_plots.Rmd/unnamed-chunk-40-2.png" target="_blank">59166fd</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-08-15
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<ul>
+<li>so that’s hard to read haha</li>
+<li>ooh but what’s that weird one? - it’s in the 45-70 range</li>
+</ul>
 <pre class="r"><code>epiread_format %&gt;% filter(total %in% 45:70) %&gt;%
   ggplot(aes(x = alpha, colour = as.factor(total))) +
   geom_density()</code></pre>
@@ -52142,7 +53921,7 @@ Warning in max(ids, na.rm = TRUE): no non-missing arguments to max; returning
 -Inf
 Warning in max(ids, na.rm = TRUE): no non-missing arguments to max; returning
 -Inf</code></pre>
-<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-40-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-41-1.png" width="672" style="display: block; margin: auto;" /></p>
 <pre class="r"><code>epiread_format %&gt;% filter(total %in% 50:58) %&gt;%
   ggplot(aes(x = alpha, colour = as.factor(total))) +
   geom_density()</code></pre>
@@ -52152,39 +53931,39 @@ Warning in max(ids, na.rm = TRUE): no non-missing arguments to max; returning
 -Inf
 Warning in max(ids, na.rm = TRUE): no non-missing arguments to max; returning
 -Inf</code></pre>
-<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-40-2.png" width="672" style="display: block; margin: auto;" />
+<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-41-2.png" width="672" style="display: block; margin: auto;" />
 * it’s 50, 52, and 58</p>
 <pre class="r"><code>epiread_format %&gt;% filter(total %in% c(50, 52, 58))</code></pre>
-<pre><code>                               read_id seqnames    start      end read_length
-1 a4073ee9-15e9-4779-9228-c9b76d90b510    chr22 16386590 16387112         522
-2 feaf88e8-8ebc-4996-a12b-dd0c3a459886    chr22 17369701 17370028         327
-3 0e7797f2-aab4-467c-ae0d-a14efb268124    chr22 37804751 37805241         490
-4 c8389b39-c68f-4dc6-8074-497bd1c263fe    chr22 39662116 39662585         469
-  num_cg index_cg                                               meth_pattern
-1     52    63406       CCCCCCCCCCCCCCCCTTCCCCCCCCCCCCCCCCCTTCTCCCCTCTTTTTCC
-2     51    75628         TTTTTTTCTTTTTTTTTTTTTTTTTTTTTTCTTTTTTTTTTTTTTTTTTT
-3     59   376717 TTTTTTTTTTTTTTCTTTTTTTCTCTTCTTTTTTTTTCTTTTTTTTTTTTTTTTTTTT
-4     50   415264         TTTTTTTTTTTTTTCTTTTTTTTTTTTTTTTTTTTTTTTTTTCTCTTCTT
-                                                                                                                                                                                                                                                                                                                                                                                                                 cpg_positions
-1                                                                                                      63406,63407,63408,63409,63410,63411,63412,63413,63414,63415,63416,63417,63418,63419,63420,63421,63422,63423,63424,63425,63426,63427,63428,63429,63430,63431,63432,63433,63434,63435,63436,63437,63438,63439,63440,63441,63442,63443,63444,63445,63446,63447,63448,63449,63450,63451,63452,63453,63454,63455,63456,63457
-2                                                                                                            75628,75629,75630,75631,75632,75633,75634,75635,75636,75637,75638,75639,75640,75641,75642,75643,75644,75645,75646,75647,75648,75649,75650,75651,75652,75653,75654,75655,75656,75657,75658,75659,75660,75661,75662,75663,75664,75665,75666,75667,75668,75669,75670,75671,75672,75673,75674,75675,75676,75677,75678
-3 376717,376718,376719,376720,376721,376722,376723,376724,376725,376726,376727,376728,376729,376730,376731,376732,376733,376734,376735,376736,376737,376738,376739,376740,376741,376742,376743,376744,376745,376746,376747,376748,376749,376750,376751,376752,376753,376754,376755,376756,376757,376758,376759,376760,376761,376762,376763,376764,376765,376766,376767,376768,376769,376770,376771,376772,376773,376774,376775
-4                                                                415264,415265,415266,415267,415268,415269,415270,415271,415272,415273,415274,415275,415276,415277,415278,415279,415280,415281,415282,415283,415284,415285,415286,415287,415288,415289,415290,415291,415292,415293,415294,415295,415296,415297,415298,415299,415300,415301,415302,415303,415304,415305,415306,415307,415308,415309,415310,415311,415312,415313
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     genom_positions
-1                                                                16386679,16386713,16386716,16386719,16386721,16386738,16386751,16386754,16386757,16386760,16386762,16386783,16386786,16386789,16386791,16386803,16386806,16386808,16386824,16386827,16386830,16386857,16386868,16386871,16386873,16386892,16386897,16386914,16386929,16386935,16386937,16386952,16386955,16386958,16386960,16386975,16386977,16386995,16386998,16387019,16387024,16387043,16387048,16387060,16387065,16387080,16387083,16387086,16387103,16387106,16387109,16387111
-2                                                                         17369703,17369706,17369712,17369714,17369717,17369731,17369734,17369743,17369745,17369752,17369760,17369763,17369772,17369777,17369801,17369804,17369806,17369810,17369819,17369826,17369845,17369852,17369854,17369866,17369874,17369879,17369881,17369886,17369894,17369900,17369906,17369919,17369921,17369923,17369927,17369934,17369937,17369939,17369944,17369965,17369967,17369969,17369979,17369984,17369987,17369989,17370000,17370007,17370017,17370021,17370028
-3 37804750,37804759,37804765,37804767,37804784,37804791,37804803,37804818,37804823,37804828,37804843,37804870,37804882,37804887,37804903,37804919,37804937,37804948,37804955,37804958,37804961,37804972,37804977,37804981,37804983,37804990,37804993,37804997,37805005,37805010,37805014,37805017,37805042,37805052,37805055,37805058,37805075,37805080,37805093,37805103,37805106,37805124,37805127,37805130,37805135,37805143,37805148,37805180,37805182,37805187,37805191,37805194,37805197,37805208,37805214,37805217,37805225,37805232,37805234
-4                                                                                  39662117,39662126,39662128,39662132,39662140,39662143,39662145,39662150,39662171,39662189,39662203,39662208,39662214,39662223,39662226,39662230,39662240,39662254,39662267,39662279,39662281,39662288,39662298,39662303,39662314,39662323,39662330,39662366,39662375,39662393,39662397,39662399,39662406,39662408,39662429,39662435,39662447,39662453,39662469,39662494,39662507,39662514,39662518,39662522,39662530,39662537,39662543,39662548,39662554,39662559
-  num_meth total     alpha gap_to_next_read histone_groups read_start read_end
-1       41    52 0.7884615             2847      (350,525]   16386590 16387112
-2        2    50 0.0400000             1272      (175,350]   17369701 17370028
-3        5    58 0.0862069              170      (350,525]   37804751 37805241
-4        4    50 0.0800000             -125      (350,525]   39662116 39662585
-  chrom histone_groups.1
-1 chr22        (350,525]
-2 chr22        (175,350]
-3 chr22        (350,525]
-4 chr22        (350,525]</code></pre>
+<pre><code>                               read_id chrom alignment_start alignment_end
+1 a4073ee9-15e9-4779-9228-c9b76d90b510 chr22        16386590      16387112
+2 feaf88e8-8ebc-4996-a12b-dd0c3a459886 chr22        17369701      17370028
+3 0e7797f2-aab4-467c-ae0d-a14efb268124 chr22        37804751      37805241
+4 c8389b39-c68f-4dc6-8074-497bd1c263fe chr22        39662116      39662585
+  read_length num_cg                                               meth_pattern
+1         522     52       CCCCCCCCCCCCCCCCTTCCCCCCCCCCCCCCCCCTTCTCCCCTCTTTTTCC
+2         327     50         TTTTTTTCTTTTTTTTTTTTTTTTTTTTTTCTTTTTTTTTTTTTTTTTTT
+3         490     58 TTTTTTTTTTTTTTCTTTTTTTCTCTTCTTTTTTTTTCTTTTTTTTTTTTTTTTTTTT
+4         469     50         TTTTTTTTTTTTTTCTTTTTTTTTTTTTTTTTTTTTTTTTTTCTCTTCTT
+  seqnames    start      end width index_cg
+1    chr22 16386590 16387112   523    63406
+2    chr22 17369701 17370028   328    75628
+3    chr22 37804751 37805241   491   376717
+4    chr22 39662116 39662585   470   415264
+                                                                                                                                                                                                                                                                                                                                                                                                          cpg_positions
+1                                                                                               63406,63407,63408,63409,63410,63411,63412,63413,63414,63415,63416,63417,63418,63419,63420,63421,63422,63423,63424,63425,63426,63427,63428,63429,63430,63431,63432,63433,63434,63435,63436,63437,63438,63439,63440,63441,63442,63443,63444,63445,63446,63447,63448,63449,63450,63451,63452,63453,63454,63455,63456,63457
+2                                                                                                           75628,75629,75630,75631,75632,75633,75634,75635,75636,75637,75638,75639,75640,75641,75642,75643,75644,75645,75646,75647,75648,75649,75650,75651,75652,75653,75654,75655,75656,75657,75658,75659,75660,75661,75662,75663,75664,75665,75666,75667,75668,75669,75670,75671,75672,75673,75674,75675,75676,75677
+3 376717,376718,376719,376720,376721,376722,376723,376724,376725,376726,376727,376728,376729,376730,376731,376732,376733,376734,376735,376736,376737,376738,376739,376740,376741,376742,376743,376744,376745,376746,376747,376748,376749,376750,376751,376752,376753,376754,376755,376756,376757,376758,376759,376760,376761,376762,376763,376764,376765,376766,376767,376768,376769,376770,376771,376772,376773,376774
+4                                                         415264,415265,415266,415267,415268,415269,415270,415271,415272,415273,415274,415275,415276,415277,415278,415279,415280,415281,415282,415283,415284,415285,415286,415287,415288,415289,415290,415291,415292,415293,415294,415295,415296,415297,415298,415299,415300,415301,415302,415303,415304,415305,415306,415307,415308,415309,415310,415311,415312,415313
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            genom_positions
+1                                                       16386679,16386713,16386716,16386719,16386721,16386738,16386751,16386754,16386757,16386760,16386762,16386783,16386786,16386789,16386791,16386803,16386806,16386808,16386824,16386827,16386830,16386857,16386868,16386871,16386873,16386892,16386897,16386914,16386929,16386935,16386937,16386952,16386955,16386958,16386960,16386975,16386977,16386995,16386998,16387019,16387024,16387043,16387048,16387060,16387065,16387080,16387083,16387086,16387103,16387106,16387109,16387111
+2                                                                         17369703,17369706,17369712,17369714,17369717,17369731,17369734,17369743,17369745,17369752,17369760,17369763,17369772,17369777,17369801,17369804,17369806,17369810,17369819,17369826,17369845,17369852,17369854,17369866,17369874,17369879,17369881,17369886,17369894,17369900,17369906,17369919,17369921,17369923,17369927,17369934,17369937,17369939,17369944,17369965,17369967,17369969,17369979,17369984,17369987,17369989,17370000,17370007,17370017,17370021
+3 37804750,37804759,37804765,37804767,37804784,37804791,37804803,37804818,37804823,37804828,37804843,37804870,37804882,37804887,37804903,37804919,37804937,37804948,37804955,37804958,37804961,37804972,37804977,37804981,37804983,37804990,37804993,37804997,37805005,37805010,37805014,37805017,37805042,37805052,37805055,37805058,37805075,37805080,37805093,37805103,37805106,37805124,37805127,37805130,37805135,37805143,37805148,37805180,37805182,37805187,37805191,37805194,37805197,37805208,37805214,37805217,37805225,37805232
+4                                                                         39662117,39662126,39662128,39662132,39662140,39662143,39662145,39662150,39662171,39662189,39662203,39662208,39662214,39662223,39662226,39662230,39662240,39662254,39662267,39662279,39662281,39662288,39662298,39662303,39662314,39662323,39662330,39662366,39662375,39662393,39662397,39662399,39662406,39662408,39662429,39662435,39662447,39662453,39662469,39662494,39662507,39662514,39662518,39662522,39662530,39662537,39662543,39662548,39662554,39662559
+  num_meth total     alpha histone_groups
+1       41    52 0.7884615      (350,525]
+2        2    50 0.0400000      (175,350]
+3        5    58 0.0862069      (350,525]
+4        4    50 0.0800000      (350,525]</code></pre>
 <ul>
 <li>ok I have no clue why the density is so high for this</li>
 <li>and why it doesn’t go down to 0 when there’s nothing there??</li>
@@ -52200,52 +53979,45 @@ headaches)</li>
 on y is it’s alpha</li>
 </ul>
 <pre class="r"><code>head(epiread_format)</code></pre>
-<pre><code>                               read_id seqnames    start      end read_length
-1 7f095597-d2c5-47a2-93aa-d84b7f9abc94    chr22 10521100 10521455         355
-2 e9abf215-8192-48f4-a50f-ef92241e5de3    chr22 10522473 10522658         185
-3 4203dd9d-9bff-4d14-b046-7716315e9699    chr22 10524645 10524786         141
-4 baf45276-b37b-43fd-8a33-6727de6255fa    chr22 10527072 10527210         138
-5 a75ce5a8-42f2-4fe2-b62b-35aba109507d    chr22 10529269 10529453         184
-6 b5e822b7-e149-4ae2-8937-fe4d570a274e    chr22 10534032 10534204         172
-  num_cg index_cg      meth_pattern
-1      1       48                 T
-2      4       53              CCTT
-3      1       68                 T
-4     18      299 CCCCCCCCCCCCCCCCC
-5      2      374                TT
-6      2      408                TT
-                                                            cpg_positions
-1                                                                      48
-2                                                             53,54,55,56
-3                                                                      68
-4 299,300,301,302,303,304,305,306,307,308,309,310,311,312,313,314,315,316
-5                                                                 374,375
-6                                                                 408,409
-                                                                                                                                                    genom_positions
-1                                                                                                                                                          10521180
-2                                                                                                                               10522481,10522501,10522591,10522649
-3                                                                                                                                                          10524771
-4 10527071,10527087,10527090,10527093,10527108,10527114,10527116,10527119,10527130,10527136,10527138,10527153,10527156,10527172,10527189,10527191,10527194,10527199
-5                                                                                                                                                 10529326,10529356
-6                                                                                                                                                 10534125,10534167
-  num_meth total alpha gap_to_next_read histone_groups read_start read_end
-1        0     1   0.0             1018      (350,525]   10521100 10521455
-2        2     4   0.5             1987      (175,350]   10522473 10522658
-3        0     1   0.0             2286        (0,175]   10524645 10524786
-4       17    17   1.0             2059        (0,175]   10527072 10527210
-5        0     2   0.0             4579      (175,350]   10529269 10529453
-6        0     2   0.0             3201        (0,175]   10534032 10534204
-  chrom histone_groups.1
-1 chr22        (350,525]
-2 chr22        (175,350]
-3 chr22          (0,175]
-4 chr22          (0,175]
-5 chr22        (175,350]
-6 chr22          (0,175]</code></pre>
+<pre><code>                               read_id chrom alignment_start alignment_end
+1 7f095597-d2c5-47a2-93aa-d84b7f9abc94 chr22        10521100      10521455
+2 e9abf215-8192-48f4-a50f-ef92241e5de3 chr22        10522473      10522658
+3 4203dd9d-9bff-4d14-b046-7716315e9699 chr22        10524645      10524786
+4 baf45276-b37b-43fd-8a33-6727de6255fa chr22        10527072      10527210
+5 a75ce5a8-42f2-4fe2-b62b-35aba109507d chr22        10529269      10529453
+6 b5e822b7-e149-4ae2-8937-fe4d570a274e chr22        10534032      10534204
+  read_length num_cg      meth_pattern seqnames    start      end width
+1         355      1                 T    chr22 10521100 10521455   356
+2         185      4              CCTT    chr22 10522473 10522658   186
+3         141      1                 T    chr22 10524645 10524786   142
+4         138     17 CCCCCCCCCCCCCCCCC    chr22 10527072 10527210   139
+5         184      2                TT    chr22 10529269 10529453   185
+6         172      2                TT    chr22 10534032 10534204   173
+  index_cg                                                       cpg_positions
+1       48                                                                  48
+2       53                                                         53,54,55,56
+3       68                                                                  68
+4      299 299,300,301,302,303,304,305,306,307,308,309,310,311,312,313,314,315
+5      374                                                             374,375
+6      408                                                             408,409
+                                                                                                                                           genom_positions
+1                                                                                                                                                 10521180
+2                                                                                                                      10522481,10522501,10522591,10522649
+3                                                                                                                                                 10524771
+4 10527071,10527087,10527090,10527093,10527108,10527114,10527116,10527119,10527130,10527136,10527138,10527153,10527156,10527172,10527189,10527191,10527194
+5                                                                                                                                        10529326,10529356
+6                                                                                                                                        10534125,10534167
+  num_meth total alpha histone_groups
+1        0     1   0.0      (350,525]
+2        2     4   0.5      (175,350]
+3        0     1   0.0        (0,175]
+4       17    17   1.0        (0,175]
+5        0     2   0.0      (175,350]
+6        0     2   0.0        (0,175]</code></pre>
 <pre class="r"><code>epiread_format[7:11,] %&gt;%
   ggplot(aes(x = start, y = alpha, colour = read_id)) +
   geom_segment(aes(x = start, xend = end, y = alpha, yend = alpha))</code></pre>
-<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-43-1.png" width="672" style="display: block; margin: auto;" />
+<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-44-1.png" width="672" style="display: block; margin: auto;" />
 * hey that worked!! * yeah if I could expand this to add in the cpg
 positions * and might be nice to have gene info as well * basically my
 layered damid plots</p>
@@ -52258,48 +54030,41 @@ layered damid plots</p>
 <h1>distance between reads</h1>
 <pre class="r"><code>epiread_format &lt;- epiread_format %&gt;% mutate(gap_to_next_read = lead(start) - end)
 head(epiread_format)</code></pre>
-<pre><code>                               read_id seqnames    start      end read_length
-1 7f095597-d2c5-47a2-93aa-d84b7f9abc94    chr22 10521100 10521455         355
-2 e9abf215-8192-48f4-a50f-ef92241e5de3    chr22 10522473 10522658         185
-3 4203dd9d-9bff-4d14-b046-7716315e9699    chr22 10524645 10524786         141
-4 baf45276-b37b-43fd-8a33-6727de6255fa    chr22 10527072 10527210         138
-5 a75ce5a8-42f2-4fe2-b62b-35aba109507d    chr22 10529269 10529453         184
-6 b5e822b7-e149-4ae2-8937-fe4d570a274e    chr22 10534032 10534204         172
-  num_cg index_cg      meth_pattern
-1      1       48                 T
-2      4       53              CCTT
-3      1       68                 T
-4     18      299 CCCCCCCCCCCCCCCCC
-5      2      374                TT
-6      2      408                TT
-                                                            cpg_positions
-1                                                                      48
-2                                                             53,54,55,56
-3                                                                      68
-4 299,300,301,302,303,304,305,306,307,308,309,310,311,312,313,314,315,316
-5                                                                 374,375
-6                                                                 408,409
-                                                                                                                                                    genom_positions
-1                                                                                                                                                          10521180
-2                                                                                                                               10522481,10522501,10522591,10522649
-3                                                                                                                                                          10524771
-4 10527071,10527087,10527090,10527093,10527108,10527114,10527116,10527119,10527130,10527136,10527138,10527153,10527156,10527172,10527189,10527191,10527194,10527199
-5                                                                                                                                                 10529326,10529356
-6                                                                                                                                                 10534125,10534167
-  num_meth total alpha gap_to_next_read histone_groups read_start read_end
-1        0     1   0.0             1018      (350,525]   10521100 10521455
-2        2     4   0.5             1987      (175,350]   10522473 10522658
-3        0     1   0.0             2286        (0,175]   10524645 10524786
-4       17    17   1.0             2059        (0,175]   10527072 10527210
-5        0     2   0.0             4579      (175,350]   10529269 10529453
-6        0     2   0.0             3201        (0,175]   10534032 10534204
-  chrom histone_groups.1
-1 chr22        (350,525]
-2 chr22        (175,350]
-3 chr22          (0,175]
-4 chr22          (0,175]
-5 chr22        (175,350]
-6 chr22          (0,175]</code></pre>
+<pre><code>                               read_id chrom alignment_start alignment_end
+1 7f095597-d2c5-47a2-93aa-d84b7f9abc94 chr22        10521100      10521455
+2 e9abf215-8192-48f4-a50f-ef92241e5de3 chr22        10522473      10522658
+3 4203dd9d-9bff-4d14-b046-7716315e9699 chr22        10524645      10524786
+4 baf45276-b37b-43fd-8a33-6727de6255fa chr22        10527072      10527210
+5 a75ce5a8-42f2-4fe2-b62b-35aba109507d chr22        10529269      10529453
+6 b5e822b7-e149-4ae2-8937-fe4d570a274e chr22        10534032      10534204
+  read_length num_cg      meth_pattern seqnames    start      end width
+1         355      1                 T    chr22 10521100 10521455   356
+2         185      4              CCTT    chr22 10522473 10522658   186
+3         141      1                 T    chr22 10524645 10524786   142
+4         138     17 CCCCCCCCCCCCCCCCC    chr22 10527072 10527210   139
+5         184      2                TT    chr22 10529269 10529453   185
+6         172      2                TT    chr22 10534032 10534204   173
+  index_cg                                                       cpg_positions
+1       48                                                                  48
+2       53                                                         53,54,55,56
+3       68                                                                  68
+4      299 299,300,301,302,303,304,305,306,307,308,309,310,311,312,313,314,315
+5      374                                                             374,375
+6      408                                                             408,409
+                                                                                                                                           genom_positions
+1                                                                                                                                                 10521180
+2                                                                                                                      10522481,10522501,10522591,10522649
+3                                                                                                                                                 10524771
+4 10527071,10527087,10527090,10527093,10527108,10527114,10527116,10527119,10527130,10527136,10527138,10527153,10527156,10527172,10527189,10527191,10527194
+5                                                                                                                                        10529326,10529356
+6                                                                                                                                        10534125,10534167
+  num_meth total alpha histone_groups gap_to_next_read
+1        0     1   0.0      (350,525]             1018
+2        2     4   0.5      (175,350]             1987
+3        0     1   0.0        (0,175]             2286
+4       17    17   1.0        (0,175]             2059
+5        0     2   0.0      (175,350]             4579
+6        0     2   0.0        (0,175]             3201</code></pre>
 <ul>
 <li>if negative: next read overlaps</li>
 </ul>
@@ -52317,11 +54082,48 @@ reads</li>
 <pre class="r"><code>epiread_format %&gt;% mutate(row_num = 1:n()) %&gt;% .[1:1000,] %&gt;%
   ggplot(aes(x = row_num, y = gap_to_next_read)) +
   geom_point()</code></pre>
-<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-47-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-48-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-48-1">
+Past versions of unnamed-chunk-48-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-48-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/59166fd20661f9af4d097277d03c5fce8b94954a/docs/figure/exploratory_plots.Rmd/unnamed-chunk-48-1.png" target="_blank">59166fd</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-08-15
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>epiread_format %&gt;% mutate(row_num = 1:n()) %&gt;% .[100:200,] %&gt;%
   ggplot(aes(x = row_num, y = gap_to_next_read)) +
   geom_point()</code></pre>
-<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-47-2.png" width="672" style="display: block; margin: auto;" />
+<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-48-2.png" width="672" style="display: block; margin: auto;" />
 * went 1:1k rows and then zoomed in from there * there’s probably some
 kind of algorithm or something that can tell me high density regions?? -
 something to look into ** perplexity just recommends binning the genome
@@ -52330,7 +54132,7 @@ and counting reads per bin - then set a threshold for high density *
 <pre class="r"><code>epiread_format[110:125,] %&gt;%
   ggplot(aes(x = start, y = alpha, colour = read_id)) +
   geom_segment(aes(x = start, xend = end, y = alpha, yend = alpha))</code></pre>
-<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-48-1.png" width="672" style="display: block; margin: auto;" />
+<p><img src="figure/exploratory_plots.Rmd/unnamed-chunk-49-1.png" width="672" style="display: block; margin: auto;" />
 * ooh that’s more fun * make it as a dot - maybe take the midpoint -
 then can draw lines between dots to see potential trends</p>
 </div>
