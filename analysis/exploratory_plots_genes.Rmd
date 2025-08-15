@@ -7,20 +7,29 @@ date: "2025-08-08"
 library(plyranges)
 library(dplyr)
 library(ggplot2)
+
+library("TxDb.Hsapiens.UCSC.hg38.knownGene")
 ```
+
+```{r}
+epiread_format <- readRDS("/researchers/caitlin.page/cf_nano/r_output/epiread_format.rds")
+epiread_format$chrom <- epiread_format$seqnames
+head(epiread_format)
+```
+
 
 # where in the genome are reads with alpha = 1 vs alpha = 0?
 * promoters, intergenic, exons etc??
 ```{r}
-library("TxDb.Hsapiens.UCSC.hg38.knownGene")
 genes <- genes(TxDb.Hsapiens.UCSC.hg38.knownGene)
 ```
 ```{r}
 genes %>% data.frame() %>% filter(seqnames == "chr22") %>% nrow()
 ```
 
+
 ```{r}
-colnames(epiread_format)[2:4] <- c("seqnames", "start", "end")
+#colnames(epiread_format)[2:4] <- c("seqnames", "start", "end")
 epiread_format$read_start <- epiread_format$start
 epiread_format$read_end <- epiread_format$end
 ```
@@ -50,7 +59,7 @@ epiread_and_genes %>%
   geom_point(alpha = 0.3)
 ```
 ```{r}
-epiread_and_genes
+head(epiread_and_genes)
 ```
 
 
@@ -110,12 +119,5 @@ epiread_format %>% mutate(where = ifelse(read_id %in% epiread_and_genes$read_id,
 ```
 
 
-```{r}
-epiread_format
-```
 
-
-```{r}
-epiread_and_genes
-```
 
