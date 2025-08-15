@@ -12,7 +12,7 @@ navbar:
   right:
   - icon: fab fa-github
     text: Source code
-    href: https://github.com/caitlinpage/3_cf_nano
+    href: https://github.com/caitlinpage/methyl_nano_cf
 output:
   workflowr::wflow_html:
     toc: yes
