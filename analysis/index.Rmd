@@ -9,3 +9,9 @@ editor_options:
 ---
 
 Welcome to my research website.
+
+[Data](00_ObtainData.html)
+
+[exploratory plots](exploratory_plots.html)
+
+[explore relationship with genes](exploratory_plots_genes.html)

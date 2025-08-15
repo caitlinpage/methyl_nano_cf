@@ -9,17 +9,23 @@ library(dplyr)
 library(ggplot2)
 ```
 
-
-
 ```{r}
+epiread_format <- readRDS("/researchers/caitlin.page/cf_nano/r_output/epiread_format.rds")
+epiread_format$chrom <- epiread_format$seqnames
+head(epiread_format)
+```
+
+
+
 indiv_reads
 indiv_reads_cg22
 pat_format
 alpha_format
 epiread_format
-```
+
+
 ```{r}
-epiread_format %>% filter(num_cg == 1)
+epiread_format %>% filter(num_cg == 1) %>% nrow()
 ```
 
 * add alpha information to epiread format
@@ -29,7 +35,7 @@ epiread_format <- epiread_format %>%
          total = stringr::str_length(epiread_format$meth_pattern),
          alpha = num_meth/total)
 
-epiread_format
+head(epiread_format)
 ```
 
 
@@ -282,7 +288,7 @@ histones
 ```
 ```{r}
 epiread_format <- data.frame(epiread_format, histone_groups = cut(epiread_format$read_length, breaks = histones, include.lowest = FALSE, right = TRUE))
-epiread_format
+head(epiread_format)
 ```
 ```{r}
 levels(epiread_format$histone_groups)
@@ -433,7 +439,7 @@ epiread_format %>% filter(histone_groups %in% levels(epiread_format$histone_grou
 
 
 ```{r}
-epiread_format %>% filter(histone_groups %in% levels(epiread_format$histone_groups)[1:2]) %>% group_by(histone_groups) %>% mutate(reads_in_group = n()) %>% ungroup() %>% group_by(histone_groups, alpha, reads_in_group) %>% summarise(reads_per_alpha = n()) %>% ungroup() %>% mutate(prop = reads_per_alpha/reads_in_group) 
+epiread_format %>% filter(histone_groups %in% levels(epiread_format$histone_groups)[1:2]) %>% group_by(histone_groups) %>% mutate(reads_in_group = n()) %>% ungroup() %>% group_by(histone_groups, alpha, reads_in_group) %>% summarise(reads_per_alpha = n()) %>% ungroup() %>% mutate(prop = reads_per_alpha/reads_in_group) %>% head()
 
 epiread_format %>% filter(histone_groups %in% levels(epiread_format$histone_groups)[1:4]) %>% filter(alpha %in% c(0,1)) %>%
   ggplot(aes(x = histone_groups, fill = as.factor(alpha))) +
@@ -632,14 +638,14 @@ epiread_format %>% filter(total %in% c(50, 52, 58))
 * try to make a damid style plot (if I can do it without too many headaches)
 * basically want a horizontol line for a read length, and it's height on y is it's alpha
 ```{r}
-epiread_format
+head(epiread_format)
 ```
 
 
 ```{r}
 epiread_format[7:11,] %>%
-  ggplot(aes(x = alignment_start, y = alpha, colour = read_id)) +
-  geom_segment(aes(x = alignment_start, xend = alignment_end, y = alpha, yend = alpha))
+  ggplot(aes(x = start, y = alpha, colour = read_id)) +
+  geom_segment(aes(x = start, xend = end, y = alpha, yend = alpha))
 ```
 * hey that worked!!
 * yeah if I could expand this to add in the cpg positions
@@ -653,8 +659,8 @@ epiread_format[7:11,] %>%
 # distance between reads
 
 ```{r}
-epiread_format <- epiread_format %>% mutate(gap_to_next_read = lead(alignment_start) - alignment_end)
-epiread_format
+epiread_format <- epiread_format %>% mutate(gap_to_next_read = lead(start) - end)
+head(epiread_format)
 ```
 * if negative: next read overlaps
 ```{r}
@@ -683,11 +689,12 @@ epiread_format %>% mutate(row_num = 1:n()) %>% .[100:200,] %>%
 * 110-125 look ok
 ```{r}
 epiread_format[110:125,] %>%
-  ggplot(aes(x = alignment_start, y = alpha, colour = read_id)) +
-  geom_segment(aes(x = alignment_start, xend = alignment_end, y = alpha, yend = alpha))
+  ggplot(aes(x = start, y = alpha, colour = read_id)) +
+  geom_segment(aes(x = start, xend = end, y = alpha, yend = alpha))
 ```
 * ooh that's more fun
 * make it as a dot - maybe take the midpoint - then can draw lines between dots to see potential trends
+
 
 
 
