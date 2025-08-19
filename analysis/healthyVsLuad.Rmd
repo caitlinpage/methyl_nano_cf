@@ -10,6 +10,660 @@ editor_options:
 ## Introduction
 
 ```{r}
-
+library(plyranges)
+library(dplyr)
+library(ggplot2)
 ```
+
+
+```{r}
+epiread_cancer_bc1 <- readRDS("/researchers/caitlin.page/cf_nano/r_output_epiread_cancer_bc1.rds")
+#epiread_healthy_bc2 <- readRDS("/researchers/caitlin.page/cf_nano/r_output_epiread_healthy_bc2.rds")
+```
+
+```{r}
+epiread_format <- epiread_cancer_bc1
+epiread_format$chrom <- epiread_format$seqnames
+head(epiread_format)
+```
+
+
+
+```{r}
+epiread_format %>% filter(num_cg == 1) %>% nrow()
+```
+
+
+# Plots time
+
+# Distribution of alpha across all reads
+
+* Hypothesis: most of the genome is methylated so we would expect more reads to have alpha = 1
+
+```{r}
+summary(epiread_format$alpha)
+length(unique(epiread_format$alpha))
+```
+
+```{r}
+epiread_format %>%
+  ggplot(aes(x = alpha)) +
+  geom_density() +
+  labs(title = "Distribution of alpha across reads in chr22")
+
+epiread_format %>%
+  ggplot(aes(x = log2(alpha + 1))) +
+  geom_density() +
+  labs(title = "Log2 Distribution of alpha across reads in chr22")
+
+epiread_format %>%
+  ggplot(aes(x = alpha)) +
+  geom_histogram(bins = 50) +
+  labs(title = "Distribution of alpha across reads in chr22")
+
+epiread_format %>%
+  ggplot(aes(x = chrom, y = alpha)) +
+  geom_boxplot() +
+  labs(title = "Distribution of alpha across reads in chr22")
+
+epiread_format %>%
+  ggplot(aes(x = chrom, y = alpha)) +
+  geom_violin() +
+  labs(title = "Distribution of alpha across reads in chr22")
+```
+
+
+
+
+
+# Distribution of read lengths
+
+* Q: is there variability in the length of the read/fragment?
+** We are assuming that the read length is the fragment length because it's nanopore data
+
+```{r}
+summary(epiread_format$read_length)
+```
+
+```{r}
+epiread_format %>%
+  ggplot(aes(x = read_length)) +
+  geom_density() +
+  labs(title = "Distribution of read length in chr22")
+
+epiread_format %>%
+  ggplot(aes(x = read_length)) +
+  geom_density() +
+  scale_x_continuous(limits = c(0, 1000)) +
+  labs(title = "Distribution of read length in chr22, cut at 1kbp")
+
+epiread_format %>%
+  ggplot(aes(x = log2(read_length))) +
+  geom_density() +
+  labs(title = "Log2 Distribution of read length in chr22")
+
+epiread_format %>%
+  ggplot(aes(x = read_length)) +
+  geom_histogram(bins = 75) +
+  labs(title = "Distribution of read length in chr22 in 75 bins")
+
+epiread_format %>%
+  ggplot(aes(x = chrom, y = log2(read_length))) +
+  geom_boxplot() +
+  labs(title = "Log2 Distribution of read length in chr22")
+
+epiread_format %>%
+  ggplot(aes(x = chrom, y = log2(read_length))) +
+  geom_violin() +
+  labs(title = "Log2 Distribution of read length in chr22")
+```
+
+
+```{r}
+plot <- epiread_format %>%
+  ggplot(aes(x = read_length)) +
+  geom_density()
+
+p <- ggplot_build(plot)
+density_data <- p$data[[1]]
+
+density_data$x[which.max(density_data$y)]
+```
+
+
+# distribution of number of cpgs in a read
+
+* Q: is there variability in the number of cpgs in a read?
+* Q: does the data group together??
+
+```{r}
+summary(epiread_format$total)
+```
+
+```{r}
+epiread_format %>%
+  ggplot(aes(x = total)) +
+  geom_density() +
+  labs(title = "Distribution of cpgs in reads in chr22", 
+       x = "number of cpgs in read")
+
+epiread_format %>%
+  ggplot(aes(x = log2(total))) +
+  geom_density() +
+  labs(title = "Log2 Distribution of cpgs in reads in chr22", 
+       x = "log2(number of cpgs in read)")
+
+epiread_format %>%
+  ggplot(aes(x = total)) +
+  geom_histogram(bins = 50) +
+  labs(title = "Distribution of cpgs in reads in chr22", 
+       x = "number of cpgs in read")
+
+epiread_format %>%
+  ggplot(aes(x = chrom, y = total)) +
+  geom_boxplot() +
+  labs(title = "Distribution of cpgs in reads in chr22", 
+       y = "number of cpgs in read")
+
+epiread_format %>%
+  ggplot(aes(x = chrom, y = log2(total))) +
+  geom_violin() +
+  labs(title = "Log2 Distribution of cpgs in reads in chr22", 
+       y = "number of cpgs in read")
+```
+
+
+
+# read length and number of cpgs
+
+* Hypothesis: they are correlated - longer read = more cpgs
+
+```{r}
+cor.test(epiread_format$read_length, epiread_format$total)
+cor.test(epiread_format$read_length, epiread_format$total, method = "spearman") # non-parametric method
+```
+
+```{r}
+epiread_format %>%
+  ggplot(aes(x = read_length, y = total)) +
+  geom_point(alpha = 0.3) +
+  labs(y = "number of cpgs in read", title = "Slight correlation between read length and number of cpgs in read")
+
+epiread_format %>%
+  ggplot(aes(x = log2(read_length), y = total)) +
+  geom_point(alpha = 0.3) +
+  labs(y = "number of cpgs in read", title = "log2(read length) and number of cpgs in read")
+
+epiread_format %>%
+  ggplot(aes(x = read_length, y = total)) +
+  geom_point(alpha = 0.3) +
+  scale_x_continuous(limits = c(0, 1000)) + 
+  labs(y = "number of cpgs in read", title = "Slight correlation between read length and number of cpgs in read") 
+```
+```{r}
+summary(epiread_format$read_length)
+```
+
+
+
+
+# alpha = 1 vs alpha = 0 and fragment length
+
+* Q: is there different read lengths associated with alpha = 1 vs alpha = 0?
+* Q: basically, do alpha values group together by read length?
+* Q: basically, are they correlated?
+
+```{r}
+cor.test(epiread_format$alpha, epiread_format$read_length)
+```
+* No they are not correlated
+
+```{r}
+epiread_format %>% 
+  ggplot(aes(x = read_length, y = alpha)) +
+  geom_point(alpha = 0.1)
+```
+
+
+```{r}
+epiread_format %>% 
+  ggplot(aes(x = alpha, y = read_length)) +
+  geom_point(alpha = 0.1) +
+  labs(title = "Dot plot of read length and alpha values for chr22")
+
+epiread_format %>% 
+  ggplot(aes(x = alpha, y = log2(read_length))) +
+  geom_point(alpha = 0.1) +
+  labs(title = "Dot plot of log2(read length) and alpha values for chr22")
+
+epiread_format %>% filter(alpha %in% c(0, 0.5, 1)) %>%
+  ggplot(aes(x = as.factor(alpha), y = read_length)) +
+  geom_boxplot() +
+  labs(title = "Boxplot of read length for alpha = 0,0.5,1 for chr22")
+
+epiread_format %>% filter(alpha %in% c(0, 0.5, 1)) %>%
+  ggplot(aes(x = as.factor(alpha), y = log2(read_length))) +
+  geom_boxplot() +
+  labs(title = "Log2 Boxplot of read length for alpha = 0,0.5,1 for chr22")
+```
+
+* No they are not correlated
+
+# same thing but categorising reads by the number of histones?
+
+* histone is ~147bp
+* Q: so if I group reads by the number of histones, are there any patterns or anything of difference between the groups in terms of alpha?
+
+* make bins of 175bp etc (because 174 was the value of the first peak in the distribution)
+* any reads that are in the range go in the group
+```{r}
+max(epiread_format$read_length)
+histones <- seq(from = 0, by = 175, to = 5600)
+histones
+```
+```{r}
+epiread_format <- data.frame(epiread_format, histone_groups = cut(epiread_format$read_length, breaks = histones, include.lowest = FALSE, right = TRUE))
+head(epiread_format)
+```
+```{r}
+levels(epiread_format$histone_groups)
+```
+```{r}
+epiread_format %>%
+  ggplot(aes(x = histone_groups, fill = histone_groups)) +
+  geom_bar() +
+  theme(axis.text.x = element_text(angle = 90)) +
+  theme(legend.position = "none") +
+  labs(title = "Number of reads in each group (175bp groups)")
+
+epiread_format %>% filter(histone_groups %in% levels(epiread_format$histone_groups)[1:6]) %>%
+  ggplot(aes(x = histone_groups, fill = histone_groups)) +
+  geom_bar() +
+  theme(axis.text.x = element_text(angle = 90)) +
+  theme(legend.position = "none") +
+  labs(title = "Number of reads in first 6 groups (175bp groups)")
+
+epiread_format %>% filter(histone_groups %in% levels(epiread_format$histone_groups)[4:8]) %>%
+  ggplot(aes(x = histone_groups, fill = histone_groups)) +
+  geom_bar() +
+  theme(axis.text.x = element_text(angle = 90)) +
+  theme(legend.position = "none") +
+  labs(title = "Number of reads in groups 4-8 (175bp groups)")
+
+epiread_format %>% filter(histone_groups %in% levels(epiread_format$histone_groups)[7:32]) %>%
+  ggplot(aes(x = histone_groups, fill = histone_groups)) +
+  geom_bar() +
+  theme(axis.text.x = element_text(angle = 90)) +
+  theme(legend.position = "none") +
+  labs(title = "Number of reads in groups 7-32 (175bp groups)")
+
+epiread_format %>% filter(histone_groups %in% levels(epiread_format$histone_groups)[1:6]) %>%
+  ggplot(aes(x = "", fill = histone_groups)) +
+  geom_bar(position = "fill") +
+  labs(title = "Proportion of reads in groups 1-6 (175bp groups)")
+
+epiread_format %>%
+  ggplot(aes(x = "", fill = histone_groups)) +
+  geom_bar(position = "fill") +
+  labs(title = "Proportion of reads in each group (175bp groups)")
+
+epiread_format %>%
+  ggplot(aes(x = "", fill = histone_groups)) +
+  geom_bar(position = "fill") +
+  coord_polar("y", start = 0) +
+  labs(title = "Proportion of reads in each group (175bp groups)")
+
+epiread_format %>% filter(histone_groups %in% levels(epiread_format$histone_groups)[1:6]) %>%
+  ggplot(aes(x = "", fill = histone_groups)) +
+  geom_bar(position = "fill") +
+  coord_polar("y", start = 0) +
+  labs(title = "Proportion of reads in groups 1-6 (175bp groups)")
+
+epiread_format %>% filter(histone_groups %in% levels(epiread_format$histone_groups)[7:32]) %>%
+  ggplot(aes(x = "", fill = histone_groups)) +
+  geom_bar(position = "fill") +
+  coord_polar("y", start = 0) +
+  labs(title = "Proportion of reads in groups 7-32 (175bp groups)")
+```
+
+
+```{r}
+epiread_format %>%
+  ggplot(aes(x = alpha, colour = histone_groups)) +
+  geom_density() +
+  labs(title = "Distribution of alpha divided into 175bp histone groups chr22")
+
+epiread_format %>% filter(histone_groups %in% levels(epiread_format$histone_groups)[1:4]) %>%
+  ggplot(aes(x = alpha, colour = histone_groups)) +
+  geom_density() +
+  labs(title = "Distribution of alpha divided into 175bp histone groups chr22, first 4 groups") +
+  scale_y_continuous(limits = c(0, 5.5)) +
+  scale_x_continuous(limits = c(0, 1))
+
+epiread_format %>% filter(histone_groups %in% levels(epiread_format$histone_groups)[5:8]) %>%
+  ggplot(aes(x = alpha, colour = histone_groups)) +
+  geom_density() +
+  labs(title = "Distribution of alpha divided into 175bp histone groups chr22, 5-8 groups") +
+  scale_y_continuous(limits = c(0, 5.5)) +
+  scale_x_continuous(limits = c(0, 1))
+
+epiread_format %>% filter(histone_groups %in% levels(epiread_format$histone_groups)[9:12]) %>%
+  ggplot(aes(x = alpha, colour = histone_groups)) +
+  geom_density() +
+  labs(title = "Distribution of alpha divided into 175bp histone groups chr22, first 9-12 groups") +
+  scale_y_continuous(limits = c(0, 5.5)) +
+  scale_x_continuous(limits = c(0, 1))
+
+epiread_format %>%
+  ggplot(aes(x = histone_groups, y = alpha, colour = histone_groups)) +
+  geom_boxplot() +
+  theme(legend.position = "none", 
+        axis.text.x = element_text(angle = 90)) +
+  labs(title = "Distribution of alpha divided into 175bp histone groups chr22")
+
+epiread_format %>% filter(histone_groups %in% levels(epiread_format$histone_groups)[1:12]) %>%
+  ggplot(aes(x = histone_groups, y = alpha, colour = histone_groups)) +
+  geom_boxplot() +
+  theme(legend.position = "none", 
+        axis.text.x = element_text(angle = 90)) +
+  labs(title = "Distribution of alpha divided into 175bp histone groups chr22")
+```
+* perplexity says longer cfDNA fragments associated with more methylated reads, hypomethylation for shorter fragments
+* which is the opposite of what we're seeing here
+* try just looking at the first bin (it has half the reads)
+```{r}
+aov.res <- aov(alpha ~ histone_groups, data = epiread_format)
+summary(aov.res)
+
+TukeyHSD(aov.res)
+```
+
+* first 3 comparisons are significantly different
+* group 1 and group 2: (0,175) vs (175,350) padj=0.0124
+* group 1 and group 3: (0,175) vs (350,525) padj=0.0000
+* group 1 and group 4: (0,175) vs (525,700) padj=0.0153
+* group 2 and group 3: (175,350) vs (350,525) padj=0.0003
+
+* odd that group 2 and group 4 aren't significant
+* 3 and 4 are similar so makes sense they're not different
+
+# proportion of alpha = 1 vs alpha = 0 for histone size difference
+
+* focus on groups 1-4
+* also may 1 to everything else
+* a 2 proportion z test: are the proportions of alpha = 1/alpha = 0 different between different histone sizes/read length groups?
+
+```{r}
+epiread_format %>% filter(histone_groups %in% levels(epiread_format$histone_groups)[1:4]) %>% filter(alpha %in% c(0,1)) %>%
+  ggplot(aes(x = histone_groups, fill = as.factor(alpha))) +
+  geom_bar() +
+  labs(title = "Number of reads with alpha = 1 or 0 in first 4 histone groups (175bp bins)")
+
+epiread_format %>% filter(histone_groups %in% levels(epiread_format$histone_groups)[1:4]) %>% filter(alpha %in% c(0,1)) %>%
+  ggplot(aes(x = histone_groups, fill = as.factor(alpha))) +
+  geom_bar(position = "fill") +
+  labs(title = "Proportion of reads with alpha = 1 or 0 in first 4 histone groups (175bp bins)")
+
+epiread_format %>% filter(histone_groups %in% levels(epiread_format$histone_groups)[1:4]) %>% filter(alpha %in% c(0,0.25,0.5,0.75,1)) %>%
+  ggplot(aes(x = histone_groups, fill = as.factor(alpha))) +
+  geom_bar(position = "fill") +
+  labs(title = "Proportion of reads with alpha =0,0.25,0.5,0.75,1 in first 4 histone groups (175bp bins)")
+```
+
+
+```{r}
+epiread_format %>% filter(histone_groups %in% levels(epiread_format$histone_groups)[1:2]) %>% group_by(histone_groups) %>% mutate(reads_in_group = n()) %>% ungroup() %>% group_by(histone_groups, alpha, reads_in_group) %>% summarise(reads_per_alpha = n()) %>% ungroup() %>% mutate(prop = reads_per_alpha/reads_in_group) %>% head()
+
+epiread_format %>% filter(histone_groups %in% levels(epiread_format$histone_groups)[1:4]) %>% filter(alpha %in% c(0,1)) %>%
+  ggplot(aes(x = histone_groups, fill = as.factor(alpha))) +
+  geom_bar()
+
+epiread_format %>% filter(histone_groups %in% levels(epiread_format$histone_groups)[1:2]) %>% group_by(histone_groups) %>% mutate(reads_in_group = n()) %>% ungroup() %>% group_by(histone_groups, alpha, reads_in_group) %>% summarise(reads_per_alpha = n()) %>% ungroup() %>% mutate(prop = reads_per_alpha/reads_in_group) %>% filter(alpha %in% c(0,1)) %>% group_by(histone_groups) %>% mutate(remaining_prop_for_other_alpha = 1- sum(prop))
+```
+
+* z test alpha = 1
+```{r}
+prop.test(x = c(7702, 4225), n = c(14544, 9792), alternative = "two.sided")
+```
+* alpha = 0
+```{r}
+prop.test(x = c(2112, 1158), n = c(14544, 9792), alternative = "two.sided")
+```
+
+* z tests are significant but I think this is partly because there is so much data
+* results are more likely to be statistically significant even if differences are small
+* and in the proportion plot, and in the numbers, the differences are pretty small for alpha =0
+* alpha = 1 is a 10% difference, so I think we can call that
+* It would be good to group together alpha in some way - maybe I need to bin it?
+
+
+# histone groups and number of cpgs
+
+* longer reads were kind of correlated with number of cpgs (could've been stronger)
+```{r}
+cor.test(epiread_format$read_length, epiread_format$total)
+epiread_format %>%
+  ggplot(aes(x = read_length, y = total, colour = histone_groups)) +
+  geom_point(alpha = 0.3) +
+  labs(y = "number of cpgs in read", title = "Slight correlation between read length and number of cpgs in read")
+```
+* Q: by binning the reads (histone groups) does the relationship become clearer?
+* ok that does make a nice rainbow (which it should because it just groups read lengths together)
+
+```{r}
+epiread_format %>%
+  ggplot(aes(y = log2(total), x = histone_groups, colour = histone_groups)) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 90), legend.position = "none")
+
+epiread_format %>%
+  ggplot(aes(x = total, colour = histone_groups)) +
+  geom_density() +
+  labs(x = "number of cpgs in read",
+       title = "Distribution of cpgs in reads by histone group (175bp bins)")
+
+epiread_format %>%
+  ggplot(aes(x = log2(total), colour = histone_groups)) +
+  geom_density() +
+  labs(x = "log2(number of cpgs in read)",
+       title = "Log2 Distribution of cpgs in reads by histone group (175bp bins)")
+
+epiread_format %>% filter(histone_groups %in% levels(epiread_format$histone_groups)[1:6]) %>%
+  ggplot(aes(x = total, colour = histone_groups)) +
+  geom_density() +
+  labs(x = "number of cpgs in read",
+       title = "Distribution of cpgs in reads by first 6 histone groups (175bp bins)")
+
+epiread_format %>% filter(histone_groups %in% levels(epiread_format$histone_groups)[1:6]) %>%
+  ggplot(aes(x = log2(total), colour = histone_groups)) +
+  geom_density() +
+  labs(x = "log2(number of cpgs in read)",
+       title = "Log2 Distribution of cpgs in reads by first 6 histone groups (175bp bins)")
+
+epiread_format %>% filter(histone_groups %in% levels(epiread_format$histone_groups)[7:32]) %>%
+  ggplot(aes(x = log2(total), colour = histone_groups)) +
+  geom_density() +
+  labs(x = "log2(number of cpgs in read)",
+       title = "Log2 Distribution of cpgs in reads by histone groups 7-32 (175bp bins)")
+```
+* boxplots again
+```{r}
+epiread_format %>% filter(histone_groups %in% levels(epiread_format$histone_groups)[1]) %>%
+  ggplot(aes(x = read_length)) +
+  geom_density()
+```
+
+
+# alpha = 1 vs alpha = 0 and number of cpgs in read
+
+* Q: does alpha group by the number of cpgs in a read? 
+* Q: does all of alpha = 1 have 1 cpg in the read?
+
+* could treat them as numerical or categorical values
+* because we care about alpha=1/0 as categories, and number of cpgs in a read can also be a group we categorise by
+
+```{r}
+cor.test(epiread_format$alpha, epiread_format$total)
+```
+
+```{r}
+epiread_format %>%
+  ggplot(aes(x = alpha, y = total)) +
+  geom_point(alpha = 0.1)
+
+epiread_format %>%
+  ggplot(aes(x = log2(alpha), y = total)) +
+  geom_point(alpha = 0.1)
+
+epiread_format %>%
+  ggplot(aes(x = alpha, y = log2(total))) +
+  geom_point(alpha = 0.1)
+
+epiread_format %>%
+  ggplot(aes(x = log2(alpha), y = log2(total))) +
+  geom_point(alpha = 0.1)
+```
+```{r}
+epiread_format %>% filter(alpha %in% c(0, 0.5, 1)) %>%
+  ggplot(aes(x = as.factor(alpha), y = total)) +
+  geom_boxplot()
+```
+
+```{r}
+aov.res <- aov(total ~ as.factor(alpha), data = epiread_format)
+TukeyHSD(aov.res)
+```
+* so the comparisons to 0 were significant - at least the ones that printed
+* problem is >30k comparisons - bad idea
+
+* yeah this was a bad idea - very slow
+* I think I should group alpha's a bit more, maybe 0, in between, 0.5, in between, 1
+* and definitely don't run it the other way around yet - would also need to group that
+
+
+```{r}
+epiread_format %>%
+  ggplot(aes(x = total, y = alpha)) +
+  geom_point(alpha = 0.1)
+```
+```{r}
+length(unique(epiread_format$total))
+table(epiread_format$total)
+```
+
+```{r}
+epiread_format %>% filter(total %in% 1:10) %>%
+  ggplot(aes(x = as.factor(total), y = alpha)) +
+  geom_boxplot() +
+  labs(x = "number of cpgs in a read", 
+       title = "Distribution of alpha values based on num cpg in read")
+
+epiread_format %>% filter(total %in% 1:10) %>%
+  ggplot(aes(x = alpha, colour = as.factor(total))) +
+  geom_density() +
+  labs( 
+       title = "Distribution of alpha values based on num cpg in read")
+
+epiread_format %>% filter(total %in% 1:10) %>%
+  ggplot(aes(x = log2(alpha + 1), colour = as.factor(total))) +
+  geom_density()
+```
+* right at 1 cpg it can only be 0 or 1 and similar thing with the smaller numbers that's why we get the little spikes
+* and then by 10 it gets a bit mixed in together and just a gradual build
+```{r}
+epiread_format %>% filter(total %in% 11:64) %>%
+  ggplot(aes(x = as.factor(total), y = alpha)) +
+  geom_boxplot()
+```
+
+```{r}
+epiread_format %>% filter(total %in% 11:64) %>%
+  ggplot(aes(x = alpha, colour = as.factor(total))) +
+  geom_density()
+
+epiread_format %>% 
+  ggplot(aes(x = alpha, colour = as.factor(total))) +
+  geom_density()
+```
+* so that's hard to read haha
+* ooh but what's that weird one? - it's in the 45-70 range
+
+```{r}
+epiread_format %>% filter(total %in% 45:70) %>%
+  ggplot(aes(x = alpha, colour = as.factor(total))) +
+  geom_density()
+
+epiread_format %>% filter(total %in% 50:58) %>%
+  ggplot(aes(x = alpha, colour = as.factor(total))) +
+  geom_density()
+```
+* it's 50, 52, and 58
+```{r}
+epiread_format %>% filter(total %in% c(50, 52, 58))
+```
+* ok I have no clue why the density is so high for this
+* and why it doesn't go down to 0 when there's nothing there??
+* maybe it's just a plotting thing: nice bimodal signal though
+
+
+# plot across a region??
+
+* try to make a damid style plot (if I can do it without too many headaches)
+* basically want a horizontol line for a read length, and it's height on y is it's alpha
+```{r}
+head(epiread_format)
+```
+
+
+```{r}
+epiread_format[7:11,] %>%
+  ggplot(aes(x = start, y = alpha, colour = read_id)) +
+  geom_segment(aes(x = start, xend = end, y = alpha, yend = alpha))
+```
+* hey that worked!!
+* yeah if I could expand this to add in the cpg positions
+* and might be nice to have gene info as well
+* basically my layered damid plots
+
+* it would be nice to plot this in a high density area
+* ooh - distance between reads
+
+
+# distance between reads
+
+```{r}
+epiread_format <- epiread_format %>% mutate(gap_to_next_read = lead(start) - end)
+head(epiread_format)
+```
+* if negative: next read overlaps
+```{r}
+epiread_format %>% filter(gap_to_next_read < 0) %>% nrow()/nrow(epiread_format)
+```
+
+```{r}
+summary(epiread_format$gap_to_next_read)
+```
+
+* I guess I want to try and find a region that is dense with reads
+* So lots of overlapping or small gaps
+* but I'm not really sure what that would need to look at that
+```{r}
+epiread_format %>% mutate(row_num = 1:n()) %>% .[1:1000,] %>%
+  ggplot(aes(x = row_num, y = gap_to_next_read)) +
+  geom_point()
+
+epiread_format %>% mutate(row_num = 1:n()) %>% .[100:200,] %>%
+  ggplot(aes(x = row_num, y = gap_to_next_read)) +
+  geom_point()
+```
+* went 1:1k rows and then zoomed in from there
+* there's probably some kind of algorithm or something that can tell me high density regions?? - something to look into
+** perplexity just recommends binning the genome and counting reads per bin - then set a threshold for high density
+* 110-125 look ok
+```{r}
+epiread_format[110:125,] %>%
+  ggplot(aes(x = start, y = alpha, colour = read_id)) +
+  geom_segment(aes(x = start, xend = end, y = alpha, yend = alpha))
+```
+
 
