@@ -140,3 +140,81 @@ attempt_pat$index_cg <- overlap[match(attempt_pat$read_id, overlap$read_id), "mi
 attempt_pat
 ```
 
+```{r}
+attempt_pat <- attempt_pat %>% mutate(tested_cg = ifelse(grepl("..CG.", query_kmer), TRUE, FALSE))
+```
+```{r}
+attempt_pat <- attempt_pat %>% filter(tested_cg == TRUE)
+nrow(attempt_pat)
+```
+```{r}
+attempt_pat <- attempt_pat %>% group_by(read_id, chrom, alignment_start, alignment_end, read_length, num_cg, index_cg) %>% 
+  mutate(call_code2 = ifelse(call_code == "m", "C", "T")) %>%
+  summarise(meth_pattern = paste(call_code2, collapse = "")) %>% .[order(.$alignment_start),] %>% ungroup() 
+attempt_pat
+```
+
+
+```{r}
+attempt_pat <- attempt_pat %>% group_by(chrom, index_cg, meth_pattern) %>% mutate(n=n()) %>% ungroup() 
+attempt_pat
+```
+
+# final pat form
+4 columns
+*chrom
+*cpg index
+(may have done this wrong - possibly supposed to start with 1:n in the range)
+*meth pattern
+*count
+```{r}
+pat_format <- attempt_pat[,c(2,7:9)]
+colnames(pat_format) <- c("chrom", "CpG index", "methylation pattern", "count")
+pat_format <- distinct(pat_format)
+pat_format
+```
+
+```{r}
+epiread_format <- pat_first
+epiread_format
+```
+
+```{r}
+cpg_positions <- data.frame(cpg_positions = as.character(48))
+for(i in 2:nrow(epiread_format)) {
+  cpg_positions <- rbind(cpg_positions, paste0(seq(from = epiread_format$index_cg[i], length = epiread_format$num_cg[i]), collapse = ","))
+  
+}
+cpg_positions
+epiread_format <- cbind(epiread_format, cpg_positions)
+```
+
+```{r}
+cg_sites_22 <- cg_sites_22 %>% mutate(index = as.integer(index), start = as.character(start))
+```
+
+
+```{r}
+genom_positions <- data.frame(genom_positions = as.character(10521180))
+for(i in 2:nrow(epiread_format)) {
+  genom_positions <- rbind(genom_positions, paste0(cg_sites_22[seq(from = epiread_format$index_cg[i], length = epiread_format$num_cg[i]), "start"], collapse = ","))
+  
+}
+genom_positions
+epiread_format <- cbind(epiread_format, genom_positions)
+epiread_format
+```
+
+
+```{r}
+cpg_positions <- data.frame(cpg_positions = as.character(48))
+for(i in 2:nrow(epiread_format)) {
+  cpg_positions <- rbind(cpg_positions, paste0(seq(from = epiread_format$index_cg[i], length = epiread_format$num_cg[i]), collapse = ","))
+  
+}
+```
+
+```{r}
+epiread_format
+```
+
