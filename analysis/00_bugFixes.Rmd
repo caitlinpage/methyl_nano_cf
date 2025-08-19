@@ -13,3 +13,11 @@ editor_options:
 
 ```
 
+
+# loading modkit files in taking too long
+
+* was using read.table()
+* no wonder it was dying on bc1 - the file is 56G
+* install data.table and try that instead - far more efficient for large datasets
+* ran a 9G file in seconds
+* and can be converted to data.frame()
