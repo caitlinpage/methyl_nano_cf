@@ -18,3 +18,23 @@ Data located:
 Zenodo is the method recommended by the authors
 Data accessed by:
 
+Samples:
+13 files:
+(main one - epiread format) hu5.10
+
+Healthy samples
+* hu5.10
+* hu5.11
+* hu5.12
+* ispro.bc2
+* ispro.bc3
+* ispro.bc4
+* ispro.bc5
+
+LUAD cancer samples
+* ispro.s1
+* ispro.bc1
+* ispro.bc8
+* ispro.bc9
+* ispro.bc10
+* ispro.bc11
