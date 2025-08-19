@@ -17,3 +17,11 @@ library(dplyr)
 library(ggplot2)
 ```
 
+
+fragments shorter in cancer
+
+mononuc: ~167bp, dinuc: ~330bp
+
+common cell types: various blood ones
+
+end motifs: proportion cpgs methylated higher than unmeth - cpg at end
