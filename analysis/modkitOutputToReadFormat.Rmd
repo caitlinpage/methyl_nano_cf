@@ -17,6 +17,7 @@ library(stringr)
 library(BSgenome.Hsapiens.UCSC.hg38)
 
 library(data.table)
+library(tidyr)
 ```
 
 ```{r}
@@ -319,16 +320,39 @@ saveRDS(luad_epireads, "/researchers/caitlin.page/cf_nano/r_output/luad_epireads
 ```
 
 
-# 
+########
 
+# incorporate beta value
+
+* to get beta value I need the number of methylated and unmethylated reads at each CpG site
 ```{r}
-list.files("/researchers/caitlin.page/cf_nano/r_output")
+cg_sites
 ```
 
 ```{r}
-readRDS("/researchers/caitlin.page/cf_nano/r_output/epiread_format.rds")
-readRDS("/researchers/caitlin.page/cf_nano/r_output/extract_calls_hu5.11_chr22.rds")
+overlaps <- find_overlaps(as_granges(indiv_reads), as_granges(cg_sites)) %>% data.frame()
+distinct(overlaps)
+```
+
+```{r}
+indiv_reads
+```
+
+```{r}
+he_hu5.10 <- he_hu5.10 %>% separate_longer_position(cols = meth_pattern, width = 1) %>% group_by(read_id) %>% mutate(cpg_pos = index_cg:c(index_cg + n() -1)) %>%
+  mutate(genom_pos = cg_sites[match(.$cpg_pos, cg_sites$index), "start"])
+```
+
+```{r}
+he_hu5.10_sample <- he_hu5.10[1:10,]
+```
+
+```{r}
+separate_longer_position(he_hu5.10_sample, meth_pattern, width = 1)
 ```
 
 
+```{r}
+he_hu5.10_sample[1:3,] %>% separate_longer_delim(cols = c(cpg_positions, genom_positions), ",")
+```
 
