@@ -337,19 +337,78 @@ distinct(overlaps)
 ```{r}
 indiv_reads
 ```
+```{r}
+cg_sites
+```
 
 ```{r}
-he_hu5.10 <- he_hu5.10 %>% separate_longer_position(cols = meth_pattern, width = 1) %>% group_by(read_id) %>% mutate(cpg_pos = index_cg:c(index_cg + n() -1)) %>%
+he_hu5.10 <- he_hu5.10 %>% separate_longer_position(cols = meth_pattern, width = 1) %>% group_by(read_id) %>% mutate(cpg_pos = index_cg:c(index_cg + n() -1)) %>% ungroup() %>%
   mutate(genom_pos = cg_sites[match(.$cpg_pos, cg_sites$index), "start"])
+he_hu5.10
 ```
+
+```{r}
+he_hu5.10 %>% group_by(cpg_pos, genom_pos, meth_pattern) %>% summarise(n=n()) %>% ungroup() %>% 
+  group_by(cpg_pos, genom_pos) %>% mutate(meth = ifelse(meth_pattern == "C", sum(n), 0),
+                                          unmeth = ifelse(meth_pattern == "T", sum(n), 0)) %>% ungroup() %>% distinct(cpg_pos, genom_pos, meth, unmeth)
+
+he_hu5.10 %>% group_by(cpg_pos, genom_pos, meth_pattern) %>% summarise(n=n()) %>% ungroup() %>% 
+  group_by(cpg_pos, genom_pos) %>% mutate(meth = ifelse(meth_pattern == "C", sum(n), 0),
+                                          unmeth = ifelse(meth_pattern == "T", sum(n), 0)) %>% ungroup() %>% distinct(cpg_pos, genom_pos, meth, unmeth) %>%
+  ggplot(aes(x = meth, y = unmeth)) +
+  geom_point()
+
+he_hu5.10 %>% group_by(cpg_pos, genom_pos, meth_pattern) %>% summarise(n=n()) %>% ungroup() %>% group_by(n) %>% summarise(n())
+```
+```{r}
+he_hu5.10 %>% group_by(cpg_pos, meth_pattern) %>% mutate(n = n()) %>% filter(n > 1) %>% filter(cpg_pos %in% 1474:1477)
+```
+
+```{r}
+he_hu5.10 %>% group_by(cpg_pos, meth_pattern) %>% mutate(n = n()) %>% ungroup() %>% filter(read_id %in% c("190233ad-dad8-4e47-914c-30c1b68e3678", "4106d5cd-628b-4179-b877-c84a0a0bc34e"))
+```
+
+
+```{r}
+he_hu5.10 %>% group_by(cpg_pos, genom_pos, meth_pattern) %>% summarise(n=n()) %>% 
+  mutate(meth = ifelse(meth_pattern == "C", sum(n), 0),
+        unmeth = ifelse(meth_pattern == "T", sum(n), 0)) %>% ungroup() %>% group_by(cpg_pos) %>% mutate(num_row = n(), row_num = 1:n()) %>% ungroup() %>%
+  mutate(meth = ifelse(num_row == 2, lead(meth), meth)) %>% filter(cpg_pos %in% 1474:1477)
+```
+
+yuck my brain is not working
+i swear i've done something like this before with like damsel or something
+
+```{r}
+he_hu5.10 %>% filter(cpg_pos %in% 1474:1477) %>% group_by(cpg_pos, meth_pattern) %>% mutate(meth_site = n(),
+                                                                                            unmeth_site = n(),
+                                                                                            ) %>% .[,c(1,6,7,18:21)] %>% .[order(.$cpg_pos),]
+```
+
+```{r}
+he_hu5.10 %>% filter(cpg_pos %in% 1474:1477) %>% .[,c(1,6,7,18:19)] %>% .[order(.$cpg_pos),] %>% group_by(cpg_pos) %>%
+  mutate(site_pattern = paste(meth_pattern, collapse = "")) %>% ungroup() %>% distinct(cpg_pos, genom_pos, site_pattern) %>%
+  mutate(num_meth = str_count(.$site_pattern, "C"), num_unmeth = str_count(.$site_pattern, "T"))
+```
+* bingo!
+* duh I basically need to do the same thing I did to get alpha
+
+* now use match and add these to cg sites for beta values
+
+```{r}
+he_hu5.10 %>% .[,c(1,6,7,18:19)] %>% .[order(.$cpg_pos),] %>% group_by(cpg_pos) %>%
+  mutate(site_pattern = paste(meth_pattern, collapse = "")) %>% ungroup() %>% distinct(cpg_pos, genom_pos, site_pattern) %>%
+  mutate(num_meth = str_count(.$site_pattern, "C"), num_unmeth = str_count(.$site_pattern, "T")) %>%
+  ggplot(aes(x = num_meth, y = num_unmeth)) +
+  geom_point()
+```
+
 
 ```{r}
 he_hu5.10_sample <- he_hu5.10[1:10,]
 ```
 
-```{r}
-separate_longer_position(he_hu5.10_sample, meth_pattern, width = 1)
-```
+
 
 
 ```{r}
