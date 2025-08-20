@@ -8,14 +8,327 @@ editor_options:
 ---
 
 ## Introduction
-
+ 
 ```{r}
 library(plyranges)
 library(dplyr)
 library(ggplot2)
-
 library(stringr)
-
 library(BSgenome.Hsapiens.UCSC.hg38)
+
+library(data.table)
 ```
+
+```{r}
+cg_sites <- cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38[["chr22"]])), seqnames = "chr22") %>% 
+  mutate(pos = paste0(seqnames, "-", start)) %>%
+  relocate(pos, seqnames)
+cg_sites$index <- 1:nrow(cg_sites)
+c(number_of_sites = nrow(cg_sites))
+head(cg_sites)
+```
+
+
+```{r}
+modkit_files <- list.files("/researchers/caitlin.page/cf_nano/modkit_output")
+modkit_files <- paste0("/researchers/caitlin.page/cf_nano/modkit_output/", modkit_files)
+modkit_files
+```
+
+```{r}
+modkit_files[grep("filt_ec", modkit_files)]
+```
+* I filtered the tsv files to chr22 (filt_ec) files, so they would be small enough to load easily into RStudio
+* Didn't do it to hu5.10 b/c I already have the processed file saved
+
+```{r}
+healthy_samples <- modkit_files[grep("filt_ec", modkit_files)][c(1:2,6:9)]
+healthy_samples # also hu5.10
+```
+
+```{r}
+luad_samples <- modkit_files[grep("filt_ec", modkit_files)][c(3:5,10:12)]
+luad_samples
+```
+
+* when I cut the the tsv files in terminal - I lost the column names, how irritating
+```{r}
+modkit_colnames <- fread(modkit_files[1])
+modkit_colnames <- colnames(modkit_colnames)
+modkit_colnames
+```
+
+```{r}
+indiv_reads <- read.table(healthy_samples[1], header = FALSE)
+colnames(indiv_reads) <- modkit_colnames
+c(number_of_rows = nrow(indiv_reads))
+head(indiv_reads)
+#indiv_reads <- indiv_reads[indiv_reads$chrom == "chr22",]
+```
+
+# add seqnames, start, end columns for granges manipulation
+
+```{r}
+indiv_reads$seqnames <- indiv_reads$chrom
+indiv_reads$start <- indiv_reads$alignment_start
+indiv_reads$end <- indiv_reads$alignment_end
+```
+
+
+# filter to just cg reads
+
+* modkit documentation states 3/5 nucleotide in sequence is the modified one
+
+```{r}
+indiv_reads <- indiv_reads[grep("..CG.", indiv_reads$query_kmer),]
+c(new_number_of_rows_cg_only = nrow(indiv_reads))
+head(indiv_reads)
+```
+
+# probability of base calls (?)
+* so far I've been ignoring this - probably not very good to do
+
+# number of CpG in read
+
+* I had tried taking this by overlapping CpG sites to my CpG file - but it was doing wonky things and double upping so let's just go by the number of rows per read
+
+```{r}
+indiv_reads <- indiv_reads %>% group_by(read_id) %>% mutate(num_cg = n()) %>% ungroup()
+head(indiv_reads)
+```
+
+# add index of first CpG position in read
+
+* this is a holdover from when I was trying to make the pat file format - uses index instead of genomic positions
+* using it and genomic positions now 
+
+```{r}
+overlaps <- find_overlaps(as_granges(indiv_reads), as_granges(cg_sites)) %>% data.frame() %>% group_by(read_id) %>% summarise(min_index = min(index)) %>% ungroup() %>% data.frame()
+head(overlaps)
+```
+
+```{r}
+indiv_reads <- indiv_reads %>% mutate(index_cg = overlaps[match(.$read_id, overlaps$read_id), "min_index"]) %>% data.frame()
+head(indiv_reads)
+```
+
+
+# add methylation pattern of read
+
+* from modkit documentation, m is for methylated C, - is for unmethylated C
+* transforming into WGBS esque style - methylated C remains a C, unmethylated C is a T
+
+* this is now a read level data frame - also now ignored the quality of the call
+
+* had almost panic moment that rows weren't ordered properly for the cg in read - but they are
+  * ref position keeps increasing which is good
+  * forward ref position decreases - it's the end position - ref position
+
+```{r}
+epiread_format <- indiv_reads %>% group_by(read_id, seqnames, start, end, chrom, alignment_start, alignment_end, read_length, num_cg, index_cg) %>% 
+  mutate(call_code2 = ifelse(call_code == "m", "C", "T")) %>%
+  summarise(meth_pattern = paste(call_code2, collapse = "")) %>% .[order(.$alignment_start),] %>% ungroup()
+c(number_of_reads = nrow(epiread_format))
+head(epiread_format)
+```
+
+# add indexes of all cpg sites in the read
+
+* easy to do - I have the first index and the number of CpGs in the read
+
+```{r}
+cpg_positions <- data.frame(cpg_positions = as.character())
+for(i in 1:nrow(epiread_format)) {
+  cpg_positions <- rbind(cpg_positions, paste0(seq(from = epiread_format$index_cg[i], length = epiread_format$num_cg[i]), collapse = ","))
+  
+}
+colnames(cpg_positions) <- "cpg_positions"
+head(cpg_positions)
+epiread_format <- cbind(epiread_format, cpg_positions)
+head(epiread_format)
+```
+
+# add genomic positions of cpg sites
+
+* use the index to match to the genomic site
+
+```{r}
+genom_positions <- data.frame(genom_positions = as.character())
+for(i in 1:nrow(epiread_format)) {
+  genom_positions <- rbind(genom_positions, paste0(cg_sites[seq(from = epiread_format$index_cg[i], length = epiread_format$num_cg[i]), "start"], collapse = ","))
+  
+}
+colnames(genom_positions) <- "genom_positions"
+head(genom_positions)
+epiread_format <- cbind(epiread_format, genom_positions)
+head(epiread_format)
+```
+
+# number of methylated/unmethylated and prop in read
+
+```{r}
+epiread_format <- epiread_format %>%
+  mutate(num_meth = str_count(epiread_format$meth_pattern, "C"), 
+         total = str_length(epiread_format$meth_pattern),
+         alpha = num_meth/total)
+head(epiread_format)
+```
+
+
+
+
+```{r}
+epiread_format
+```
+
+
+#######
+
+# List of data frames for all the samples: separate healthy and cancer
+
+```{r}
+he_hu5.10 <- readRDS("/researchers/caitlin.page/cf_nano/r_output/epiread_format.rds")
+```
+
+```{r}
+healthy_epireads <- list()
+healthy_epireads[["hu5.10"]] <- he_hu5.10
+healthy_epireads[["hu5.11"]] <- epiread_format
+healthy_epireads
+```
+
+```{r}
+healthy_samples
+```
+
+```{r}
+gsub("/researchers/caitlin.page/cf_nano/modkit_output/filt_ec_", "", healthy_samples)
+```
+```{r}
+healthy_headers <- gsub("/researchers/caitlin.page/cf_nano/modkit_output/filt_ec_", "", healthy_samples)
+healthy_headers <- gsub(".tsv", "", healthy_headers)
+```
+
+```{r}
+for(i in 2:length(healthy_samples)) {
+  make_epiread <- read.table(healthy_samples[i], header = FALSE)
+  colnames(make_epiread) <- modkit_colnames
+  make_epiread$seqnames <- make_epiread$chrom
+  make_epiread$start <- make_epiread$alignment_start
+  make_epiread$end <- make_epiread$alignment_end
+  make_epiread <- make_epiread[grep("..CG.", make_epiread$query_kmer),]
+  
+  make_epiread <- make_epiread %>% group_by(read_id) %>% mutate(num_cg = n()) %>% ungroup()
+  overlaps <- find_overlaps(as_granges(make_epiread), as_granges(cg_sites)) %>% data.frame() %>% 
+    group_by(read_id) %>% summarise(min_index = min(index)) %>% ungroup() %>% data.frame()
+  make_epiread <- make_epiread %>% mutate(index_cg = overlaps[match(.$read_id, overlaps$read_id), "min_index"]) %>% data.frame()
+  
+  make_epiread <- make_epiread %>% group_by(read_id, seqnames, start, end, chrom, alignment_start, alignment_end, read_length, num_cg, index_cg) %>% 
+    mutate(call_code2 = ifelse(call_code == "m", "C", "T")) %>%
+    summarise(meth_pattern = paste(call_code2, collapse = "")) %>% .[order(.$alignment_start),] %>% ungroup()
+  
+  cpg_positions <- data.frame(cpg_positions = as.character())
+    for(x in 1:nrow(make_epiread)) {
+      cpg_positions <- rbind(cpg_positions, paste0(seq(from = make_epiread$index_cg[i], length = make_epiread$num_cg[i]), collapse = ","))
+  
+    }
+  colnames(cpg_positions) <- "cpg_positions"
+  make_epiread <- cbind(make_epiread, cpg_positions)
+  
+  genom_positions <- data.frame(genom_positions = as.character())
+  for(y in 1:nrow(make_epiread)) {
+    genom_positions <- rbind(genom_positions, paste0(cg_sites[seq(from = make_epiread$index_cg[i], length = make_epiread$num_cg[i]), "start"], collapse = ","))
+  
+  }
+  colnames(genom_positions) <- "genom_positions"
+  make_epiread <- cbind(make_epiread, genom_positions)
+  
+  make_epiread <- make_epiread %>%
+  mutate(num_meth = str_count(make_epiread$meth_pattern, "C"), 
+         total = str_length(make_epiread$meth_pattern),
+         alpha = num_meth/total)
+  
+  healthy_epireads[[healthy_headers[i]]] <- make_epiread
+}
+```
+```{r}
+saveRDS(healthy_epireads, "/researchers/caitlin.page/cf_nano/r_output/healthy_epireads.rds")
+```
+
+# repeat for luad
+
+```{r}
+luad_samples
+```
+
+```{r}
+luad_headers <- gsub("/researchers/caitlin.page/cf_nano/modkit_output/filt_ec_", "", luad_samples)
+luad_headers <- gsub(".tsv", "", luad_headers)
+luad_headers
+```
+
+```{r}
+luad_epireads <- list()
+```
+
+```{r}
+for(i in 1:length(luad_samples)) {
+  make_epiread <- read.table(luad_samples[i], header = FALSE)
+  colnames(make_epiread) <- modkit_colnames
+  make_epiread$seqnames <- make_epiread$chrom
+  make_epiread$start <- make_epiread$alignment_start
+  make_epiread$end <- make_epiread$alignment_end
+  make_epiread <- make_epiread[grep("..CG.", make_epiread$query_kmer),]
+  
+  make_epiread <- make_epiread %>% group_by(read_id) %>% mutate(num_cg = n()) %>% ungroup()
+  overlaps <- find_overlaps(as_granges(make_epiread), as_granges(cg_sites)) %>% data.frame() %>% 
+    group_by(read_id) %>% summarise(min_index = min(index)) %>% ungroup() %>% data.frame()
+  make_epiread <- make_epiread %>% mutate(index_cg = overlaps[match(.$read_id, overlaps$read_id), "min_index"]) %>% data.frame()
+  
+  make_epiread <- make_epiread %>% group_by(read_id, seqnames, start, end, chrom, alignment_start, alignment_end, read_length, num_cg, index_cg) %>% 
+    mutate(call_code2 = ifelse(call_code == "m", "C", "T")) %>%
+    summarise(meth_pattern = paste(call_code2, collapse = "")) %>% .[order(.$alignment_start),] %>% ungroup()
+  
+  cpg_positions <- data.frame(cpg_positions = as.character())
+    for(x in 1:nrow(make_epiread)) {
+      cpg_positions <- rbind(cpg_positions, paste0(seq(from = make_epiread$index_cg[i], length = make_epiread$num_cg[i]), collapse = ","))
+  
+    }
+  colnames(cpg_positions) <- "cpg_positions"
+  make_epiread <- cbind(make_epiread, cpg_positions)
+  
+  genom_positions <- data.frame(genom_positions = as.character())
+  for(y in 1:nrow(make_epiread)) {
+    genom_positions <- rbind(genom_positions, paste0(cg_sites[seq(from = make_epiread$index_cg[i], length = make_epiread$num_cg[i]), "start"], collapse = ","))
+  
+  }
+  colnames(genom_positions) <- "genom_positions"
+  make_epiread <- cbind(make_epiread, genom_positions)
+  
+  make_epiread <- make_epiread %>%
+  mutate(num_meth = str_count(make_epiread$meth_pattern, "C"), 
+         total = str_length(make_epiread$meth_pattern),
+         alpha = num_meth/total)
+  
+  luad_epireads[[luad_headers[i]]] <- make_epiread
+}
+```
+
+```{r}
+saveRDS(luad_epireads, "/researchers/caitlin.page/cf_nano/r_output/luad_epireads.rds")
+```
+
+
+# 
+
+```{r}
+list.files("/researchers/caitlin.page/cf_nano/r_output")
+```
+
+```{r}
+readRDS("/researchers/caitlin.page/cf_nano/r_output/epiread_format.rds")
+readRDS("/researchers/caitlin.page/cf_nano/r_output/extract_calls_hu5.11_chr22.rds")
+```
+
+
 
