@@ -17,6 +17,14 @@ library(ggplot2)
 
 
 ```{r}
+healthy_epireads <- readRDS("/researchers/caitlin.page/cf_nano/r_output/healthy_epireads.rds")
+luad_epireads <- readRDS("/researchers/caitlin.page/cf_nano/r_output/luad_epireads.rds")
+```
+
+
+
+
+```{r}
 epiread_cancer_bc1 <- readRDS("/researchers/caitlin.page/cf_nano/r_output_epiread_cancer_bc1.rds")
 #epiread_healthy_bc2 <- readRDS("/researchers/caitlin.page/cf_nano/r_output_epiread_healthy_bc2.rds")
 ```
