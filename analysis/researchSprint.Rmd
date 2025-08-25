@@ -1,0 +1,1079 @@
+---
+title: "Untitled"
+output: html_document
+date: "2025-08-21"
+---
+
+```{r}
+library(plyranges)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(BSgenome.Hsapiens.UCSC.hg38)
+library(stringr)
+library(data.table)
+```
+
+```{r}
+healthy_epireads <- readRDS("/share/goldilocks/from_andrew/healthy_epireads.rds")
+luad_epireads <- readRDS("/share/goldilocks/from_andrew/luad_epireads.rds")
+```
+
+# cpg and genom positions on luad samples are wrong :(
+```{r}
+cg_sites <- cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38[["chr22"]])), seqnames = "chr22") %>%
+  mutate(pos = paste0(seqnames, "-", start)) %>%
+  relocate(pos, seqnames)
+cg_sites$index <- 1:nrow(cg_sites)
+```
+
+```{r}
+fix_luad_1 <- luad_epireads$ispro.bc1
+fix_luad_1
+```
+
+```{r}
+cpg_positions2 <- data.frame(cpg_positions2 = as.character())
+  for(x in 1:nrow(fix_luad_1)) {
+    cpg_positions2 <- rbind(cpg_positions2, paste0(seq(from = fix_luad_1$index_cg[x], length = fix_luad_1$num_cg[x]), collapse = ","))
+
+  }
+  colnames(cpg_positions2) <- "cpg_positions2"
+  fix_luad_1 <- cbind(fix_luad_1, cpg_positions2)
+  
+fix_luad_1
+```
+* I think problem was I had i instead of x
+* ok yeah that fixed it
+* I definitely had that in the healthy code so weird that it didn't mess with it then
+* sort it out later unless anyone asks for it
+```{r}
+luad_epireads
+```
+
+# read lengths between cancer and normal
+
+```{r}
+columns <- c("read_id", "seqnames", "start", "end", "read_length", "type", "sample")
+```
+
+
+```{r}
+read_lengths <- rbind(healthy_epireads$hu5.10 %>% mutate(type = "healthy", sample = "hu5.10") %>% .[,columns], 
+      healthy_epireads$hu5.11 %>% mutate(type = "healthy", sample = "hu5.11") %>% .[,columns],
+      healthy_epireads$hu5.12 %>% mutate(type = "healthy", sample = "hu5.12") %>% .[,columns],
+      healthy_epireads$ispro.bc2 %>% mutate(type = "healthy", sample = "ispro.bc2") %>% .[,columns],
+      healthy_epireads$ispro.bc3 %>% mutate(type = "healthy", sample = "ispro.bc3") %>% .[,columns],
+      healthy_epireads$ispro.bc4 %>% mutate(type = "healthy", sample = "ispro.bc4") %>% .[,columns],
+      healthy_epireads$ispro.bc5 %>% mutate(type = "healthy", sample = "ispro.bc5") %>% .[,columns],
+      luad_epireads$ispro.bc1 %>% mutate(type = "luad", sample = "ispro.bc1") %>% .[,columns],
+      luad_epireads$ispro.bc10 %>% mutate(type = "luad", sample = "ispro.bc10") %>% .[,columns],
+      luad_epireads$ispro.bc11 %>% mutate(type = "luad", sample = "ispro.bc11") %>% .[,columns],
+      luad_epireads$ispro.bc8 %>% mutate(type = "luad", sample = "ispro.bc8") %>% .[,columns],
+      luad_epireads$ispro.bc9 %>% mutate(type = "luad", sample = "ispro.bc9") %>% .[,columns],
+      luad_epireads$ispro.s1 %>% mutate(type = "luad", sample = "ispro.s1") %>% .[,columns])
+
+read_lengths
+```
+```{r}
+read_lengths %>% group_by(type) %>% summarise(n())
+```
+```{r}
+summary(read_lengths$read_length)
+```
+
+```{r}
+read_lengths %>%
+  ggplot(aes(x = read_length, colour = type)) +
+  geom_density(linewidth = 1.5) +
+  scale_x_continuous(limits = c(0,500)) +
+  theme_classic()
+```
+
+
+```{r}
+read_lengths %>%
+  ggplot(aes(x = log2(read_length), colour = type)) +
+  geom_density()
+
+read_lengths %>%
+  ggplot(aes(x = log2(read_length), colour = sample)) +
+  geom_density() +
+  facet_wrap(~type)
+```
+
+```{r}
+read_lengths %>%
+  ggplot(aes(x = read_length, colour = type)) +
+  geom_density() +
+  scale_x_continuous(limits = c(0,500))
+```
+* dineika and max expected to see bigger shift to smaller read lengths in luad but nice to see it in the dinuc
+* also if you cut with cartesian coordinates
+
+# plot alpha across a region
+bc11
+
+```{r}
+healthy_epireads$hu5.10[110:125,]
+```
+
+```{r}
+healthy_epireads$hu5.10 %>% filter(start >= 10718212, end <= 10721909) %>%
+  ggplot(aes(x = start, y = alpha, colour = read_id)) +
+  geom_segment(aes(x = start, xend = end, y = alpha, yend = alpha)) +
+  theme(legend.position = "none")
+```
+
+
+```{r}
+luad_epireads$ispro.bc11 %>% filter(start >= 10718212, end <= 10721909) %>%
+  ggplot(aes(x = start, y = alpha, colour = read_id)) +
+  geom_segment(aes(x = start, xend = end, y = alpha, yend = alpha)) +
+  theme(legend.position = "none")
+```
+* nice that there's a difference between the cancer and healthy
+* bc11 has highest tumour purity
+
+
+# maybe beta?
+* I don't really know what I should be doing...
+* I think dineika needs team meeting let's set some goals
+* I don't want to try and run deconvolution stuff
+* other people can haggle with scripts and then I just take their instructions and run with it
+* which does kinda leave the more exploratory stuff again
+* or I could bin the genome - though if jovana was going to do that?
+
+```{r}
+
+```
+
+
+# let's just combine all the samples but have more columns
+
+```{r}
+healthy_epireads[3]
+```
+
+
+```{r}
+columns <- c("read_id", "seqnames", "start", "end", "read_length", "type", "sample", "index_cg", "meth_pattern", "num_meth", "total", "alpha")
+
+all_samples <- rbind(healthy_epireads$hu5.10 %>% mutate(type = "healthy", sample = "hu5.10") %>% .[,columns], 
+      healthy_epireads$hu5.11 %>% mutate(type = "healthy", sample = "hu5.11") %>% .[,columns],
+      healthy_epireads$hu5.12 %>% mutate(type = "healthy", sample = "hu5.12") %>% .[,columns],
+      healthy_epireads$ispro.bc2 %>% mutate(type = "healthy", sample = "ispro.bc2") %>% .[,columns],
+      healthy_epireads$ispro.bc3 %>% mutate(type = "healthy", sample = "ispro.bc3") %>% .[,columns],
+      healthy_epireads$ispro.bc4 %>% mutate(type = "healthy", sample = "ispro.bc4") %>% .[,columns],
+      healthy_epireads$ispro.bc5 %>% mutate(type = "healthy", sample = "ispro.bc5") %>% .[,columns],
+      luad_epireads$ispro.bc1 %>% mutate(type = "luad", sample = "ispro.bc1") %>% .[,columns],
+      luad_epireads$ispro.bc10 %>% mutate(type = "luad", sample = "ispro.bc10") %>% .[,columns],
+      luad_epireads$ispro.bc11 %>% mutate(type = "luad", sample = "ispro.bc11") %>% .[,columns],
+      luad_epireads$ispro.bc8 %>% mutate(type = "luad", sample = "ispro.bc8") %>% .[,columns],
+      luad_epireads$ispro.bc9 %>% mutate(type = "luad", sample = "ispro.bc9") %>% .[,columns],
+      luad_epireads$ispro.s1 %>% mutate(type = "luad", sample = "ispro.s1") %>% .[,columns])
+
+all_samples
+```
+
+
+```{r}
+all_samples %>%
+  ggplot(aes(x = alpha, colour = type)) +
+  geom_density(linewidth = 1.5) +
+  theme_classic()
+```
+
+```{r}
+all_samples %>%
+  ggplot(aes(x = alpha, colour = sample)) +
+  geom_density() +
+  facet_wrap(~ type)
+```
+
+```{r}
+all_samples %>% filter(type == "healthy") %>%
+  ggplot(aes(x = alpha)) +
+  geom_density() +
+  labs(title = "All healthy")
+```
+
+
+```{r}
+all_samples %>% filter(sample %in% c("ispro.bc10", "ispro.bc11") | type == "healthy") %>%
+  ggplot(aes(x = alpha, colour = sample)) +
+  geom_density() +
+  facet_wrap(~ type)
+```
+* good we see less methylation of 1 in the cancer samples
+
+```{r}
+all_samples
+```
+
+
+* redo cpg and genom positions - but it's b/c I want beta
+* so maybe I don't need it to get beta
+```{r}
+cpg_positions <- data.frame(cpg_positions = as.character())
+    for(x in 1:nrow(make_epiread)) {
+      cpg_positions <- rbind(cpg_positions, paste0(seq(from = make_epiread$index_cg[x], length = make_epiread$num_cg[x]), collapse = ","))
+  
+    }
+  colnames(cpg_positions) <- "cpg_positions"
+  make_epiread <- cbind(make_epiread, cpg_positions)
+```
+
+# can I code a way to find out how many reads overlap??
+* perplexity
+
+```{r}
+dt <- as.data.table(all_samples)
+
+# Create all possible pairs; exclude self-pairs (i != j)
+setkey(dt, start, end)
+overlaps <- foverlaps(dt[, .(row_id = .I, start, end)], dt[, .(row_id = .I, start, end)],
+                      by.x = c("start", "end"), by.y = c("start", "end"), nomatch = 0L)
+overlaps <- overlaps[row_id != i.row_id]
+
+# Get unique rows with overlaps
+unique_overlap_rows <- unique(c(overlaps$row_id, overlaps$i.row_id))
+num_overlap_rows <- length(unique_overlap_rows)
+print(num_overlap_rows)
+```
+
+```{r}
+unique_overlap_rows
+```
+* ok so most of the rows overlap - but if I want a dense region or find matching positions I need binning
+* which is a tomorrow problem - Max is trying binning now
+
+
+
+
+# get beta vals
+
+```{r}
+beta_format <- all_samples %>% separate_longer_position(cols = meth_pattern, width = 1) %>% 
+  group_by(read_id) %>% 
+  mutate(cpg_pos = index_cg:c(index_cg + n() -1)) %>% ungroup() %>%
+  mutate(genom_pos = cg_sites[match(.$cpg_pos, cg_sites$index), "start"])
+```
+* can't run on everything
+* good news is ok that cpg pos and genome pos are wrong because I redid them from the cg site - all I need is first index
+```{r}
+beta_format <- healthy_epireads$hu5.10 %>% separate_longer_position(cols = meth_pattern, width = 1) %>% 
+  group_by(read_id) %>% 
+  mutate(cpg_pos = index_cg:c(index_cg + n() -1)) %>% ungroup() %>%
+  mutate(genom_pos = cg_sites[match(.$cpg_pos, cg_sites$index), "start"])
+```
+
+
+* oh I'll have to modify this because I have combined all the samples
+* i think it's ok I just group by sample
+* but also then how do I do that for the columns 
+* can't visualise how the data looks right now :(
+```{r}
+beta_format <- beta_format %>% group_by(cpg_pos) %>%
+  mutate(site_pattern = paste(meth_pattern, collapse = "")) %>% ungroup() %>% distinct(cpg_pos, genom_pos, site_pattern) %>%
+  mutate(num_meth = str_count(.$site_pattern, "C"), num_unmeth = str_count(.$site_pattern, "T"))
+beta_format <- data.frame(beta_format)
+beta_format
+```
+
+```{r}
+beta_vals <- cg_sites
+beta_vals <- beta_vals %>% mutate(he_hu5.10_meth = beta_format[match(.$index, beta_format$cpg_pos), "num_meth"],
+                     he_hu5.10_unmeth = beta_format[match(.$index, beta_format$cpg_pos), "num_unmeth"])
+beta_vals
+```
+
+* let's make a loop so it repeats for the other samples
+```{r}
+length(healthy_epireads)
+```
+
+```{r}
+names(healthy_epireads)
+```
+
+```{r}
+try <- beta_vals
+try[,paste0("he_", names(healthy_epireads)[2], "_meth")] <- 5
+try
+```
+```{r}
+healthy_epireads[[2]]
+```
+
+```{r}
+for(i in 2:length(healthy_epireads)) {
+  beta_format <- healthy_epireads[[i]]
+  beta_format <-  beta_format %>% separate_longer_position(cols = meth_pattern, width = 1) %>% 
+    group_by(read_id) %>% 
+    mutate(cpg_pos = index_cg:c(index_cg + n() -1)) %>% ungroup() %>%
+    mutate(genom_pos = cg_sites[match(.$cpg_pos, cg_sites$index), "start"])
+  beta_format <- beta_format %>% group_by(cpg_pos) %>%
+    mutate(site_pattern = paste(meth_pattern, collapse = "")) %>% ungroup() %>% distinct(cpg_pos, genom_pos, site_pattern) %>%
+    mutate(num_meth = str_count(.$site_pattern, "C"), num_unmeth = str_count(.$site_pattern, "T"))
+  beta_format <- data.frame(beta_format)
+  beta_vals[,paste0("he_", names(healthy_epireads)[i], "_meth")] <- beta_format[match(beta_vals$index, beta_format$cpg_pos), "num_meth"]
+  beta_vals[,paste0("he_", names(healthy_epireads)[i], "_unmeth")] <- beta_format[match(beta_vals$index, beta_format$cpg_pos), "num_meth"]
+}
+beta_vals
+```
+
+```{r}
+names(luad_epireads)
+```
+
+```{r}
+for(i in 1:length(luad_epireads)) {
+  beta_format <- luad_epireads[[i]]
+  beta_format <-  beta_format %>% separate_longer_position(cols = meth_pattern, width = 1) %>% 
+    group_by(read_id) %>% 
+    mutate(cpg_pos = index_cg:c(index_cg + n() -1)) %>% ungroup() %>%
+    mutate(genom_pos = cg_sites[match(.$cpg_pos, cg_sites$index), "start"])
+  beta_format <- beta_format %>% group_by(cpg_pos) %>%
+    mutate(site_pattern = paste(meth_pattern, collapse = "")) %>% ungroup() %>% distinct(cpg_pos, genom_pos, site_pattern) %>%
+    mutate(num_meth = str_count(.$site_pattern, "C"), num_unmeth = str_count(.$site_pattern, "T"))
+  beta_format <- data.frame(beta_format)
+  beta_vals[,paste0("luad_", names(luad_epireads)[i], "_meth")] <- beta_format[match(beta_vals$index, beta_format$cpg_pos), "num_meth"]
+  beta_vals[,paste0("luad_", names(luad_epireads)[i], "_unmeth")] <- beta_format[match(beta_vals$index, beta_format$cpg_pos), "num_meth"]
+}
+beta_vals
+```
+
+
+```{r}
+beta_vals[is.na(beta_vals)] <- 0
+beta_vals
+```
+
+```{r}
+beta_vals <- beta_vals %>% 
+  mutate(he_hu5.10_beta = he_hu5.10_meth/(he_hu5.10_meth + he_hu5.10_unmeth),
+         he_hu5.11_beta = he_hu5.11_meth/(he_hu5.11_meth + he_hu5.11_unmeth),
+         he_hu5.12_beta = he_hu5.12_meth/(he_hu5.12_meth + he_hu5.12_unmeth),
+         he_ispro.bc2_beta = he_ispro.bc2_meth/(he_ispro.bc2_meth + he_ispro.bc2_unmeth),
+         he_ispro.bc3_beta = he_ispro.bc3_meth/(he_ispro.bc3_meth + he_ispro.bc3_unmeth),
+         he_ispro.bc4_beta = he_ispro.bc4_meth/(he_ispro.bc4_meth + he_ispro.bc4_unmeth),
+         he_ispro.bc5_beta = he_ispro.bc5_meth/(he_ispro.bc5_meth + he_ispro.bc5_unmeth),
+         luad_ispro.bc1_beta = luad_ispro.bc1_meth/(luad_ispro.bc1_meth + luad_ispro.bc1_unmeth),
+         luad_ispro.bc10_beta = luad_ispro.bc10_meth/(luad_ispro.bc10_meth + luad_ispro.bc10_unmeth),
+         luad_ispro.bc11_beta = luad_ispro.bc11_meth/(luad_ispro.bc11_meth + luad_ispro.bc11_unmeth),
+         luad_ispro.bc8_beta = luad_ispro.bc8_meth/(luad_ispro.bc8_meth + luad_ispro.bc8_unmeth),
+         luad_ispro.bc9_beta = luad_ispro.bc9_meth/(luad_ispro.bc9_meth + luad_ispro.bc9_unmeth),
+         luad_ispro.s1_beta = luad_ispro.s1_meth/(luad_ispro.s1_meth + luad_ispro.s1_unmeth))
+beta_vals
+```
+```{r}
+beta_vals[is.na(beta_vals)] <- 0
+beta_vals
+```
+
+* how do I plot this?
+* I can't do the same with my all alpha because that was one column :(
+* wrong format
+
+```{r}
+beta_vals_long <- beta_vals
+columns <- c("pos", "seqnames", "start", "end", "index", "type", "sample", "beta")
+
+beta_vals_long <- rbind(beta_vals %>% mutate(type = "healthy", sample = "hu5.10", beta = he_hu5.10_beta) %>% .[,columns], 
+      beta_vals %>% mutate(type = "healthy", sample = "hu5.11", beta = he_hu5.11_beta) %>% .[,columns],
+      beta_vals %>% mutate(type = "healthy", sample = "hu5.12", beta = he_hu5.12_beta) %>% .[,columns],
+      beta_vals %>% mutate(type = "healthy", sample = "ispro.bc2", beta = he_ispro.bc2_beta) %>% .[,columns],
+      beta_vals %>% mutate(type = "healthy", sample = "ispro.bc3", beta = he_ispro.bc3_beta) %>% .[,columns],
+      beta_vals %>% mutate(type = "healthy", sample = "ispro.bc4", beta = he_ispro.bc4_beta) %>% .[,columns],
+      beta_vals %>% mutate(type = "healthy", sample = "ispro.bc5", beta = he_ispro.bc5_beta) %>% .[,columns],
+      beta_vals %>% mutate(type = "luad", sample = "ispro.bc1", beta = luad_ispro.bc1_beta) %>% .[,columns],
+      beta_vals %>% mutate(type = "luad", sample = "ispro.bc10", beta = luad_ispro.bc10_beta) %>% .[,columns],
+      beta_vals %>% mutate(type = "luad", sample = "ispro.bc11", beta = luad_ispro.bc11_beta) %>% .[,columns],
+      beta_vals %>% mutate(type = "luad", sample = "ispro.bc8", beta = luad_ispro.bc8_beta) %>% .[,columns],
+      beta_vals %>% mutate(type = "luad", sample = "ispro.bc9", beta = luad_ispro.bc9_beta) %>% .[,columns],
+      beta_vals %>% mutate(type = "luad", sample = "ispro.s1", beta = luad_ispro.s1_beta) %>% .[,columns])
+beta_vals_long
+```
+
+```{r}
+beta_vals_long %>%
+  ggplot(aes(x = beta, colour = sample)) +
+  geom_density() +
+  facet_wrap(~ type)
+```
+
+
+```{r}
+beta_vals_long %>%
+  ggplot(aes(x = beta, colour = type)) +
+  geom_density()
+```
+* looks suspicous because it's supposed to be high at 0 and 1, low at 0.5
+* and got nothing at 1
+
+* should have just used the bed files for this
+```{r}
+list.files("/share/goldilocks/bed/megalodonBeds/megalodonBedgraphs")
+```
+
+```{r}
+
+```
+
+
+```{r}
+he_hu5.10_bed <- read_bed("/share/goldilocks/bed/megalodonBeds/megalodonBedgraphs/HU005.10.meg242.remora1.edgefix.modbam2bed.5mC.cut0.667.hg38.sorted.bedgraph")
+he_hu5.10_bed %>% data.frame() %>% filter(seqnames == "chr22")
+```
+
+```{r}
+beta_vals[,c(1:4,7:9,34)] %>% filter(start == 10522481)
+```
+* it does match that's good
+```{r}
+he_hu5.10_bed <- he_hu5.10_bed %>% data.frame() %>% filter(seqnames == "chr22")
+he_hu5.10_bed$name <- as.double(he_hu5.10_bed$name)
+```
+
+```{r}
+he_hu5.10_bed %>% 
+  ggplot(aes(x = name)) +
+  geom_density()
+```
+* cool yeah so I did betas wrong
+
+* let's just try and quickly fix the betas:
+
+```{r}
+bedgraphs <- list.files("/share/goldilocks/bed/megalodonBeds/megalodonBedgraphs")
+bedgraphs <- bedgraphs[grep("bedgraph", bedgraphs)]
+bedgraphs <- bedgraphs[grep(".gz", bedgraphs, invert = TRUE)]
+bedgraphs
+```
+```{r}
+str_extract(bedgraphs, "^[^m]+")
+```
+
+```{r}
+he_hu5.10_bed$sample <- "HU005.10."
+
+bed_betas <- he_hu5.10_bed
+```
+
+```{r}
+for(i in 2:length(bedgraphs)) {
+  bed <- read_bed(paste0("/share/goldilocks/bed/megalodonBeds/megalodonBedgraphs/", bedgraphs[i]))
+  bed <- bed %>% data.frame() %>% filter(seqnames == "chr22")
+  bed$name <- as.double(bed$name)
+  bed$sample <- str_extract(bedgraphs, "^[^m]+")[i]
+  bed_betas <- rbind(bed_betas, bed)
+}
+bed_betas
+```
+
+```{r}
+bed_betas %>%
+  ggplot(aes(x = name)) +
+  geom_density()
+
+bed_betas %>%
+  ggplot(aes(x = name, colour = sample)) +
+  geom_density()
+```
+
+* yeah that's right
+* I don't have numbers for it though so that's a bit annoying
+
+
+
+# can I add some kind of alpha to this? - meeting last week talk
+- or just add the beta back to the alpha values file
+- which would mean having the correct files
+* made them and asked andrew but he hasn't uploaded them yet :(
+
+
+
+# binning the genome
+
+
+```{r}
+seqinfo <- seqlengths(BSgenome.Hsapiens.UCSC.hg38)
+seqinfo <- seqinfo[grepl("^chr22+$", names(seqinfo))]
+seqinfo
+```
+
+
+```{r}
+bins_5kb <- tileGenome(seqinfo, tilewidth=5000, cut.last.tile.in.chrom=TRUE)
+```
+```{r}
+bins_5kb <- bins_5kb %>% data.frame() %>% mutate(bin_num = 1:n()) %>% as_granges()
+```
+```{r}
+all_samples$read_start <- all_samples$start
+all_samples$read_end <- all_samples$end
+```
+
+```{r}
+overlap_bins_reads <- find_overlaps(bins_5kb, as_granges(all_samples)) %>% data.frame()
+```
+```{r}
+overlap_bins_reads %>% group_by(bin_num) %>%
+  summarise(num_reads=n()) %>% .[order(.$num_reads, decreasing = TRUE),]
+
+overlap_bins_reads %>% group_by(bin_num) %>%
+  summarise(num_reads=n()) %>%
+  ggplot(aes(x = bin_num, y = num_reads)) +
+  geom_point(alpha = 0.3) +
+  geom_line()
+```
+
+```{r}
+overlap_bins_reads %>% group_by(bin_num) %>%
+  summarise(num_reads=n()) %>%
+  ggplot(aes(x = num_reads)) +
+  geom_density() +
+  labs(title = "distrib of number of reads in bins")
+```
+
+
+
+```{r}
+overlap_bins_reads %>% group_by(bin_num, type, sample) %>%
+  summarise(n=n()) 
+```
+
+```{r}
+overlap_bins_reads %>% group_by(bin_num) %>%
+  summarise(num_reads=n()) %>% .[order(.$num_reads, decreasing = TRUE),]
+```
+
+```{r}
+overlap_bins_reads %>% dplyr::filter(bin_num == 3780) %>%
+  ggplot(aes(x = read_start, y = alpha, colour = sample, group = sample)) +
+  geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha), linewidth = 1) +
+  labs(title = "most dense bin") +
+  theme(legend.position = "none") +
+  facet_wrap(~type, nrow = 2)
+```
+```{r}
+unique(overlap_bins_reads$sample)
+```
+
+```{r}
+overlap_bins_reads %>% dplyr::filter(bin_num == 3780) %>% dplyr::filter(type == "healthy" | sample %in% c("ispro.bc10", "ispro.bc11")) %>%
+  ggplot(aes(x = read_start, y = alpha, colour = read_id, group = sample)) +
+  geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha)) +
+  labs(title = "most dense bin: all healthy and 2 highest cancer") +
+  theme(legend.position = "none") +
+  facet_wrap(~type, nrow = 2)
+```
+
+
+
+# genes stuff
+
+```{r}
+library(biomaRt)
+library(EnsDb.Hsapiens.v86)
+```
+
+```{r}
+ensembl <- useEnsembl(biomart = "ensembl", 
+                   dataset = "hsapiens_gene_ensembl", 
+                   mirror = "useast")
+```
+
+```{r}
+ensdb_genes <- genes(EnsDb.Hsapiens.v86)
+```
+
+```{r}
+genes_of_interest <- c("PLXNB2", "CYTH4", "MGAT3", "ASB16", "NEDD4")
+```
+
+```{r}
+ensdb_genes <- ensdb_genes %>% data.frame()
+ensdb_genes <- ensdb_genes %>% mutate(seqnames = paste0("chr", seqnames))
+```
+
+
+```{r}
+overlap_bins_reads <- overlap_bins_reads %>% mutate(cancer_group = case_when(type == "healthy" ~ "not_cancer",
+                                                            type == "luad" & sample %in% c("ispro.bc8", "ispro.bc9") ~ "low_tumour", TRUE ~ "high_tumour")) #10 and 11 are highest - but we will group the lowest
+```
+
+
+```{r}
+ensdb_genes_filt <- ensdb_genes %>% dplyr::filter(gene_name %in% genes_of_interest)
+```
+```{r}
+pair_overlaps(as_granges(overlap_bins_reads), as_granges(ensdb_genes_filt)) %>% data.frame() %>% dplyr::filter(gene_name == "CYTH4")
+```
+
+```{r}
+pair_overlaps(as_granges(overlap_bins_reads), as_granges(ensdb_genes_filt)) %>% data.frame() %>% dplyr::filter(gene_name == "CYTH4") %>%
+  ggplot(aes(x = read_start, y = alpha, colour = sample, group = sample)) +
+  geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha)) +
+  labs(title = "CYTH4") +
+  theme(legend.position = "none") +
+  facet_wrap(~type, nrow = 2)
+
+pair_overlaps(as_granges(overlap_bins_reads), as_granges(ensdb_genes_filt)) %>% data.frame() %>% dplyr::filter(gene_name == "MGAT3") %>%
+  ggplot(aes(x = read_start, y = alpha, colour = sample, group = sample)) +
+  geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha)) +
+  labs(title = "MGAT3") +
+  theme(legend.position = "none") +
+  facet_wrap(~type, nrow = 2)
+
+pair_overlaps(as_granges(overlap_bins_reads), as_granges(ensdb_genes_filt)) %>% data.frame() %>% dplyr::filter(gene_name == "PLXNB2") %>%
+  ggplot(aes(x = read_start, y = alpha, colour = sample, group = sample)) +
+  geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha)) +
+  labs(title = "PLXNB2") +
+  theme(legend.position = "none") +
+  facet_wrap(~type, nrow = 2)
+```
+
+```{r}
+pair_overlaps(as_granges(overlap_bins_reads), as_granges(ensdb_genes_filt)) %>% data.frame() %>% dplyr::filter(gene_name == "CYTH4") %>%
+  dplyr::filter(type == "healthy" | sample == "ispro.bc10") %>%
+  ggplot(aes(x = read_start, y = alpha, colour = sample, group = sample)) +
+  geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha)) +
+  labs(title = "CYTH4") +
+  theme(legend.position = "none") +
+  facet_wrap(~type, nrow = 2)
+
+pair_overlaps(as_granges(overlap_bins_reads), as_granges(ensdb_genes_filt)) %>% data.frame() %>% dplyr::filter(gene_name == "MGAT3") %>%
+  dplyr::filter(type == "healthy" | sample == "ispro.bc10") %>%
+  ggplot(aes(x = read_start, y = alpha, colour = sample, group = sample)) +
+  geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha)) +
+  labs(title = "MGAT3") +
+  theme(legend.position = "none") +
+  facet_wrap(~type, nrow = 2)
+
+pair_overlaps(as_granges(overlap_bins_reads), as_granges(ensdb_genes_filt)) %>% data.frame() %>% dplyr::filter(gene_name == "PLXNB2") %>%
+  dplyr::filter(type == "healthy" | sample == "ispro.bc10") %>%
+  ggplot(aes(x = read_start, y = alpha, colour = sample, group = sample)) +
+  geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha)) +
+  labs(title = "PLXNB2") +
+  theme(legend.position = "none") +
+  facet_wrap(~type, nrow = 2)
+```
+
+```{r}
+ensdb_genes_filt_prom <- ensdb_genes_filt %>% mutate(start = ifelse(strand == "+", start - 1000, end - 500),
+                                         end = ifelse(strand == "+", start + 1500, end + 1000),
+                                         width = end - start + 1)
+```
+
+
+```{r}
+pair_overlaps(as_granges(overlap_bins_reads), as_granges(ensdb_genes_filt_prom)) %>% data.frame() %>% dplyr::filter(gene_name == "CYTH4") %>%
+  ggplot(aes(x = read_start, y = alpha, colour = sample, group = sample)) +
+  geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha)) +
+  labs(title = "CYTH4") +
+  theme(legend.position = "none") +
+  facet_wrap(~type, nrow = 2)
+
+pair_overlaps(as_granges(overlap_bins_reads), as_granges(ensdb_genes_filt_prom)) %>% data.frame() %>% dplyr::filter(gene_name == "MGAT3") %>%
+  ggplot(aes(x = read_start, y = alpha, colour = sample, group = sample)) +
+  geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha)) +
+  labs(title = "MGAT3") +
+  theme(legend.position = "none") +
+  facet_wrap(~type, nrow = 2)
+
+pair_overlaps(as_granges(overlap_bins_reads), as_granges(ensdb_genes_filt_prom)) %>% data.frame() %>% dplyr::filter(gene_name == "PLXNB2") %>%
+  ggplot(aes(x = read_start, y = alpha, colour = sample, group = sample)) +
+  geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha)) +
+  labs(title = "PLXNB2") +
+  theme(legend.position = "none") +
+  facet_wrap(~type, nrow = 2)
+```
+
+```{r}
+pair_overlaps(as_granges(overlap_bins_reads), as_granges(ensdb_genes_filt_prom)) %>% data.frame() %>% dplyr::filter(gene_name == "CYTH4") %>%
+  dplyr::filter(type == "healthy" | sample == "ispro.bc10") %>%
+  ggplot(aes(x = read_start, y = alpha, colour = sample, group = sample)) +
+  geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha)) +
+  labs(title = "CYTH4") +
+  theme(legend.position = "none") +
+  facet_wrap(~type, nrow = 2)
+
+pair_overlaps(as_granges(overlap_bins_reads), as_granges(ensdb_genes_filt_prom)) %>% data.frame() %>% dplyr::filter(gene_name == "MGAT3") %>%
+  dplyr::filter(type == "healthy" | sample == "ispro.bc10") %>%
+  ggplot(aes(x = read_start, y = alpha, colour = sample, group = sample)) +
+  geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha)) +
+  labs(title = "MGAT3") +
+  theme(legend.position = "none") +
+  facet_wrap(~type, nrow = 2)
+
+pair_overlaps(as_granges(overlap_bins_reads), as_granges(ensdb_genes_filt_prom)) %>% data.frame() %>% dplyr::filter(gene_name == "PLXNB2") %>%
+  dplyr::filter(type == "healthy" | sample == "ispro.bc10") %>%
+  ggplot(aes(x = read_start, y = alpha, colour = sample, group = sample)) +
+  geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha)) +
+  labs(title = "PLXNB2") +
+  theme(legend.position = "none") +
+  facet_wrap(~type, nrow = 2)
+```
+
+```{r}
+overlap_bins_reads_prom <- pair_overlaps(as_granges(overlap_bins_reads), as_granges(ensdb_genes_filt_prom)) %>% data.frame()
+```
+
+```{r}
+overlap_bins_reads_prom %>% dplyr::filter(gene_name == "CYTH4") %>%
+  ggplot(aes(x = read_start, y = alpha, colour = cancer_group)) +
+  geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha)) +
+  labs(title = "CYTH4")
+
+overlap_bins_reads_prom %>% dplyr::filter(gene_name == "MGAT3") %>%
+  ggplot(aes(x = read_start, y = alpha, colour = cancer_group)) +
+  geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha)) +
+  labs(title = "MGAT3")
+
+overlap_bins_reads_prom %>% dplyr::filter(gene_name == "PLXNB2") %>%
+  ggplot(aes(x = read_start, y = alpha, colour = cancer_group)) +
+  geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha)) +
+  labs(title = "PLXNB2")
+```
+
+```{r}
+summary(all_samples$total)
+```
+
+
+```{r}
+overlap_bins_reads_prom %>%
+  ggplot(aes(x = alpha, colour = cancer_group)) +
+  geom_density()
+
+overlap_bins_reads_prom %>% mutate(old_cancer_group = case_when(type == "healthy" ~ "not_cancer", type == "luad" & sample %in% c("ispro.bc10", "ispro.bc11") ~ "high_tumour", TRUE ~ "low_tumour")) %>%
+  ggplot(aes(x = alpha, colour = old_cancer_group)) +
+  geom_density()
+```
+
+```{r}
+t.test(dplyr::filter(overlap_bins_reads_prom, cancer_group == "low_tumour")$alpha, 
+       dplyr::filter(overlap_bins_reads_prom, cancer_group == "high_tumour")$alpha)
+```
+
+```{r}
+luad_genes <- read.table("/share/goldilocks/chr22_luad_genes.txt", header = TRUE)
+```
+
+```{r}
+luad_genes$seqnames <- paste0("chr", luad_genes$chromosome_name)
+luad_genes$start <- luad_genes$start_position
+luad_genes$end <- luad_genes$end_position
+```
+
+
+```{r}
+overlap_bins_reads_luad <- pair_overlaps(as_granges(overlap_bins_reads), as_granges(luad_genes)) %>% data.frame()
+```
+
+
+
+```{r}
+pair_overlaps(as_granges(overlap_bins_reads), as_granges(ensdb_genes)) %>% data.frame() %>% 
+  mutate(imp_cancer = ifelse(gene_name %in% luad_genes$hgnc_symbol, TRUE, FALSE)) %>%
+  ggplot(aes(x = alpha, colour = imp_cancer, group = cancer_group)) +
+  geom_density() +
+  theme_classic()
+```
+
+```{r}
+pair_overlaps(as_granges(overlap_bins_reads), as_granges(ensdb_genes)) %>% data.frame() %>% 
+  mutate(imp_cancer = ifelse(gene_name %in% luad_genes$hgnc_symbol, TRUE, FALSE)) %>%
+  ggplot(aes(x = alpha, colour = imp_cancer)) +
+  geom_density() +
+  facet_wrap(~ cancer_group)
+```
+
+```{r}
+ensdb_genes_prom <- ensdb_genes %>% mutate(start = ifelse(strand == "+", start - 1000, end - 500),
+                                         end = ifelse(strand == "+", start + 1500, end + 1000),
+                                         width = end - start + 1)
+
+```
+
+
+```{r}
+pair_overlaps(as_granges(overlap_bins_reads), as_granges(ensdb_genes_prom)) %>% data.frame() %>% 
+  mutate(imp_cancer = ifelse(gene_name %in% luad_genes$hgnc_symbol, TRUE, FALSE)) %>%
+  ggplot(aes(x = alpha, colour = imp_cancer)) +
+  geom_density() +
+  facet_wrap(~ cancer_group)
+```
+
+
+```{r}
+pair_overlaps(as_granges(overlap_bins_reads), as_granges(ensdb_genes_prom)) %>% data.frame() %>% 
+  mutate(imp_cancer = ifelse(gene_name %in% luad_genes$hgnc_symbol, TRUE, FALSE)) %>%
+  ggplot(aes(x = alpha, colour = cancer_group)) +
+  geom_density() +
+  facet_wrap(~ imp_cancer)
+```
+
+
+# idk what I'm doing - cpg islands??
+```{r}
+names(healthy_epireads)
+```
+
+```{r}
+unique(bed_betas$sample)
+```
+
+```{r}
+bed_betas %>% mutate(type = ifelse(sample %in% c("HU005.10.", "HU005.11.", "HU005.12.", "ISPRO.bc02", "ISPRO.bc03", "ISPRO.bc04", "ISPRO.bc05"), "healthy", "luad")) %>%
+  ggplot(aes(x = name, colour = type, group = sample)) +
+  geom_density() +
+  theme_classic() +
+  xlab("beta")
+  
+```
+
+```{r}
+bed_betas <- bed_betas %>% mutate(type = ifelse(sample %in% c("HU005.10.", "HU005.11.", "HU005.12.", "ISPRO.bc02", "ISPRO.bc03", "ISPRO.bc04", "ISPRO.bc05"), "healthy", "luad"))
+```
+
+
+```{r}
+bed_betas %>% 
+  ggplot(aes(x = name, colour = sample)) +
+  geom_density() +
+  facet_wrap(~type)
+
+bed_betas %>% dplyr::filter(type == "luad") %>%
+  ggplot(aes(x = name, colour = sample)) +
+  geom_density() 
+```
+
+```{r}
+beta_0.5 <- bed_betas %>% dplyr::filter(name == 0.5, type == "luad") %>% distinct(seqnames, start, end)
+```
+
+
+```{r}
+read_with_0.5 <- find_overlaps(as_granges(overlap_bins_reads), as_granges(beta_0.5)) %>% data.frame() %>% distinct() 
+```
+
+```{r}
+overlap_bins_reads %>% mutate(read_has_beta_0.5 = ifelse(read_id %in% read_with_0.5$read_id, TRUE, FALSE)) %>%
+  ggplot(aes(x = alpha, colour = read_has_beta_0.5)) +
+  geom_density()
+```
+
+```{r}
+overlap_bins_reads %>% mutate(read_has_beta_0.5 = ifelse(read_id %in% read_with_0.5$read_id, TRUE, FALSE)) %>%
+  group_by(read_has_beta_0.5, type) %>% summarise(n=n())
+```
+
+
+```{r}
+overlap_bins_reads %>% mutate(read_has_beta_0.5 = ifelse(read_id %in% read_with_0.5$read_id, TRUE, FALSE)) %>%
+  ggplot(aes(x = total, y = alpha, colour = read_has_beta_0.5)) +
+  geom_point(alpha = 0.3)
+```
+
+
+
+```{r}
+overlap_bins_reads %>% mutate(read_has_beta_0.5 = ifelse(read_id %in% read_with_0.5$read_id, TRUE, FALSE)) %>%
+  ggplot(aes(x = alpha, colour = read_has_beta_0.5)) +
+  geom_density() +
+  facet_wrap(~ cancer_group)
+
+overlap_bins_reads %>% mutate(read_has_beta_0.5 = ifelse(read_id %in% read_with_0.5$read_id, TRUE, FALSE)) %>%
+  ggplot(aes(x = alpha, colour = cancer_group)) +
+  geom_density() +
+  facet_wrap(~ read_has_beta_0.5)
+```
+
+```{r}
+overlap_bins_reads %>% mutate(read_has_beta_0.5 = ifelse(read_id %in% read_with_0.5$read_id, TRUE, FALSE)) %>% dplyr::filter(read_has_beta_0.5 == TRUE) %>% group_by(cancer_group) %>% summarise(mean_alpha = mean(alpha), median_alpha = median(alpha))
+```
+```{r}
+
+```
+
+```{r}
+read_with_0.5
+beta_0.5
+```
+
+
+# back to cpg islands
+
+```{r}
+library(annotatr)
+cpg_islands <- build_annotations(genome = "hg38", annotation = "hg38_cpgs")
+cpg_islands <- cpg_islands %>% data.frame() %>% dplyr::filter(seqnames == "chr22")
+```
+
+```{r}
+pair_overlaps(as_granges(overlap_bins_reads), as_granges(ensdb_genes_filt_prom)) %>% data.frame() %>% dplyr::filter(gene_name == "CYTH4") %>%
+  ggplot(aes(x = read_start, y = alpha, colour = sample, group = sample)) +
+  geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha), linewidth = 1) +
+  labs(title = "CYTH4") +
+  theme(legend.position = "none") +
+  facet_wrap(~cancer_group, nrow = 3) +
+  theme_classic()
+
+pair_overlaps(as_granges(overlap_bins_reads), as_granges(ensdb_genes_filt_prom)) %>% data.frame() %>% dplyr::filter(gene_name == "MGAT3") %>%
+  ggplot(aes(x = read_start, y = alpha, colour = sample, group = sample)) +
+  geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha)) +
+  labs(title = "MGAT3") +
+  theme(legend.position = "none") +
+  facet_wrap(~cancer_group, nrow = 3)
+
+pair_overlaps(as_granges(overlap_bins_reads), as_granges(ensdb_genes_filt_prom)) %>% data.frame() %>% dplyr::filter(gene_name == "PLXNB2") %>%
+  ggplot(aes(x = read_start, y = alpha, colour = sample, group = sample)) +
+  geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha)) +
+  labs(title = "PLXNB2") +
+  theme(legend.position = "none") +
+  facet_wrap(~cancer_group, nrow = 3)
+```
+```{r}
+pair_overlaps(as_granges(overlap_bins_reads), as_granges(ensdb_genes_filt_prom)) %>% data.frame() %>% dplyr::filter(gene_name == "CYTH4") %>%
+  ggplot(aes(x = read_start, y = alpha, colour = sample, group = sample)) +
+  geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha), linewidth = 1) +
+  labs(title = "CYTH4") +
+  facet_wrap(~cancer_group, nrow = 3) +
+  theme_classic() +
+  theme(legend.position = "none")
+```
+```{r}
+pair_overlaps(as_granges(overlap_bins_reads), as_granges(ensdb_genes_filt_prom)) %>% data.frame() %>% dplyr::filter(gene_name == "CYTH4") %>%
+  ggplot(aes(x = read_start, y = alpha, colour = sample, group = sample)) +
+  geom_line() +
+  labs(title = "CYTH4") +
+  facet_wrap(~cancer_group, nrow = 3) +
+  theme_classic() +
+  theme(legend.position = "none")
+```
+
+```{r}
+overlap_bins_reads_luad
+```
+
+
+```{r}
+cpg_islands
+```
+
+
+```{r}
+overlap_bins_reads <- overlap_bins_reads %>% mutate(read_meth_status = case_when(alpha >= 0.75 ~ "meth", alpha <= 0.25 ~ "unmeth", TRUE ~ "inconclusive"))
+
+overlap_bins_reads[,c(7:10,13:15,18:19)]
+```
+
+
+```{r}
+overlap_bins_reads_islands <- pair_overlaps(as_granges(overlap_bins_reads), as_granges(cpg_islands)) %>% data.frame()
+```
+
+```{r}
+overlap_bins_reads_islands %>% group_by(cancer_group) %>% summarise(n=n())
+```
+
+```{r}
+overlap_bins_reads_islands %>% dplyr::filter(total > 4) %>%
+  ggplot(aes(x = cancer_group, fill = read_meth_status)) +
+  geom_bar(position = "fill")
+
+overlap_bins_reads_islands %>% dplyr::filter(total > 4) %>%
+  ggplot(aes(x = cancer_group, fill = read_meth_status)) +
+  geom_bar()
+```
+
+
+```{r}
+overlap_bins_reads_islands %>% 
+  ggplot(aes(x = cancer_group, fill = sample)) +
+  geom_bar()
+```
+
+```{r}
+luad_genes
+```
+
+```{r}
+pair_nearest(as_granges(mutate(overlap_bins_reads_islands, seqnames = granges.y.seqnames, start = granges.y.start, end = granges.y.end)), as_granges(luad_genes)) %>% data.frame() %>% 
+  ggplot(aes(x = type.x, fill = read_meth_status)) +
+  geom_bar(position = "fill") +
+  facet_wrap(~ hgnc_symbol)
+```
+```{r}
+pair_nearest(as_granges(mutate(overlap_bins_reads_islands, seqnames = granges.y.seqnames, start = granges.y.start, end = granges.y.end)), as_granges(luad_genes)) %>% data.frame() %>% 
+  ggplot(aes(x = type.x, fill = read_meth_status)) +
+  geom_bar(identity = "fill") +
+  facet_wrap(~ hgnc_symbol)
+```
+
+* want islands more hypometh in cancer than in normal
+* lol therese did it better - this is all exactly the same
+
+```{r}
+overlap_bins_reads_islands
+```
+
+```{r}
+ensdb_genes_prom <- ensdb_genes_prom %>% mutate(imp_cancer = ifelse(gene_name %in% luad_genes$hgnc_symbol, TRUE, FALSE))
+```
+
+```{r}
+pair_overlaps(as_granges(overlap_bins_reads), as_granges(ensdb_genes_prom)) %>% data.frame() %>% dplyr::filter(read_meth_status != "inconclusive") %>%
+  ggplot(aes(x = cancer_group, fill = read_meth_status)) +
+  geom_bar(position = "fill") +
+  facet_wrap(~ imp_cancer)
+  
+```
+
+
+
+```{r}
+pair_overlaps(as_granges(overlap_bins_reads), as_granges(ensdb_genes_prom)) %>% data.frame() %>%
+  ggplot(aes(x = alpha, colour = imp_cancer)) +
+  geom_density()
+```
+```{r}
+luad_genes
+```
+
+
+
+```{r}
+pair_overlaps(as_granges(overlap_bins_reads), as_granges(dplyr::filter(ensdb_genes_prom, gene_name == "ADORA2A"))) %>% data.frame() %>%
+  ggplot(aes(x = read_start, y = alpha, colour = sample, group = sample)) +
+  geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha)) +
+  labs("ADORA2A") +
+  theme(legend.position = "none") +
+  facet_wrap(~ cancer_group, nrow = 3)
+
+```
+
+```{r}
+pair_overlaps(as_granges(overlap_bins_reads), as_granges(dplyr::filter(ensdb_genes_prom, gene_name == "ADORA2A"))) %>% data.frame() %>%
+  ggplot(aes(x = read_start, y = alpha, colour = cancer_group, group = sample)) +
+  geom_line()
+```
+
+```{r}
+overlap_bins_reads_islands %>% distinct(bin_num, id, type.y) %>% group_by(bin_num, type.y) %>% summarise(n= n()) %>% .[order(.$n, decreasing = TRUE),]
+```
+```{r}
+overlap_bins_reads_islands %>% distinct(bin_num, id, type.y) %>% dplyr::filter(type.y == "hg38_cpg_islands") %>% group_by(bin_num) %>% summarise(n=n()) %>%
+  ggplot(aes(x = n)) +
+  geom_density()
+```
+
+
+```{r}
+overlap_bins_reads_islands
+overlap_bins_reads_islands %>% group_by(bin_num, id) %>% summarise(n())
+```
+
