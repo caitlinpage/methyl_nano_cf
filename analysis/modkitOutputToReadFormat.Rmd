@@ -230,7 +230,7 @@ for(i in 2:length(healthy_samples)) {
   
   cpg_positions <- data.frame(cpg_positions = as.character())
     for(x in 1:nrow(make_epiread)) {
-      cpg_positions <- rbind(cpg_positions, paste0(seq(from = make_epiread$index_cg[i], length = make_epiread$num_cg[i]), collapse = ","))
+      cpg_positions <- rbind(cpg_positions, paste0(seq(from = make_epiread$index_cg[x], length = make_epiread$num_cg[x]), collapse = ","))
   
     }
   colnames(cpg_positions) <- "cpg_positions"
@@ -238,7 +238,7 @@ for(i in 2:length(healthy_samples)) {
   
   genom_positions <- data.frame(genom_positions = as.character())
   for(y in 1:nrow(make_epiread)) {
-    genom_positions <- rbind(genom_positions, paste0(cg_sites[seq(from = make_epiread$index_cg[i], length = make_epiread$num_cg[i]), "start"], collapse = ","))
+    genom_positions <- rbind(genom_positions, paste0(cg_sites[seq(from = make_epiread$index_cg[y], length = make_epiread$num_cg[y]), "start"], collapse = ","))
   
   }
   colnames(genom_positions) <- "genom_positions"
@@ -292,7 +292,7 @@ for(i in 1:length(luad_samples)) {
   
   cpg_positions <- data.frame(cpg_positions = as.character())
     for(x in 1:nrow(make_epiread)) {
-      cpg_positions <- rbind(cpg_positions, paste0(seq(from = make_epiread$index_cg[i], length = make_epiread$num_cg[i]), collapse = ","))
+      cpg_positions <- rbind(cpg_positions, paste0(seq(from = make_epiread$index_cg[x], length = make_epiread$num_cg[x]), collapse = ","))
   
     }
   colnames(cpg_positions) <- "cpg_positions"
@@ -300,7 +300,7 @@ for(i in 1:length(luad_samples)) {
   
   genom_positions <- data.frame(genom_positions = as.character())
   for(y in 1:nrow(make_epiread)) {
-    genom_positions <- rbind(genom_positions, paste0(cg_sites[seq(from = make_epiread$index_cg[i], length = make_epiread$num_cg[i]), "start"], collapse = ","))
+    genom_positions <- rbind(genom_positions, paste0(cg_sites[seq(from = make_epiread$index_cg[y], length = make_epiread$num_cg[y]), "start"], collapse = ","))
   
   }
   colnames(genom_positions) <- "genom_positions"
@@ -314,9 +314,14 @@ for(i in 1:length(luad_samples)) {
   luad_epireads[[luad_headers[i]]] <- make_epiread
 }
 ```
+## fix later: genom and cpg positions of luad samples are all the same and are all WRONG idk why
 
 ```{r}
 saveRDS(luad_epireads, "/researchers/caitlin.page/cf_nano/r_output/luad_epireads.rds")
+```
+```{r}
+luad <- readRDS("/researchers/caitlin.page/cf_nano/r_output/luad_epireads.rds")
+luad[1]
 ```
 
 
@@ -403,15 +408,61 @@ he_hu5.10 %>% .[,c(1,6,7,18:19)] %>% .[order(.$cpg_pos),] %>% group_by(cpg_pos) 
   geom_point()
 ```
 
+## how i got beta format
 
 ```{r}
-he_hu5.10_sample <- he_hu5.10[1:10,]
+beta_format <- he_hu5.10 %>% separate_longer_position(cols = meth_pattern, width = 1) %>% 
+  group_by(read_id) %>% 
+  mutate(cpg_pos = index_cg:c(index_cg + n() -1)) %>% ungroup() %>%
+  mutate(genom_pos = cg_sites[match(.$cpg_pos, cg_sites$index), "start"])
+beta_format
+```
+
+```{r}
+beta_format <- beta_format %>% group_by(cpg_pos) %>%
+  mutate(site_pattern = paste(meth_pattern, collapse = "")) %>% ungroup() %>% distinct(cpg_pos, genom_pos, site_pattern) %>%
+  mutate(num_meth = str_count(.$site_pattern, "C"), num_unmeth = str_count(.$site_pattern, "T"))
+beta_format <- data.frame(beta_format)
+beta_format
+```
+
+```{r}
+beta_vals <- cg_sites
+beta_vals <- beta_vals %>% mutate(he_hu5.10_meth = beta_format[match(.$index, beta_format$cpg_pos), "num_meth"],
+                     he_hu5.10_unmeth = beta_format[match(.$index, beta_format$cpg_pos), "num_unmeth"])
+```
+
+```{r}
+beta_vals[is.na(beta_vals)] <- 0
+
+beta_vals$beta <- beta_vals$meth / c(beta_vals$meth + beta_vals$unmeth)
+```
+
+```{r}
+
+columns <- c("read_id", "seqnames", "start", "end", "read_length", "type", "sample")
+luad$ispro.bc10 %>% mutate(type = "luad", sample = "ispro.bc10") %>% .[,columns]
+```
+
+```{r}
+names(luad_epireads)
+```
+
+```{r}
+luad_epireads
+```
+
+```{r}
+healthy_epireads
+```
+```{r}
+saveRDS(healthy_epireads, "/researchers/zz_test/compbiohackathon2022/2025/fragmentomics/fixed_healthy_epireads.rds")
+saveRDS(luad_epireads, "/researchers/zz_test/compbiohackathon2022/2025/fragmentomics/fixed_luad_epireads.rds")
 ```
 
 
-
-
 ```{r}
-he_hu5.10_sample[1:3,] %>% separate_longer_delim(cols = c(cpg_positions, genom_positions), ",")
+saveRDS(healthy_epireads, "/researchers/caitlin.page/cf_nano/r_output/fixed_healthy_epireads.rds")
+saveRDS(luad_epireads, "/researchers/caitlin.page/cf_nano/r_output/fixed_luad_epireads.rds")
 ```
 
