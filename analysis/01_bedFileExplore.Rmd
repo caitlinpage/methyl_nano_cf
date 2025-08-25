@@ -37,6 +37,9 @@ Column 11 corresponds to the percent of reads methylated. Modbam2bed does not pr
 try_bed <- import.bed(list_bed[1]) %>% data.frame()
 try_bed
 ```
+```{r}
+colnames(try_bed)
+```
 
 ```{r}
 summary(try_bed$score)
