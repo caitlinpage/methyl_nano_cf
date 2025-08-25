@@ -41,7 +41,7 @@ for(i in 1:length(luad_samples)) {
 
   cpg_positions <- data.frame(cpg_positions = as.character())
   for(x in 1:nrow(make_epiread)) {
-    cpg_positions <- rbind(cpg_positions, paste0(seq(from = make_epiread$index_cg[i], length = make_epiread$num_cg[i]), collapse = ","))
+    cpg_positions <- rbind(cpg_positions, paste0(seq(from = make_epiread$index_cg[x], length = make_epiread$num_cg[x]), collapse = ","))
 
   }
   colnames(cpg_positions) <- "cpg_positions"
@@ -49,7 +49,7 @@ for(i in 1:length(luad_samples)) {
 
   genom_positions <- data.frame(genom_positions = as.character())
   for(y in 1:nrow(make_epiread)) {
-    genom_positions <- rbind(genom_positions, paste0(cg_sites[seq(from = make_epiread$index_cg[i], length = make_epiread$num_cg[i]), "start"], collapse = ","))
+    genom_positions <- rbind(genom_positions, paste0(cg_sites[seq(from = make_epiread$index_cg[y], length = make_epiread$num_cg[y]), "start"], collapse = ","))
 
   }
   colnames(genom_positions) <- "genom_positions"
