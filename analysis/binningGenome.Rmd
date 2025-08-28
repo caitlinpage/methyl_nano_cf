@@ -7,9 +7,305 @@ editor_options:
   chunk_output_type: inline
 ---
 
-## Introduction
+* started this analysis as part of the [Research Sprint](researchSprint.html)
 
+# Description
+
+* Why are we interested in binning the genome?
+Starting point for how we can compare patterns of alpha values.
+Reads are not going to all line up - which will complicate analysing alpha values.
+Binning the genome can help us look at a smaller window and the variability of alpha within it.
+It should also help us find regions of the genome that have a more variable alpha.
+
+* Questions
+How big should the bin be? - Starting with 5kb, jovana did 1kb so let's also do everything for that
+How do we measure variation in a bin? - Variance (spread of the data)
+Are the bins same or different for high/low variance between cancer/normal?
+Do bins with low variance overlap with intergenic regions? (expected to be methylated - so would have little variation)
+Do bins with high variance overlap with promoter regions/cpg islands? (expected to be more variable)
+
+
+# Packages
 ```{r}
+library(plyranges)
+library(EnsDb.Hsapiens.v86)
+library(BSgenome.Hsapiens.UCSC.hg38)
+library(annotatr)
 
+library(dplyr)
+library(ggplot2)
+library(stringr)
 ```
 
+
+```{r}
+all_samples <- readRDS("/researchers/caitlin.page/cf_nano/r_output/all_samples.rds")
+```
+
+```{r}
+seqinfo <- seqlengths(BSgenome.Hsapiens.UCSC.hg38)
+seqinfo <- seqinfo[grepl("^chr22+$", names(seqinfo))]
+seqinfo
+```
+
+
+```{r}
+bins_5kb <- tileGenome(seqinfo, tilewidth=5000, cut.last.tile.in.chrom=TRUE)
+
+bins_5kb <- bins_5kb %>% data.frame() %>% mutate(bin_num = 1:n()) %>% as_granges()
+bins_5kb
+```
+
+```{r}
+all_samples$read_start <- all_samples$start
+all_samples$read_end <- all_samples$end
+```
+
+```{r}
+overlap_bins_reads <- find_overlaps(bins_5kb, as_granges(all_samples)) %>% data.frame()
+```
+```{r}
+overlap_bins_reads %>% group_by(bin_num) %>%
+  summarise(num_reads=n()) %>% .[order(.$num_reads, decreasing = TRUE),]
+
+overlap_bins_reads %>% group_by(bin_num) %>%
+  summarise(num_reads=n()) %>%
+  ggplot(aes(x = bin_num, y = num_reads)) +
+  geom_point(alpha = 0.3) +
+  geom_line()
+```
+
+```{r}
+overlap_bins_reads %>% group_by(bin_num) %>%
+  summarise(num_reads=n()) %>%
+  ggplot(aes(x = num_reads)) +
+  geom_density() +
+  labs(title = "distrib of number of reads in bins")
+```
+
+
+
+```{r}
+overlap_bins_reads %>% group_by(bin_num, type, sample) %>%
+  summarise(n=n()) 
+```
+
+```{r}
+overlap_bins_reads %>% group_by(bin_num) %>%
+  summarise(num_reads=n()) %>% .[order(.$num_reads, decreasing = TRUE),]
+```
+
+```{r}
+overlap_bins_reads %>% dplyr::filter(bin_num == 3780) %>%
+  ggplot(aes(x = read_start, y = alpha, colour = sample, group = sample)) +
+  geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha), linewidth = 1) +
+  labs(title = "most dense bin") +
+  theme(legend.position = "none") +
+  facet_wrap(~type, nrow = 2)
+```
+```{r}
+unique(overlap_bins_reads$sample)
+```
+
+```{r}
+overlap_bins_reads %>% dplyr::filter(bin_num == 3780) %>% dplyr::filter(type == "healthy" | sample %in% c("ispro.bc10", "ispro.bc11")) %>%
+  ggplot(aes(x = read_start, y = alpha, colour = read_id, group = sample)) +
+  geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha)) +
+  labs(title = "most dense bin: all healthy and 2 highest cancer") +
+  theme(legend.position = "none") +
+  facet_wrap(~type, nrow = 2)
+```
+
+# recreate jovana boxplot of variance per sample
+* caclulate variance for each bin
+
+
+```{r}
+overlap_bins_reads %>% group_by(sample, bin_num) %>% summarise(var_alpha = var(alpha)) %>% head()
+```
+* what are the na's?
+```{r}
+overlap_bins_reads %>% group_by(sample, bin_num) %>% filter(sample == "hu5.10", bin_num %in% c(2107, 2112,2114)) 
+var(0)
+var(1)
+var(0.5)
+```
+* they only have 1 read and can't calculate the variance from 1 read
+* they should be filtered out in the boxplot then
+
+```{r}
+overlap_bins_reads %>% group_by(sample, bin_num, type) %>% summarise(var_alpha = var(alpha)) %>%
+  ggplot(aes(x = sample, y = var_alpha, fill = type)) +
+  geom_boxplot() +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45)) +
+  labs(title = "Variance of alpha in 5kb bins across samples")
+```
+* hu5.10 looks different in mind compared to jovana's
+* likely due to different bin size used
+
+* bc8 and bc9 (lowest tumour purity) look more like the healthy but the other cancer do have a higher mean variance
+
+# compare the variance between samples within the same bin
+* there are too many bins to plot > 95k
+* don't group by sample - just by bin and get variance - and find 5 highest and 5 lowest bins
+* and also repeat by using just luad or just normal
+```{r}
+overlap_bins_reads %>% group_by(bin_num) %>% summarise(var_alpha = var(alpha)) %>% .[order(.$var_alpha, decreasing = TRUE),] %>% .[c(1:5,7431:7435),]
+```
+
+```{r}
+overlap_bins_reads %>% filter(type == "healthy") %>% group_by(bin_num) %>% summarise(var_alpha = var(alpha)) %>% .[order(.$var_alpha, decreasing = TRUE),] %>% .[c(1:5,7430:7434),]
+overlap_bins_reads %>% filter(type == "luad") %>% group_by(bin_num) %>% summarise(var_alpha = var(alpha)) %>% .[order(.$var_alpha, decreasing = TRUE),] %>% .[c(1:5,7431:7435),]
+```
+
+```{r}
+rbind(overlap_bins_reads %>% filter(type == "healthy") %>% group_by(bin_num) %>% summarise(var_alpha = var(alpha)) %>% .[order(.$var_alpha, decreasing = TRUE),] %>% .[c(1:5),],
+      overlap_bins_reads %>% filter(type == "luad") %>% group_by(bin_num) %>% summarise(var_alpha = var(alpha)) %>% .[order(.$var_alpha, decreasing = TRUE),] %>% .[c(1:5),],
+      overlap_bins_reads %>% group_by(bin_num) %>% summarise(var_alpha = var(alpha)) %>% .[order(.$var_alpha, decreasing = TRUE),] %>% .[c(1:5),]) %>% 
+  distinct(bin_num)
+```
+
+```{r}
+overlap_bins_reads %>% dplyr::filter(bin_num == 2377) %>%
+  ggplot(aes(x = read_start, y = alpha, colour = read_id, group = sample)) +
+  geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha)) +
+  labs(title = "bin with highest variance") +
+  theme(legend.position = "none") +
+  facet_wrap(~type, nrow = 2)
+
+overlap_bins_reads %>% dplyr::filter(bin_num == 3742) %>%
+  ggplot(aes(x = read_start, y = alpha, colour = read_id, group = sample)) +
+  geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha)) +
+  labs(title = "bin with highest healthy variance") +
+  theme(legend.position = "none") +
+  facet_wrap(~type, nrow = 2)
+
+overlap_bins_reads %>% dplyr::filter(bin_num == 2224) %>%
+  ggplot(aes(x = read_start, y = alpha, colour = read_id, group = sample)) +
+  geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha)) +
+  labs(title = "bin with highest luad variance") +
+  theme(legend.position = "none") +
+  facet_wrap(~type, nrow = 2)
+```
+
+```{r}
+overlap_bins_reads %>% dplyr::filter(bin_num == 2167) %>%
+  ggplot(aes(x = read_start, y = alpha, colour = read_id, group = sample)) +
+  geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha)) +
+  labs(title = "bin with lowest variance (same as bin with lowest luad variance)") +
+  theme(legend.position = "none") +
+  facet_wrap(~type, nrow = 2)
+
+overlap_bins_reads %>% dplyr::filter(bin_num == 5671) %>%
+  ggplot(aes(x = read_start, y = alpha, colour = read_id, group = sample)) +
+  geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha)) +
+  labs(title = "bin with lowest healthy variance") +
+  theme(legend.position = "none") +
+  facet_wrap(~type, nrow = 2)
+
+overlap_bins_reads %>% dplyr::filter(bin_num == 4072) %>%
+  ggplot(aes(x = read_start, y = alpha, colour = read_id, group = sample)) +
+  geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha)) +
+  labs(title = "bin with 2nd lowest variance across all") +
+  theme(legend.position = "none") +
+  facet_wrap(~type, nrow = 2)
+```
+* that last plot doesn't look right - that looks like high variance
+* but it is more grouped towards the higher alphas
+* the highest variance bins have very few reads - so variance may be a touch biased
+
+```{r}
+overlap_bins_reads %>% group_by(bin_num) %>% summarise(var_alpha = var(alpha)) %>% .[order(.$var_alpha),]
+overlap_bins_reads %>% dplyr::filter(bin_num == 4072) %>%
+  ggplot(aes(x = alpha, group = sample, colour = type)) +
+  geom_density()
+
+overlap_bins_reads %>% dplyr::filter(bin_num == 2377) %>%
+  ggplot(aes(x = alpha, group = sample, colour = type)) +
+  geom_density()
+```
+
+```{r}
+overlap_bins_reads %>% group_by(bin_num) %>% summarise(num_reads_in_bin = n(), var_alpha = var(alpha)) %>% .[order(.$var_alpha, decreasing = TRUE),] %>% .[c(1:5,7431:7435),] %>% mutate(var_interp = c(rep("top_5", times = 5), rep("bottom_5", times = 5)))
+```
+* yeah more reads in lower ranked variance bins
+
+```{r}
+overlap_bins_reads %>% group_by(bin_num) %>% summarise(num_reads_in_bin = n(), var_alpha = var(alpha)) %>% ungroup() %>% .[order(.$var_alpha, decreasing = TRUE),] %>% mutate(var_rank = 1:n()) %>%
+  ggplot(aes(x = num_reads_in_bin, y = var_alpha)) +
+  geom_point(alpha = 0.3)
+
+overlap_bins_reads %>% group_by(bin_num) %>% summarise(num_reads_in_bin = n(), var_alpha = var(alpha)) %>% ungroup() %>% .[order(.$var_alpha, decreasing = TRUE),] %>% mutate(var_rank = 1:n()) %>%
+  ggplot(aes(x = num_reads_in_bin, y = var_alpha)) +
+  geom_point(alpha = 0.3) +
+  scale_x_continuous(limits = c(0,250))
+```
+
+```{r}
+overlap_bins_reads <- overlap_bins_reads %>% mutate(cancer_group = case_when(type == "healthy" ~ "not_cancer",
+                                                            type == "luad" & sample %in% c("ispro.bc8", "ispro.bc9") ~ "low_tumour", TRUE ~ "high_tumour")) #10 and 11 are highest - but we will group the lowest
+```
+
+```{r}
+overlap_bins_reads <- overlap_bins_reads %>% group_by(bin_num) %>% mutate(num_reads_in_bin = n(), var_alpha = var(alpha)) %>% ungroup() %>%
+  group_by(bin_num, sample) %>% mutate(var_alpha_per_sample_per_bin = var(alpha)) %>% ungroup()
+```
+
+
+# genes
+* EnsDb object for gene annotation - name and positions
+* annotatr for cpg islands and more detailed gene annotation (see [vignette](https://bioconductor.org/packages/devel/bioc/vignettes/annotatr/inst/doc/annotatr-vignette.html))
+```{r}
+ensdb_genes <- GenomicFeatures::genes(EnsDb.Hsapiens.v86::EnsDb.Hsapiens.v86)
+ensdb_genes <- ensdb_genes %>% data.frame()
+ensdb_genes <- ensdb_genes %>% mutate(seqnames = paste0("chr", seqnames)) %>% as_granges()
+```
+
+```{r}
+cpg_islands <- annotatr::build_annotations(genome = "hg38", annotation = "hg38_cpgs")
+cpg_islands <- cpg_islands %>% data.frame() %>% filter(seqnames == "chr22")
+```
+
+```{r}
+annotatr::builtin_annotations()[grep("hg38", annotatr::builtin_annotations())]
+```
+```{r}
+cpg_anno <- annotatr::build_annotations(genome = "hg38", annotation = c("hg38_cpgs", "hg38_cpg_inter", "hg38_cpg_shelves", "hg38_cpg_shores", "hg38_cpg_islands"))
+
+cpg_anno <- cpg_anno %>% data.frame() %>% filter(seqnames == "chr22") %>% as_granges()
+```
+
+```{r}
+find_overlaps(as_granges(overlap_bins_reads), cpg_anno) %>% data.frame() %>% group_by(bin_num, type.y) %>%
+  summarise(var_alpha_cpg = var(alpha)) %>%
+  ggplot(aes(x = type.y, y = var_alpha_cpg)) +
+  geom_boxplot()
+```
+
+
+
+
+
+
+```{r}
+gene_annos <- annotatr::build_annotations(genome = "hg38", annotation = c("hg38_basicgenes", "hg38_genes_intergenic", "hg38_genes_introns", "hg38_genes_exons", "hg38_genes_promoters", "hg38_genes_1to5kb", "hg38_enhancers_fantom"))
+```
+```{r}
+annotatr::builtin_annotations()[grep("hg38", annotatr::builtin_annotations())]
+```
+
+
+```{r}
+genes_of_interest <- c("PLXNB2", "CYTH4", "MGAT3", "ASB16", "NEDD4")
+```
+
+
+
+
+```{r}
+ensdb_genes_filt <- ensdb_genes %>% dplyr::filter(gene_name %in% genes_of_interest)
+```
+```{r}
+pair_overlaps(as_granges(overlap_bins_reads), as_granges(ensdb_genes_filt)) %>% data.frame() %>% dplyr::filter(gene_name == "CYTH4")
+```
