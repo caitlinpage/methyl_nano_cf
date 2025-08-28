@@ -1,0 +1,24 @@
+---
+title: "researchSprintB"
+author: "caitlinpage"
+date: "2025-08-28"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+
+
+```{r}
+library(biomaRt)
+library(EnsDb.Hsapiens.v86)
+
+library(plyranges)
+library(tidyr)
+library(ggplot2)
+library(BSgenome.Hsapiens.UCSC.hg38)
+library(stringr)
+library(data.table)
+library(dplyr)
+```
+
