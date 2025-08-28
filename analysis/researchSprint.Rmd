@@ -1,25 +1,60 @@
 ---
-title: "Untitled"
+title: "researchSprint"
 output: html_document
 date: "2025-08-21"
 ---
 
+## Description
+* 2 day research sprint on long read data from the 21-22 August 2025
+* Team leader: Dineika
+* Interests: fragmentomics, methylation, deconvolution, [slide](https://docs.google.com/presentation/d/117TR8EFgIXXJawOTsnHjjHFak8TveyES_2RBhb3LtaQ/edit?slide=id.g3763afce800_1_316#slide=id.g3763afce800_1_316)
+* Team members: Dineika, Max, Jovana, Gunjan, Caitlin, Therese, Song, Kevin
+* Team name: Goldilocks
+
+## What was done
+* beta and pat files from wgbs_tools (Max)
+* tumour fraction estimates - ichorCNA (Song)
+* Fragle (fragment based deconv - short read designed) (Dineika)
+* end motif analysis (Gunjan)
+* processing data, variance analysis, genome binning (Jovana)
+* correlate tumour fraction and proportion of meth/unmeth sites at luad genes? (Therese - I helped)
+
+## what did I do?
+* some basic plots
+* binning the genome
+* plots of luad genes
+* cpg islands, gene promoters plots
+* tried and failed to make beta files using the alpha, then made again from bedgraphs
+
+## summary of sample information
+* bc10 and bc11 have the highest tumour fraction
+* bc8 and bc9 have the lowest tumour fraction - these 2 are grouped together as low - everything else is high
+
+# my analysis code
+
 ```{r}
+library(biomaRt)
+library(EnsDb.Hsapiens.v86)
+
 library(plyranges)
-library(dplyr)
 library(tidyr)
 library(ggplot2)
 library(BSgenome.Hsapiens.UCSC.hg38)
 library(stringr)
 library(data.table)
+library(dplyr)
 ```
 
 ```{r}
-healthy_epireads <- readRDS("/share/goldilocks/from_andrew/healthy_epireads.rds")
-luad_epireads <- readRDS("/share/goldilocks/from_andrew/luad_epireads.rds")
+healthy_epireads <- readRDS("/researchers/caitlin.page/cf_nano/r_output/fixed_healthy_epireads.rds")
+luad_epireads <- readRDS("/researchers/caitlin.page/cf_nano/r_output/fixed_luad_epireads.rds")
 ```
 
-# cpg and genom positions on luad samples are wrong :(
+
+* cpg and genom positions on luad samples were wrong 
+  * was a bug in the for loop
+  * has now been fixed
+
 ```{r}
 cg_sites <- cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38[["chr22"]])), seqnames = "chr22") %>%
   mutate(pos = paste0(seqnames, "-", start)) %>%
@@ -27,36 +62,16 @@ cg_sites <- cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UC
 cg_sites$index <- 1:nrow(cg_sites)
 ```
 
-```{r}
-fix_luad_1 <- luad_epireads$ispro.bc1
-fix_luad_1
-```
-
-```{r}
-cpg_positions2 <- data.frame(cpg_positions2 = as.character())
-  for(x in 1:nrow(fix_luad_1)) {
-    cpg_positions2 <- rbind(cpg_positions2, paste0(seq(from = fix_luad_1$index_cg[x], length = fix_luad_1$num_cg[x]), collapse = ","))
-
-  }
-  colnames(cpg_positions2) <- "cpg_positions2"
-  fix_luad_1 <- cbind(fix_luad_1, cpg_positions2)
-  
-fix_luad_1
-```
-* I think problem was I had i instead of x
-* ok yeah that fixed it
-* I definitely had that in the healthy code so weird that it didn't mess with it then
-* sort it out later unless anyone asks for it
-```{r}
-luad_epireads
-```
 
 # read lengths between cancer and normal
 
 ```{r}
 columns <- c("read_id", "seqnames", "start", "end", "read_length", "type", "sample")
 ```
-
+```{r}
+names(healthy_epireads)
+names(luad_epireads)
+```
 
 ```{r}
 read_lengths <- rbind(healthy_epireads$hu5.10 %>% mutate(type = "healthy", sample = "hu5.10") %>% .[,columns], 
@@ -73,7 +88,7 @@ read_lengths <- rbind(healthy_epireads$hu5.10 %>% mutate(type = "healthy", sampl
       luad_epireads$ispro.bc9 %>% mutate(type = "luad", sample = "ispro.bc9") %>% .[,columns],
       luad_epireads$ispro.s1 %>% mutate(type = "luad", sample = "ispro.s1") %>% .[,columns])
 
-read_lengths
+head(read_lengths)
 ```
 ```{r}
 read_lengths %>% group_by(type) %>% summarise(n())
@@ -144,9 +159,6 @@ luad_epireads$ispro.bc11 %>% filter(start >= 10718212, end <= 10721909) %>%
 * which does kinda leave the more exploratory stuff again
 * or I could bin the genome - though if jovana was going to do that?
 
-```{r}
-
-```
 
 
 # let's just combine all the samples but have more columns
@@ -173,7 +185,7 @@ all_samples <- rbind(healthy_epireads$hu5.10 %>% mutate(type = "healthy", sample
       luad_epireads$ispro.bc9 %>% mutate(type = "luad", sample = "ispro.bc9") %>% .[,columns],
       luad_epireads$ispro.s1 %>% mutate(type = "luad", sample = "ispro.s1") %>% .[,columns])
 
-all_samples
+head(all_samples)
 ```
 
 
@@ -207,22 +219,10 @@ all_samples %>% filter(sample %in% c("ispro.bc10", "ispro.bc11") | type == "heal
 ```
 * good we see less methylation of 1 in the cancer samples
 
-```{r}
-all_samples
-```
-
 
 * redo cpg and genom positions - but it's b/c I want beta
 * so maybe I don't need it to get beta
-```{r}
-cpg_positions <- data.frame(cpg_positions = as.character())
-    for(x in 1:nrow(make_epiread)) {
-      cpg_positions <- rbind(cpg_positions, paste0(seq(from = make_epiread$index_cg[x], length = make_epiread$num_cg[x]), collapse = ","))
-  
-    }
-  colnames(cpg_positions) <- "cpg_positions"
-  make_epiread <- cbind(make_epiread, cpg_positions)
-```
+
 
 # can I code a way to find out how many reads overlap??
 * perplexity
@@ -243,7 +243,7 @@ print(num_overlap_rows)
 ```
 
 ```{r}
-unique_overlap_rows
+head(unique_overlap_rows)
 ```
 * ok so most of the rows overlap - but if I want a dense region or find matching positions I need binning
 * which is a tomorrow problem - Max is trying binning now
@@ -278,14 +278,14 @@ beta_format <- beta_format %>% group_by(cpg_pos) %>%
   mutate(site_pattern = paste(meth_pattern, collapse = "")) %>% ungroup() %>% distinct(cpg_pos, genom_pos, site_pattern) %>%
   mutate(num_meth = str_count(.$site_pattern, "C"), num_unmeth = str_count(.$site_pattern, "T"))
 beta_format <- data.frame(beta_format)
-beta_format
+head(beta_format)
 ```
 
 ```{r}
 beta_vals <- cg_sites
 beta_vals <- beta_vals %>% mutate(he_hu5.10_meth = beta_format[match(.$index, beta_format$cpg_pos), "num_meth"],
                      he_hu5.10_unmeth = beta_format[match(.$index, beta_format$cpg_pos), "num_unmeth"])
-beta_vals
+head(beta_vals)
 ```
 
 * let's make a loop so it repeats for the other samples
@@ -300,11 +300,9 @@ names(healthy_epireads)
 ```{r}
 try <- beta_vals
 try[,paste0("he_", names(healthy_epireads)[2], "_meth")] <- 5
-try
+head(try)
 ```
-```{r}
-healthy_epireads[[2]]
-```
+
 
 ```{r}
 for(i in 2:length(healthy_epireads)) {
@@ -320,7 +318,7 @@ for(i in 2:length(healthy_epireads)) {
   beta_vals[,paste0("he_", names(healthy_epireads)[i], "_meth")] <- beta_format[match(beta_vals$index, beta_format$cpg_pos), "num_meth"]
   beta_vals[,paste0("he_", names(healthy_epireads)[i], "_unmeth")] <- beta_format[match(beta_vals$index, beta_format$cpg_pos), "num_meth"]
 }
-beta_vals
+head(beta_vals)
 ```
 
 ```{r}
@@ -341,13 +339,12 @@ for(i in 1:length(luad_epireads)) {
   beta_vals[,paste0("luad_", names(luad_epireads)[i], "_meth")] <- beta_format[match(beta_vals$index, beta_format$cpg_pos), "num_meth"]
   beta_vals[,paste0("luad_", names(luad_epireads)[i], "_unmeth")] <- beta_format[match(beta_vals$index, beta_format$cpg_pos), "num_meth"]
 }
-beta_vals
+head(beta_vals)
 ```
 
 
 ```{r}
 beta_vals[is.na(beta_vals)] <- 0
-beta_vals
 ```
 
 ```{r}
@@ -365,11 +362,9 @@ beta_vals <- beta_vals %>%
          luad_ispro.bc8_beta = luad_ispro.bc8_meth/(luad_ispro.bc8_meth + luad_ispro.bc8_unmeth),
          luad_ispro.bc9_beta = luad_ispro.bc9_meth/(luad_ispro.bc9_meth + luad_ispro.bc9_unmeth),
          luad_ispro.s1_beta = luad_ispro.s1_meth/(luad_ispro.s1_meth + luad_ispro.s1_unmeth))
-beta_vals
-```
-```{r}
+
 beta_vals[is.na(beta_vals)] <- 0
-beta_vals
+head(beta_vals)
 ```
 
 * how do I plot this?
@@ -393,7 +388,7 @@ beta_vals_long <- rbind(beta_vals %>% mutate(type = "healthy", sample = "hu5.10"
       beta_vals %>% mutate(type = "luad", sample = "ispro.bc8", beta = luad_ispro.bc8_beta) %>% .[,columns],
       beta_vals %>% mutate(type = "luad", sample = "ispro.bc9", beta = luad_ispro.bc9_beta) %>% .[,columns],
       beta_vals %>% mutate(type = "luad", sample = "ispro.s1", beta = luad_ispro.s1_beta) %>% .[,columns])
-beta_vals_long
+head(beta_vals_long)
 ```
 
 ```{r}
@@ -414,16 +409,12 @@ beta_vals_long %>%
 
 * should have just used the bed files for this
 ```{r}
-list.files("/share/goldilocks/bed/megalodonBeds/megalodonBedgraphs")
-```
-
-```{r}
-
+list.files("/researchers/caitlin.page/cf_nano/megalodonBedgraphs")
 ```
 
 
 ```{r}
-he_hu5.10_bed <- read_bed("/share/goldilocks/bed/megalodonBeds/megalodonBedgraphs/HU005.10.meg242.remora1.edgefix.modbam2bed.5mC.cut0.667.hg38.sorted.bedgraph")
+he_hu5.10_bed <- read_bed("/researchers/caitlin.page/cf_nano/megalodonBedgraphs/HU005.10.meg242.remora1.edgefix.modbam2bed.5mC.cut0.667.hg38.sorted.bedgraph.gz")
 he_hu5.10_bed %>% data.frame() %>% filter(seqnames == "chr22")
 ```
 
@@ -446,10 +437,10 @@ he_hu5.10_bed %>%
 * let's just try and quickly fix the betas:
 
 ```{r}
-bedgraphs <- list.files("/share/goldilocks/bed/megalodonBeds/megalodonBedgraphs")
+bedgraphs <- list.files("/researchers/caitlin.page/cf_nano/megalodonBedgraphs")
 bedgraphs <- bedgraphs[grep("bedgraph", bedgraphs)]
-bedgraphs <- bedgraphs[grep(".gz", bedgraphs, invert = TRUE)]
-bedgraphs
+bedgraphs <- bedgraphs[grep(".tbi", bedgraphs, invert = TRUE)]
+head(bedgraphs)
 ```
 ```{r}
 str_extract(bedgraphs, "^[^m]+")
@@ -463,13 +454,13 @@ bed_betas <- he_hu5.10_bed
 
 ```{r}
 for(i in 2:length(bedgraphs)) {
-  bed <- read_bed(paste0("/share/goldilocks/bed/megalodonBeds/megalodonBedgraphs/", bedgraphs[i]))
+  bed <- read_bed(paste0("/researchers/caitlin.page/cf_nano/megalodonBedgraphs/", bedgraphs[i]))
   bed <- bed %>% data.frame() %>% filter(seqnames == "chr22")
   bed$name <- as.double(bed$name)
   bed$sample <- str_extract(bedgraphs, "^[^m]+")[i]
   bed_betas <- rbind(bed_betas, bed)
 }
-bed_betas
+head(bed_betas)
 ```
 
 ```{r}
@@ -573,11 +564,6 @@ overlap_bins_reads %>% dplyr::filter(bin_num == 3780) %>% dplyr::filter(type == 
 
 
 # genes stuff
-
-```{r}
-library(biomaRt)
-library(EnsDb.Hsapiens.v86)
-```
 
 ```{r}
 ensembl <- useEnsembl(biomart = "ensembl", 
@@ -759,7 +745,7 @@ t.test(dplyr::filter(overlap_bins_reads_prom, cancer_group == "low_tumour")$alph
 ```
 
 ```{r}
-luad_genes <- read.table("/share/goldilocks/chr22_luad_genes.txt", header = TRUE)
+luad_genes <- read.table("/researchers/caitlin.page/cf_nano/chr22_luad_genes.txt", header = TRUE)
 ```
 
 ```{r}
@@ -895,14 +881,7 @@ overlap_bins_reads %>% mutate(read_has_beta_0.5 = ifelse(read_id %in% read_with_
 ```{r}
 overlap_bins_reads %>% mutate(read_has_beta_0.5 = ifelse(read_id %in% read_with_0.5$read_id, TRUE, FALSE)) %>% dplyr::filter(read_has_beta_0.5 == TRUE) %>% group_by(cancer_group) %>% summarise(mean_alpha = mean(alpha), median_alpha = median(alpha))
 ```
-```{r}
 
-```
-
-```{r}
-read_with_0.5
-beta_0.5
-```
 
 
 # back to cpg islands
@@ -955,20 +934,11 @@ pair_overlaps(as_granges(overlap_bins_reads), as_granges(ensdb_genes_filt_prom))
   theme(legend.position = "none")
 ```
 
-```{r}
-overlap_bins_reads_luad
-```
-
-
-```{r}
-cpg_islands
-```
-
 
 ```{r}
 overlap_bins_reads <- overlap_bins_reads %>% mutate(read_meth_status = case_when(alpha >= 0.75 ~ "meth", alpha <= 0.25 ~ "unmeth", TRUE ~ "inconclusive"))
 
-overlap_bins_reads[,c(7:10,13:15,18:19)]
+head(overlap_bins_reads[,c(7:10,13:15,18:19)])
 ```
 
 
@@ -998,10 +968,6 @@ overlap_bins_reads_islands %>%
 ```
 
 ```{r}
-luad_genes
-```
-
-```{r}
 pair_nearest(as_granges(mutate(overlap_bins_reads_islands, seqnames = granges.y.seqnames, start = granges.y.start, end = granges.y.end)), as_granges(luad_genes)) %>% data.frame() %>% 
   ggplot(aes(x = type.x, fill = read_meth_status)) +
   geom_bar(position = "fill") +
@@ -1018,7 +984,7 @@ pair_nearest(as_granges(mutate(overlap_bins_reads_islands, seqnames = granges.y.
 * lol therese did it better - this is all exactly the same
 
 ```{r}
-overlap_bins_reads_islands
+head(overlap_bins_reads_islands)
 ```
 
 ```{r}
@@ -1041,7 +1007,7 @@ pair_overlaps(as_granges(overlap_bins_reads), as_granges(ensdb_genes_prom)) %>% 
   geom_density()
 ```
 ```{r}
-luad_genes
+head(luad_genes)
 ```
 
 
@@ -1073,7 +1039,7 @@ overlap_bins_reads_islands %>% distinct(bin_num, id, type.y) %>% dplyr::filter(t
 
 
 ```{r}
-overlap_bins_reads_islands
+head(overlap_bins_reads_islands)
 overlap_bins_reads_islands %>% group_by(bin_num, id) %>% summarise(n())
 ```
 
