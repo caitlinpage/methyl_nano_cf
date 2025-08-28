@@ -208,10 +208,11 @@ gsub("/researchers/caitlin.page/cf_nano/modkit_output/filt_ec_", "", healthy_sam
 ```{r}
 healthy_headers <- gsub("/researchers/caitlin.page/cf_nano/modkit_output/filt_ec_", "", healthy_samples)
 healthy_headers <- gsub(".tsv", "", healthy_headers)
+healthy_samples
 ```
 
 ```{r}
-for(i in 2:length(healthy_samples)) {
+for(i in 1:length(healthy_samples)) {
   make_epiread <- read.table(healthy_samples[i], header = FALSE)
   colnames(make_epiread) <- modkit_colnames
   make_epiread$seqnames <- make_epiread$chrom
@@ -464,5 +465,24 @@ saveRDS(luad_epireads, "/researchers/zz_test/compbiohackathon2022/2025/fragmento
 ```{r}
 saveRDS(healthy_epireads, "/researchers/caitlin.page/cf_nano/r_output/fixed_healthy_epireads.rds")
 saveRDS(luad_epireads, "/researchers/caitlin.page/cf_nano/r_output/fixed_luad_epireads.rds")
+```
+
+```{r}
+columns <- c("read_id", "seqnames", "start", "end", "read_length", "type", "sample", "index_cg", "meth_pattern", "num_meth", "total", "alpha")
+
+all_samples <- rbind(healthy_epireads$hu5.10 %>% mutate(type = "healthy", sample = "hu5.10") %>% .[,columns], 
+      healthy_epireads$hu5.11 %>% mutate(type = "healthy", sample = "hu5.11") %>% .[,columns],
+      healthy_epireads$hu5.12 %>% mutate(type = "healthy", sample = "hu5.12") %>% .[,columns],
+      healthy_epireads$ispro.bc2 %>% mutate(type = "healthy", sample = "ispro.bc2") %>% .[,columns],
+      healthy_epireads$ispro.bc3 %>% mutate(type = "healthy", sample = "ispro.bc3") %>% .[,columns],
+      healthy_epireads$ispro.bc4 %>% mutate(type = "healthy", sample = "ispro.bc4") %>% .[,columns],
+      healthy_epireads$ispro.bc5 %>% mutate(type = "healthy", sample = "ispro.bc5") %>% .[,columns],
+      luad_epireads$ispro.bc1 %>% mutate(type = "luad", sample = "ispro.bc1") %>% .[,columns],
+      luad_epireads$ispro.bc10 %>% mutate(type = "luad", sample = "ispro.bc10") %>% .[,columns],
+      luad_epireads$ispro.bc11 %>% mutate(type = "luad", sample = "ispro.bc11") %>% .[,columns],
+      luad_epireads$ispro.bc8 %>% mutate(type = "luad", sample = "ispro.bc8") %>% .[,columns],
+      luad_epireads$ispro.bc9 %>% mutate(type = "luad", sample = "ispro.bc9") %>% .[,columns],
+      luad_epireads$ispro.s1 %>% mutate(type = "luad", sample = "ispro.s1") %>% .[,columns])
+saveRDS(all_samples, "/researchers/caitlin.page/cf_nano/r_output/all_samples.rds")
 ```
 
