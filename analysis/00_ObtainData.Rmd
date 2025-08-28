@@ -38,3 +38,6 @@ LUAD cancer samples
 * ispro.bc9
 * ispro.bc10
 * ispro.bc11
+
+bc8 and bc9 have the lowest tumour fraction of the samples
+bc10 and bc11 have the highest tumour fraction
