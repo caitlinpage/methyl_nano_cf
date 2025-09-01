@@ -1,0 +1,53 @@
+---
+title: "plotAlphaAndBeta"
+author: "caitlinpage"
+date: "2025-09-01"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+## Introduction
+
+```{r}
+library(plyranges)
+library(EnsDb.Hsapiens.v86)
+library(data.table)
+
+library(dplyr)
+library(ggplot2)
+```
+
+
+```{r}
+
+# Plot a gene promoter region across all samples
+
+pair_overlaps(as_granges(overlap_bins_reads), as_granges(ensdb_genes_filt_prom)) %>% data.frame() %>% dplyr::filter(gene_name == "MGAT3") %>%
+  ggplot(aes(x = read_start, y = alpha, colour = sample, group = sample)) +
+  geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha)) +
+  labs(title = "MGAT3") +
+  theme(legend.position = "none") +
+  facet_wrap(~type, nrow = 2)
+
+## by cancer group
+
+pair_overlaps(as_granges(overlap_bins_reads), as_granges(ensdb_genes_filt_prom)) %>% data.frame() %>% dplyr::filter(gene_name == "CYTH4") %>%
+  ggplot(aes(x = read_start, y = alpha, colour = sample, group = sample)) +
+  geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha), linewidth = 1) +
+  labs(title = "CYTH4") +
+  facet_wrap(~cancer_group, nrow = 3) +
+  theme_classic() +
+  theme(legend.position = "none")
+
+# 1 position per read joined by a line to see the trends more easily
+
+pair_overlaps(as_granges(overlap_bins_reads), as_granges(ensdb_genes_filt_prom)) %>% data.frame() %>% dplyr::filter(gene_name == "CYTH4") %>%
+  ggplot(aes(x = read_start, y = alpha, colour = sample, group = sample)) +
+  geom_line() +
+  labs(title = "CYTH4") +
+  facet_wrap(~cancer_group, nrow = 3) +
+  theme_classic() +
+  theme(legend.position = "none")
+```
+
