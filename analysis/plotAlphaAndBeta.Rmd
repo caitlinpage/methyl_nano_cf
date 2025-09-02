@@ -87,11 +87,11 @@ overlap_bins_reads %>% filter(bin_num == 3780) %>%
 all_samples %>% filter(read_id %in% filter(overlap_bins_reads, bin_num == 3780)$read_id) %>% .[1:5,] %>% .$meth_pattern %>% strsplit("")
 ```
 ```{r}
-alpha_vec <- all_samples %>% filter(read_id %in% filter(overlap_bins_reads, bin_num == 3780)$read_id) %>% .[1:5,] %>% .$alpha %>% as.vector() %>% as.numeric()
+alpha_vec <- all_samples %>% filter(read_id %in% filter(overlap_bins_reads, bin_num == 3780)$read_id) %>% .[1:5,] %>% .$alpha 
 alpha_vec
-rep_vec <- all_samples %>% filter(read_id %in% filter(overlap_bins_reads, bin_num == 3780)$read_id) %>% .[1:5,] %>% .$total %>% as.vector() %>% as.numeric()
+rep_vec <- all_samples %>% filter(read_id %in% filter(overlap_bins_reads, bin_num == 3780)$read_id) %>% .[1:5,] %>% .$total 
 rep_vec
-rep(value = alpha_vec, times = rep_vec)
+rep(x = alpha_vec, times = rep_vec)
 
 ```
 ```{r}
@@ -104,14 +104,111 @@ bin_cpgs <- all_samples %>% filter(read_id %in% filter(overlap_bins_reads, bin_n
 bin_cpgs <- data.frame(bin_cpgs)
 bin_cpgs <- cbind(bin_cpgs, meth = all_samples %>% filter(read_id %in% filter(overlap_bins_reads, bin_num == 3780)$read_id) %>% .$meth_pattern %>% strsplit("") %>% unlist())
 bin_cpgs <- bin_cpgs %>% mutate(site_is_unmeth = ifelse(meth == "T", TRUE, FALSE))
+
 ```
+
+```{r}
+alpha_vec <- all_samples %>% filter(read_id %in% filter(overlap_bins_reads, bin_num == 3780)$read_id) %>% .$alpha 
+rep_vec <- all_samples %>% filter(read_id %in% filter(overlap_bins_reads, bin_num == 3780)$read_id) %>% .$total 
+
+bin_cpgs <- cbind(bin_cpgs, alpha = rep(x = alpha_vec, times = rep_vec))
+bin_cpgs
+```
+
 
 ```{r}
 overlap_bins_reads %>% filter(bin_num == 3780) %>%
   ggplot() +
   geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha, colour = sample, group = sample)) +
-  geom_point(data = bin_cpgs, aes(x = bin_cpgs, y = -0.1)) +
-  labs(title = "bin 3780") +
   theme(legend.position = "none") +
+  geom_point(data = bin_cpgs, aes(x = bin_cpgs, y = alpha, shape = site_is_unmeth)) +
+  scale_shape_manual(values = c(`TRUE` = 1, `FALSE` = 16)) +
+  labs(title = "bin 3780") +
   facet_wrap(~type, nrow = 2)
 ```
+* almost - I still need grouping by sample
+
+```{r}
+overlap_bins_reads %>% filter(bin_num == 3780)
+```
+
+```{r}
+bin_cpgs <- all_samples %>% filter(read_id %in% filter(overlap_bins_reads, bin_num == 3780)$read_id) %>% .$genom_positions %>% strsplit(",") %>% unlist() %>% as.double()
+bin_cpgs <- data.frame(bin_cpgs)
+bin_cpgs <- cbind(bin_cpgs, meth = all_samples %>% filter(read_id %in% filter(overlap_bins_reads, bin_num == 3780)$read_id) %>% .$meth_pattern %>% strsplit("") %>% unlist())
+bin_cpgs <- bin_cpgs %>% mutate(site_is_unmeth = ifelse(meth == "T", TRUE, FALSE))
+
+alpha_vec <- all_samples %>% filter(read_id %in% filter(overlap_bins_reads, bin_num == 3780)$read_id) %>% .$alpha 
+rep_vec <- all_samples %>% filter(read_id %in% filter(overlap_bins_reads, bin_num == 3780)$read_id) %>% .$total 
+
+bin_cpgs <- cbind(bin_cpgs, alpha = rep(x = alpha_vec, times = rep_vec))
+# sample
+alpha_vec <- all_samples %>% filter(read_id %in% filter(overlap_bins_reads, bin_num == 3780)$read_id) %>% .$sample 
+rep_vec <- all_samples %>% filter(read_id %in% filter(overlap_bins_reads, bin_num == 3780)$read_id) %>% .$total 
+bin_cpgs <- cbind(bin_cpgs, sample = rep(x = alpha_vec, times = rep_vec))
+# type
+alpha_vec <- all_samples %>% filter(read_id %in% filter(overlap_bins_reads, bin_num == 3780)$read_id) %>% .$type 
+rep_vec <- all_samples %>% filter(read_id %in% filter(overlap_bins_reads, bin_num == 3780)$read_id) %>% .$total 
+bin_cpgs <- cbind(bin_cpgs, type = rep(x = alpha_vec, times = rep_vec))
+```
+
+
+```{r}
+overlap_bins_reads %>% filter(bin_num == 3780) %>%
+  ggplot() +
+  geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha, colour = sample, group = sample)) +
+  geom_point(data = bin_cpgs, aes(x = bin_cpgs, y = alpha, shape = site_is_unmeth, colour = sample, group = sample)) +
+  scale_shape_manual(values = c(`TRUE` = 1, `FALSE` = 16),
+                     name = "Meth status", labels = c(`TRUE` = "Unmeth", `FALSE` = "Meth")) +
+  labs(title = "bin 3780") +
+  facet_wrap(~type, nrow = 2)
+```
+
+* ooh pretty
+
+* now I want to add beta values
+```{r}
+bin_cpgs
+min(bin_cpgs$bin_cpgs)
+```
+```{r}
+unique(overlap_bins_reads$sample)[c(12,8,13,3,9,10,1,2,5,6,11,4,7)]
+```
+
+```{r}
+bed_betas$beta <- bed_betas$name
+bed_betas %>% filter(start >= min(bin_cpgs$bin_cpgs), start <= max(bin_cpgs$bin_cpgs))
+unique(bed_betas$sample)
+```
+
+* ew annoying the sample name isn't a perfect match
+```{r}
+grep(unique(overlap_bins_reads$sample)[1], unique(bed_betas$sample), value = TRUE)
+```
+
+```{r}
+match_names <- cbind(sample_names = unique(overlap_bins_reads$sample)[c(12,8,13,3,9,10,1,2,5,6,11,4,7)], bed_names = unique(bed_betas$sample)) %>% data.frame()
+```
+
+```{r}
+bed_betas$bed_sample <- bed_betas$sample
+bed_betas <- bed_betas %>% mutate(sample = match_names[match(.$bed_sample, match_names$bed_names), "sample_names"])
+```
+
+
+```{r}
+overlap_bins_reads %>% filter(bin_num == 3780) %>%
+  ggplot() +
+  geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha, colour = sample, group = sample)) +
+  geom_point(data = bin_cpgs, aes(x = bin_cpgs, y = alpha, shape = site_is_unmeth, colour = sample, group = sample)) +
+  scale_shape_manual(values = c(`TRUE` = 1, `FALSE` = 16),
+                     name = "Meth status", labels = c(`TRUE` = "Unmeth", `FALSE` = "Meth")) +
+  geom_line(data = filter(bed_betas, start >= min(bin_cpgs$bin_cpgs), start <= max(bin_cpgs$bin_cpgs)),
+            aes(x = start, y = beta, colour = sample, group = sample),
+            linetype = "dashed") +
+  labs(title = "bin 3780") +
+  facet_wrap(~type, nrow = 2)
+```
+
+* so that's a big old yikes
+* and a post lunch problem
