@@ -217,3 +217,89 @@ wt_beta_chr22_beta
 bed_betas
 ```
 
+# need to repeat - don't want to replace 0s, want to leave them as nas
+
+
+```{r}
+beta_files <- list.files("/researchers/caitlin.page/cf_nano/beta")
+```
+
+```{r}
+fname <- paste0("/researchers/caitlin.page/cf_nano/beta/", beta_files[1])
+  N <- file.info(fname)$size
+  beta <- data.frame(matrix(readBin(fname, "integer", N, size = 1, signed = FALSE), N / 2, 2, byrow=TRUE))
+  colnames(beta) <- c(paste0(str_extract(beta_files, "^[^m]+")[1], "meth"), paste0(str_extract(beta_files, "^[^m]+")[1], "cov"))
+  beta[,paste0(str_extract(beta_files, "^[^m]+")[1], "unmeth")] <- beta[,paste0(str_extract(beta_files, "^[^m]+")[1], "cov")] - beta[,paste0(str_extract(beta_files, "^[^m]+")[1], "meth")]
+  beta[,paste0(str_extract(beta_files, "^[^m]+")[1], "beta")] <- beta[,paste0(str_extract(beta_files, "^[^m]+")[1], "meth")]/beta[,paste0(str_extract(beta_files, "^[^m]+")[1], "cov")]
+  wt_beta <- beta
+```
+
+```{r}
+for(i in 2:length(beta_files)) {
+  fname <- paste0("/researchers/caitlin.page/cf_nano/beta/", beta_files[i])
+  N <- file.info(fname)$size
+  beta <- data.frame(matrix(readBin(fname, "integer", N, size = 1, signed = FALSE), N / 2, 2, byrow=TRUE))
+  colnames(beta) <- c(paste0(str_extract(beta_files, "^[^m]+")[i], "meth"), paste0(str_extract(beta_files, "^[^m]+")[i], "cov"))
+  beta[,paste0(str_extract(beta_files, "^[^m]+")[i], "unmeth")] <- beta[,paste0(str_extract(beta_files, "^[^m]+")[i], "cov")] - beta[,paste0(str_extract(beta_files, "^[^m]+")[i], "meth")]
+  beta[,paste0(str_extract(beta_files, "^[^m]+")[i], "beta")] <- beta[,paste0(str_extract(beta_files, "^[^m]+")[i], "meth")]/beta[,paste0(str_extract(beta_files, "^[^m]+")[i], "cov")]
+  wt_beta <- cbind(wt_beta, beta)
+}
+wt_beta
+```
+* now I need the positions
+```{r}
+he_hu5.10_bed <- read_bed("/researchers/caitlin.page/cf_nano/megalodonBedgraphs/HU005.10.meg242.remora1.edgefix.modbam2bed.5mC.cut0.667.hg38.sorted.bedgraph.gz")
+he_hu5.10_bed %>% data.frame() %>% nrow(.)
+he_hu5.10_bed %>% data.frame() %>% filter(seqnames == "chr22") %>% nrow(.)
+```
+* bedgraph row numbers don't match
+* so need to get cg sites
+```{r}
+seq_names <- seqnames(BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38)[1:25]
+anno_seq <- lapply(seq_names, function(x) {
+  cbind(data.frame(matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38[[x]])),
+        seqnames = x
+  )
+}) %>%
+  dplyr::bind_rows()
+anno_seq <- anno_seq %>% mutate(pos = paste0(seqnames, "-", start)) %>%
+  relocate(pos, seqnames)
+anno_seq %>% nrow(.)
+
+wt_beta <- cbind(anno_seq[,1:4], wt_beta)
+wt_beta_chr22 <- wt_beta %>% filter(seqnames == "chr22")
+
+wt_beta_chr22
+```
+
+
+
+```{r}
+wt_beta_chr22_beta <- wt_beta_chr22 %>% .[,c(1, grep("beta", colnames(.)))] %>% melt(id = "pos")
+```
+
+```{r}
+wt_beta_chr22_beta %>% filter(is.na(value))
+```
+
+
+```{r}
+wt_beta_chr22_beta %>%
+  ggplot(aes(x = value, colour = variable)) +
+  geom_density()
+
+wt_beta_chr22_beta %>%
+  ggplot(aes(x = log2(value + 0.1), colour = variable)) +
+  geom_density()
+```
+* ok that fixed it
+* I think alicia wants to stick with bedgraphs though - b/c technically speaking I don't have Max's code so I don't know what he did
+* also the plot is still different from the bedgraph beta values
+
+```{r}
+bed_betas %>%
+  ggplot(aes(x = name, colour = sample)) +
+  geom_density() +
+  labs(title = "Bedgraph beta value distribution")
+```
+
