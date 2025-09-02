@@ -468,7 +468,16 @@ saveRDS(luad_epireads, "/researchers/caitlin.page/cf_nano/r_output/fixed_luad_ep
 ```
 
 ```{r}
-columns <- c("read_id", "seqnames", "start", "end", "read_length", "type", "sample", "index_cg", "meth_pattern", "num_meth", "total", "alpha")
+healthy_epireads <- readRDS("/researchers/caitlin.page/cf_nano/r_output/fixed_healthy_epireads.rds")
+luad_epireads <- readRDS("/researchers/caitlin.page/cf_nano/r_output/fixed_luad_epireads.rds")
+```
+```{r}
+healthy_epireads
+```
+
+
+```{r}
+columns <- c("read_id", "seqnames", "start", "end", "read_length", "type", "sample", "index_cg", "meth_pattern", "cpg_positions", "genom_positions", "num_meth", "total", "alpha")
 
 all_samples <- rbind(healthy_epireads$hu5.10 %>% mutate(type = "healthy", sample = "hu5.10") %>% .[,columns], 
       healthy_epireads$hu5.11 %>% mutate(type = "healthy", sample = "hu5.11") %>% .[,columns],
@@ -483,6 +492,8 @@ all_samples <- rbind(healthy_epireads$hu5.10 %>% mutate(type = "healthy", sample
       luad_epireads$ispro.bc8 %>% mutate(type = "luad", sample = "ispro.bc8") %>% .[,columns],
       luad_epireads$ispro.bc9 %>% mutate(type = "luad", sample = "ispro.bc9") %>% .[,columns],
       luad_epireads$ispro.s1 %>% mutate(type = "luad", sample = "ispro.s1") %>% .[,columns])
+all_samples$read_start <- all_samples$start
+all_samples$read_end <- all_samples$end
 saveRDS(all_samples, "/researchers/caitlin.page/cf_nano/r_output/all_samples.rds")
 ```
 
