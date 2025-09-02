@@ -19,6 +19,13 @@ library(ggplot2)
 ```
 
 
+# files
+* stick with bedgraph betas for now
+* and all_samples file
+
+
+# existing code
+
 ```{r}
 
 # Plot a gene promoter region across all samples
@@ -51,3 +58,60 @@ pair_overlaps(as_granges(overlap_bins_reads), as_granges(ensdb_genes_filt_prom))
   theme(legend.position = "none")
 ```
 
+```{r}
+overlap_bins_reads %>% .[order(.$num_reads_in_bin, decreasing = TRUE),] %>% distinct(bin_num, num_reads_in_bin, var_alpha)
+```
+
+```{r}
+overlap_bins_reads %>% filter(bin_num == 3780)
+```
+
+```{r}
+all_samples %>% filter(read_id %in% filter(overlap_bins_reads, bin_num == 3780)$read_id)
+```
+```{r}
+distinct_cpgs <- all_samples %>% filter(read_id %in% filter(overlap_bins_reads, bin_num == 3780)$read_id) %>% .$genom_positions %>% strsplit(",") %>% unlist() %>% unique() %>% as.double()
+distinct_cpgs <- data.frame(distinct_cpgs)
+```
+
+```{r}
+overlap_bins_reads %>% filter(bin_num == 3780) %>%
+  ggplot() +
+  geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha, colour = sample, group = sample)) +
+  geom_point(data = distinct_cpgs, aes(x = distinct_cpgs, y = -0.1)) +
+  labs(title = "bin 3780") +
+  theme(legend.position = "none") +
+  facet_wrap(~type, nrow = 2)
+```
+```{r}
+all_samples %>% filter(read_id %in% filter(overlap_bins_reads, bin_num == 3780)$read_id) %>% .[1:5,] %>% .$meth_pattern %>% strsplit("")
+```
+```{r}
+alpha_vec <- all_samples %>% filter(read_id %in% filter(overlap_bins_reads, bin_num == 3780)$read_id) %>% .[1:5,] %>% .$alpha %>% as.vector() %>% as.numeric()
+alpha_vec
+rep_vec <- all_samples %>% filter(read_id %in% filter(overlap_bins_reads, bin_num == 3780)$read_id) %>% .[1:5,] %>% .$total %>% as.vector() %>% as.numeric()
+rep_vec
+rep(value = alpha_vec, times = rep_vec)
+
+```
+```{r}
+c(0.833, 0.857, 1, 1, 0) %>% class()
+rep(c(0.833, 0.857, 1, 1, 0), times = c(6,7,1,1,1))
+```
+* of course it works when you just give it them - but not when you save the vector
+```{r}
+bin_cpgs <- all_samples %>% filter(read_id %in% filter(overlap_bins_reads, bin_num == 3780)$read_id) %>% .$genom_positions %>% strsplit(",") %>% unlist() %>% as.double()
+bin_cpgs <- data.frame(bin_cpgs)
+bin_cpgs <- cbind(bin_cpgs, meth = all_samples %>% filter(read_id %in% filter(overlap_bins_reads, bin_num == 3780)$read_id) %>% .$meth_pattern %>% strsplit("") %>% unlist())
+bin_cpgs <- bin_cpgs %>% mutate(site_is_unmeth = ifelse(meth == "T", TRUE, FALSE))
+```
+
+```{r}
+overlap_bins_reads %>% filter(bin_num == 3780) %>%
+  ggplot() +
+  geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha, colour = sample, group = sample)) +
+  geom_point(data = bin_cpgs, aes(x = bin_cpgs, y = -0.1)) +
+  labs(title = "bin 3780") +
+  theme(legend.position = "none") +
+  facet_wrap(~type, nrow = 2)
+```
