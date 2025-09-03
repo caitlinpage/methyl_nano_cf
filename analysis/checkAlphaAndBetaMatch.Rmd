@@ -1,0 +1,59 @@
+---
+title: "checkAlphaAndBetaMatch"
+author: "caitlinpage"
+date: "2025-09-03"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+Alpha values are obtained from [alpha](modkitOutputToReadFormat.html)
+
+Beta values were first done in research sprint work: [day 1](researchSprint.html), [day 2](researchSprintB.html)
+
+Beta values were then obtained again [here???](plotAlphaAndBeta.html)
+
+Goal was to plot alpha and beta together, [plots](plotAlphaAndBeta.html)
+
+But I think something went wrong and I no longer trust either my alpha or beta values
+
+## Packages
+
+```{r}
+library(data.table)
+
+library(plyranges)
+
+library(dplyr)
+library(ggplot2)
+```
+
+## Code for plot
+```{r}
+bin_cpgs <- all_samples %>% filter(read_id %in% filter(overlap_bins_reads, bin_num == 3780)$read_id) %>% .$genom_positions %>% strsplit(",") %>% unlist() %>% as.double()
+bin_cpgs <- data.frame(bin_cpgs)
+bin_cpgs <- cbind(bin_cpgs, meth = all_samples %>% filter(read_id %in% filter(overlap_bins_reads, bin_num == 3780)$read_id) %>% .$meth_pattern %>% strsplit("") %>% unlist())
+bin_cpgs <- bin_cpgs %>% mutate(site_is_unmeth = ifelse(meth == "T", TRUE, FALSE))
+
+alpha_vec <- all_samples %>% filter(read_id %in% filter(overlap_bins_reads, bin_num == 3780)$read_id) %>% .$alpha 
+rep_vec <- all_samples %>% filter(read_id %in% filter(overlap_bins_reads, bin_num == 3780)$read_id) %>% .$total 
+
+bin_cpgs <- cbind(bin_cpgs, alpha = rep(x = alpha_vec, times = rep_vec))
+# sample
+alpha_vec <- all_samples %>% filter(read_id %in% filter(overlap_bins_reads, bin_num == 3780)$read_id) %>% .$sample 
+rep_vec <- all_samples %>% filter(read_id %in% filter(overlap_bins_reads, bin_num == 3780)$read_id) %>% .$total 
+bin_cpgs <- cbind(bin_cpgs, sample = rep(x = alpha_vec, times = rep_vec))
+# type
+alpha_vec <- all_samples %>% filter(read_id %in% filter(overlap_bins_reads, bin_num == 3780)$read_id) %>% .$type 
+rep_vec <- all_samples %>% filter(read_id %in% filter(overlap_bins_reads, bin_num == 3780)$read_id) %>% .$total 
+bin_cpgs <- cbind(bin_cpgs, type = rep(x = alpha_vec, times = rep_vec))
+
+overlap_bins_reads %>% filter(bin_num == 3780) %>%
+  ggplot() +
+  geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha, colour = sample, group = sample)) +
+  geom_point(data = bin_cpgs, aes(x = bin_cpgs, y = alpha, shape = site_is_unmeth, colour = sample, group = sample)) +
+  scale_shape_manual(values = c(`TRUE` = 1, `FALSE` = 16),
+                     name = "Meth status", labels = c(`TRUE` = "Unmeth", `FALSE` = "Meth")) +
+  labs(title = "bin 3780") +
+  facet_wrap(~type, nrow = 2)
+```
