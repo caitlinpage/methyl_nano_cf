@@ -212,3 +212,166 @@ overlap_bins_reads %>% filter(bin_num == 3780) %>%
 
 * so that's a big old yikes
 * and a post lunch problem
+
+* little bit worried these don't match up
+
+```{r}
+all_samples
+bin_cpgs
+bed_betas
+```
+
+```{r}
+bin_cpgs %>% filter(bin_cpgs == 18895995, sample == "hu5.10")
+bed_betas %>% filter(start == 18895995, sample == "hu5.10")
+```
+* according to alpha information, this site should have beta of 0.5
+* there are 2 reads at the same cpg site, and at one of them is a T and the other is C
+* but the bedgraph file is saying beta = 1
+
+```{r}
+wt_beta_chr22_beta %>% filter(pos == "chr22-18895995", variable == "HU005.10.beta")
+```
+* well now I'm worried I got alpha wrong as well :(
+
+```{r}
+wt_beta_chr22 %>% filter(pos == "chr22-18895995")
+```
+
+```{r}
+overlap_bins_reads %>% filter(bin_num == 3780, sample == "hu5.10") %>%
+  ggplot() +
+  geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha, colour = sample, group = sample)) +
+  geom_point(data = filter(bin_cpgs, sample == "hu5.10"), aes(x = bin_cpgs, y = alpha, shape = site_is_unmeth, colour = sample, group = sample)) +
+  scale_shape_manual(values = c(`TRUE` = 1, `FALSE` = 16),
+                     name = "Meth status", labels = c(`TRUE` = "Unmeth", `FALSE` = "Meth")) +
+  geom_line(data = filter(bed_betas, start >= min(bin_cpgs$bin_cpgs), start <= max(bin_cpgs$bin_cpgs), sample == "hu5.10"),
+            aes(x = start, y = beta, colour = sample, group = sample),
+            linetype = "dashed") +
+  labs(title = "bin 3780") +
+  scale_x_continuous(limits = c(18896000, 18897000))
+```
+* oh dear this is bad
+* but also some of it is right??
+
+* but also maybe it's just a mismatch bit because I've got a few dots without any lines showing a read so maybe that's the problem
+* but it doesn't explain that other position where
+
+```{r}
+filter(bin_cpgs, sample == "hu5.10", bin_cpgs >= 18896125, bin_cpgs <= 18896310) %>% .[order(.$bin_cpgs),]
+bed_betas %>% filter(sample == "hu5.10", start >= 18896125, start <= 18896310)
+wt_beta_chr22 %>% filter(start >= 18896125, start <= 18896310)
+```
+* this position is inconsistent: chr22-18896226, and chr22-18896304
+* ooh maybe it's a probability thing??? - because I never filtered the sites
+* original file time
+```{r}
+all_samples %>% filter(sample == "hu5.10")
+```
+
+
+```{r}
+filter(bin_cpgs, sample == "hu5.10", bin_cpgs >= 18896125, bin_cpgs <= 18896310) %>%
+  ggplot(aes(x = bin_cpgs, y = alpha)) +
+  geom_point(aes(shape = site_is_unmeth, colour = sample, group = sample)) +
+  scale_shape_manual(values = c(`TRUE` = 1, `FALSE` = 16),
+                     name = "Meth status", labels = c(`TRUE` = "Unmeth", `FALSE` = "Meth"))
+```
+
+
+```{r}
+filter(bin_cpgs, sample == "hu5.10", bin_cpgs >= 18896125, bin_cpgs <= 18896310)
+overlap_bins_reads %>% filter(bin_num == 3780, sample == "hu5.10")
+```
+
+# original file - check probs
+
+
+
+
+```{r}
+modkit_files <- list.files("/researchers/caitlin.page/cf_nano/modkit_output")
+modkit_files <- paste0("/researchers/caitlin.page/cf_nano/modkit_output/", modkit_files)
+modkit_files
+```
+
+```{r}
+indiv_reads <- fread(modkit_files[1])
+indiv_reads <- indiv_reads[indiv_reads$chrom == "chr22",]
+
+indiv_reads$seqnames <- indiv_reads$chrom
+indiv_reads$start <- indiv_reads$alignment_start
+indiv_reads$end <- indiv_reads$alignment_end
+
+indiv_reads <- indiv_reads[grep("..CG.", indiv_reads$query_kmer),]
+```
+
+```{r}
+indiv_reads %>% filter(ref_position >= 18896125, ref_position <= 18896320) %>% .[order(.$ref_position),] %>% .[,c(1,3:7,13,14,17)]
+```
+* this position is inconsistent: chr22-18896226, and chr22-18896304
+```{r}
+filter(bin_cpgs, sample == "hu5.10", bin_cpgs >= 18896125, bin_cpgs <= 18896310) %>% .[order(.$bin_cpgs),]
+bed_betas %>% filter(sample == "hu5.10", start >= 18896125, start <= 18896310)
+wt_beta_chr22 %>% filter(start >= 18896125, start <= 18896310)
+```
+* hold up 226 is 0 beta in bedgraph, and 1 in beta file
+* in indiv: 226 is m but prob is low, 225 is unmeth with high prob
+* I need to trust the bedgraphs because they were provided
+
+* and I think I need to filter
+```{r}
+indiv_reads %>% .[order(.$ref_position),] 
+bed_betas
+```
+* 10522590/591 is a single read/call that is unmod with prob > 0.9 but has fail = TRUE (if the base modification call fell below the pass threshold)
+* in bedgraph it's 1, and in beta file it's also 1
+* but why would modkit say that fail = TRUE when the call prob is so high??
+
+```{r}
+indiv_reads %>%
+  ggplot(aes(x = log2(call_prob), colour = fail)) +
+  geom_density()
+indiv_reads %>%
+  ggplot(aes(x = fail, y = call_prob, fill = fail)) +
+  geom_boxplot()
+indiv_reads %>% filter(fail == TRUE)
+```
+* weird that you can have calls of a high prob that failed
+
+* let's check a couple of these sites to see if I've figured it out
+
+```{r}
+indiv_reads %>% filter(ref_position == 10524770)
+bed_betas %>% filter(sample == "hu5.10", start == 10524771)
+```
+* but this is one is a fail with high prob unmeth, and bedgraph is unmeth
+```{r}
+indiv_reads %>% filter(ref_position == 10522590)
+bed_betas %>% filter(sample == "hu5.10", start == 10522591)
+```
+* and same here
+```{r}
+indiv_reads %>% filter(ref_position == 10527087)
+bed_betas %>% filter(sample == "hu5.10", start == 10527088)
+```
+* all 3 of these have ignored that fail thing
+```{r}
+wt_beta_chr22 %>% filter(start == 10522591)
+```
+
+```{r}
+bed_betas
+```
+
+```{r}
+wt_beta_chr22 %>% filter(HU005.10.meth == 0)
+#unmeth is only 0 which is surely wrong
+```
+
+
+```{r}
+wt_beta_chr22 %>% filter(HU005.10.cov > 2) %>% distinct(HU005.10.unmeth)
+```
+
+
