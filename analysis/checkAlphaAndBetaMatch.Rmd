@@ -29,6 +29,14 @@ library(ggplot2)
 ```
 
 ## Code for plot
+
+* bin 3780 is the most dense (most number of cpgs)
+* use that to plot
+```{r}
+overlap_bins_reads %>% .[order(.$num_reads_in_bin, decreasing = TRUE),] %>% .[1, c("bin_num", "num_reads_in_bin")]
+```
+
+
 ```{r}
 bin_cpgs <- all_samples %>% filter(read_id %in% filter(overlap_bins_reads, bin_num == 3780)$read_id) %>% .$genom_positions %>% strsplit(",") %>% unlist() %>% as.double()
 bin_cpgs <- data.frame(bin_cpgs)
@@ -47,7 +55,10 @@ bin_cpgs <- cbind(bin_cpgs, sample = rep(x = alpha_vec, times = rep_vec))
 alpha_vec <- all_samples %>% filter(read_id %in% filter(overlap_bins_reads, bin_num == 3780)$read_id) %>% .$type 
 rep_vec <- all_samples %>% filter(read_id %in% filter(overlap_bins_reads, bin_num == 3780)$read_id) %>% .$total 
 bin_cpgs <- cbind(bin_cpgs, type = rep(x = alpha_vec, times = rep_vec))
+```
 
+
+```{r}
 overlap_bins_reads %>% filter(bin_num == 3780) %>%
   ggplot() +
   geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha, colour = sample, group = sample)) +
@@ -57,3 +68,145 @@ overlap_bins_reads %>% filter(bin_num == 3780) %>%
   labs(title = "bin 3780") +
   facet_wrap(~type, nrow = 2)
 ```
+* this plot has alpha values and the methylation state for each cpg on a read
+
+* split the plot by sample
+```{r}
+overlap_bins_reads %>% filter(bin_num == 3780) %>%
+  ggplot() +
+  geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha, colour = type, group = sample)) +
+  geom_point(data = bin_cpgs, aes(x = bin_cpgs, y = alpha, shape = site_is_unmeth, colour = type, group = sample)) +
+  scale_shape_manual(values = c(`TRUE` = 1, `FALSE` = 16),
+                     name = "Meth status", labels = c(`TRUE` = "Unmeth", `FALSE` = "Meth")) +
+  labs(title = "bin 3780") +
+  facet_wrap(~sample)
+
+overlap_bins_reads %>% filter(bin_num == 3780, sample == "hu5.10") %>%
+  ggplot() +
+  geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha, colour = type, group = sample)) +
+  geom_point(data = filter(bin_cpgs, sample == "hu5.10"), aes(x = bin_cpgs, y = alpha, shape = site_is_unmeth, colour = type, group = sample)) +
+  scale_shape_manual(values = c(`TRUE` = 1, `FALSE` = 16),
+                     name = "Meth status", labels = c(`TRUE` = "Unmeth", `FALSE` = "Meth")) +
+  labs(title = "bin 3780: hu5.10")
+```
+
+```{r}
+overlap_bins_reads %>% filter(bin_num == 3780, sample == "hu5.10", alpha %in% c(0,1)) 
+```
+
+* oh if reads overlap each other they're not visible
+
+```{r}
+overlap_bins_reads %>% filter(bin_num == 3780, sample == "hu5.10") %>%
+  ggplot() +
+  geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha, colour = read_id, group = sample)) +
+  geom_point(data = filter(bin_cpgs, sample == "hu5.10"), aes(x = bin_cpgs, y = alpha, shape = site_is_unmeth, colour = sample, group = sample)) +
+  scale_shape_manual(values = c(`TRUE` = 1, `FALSE` = 16),
+                     name = "Meth status", labels = c(`TRUE` = "Unmeth", `FALSE` = "Meth")) +
+  labs(title = "bin 3780: hu5.10")
+```
+* need it to have the circle colours as well - read id in the bin_cpg
+* but also maybe making the line thicker and then opaque would help?
+
+```{r}
+overlap_bins_reads %>% filter(bin_num == 3780, sample == "hu5.10") %>%
+  ggplot() +
+  geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha, colour = sample, group = sample), alpha = 0.3) +
+  geom_point(data = filter(bin_cpgs, sample == "hu5.10"), aes(x = bin_cpgs, y = alpha, shape = site_is_unmeth, colour = sample, group = sample)) +
+  scale_shape_manual(values = c(`TRUE` = 1, `FALSE` = 16),
+                     name = "Meth status", labels = c(`TRUE` = "Unmeth", `FALSE` = "Meth")) +
+  labs(title = "bin 3780: hu5.10")
+```
+* that shows it a little bit
+
+```{r}
+overlap_bins_reads %>% filter(bin_num == 3780) %>%
+  ggplot() +
+  geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha, colour = sample, group = sample), alpha = 0.2) +
+  geom_point(data = bin_cpgs, aes(x = bin_cpgs, y = alpha, shape = site_is_unmeth, colour = sample, group = sample)) +
+  scale_shape_manual(values = c(`TRUE` = 1, `FALSE` = 16),
+                     name = "Meth status", labels = c(`TRUE` = "Unmeth", `FALSE` = "Meth")) +
+  labs(title = "bin 3780") +
+  facet_wrap(~type, nrow = 2)
+```
+* adding in betas
+```{r}
+match_names <- cbind(sample_names = unique(overlap_bins_reads$sample)[c(12,8,13,3,9,10,1,2,5,6,11,4,7)], bed_names = unique(bed_betas$sample)) %>% data.frame()
+
+bed_betas$bed_sample <- bed_betas$sample
+bed_betas <- bed_betas %>% mutate(sample = match_names[match(.$bed_sample, match_names$bed_names), "sample_names"])
+```
+
+```{r}
+overlap_bins_reads %>% filter(bin_num == 3780) %>%
+  ggplot() +
+  geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha, colour = sample, group = sample), alpha = 0.2) +
+  geom_point(data = bin_cpgs, aes(x = bin_cpgs, y = alpha, shape = site_is_unmeth, colour = sample, group = sample)) +
+  scale_shape_manual(values = c(`TRUE` = 1, `FALSE` = 16),
+                     name = "Meth status", labels = c(`TRUE` = "Unmeth", `FALSE` = "Meth")) +
+  geom_line(data = filter(bed_betas, start >= min(bin_cpgs$bin_cpgs), start <= max(bin_cpgs$bin_cpgs)),
+            aes(x = start, y = beta, colour = sample, group = sample),
+            linetype = "dashed") +
+  labs(title = "bin 3780") +
+  facet_wrap(~type, nrow = 2)
+```
+
+```{r}
+overlap_bins_reads %>% filter(bin_num == 3780, sample == "hu5.10") %>%
+  ggplot() +
+  geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha, colour = sample, group = sample), alpha = 0.2) +
+  geom_point(data = filter(bin_cpgs, sample == "hu5.10"), aes(x = bin_cpgs, y = alpha, shape = site_is_unmeth, colour = sample, group = sample)) +
+  scale_shape_manual(values = c(`TRUE` = 1, `FALSE` = 16),
+                     name = "Meth status", labels = c(`TRUE` = "Unmeth", `FALSE` = "Meth")) +
+  geom_line(data = filter(bed_betas, sample == "hu5.10", start >= min(bin_cpgs$bin_cpgs), start <= max(bin_cpgs$bin_cpgs)),
+            aes(x = start, y = beta, colour = sample, group = sample),
+            linetype = "dashed") +
+  labs(title = "bin 3780: hu5.10") +
+  scale_x_continuous(limits = c(18896000, 18897000))
+```
+```{r}
+overlap_bins_reads %>% filter(bin_num == 3780, sample == "hu5.10") 
+filter(bed_betas, sample == "hu5.10", start >= min(bin_cpgs$bin_cpgs), start <= max(bin_cpgs$bin_cpgs))
+```
+
+```{r}
+all_samples %>% filter(sample == "hu5.10", read_id %in% filter(overlap_bins_reads, bin_num == 3780, sample == "hu5.10")$read_id)
+```
+
+* maybe there's not actually a problem and it's just a messy plot?
+* but there was something funny
+
+# something weird and wrong
+
+* only 2 reads overlapping this cpg site
+* on 1 read, the site is meth, the other the site is unmeth
+* beta should be 0.5, but it's 1
+```{r}
+bin_cpgs %>% filter(bin_cpgs == 18895995, sample == "hu5.10")
+bed_betas %>% filter(start == 18895995, sample == "hu5.10")
+```
+```{r}
+all_samples %>% filter(sample == "hu5.10") %>% .[grep(18895995, .$genom_positions),]
+```
+
+```{r}
+indiv_reads %>% filter(ref_position == 18895995)
+indiv_reads %>% filter(read_id %in% c("0d26cd7f-14c3-4877-9682-dd3f19d9a54c", "f57e628a-7b6d-4d3f-92ff-a7ea08d588ed")) %>% .[c(1,7),]
+```
+* so the unmeth read has prob < 0.8, and fail = TRUE
+* but the other read also has fail = TRUE
+* I guess if you were to say that if it is too low prob it becomes the other one that would fix this scenario
+
+https://nanoporetech.github.io/modkit/faq.html - * the probability section for the calls
+
+# check out the bedgraph
+
+* could there be something wrong with the bedgraph??
+
+To extract (stranded) methylation information from the mod_mapping.bam files, we used modbam2bed (https://github.com/epi2me-labs/modbam2bed) v.0.4.5, specifying a minimum probability threshold of 0.667, and filtering out positions with 0 confident reads using awk. The full command line was “modbam2bed --cpg -t 4 -a 0.333 -b 0.667 | awk ‘($5>0){print} > out.bed.” All coordinates are in GRCh38 and are 0-based. These files are named “*.5mC.cut0.667.hg38.bed.gz.” Column 11 corresponds to the percent of reads methylated. Modbam2bed does not provide a column for the actual number of reads that this percentage is based on, but it can be calculated from the other columns. readCount=(col5*col10)/1000. We also provide a simple bedgraph with just the methylation fraction (beta) values in files named “*cut0.667.hg38.sorted.bedgraph.gz.”
+
+* could also be the bedgraph filtering with modbam2bed is different to the modkit filtering
+* can modkit make bed files?
+* it does: run that
+/modkit/bed_modkit.sbatch
+* hopefully they will then match up as they will have used the same parameters
