@@ -1,0 +1,45 @@
+---
+title: "overviewFiles"
+author: "caitlinpage"
+date: "2025-09-05"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+## Introduction
+
+```{r}
+
+```
+
+```{r}
+file.size()
+```
+
+# Paper processed files
+* bedgraphs
+```{r}
+bedgraphs
+```
+```{r}
+bedgraph_size_bytes <- c()
+for(i in 1:length(bedgraphs)) {
+  bedgraph_size_bytes <- c(bedgraph_size_bytes, file.size(paste0("/researchers/caitlin.page/cf_nano/megalodonBedgraphs/", bedgraphs[i]))[1])
+}
+cbind(bedgraphs, bedgraph_size_bytes)
+```
+
+
+
+
+# bam files
+
+## working with the bam files
+
+# Individual reads and methylation calls
+
+modkit extract calls
+* Not CpG specific
+
+# Methylation bed files ()
