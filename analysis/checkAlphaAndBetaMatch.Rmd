@@ -72,6 +72,11 @@ overlap_bins_reads %>% filter(bin_num == 3780) %>%
 
 * split the plot by sample
 ```{r}
+bed_betas %>% filter(sample == "hu5.10") %>% summary(.)
+summary(wt_beta_chr22$HU005.10.unmeth)
+```
+
+```{r}
 overlap_bins_reads %>% filter(bin_num == 3780) %>%
   ggplot() +
   geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha, colour = type, group = sample)) +
@@ -129,6 +134,53 @@ overlap_bins_reads %>% filter(bin_num == 3780) %>%
   labs(title = "bin 3780") +
   facet_wrap(~type, nrow = 2)
 ```
+
+```{r}
+c(bins_20_highest_var = overlap_bins_reads %>% .[order(.$var_alpha, decreasing = TRUE),] %>% .$bin_num %>% unique() %>% .[1:20],
+bins_20_lowest_var = overlap_bins_reads %>% .[order(.$var_alpha, decreasing = FALSE),] %>% .$bin_num %>% unique() %>% .[1:20])
+```
+* distribution of alpha by bin
+```{r}
+high_var_bins_20 <- overlap_bins_reads %>% .[order(.$var_alpha, decreasing = TRUE),] %>% .$bin_num %>% unique() 
+low_var_bins_20 <- overlap_bins_reads %>% .[order(.$var_alpha, decreasing = FALSE),] %>% .$bin_num %>% unique() 
+```
+
+```{r}
+overlap_bins_reads %>% filter(bin_num %in% high_var_bins_20[1:20]) %>%
+  ggplot(aes(x = alpha, colour = as.factor(bin_num))) +
+  geom_density() +
+  labs(title = "Distribution of alpha in bins with highest var")
+
+overlap_bins_reads %>% filter(bin_num %in% high_var_bins_20[1:20]) %>%
+  ggplot(aes(x = alpha, colour = as.factor(bin_num))) +
+  geom_density() +
+  labs(title = "Distribution of alpha in bins with highest var") +
+  facet_wrap(~type)
+```
+* something weird going on in one the bins in the healthy samples
+* would have been nice if there was a distinct difference between the luad and healthy
+* but also this is highest var bins overall - not necessarily bins with high var for either
+* but I guess what we want would be bins with low var individually - but the meth is different
+
+```{r}
+overlap_bins_reads %>% filter(bin_num %in% low_var_bins_20[1:20]) %>%
+  ggplot(aes(x = alpha, colour = as.factor(bin_num))) +
+  geom_density() +
+  labs(title = "Distribution of alpha in bins with lowest var")
+
+overlap_bins_reads %>% filter(bin_num %in% low_var_bins_20[1:20]) %>%
+  ggplot(aes(x = alpha, colour = as.factor(bin_num))) +
+  geom_density() +
+  labs(title = "Distribution of alpha in bins with lowest var") +
+  facet_wrap(~type)
+
+overlap_bins_reads %>% filter(bin_num %in% low_var_bins_20[1:10]) %>%
+  ggplot(aes(x = alpha, colour = as.factor(bin_num))) +
+  geom_density() +
+  labs(title = "Distribution of alpha in bins with lowest var")
+```
+* this is nice
+
 * adding in betas
 ```{r}
 match_names <- cbind(sample_names = unique(overlap_bins_reads$sample)[c(12,8,13,3,9,10,1,2,5,6,11,4,7)], bed_names = unique(bed_betas$sample)) %>% data.frame()
@@ -149,6 +201,11 @@ overlap_bins_reads %>% filter(bin_num == 3780) %>%
             linetype = "dashed") +
   labs(title = "bin 3780") +
   facet_wrap(~type, nrow = 2)
+```
+```{r}
+overlap_bins_reads
+bin_cpgs
+bed_betas
 ```
 
 ```{r}
@@ -210,3 +267,78 @@ To extract (stranded) methylation information from the mod_mapping.bam files, we
 * it does: run that
 /modkit/bed_modkit.sbatch
 * hopefully they will then match up as they will have used the same parameters
+
+# bed file from modkit
+
+```{r}
+list.files("/researchers/caitlin.page/cf_nano/modkit_output/bed")
+```
+
+```{r}
+modkit_bed_hu5.10 <- read.table("/researchers/caitlin.page/cf_nano/modkit_output/bed/hu5.10.bed")
+```
+
+[colnames of bed file](https://nanoporetech.github.io/modkit/intro_pileup.html)
+positions are 0 based
+
+```{r}
+colnames(modkit_bed_hu5.10) <- c("seqnames", "start", "end", "mod_base_code", "score_same_as_coverage", "strand", "start_pos", "end_pos", "colour", "coverage", "beta", "n_mod", "n_canon", "n_other_mod", "n_delete", "n_fail", "n_diff", "n_nocall")
+```
+```{r}
+unique(modkit_bed_hu5.10$mod_base_code)
+```
+
+```{r}
+summary(modkit_bed_hu5.10$coverage)
+summary(modkit_bed_hu5.10$n_mod)
+summary(modkit_bed_hu5.10$n_canon)
+```
+```{r}
+modkit_bed_hu5.10_chr22 <- modkit_bed_hu5.10 %>% filter(seqnames == "chr22")
+```
+
+* here we go let's find that funky position again
+18895995
+```{r}
+modkit_bed_hu5.10_chr22 %>% filter(start > 18895980)
+```
+* and of course here it doesn't even exist as a position
+* because we need another problem
+* and the closest one to it is 2 bases off and is canon - beta is 0
+
+* so maybe the positions are off - but still means the answer is wrong
+* oh wait it doesn't automatically restrict to just cpgs (b/c I didn't do the cpg bit with the fasta - should try that again)
+
+```{r}
+find_overlaps(as_granges(modkit_bed_hu5.10_chr22), as_granges(cg_sites)) %>% data.frame() 
+```
+
+* so that's what I need but still that position is missing
+* all the positions in extract calls should exist in the bed file I don't get why they don't
+* extract calls does same filtering as pileup
+* unless i did extract full accidentally??
+```{r}
+find_overlaps(as_granges(modkit_bed_hu5.10_chr22), as_granges(cg_sites)) %>% data.frame() %>%
+  ggplot(aes(x = beta)) +
+  geom_density()
+```
+
+
+```{r}
+indiv_reads %>% filter(ref_position == 18895995)
+indiv_reads %>% filter(ref_position > 18895980, ref_position < 18896100)
+```
+* oh so it should be 0 - but they should be the same position - ref_position is 0 based
+```{r}
+cg_sites %>% filter(start > 18895980)
+```
+
+```{r}
+bed_betas
+```
+
+```{r}
+cg_sites %>% filter(start > 18895980)
+```
+
+
