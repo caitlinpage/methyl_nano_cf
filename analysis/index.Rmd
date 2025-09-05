@@ -18,3 +18,10 @@ Welcome to my research website.
 
 
 [same plots with cancer sample](healthyVsLuad.html)
+
+[analysis conducted in 2 day research sprint](researchSprint.html)
+[analysis continued (bins, genes, cpg features)](researchSprintB.html)
+
+[binning the genome](binningGenome.html)
+
+[coverage and beta distrib](coverageAndSummaryAnalysis.html)
