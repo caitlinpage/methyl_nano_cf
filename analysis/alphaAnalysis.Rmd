@@ -74,8 +74,107 @@ all_samples %>% group_by(meth_pattern) %>% summarise(n=n(), length_pat = nchar(m
   ggplot(aes(x = length_pat, y = sum_length)) +
   geom_point()
 ```
+* plot 1 is how many patterns have the same length? 2 patterns of length 1: either C or T etc (pattern length is same as number of cpgs in read)
+* plot 2 is sum of the occurence of that pattern length
+```{r}
+all_samples %>% group_by(meth_pattern) %>% summarise(n=n(), length_pat = nchar(meth_pattern)) %>% distinct() %>% 
+  ungroup() %>% group_by(length_pat) %>% summarise(n_length = n(), sum_length = sum(n)) %>%
+  ggplot(aes(x = length_pat, y = n_length)) +
+  geom_point() +
+  scale_x_continuous(limits = c(0,100)) +
+  labs(title = "zoom in on plot 1")
+```
+```{r}
+summary(all_samples$total)
+summary(unique(all_samples$total))
+
+summary(nchar(all_samples$meth_pattern))
+summary(unique(nchar(all_samples$meth_pattern)))
+```
+* see total (num cpgs in read) as same as length of pattern
+
+```{r}
+all_samples %>% group_by(meth_pattern, total, type) %>% summarise(n=n()) %>% group_by(type) %>% mutate(prop_pattern_in_type = n/sum(n)) %>% .[order(.$prop_pattern_in_type, decreasing = TRUE),]
+```
+* the highest proportion of patterns are basically the same for healthy and luad
+
+* only use patterns with at least 3 cpgs
+```{r}
+all_samples %>% group_by(meth_pattern, total, type) %>% summarise(n=n()) %>% filter(total >= 3) %>% group_by(type) %>% mutate(prop_pattern_in_type = n/sum(n)) %>% .[order(.$prop_pattern_in_type, decreasing = TRUE),]
+```
+```{r}
+all_samples %>% filter(meth_pattern == "CCC")
+```
+
+```{r}
+all_samples %>% filter(total >= 3, total <= 10) %>% distinct(meth_pattern, alpha)
+```
+
+* what am I trying to do?
+* was it like the entropy thing? because that would be in a region and then looking at what patterns occur
+* I guess was also wondering what patterns occur the most - and if there were any cancer specific
+
+```{r}
+overlap_bins_reads %>% filter(bin_num == 3780) %>% group_by(meth_pattern, total) %>% summarise(num_times = n()) %>% ungroup() %>% mutate(prop = num_times/sum(num_times)) %>% .[order(.$prop, decreasing = TRUE),]
+```
+
+```{r}
+overlap_bins_reads %>% filter(bin_num == 3780) %>% group_by(meth_pattern, total, alpha, type) %>% summarise(num_times = n()) %>% ungroup() %>% group_by(type) %>% mutate(prop = num_times/sum(num_times)) %>% .[order(.$prop, decreasing = TRUE),]
+```
+* maybe question is: what are the alphas of the meth patterns that occur most frequently?
+* and are they more centered at 0 and 1 than the least frequent meth patterns?
+
+```{r}
+overlap_bins_reads %>% filter(bin_num == 3780) %>% group_by(meth_pattern, total, alpha, type) %>% summarise(num_times = n()) %>% ungroup() %>% group_by(type) %>% mutate(prop = num_times/sum(num_times)) %>% .[order(.$prop, decreasing = TRUE),] %>%
+  ggplot(aes(x = alpha, y = prop, colour = type)) +
+  geom_point() +
+  geom_line()
+```
+* yes - highest props are at 0 and 1 and then 0.5
+
+* but this is likely biased to meth pattern =0/1 because only a c or a t
+
+* at least 3 cpg on read 
+
+```{r}
+overlap_bins_reads %>% filter(bin_num == 3780, total >= 3) %>% group_by(meth_pattern, total, alpha, type) %>% summarise(num_times = n()) %>% ungroup() %>% group_by(type) %>% mutate(prop = num_times/sum(num_times)) %>% .[order(.$prop, decreasing = TRUE),] %>%
+  ggplot(aes(x = alpha, y = prop, colour = type)) +
+  geom_point() +
+  geom_line()
+```
+* props change quite a bit
+* is this interesting? - no clue
+```{r}
+all_samples
+```
+
 
 ```{r}
 all_samples %>% group_by(meth_pattern, type, sample) %>% summarise(n=n())
+```
+
+#
+
+* can't remember what alicia was talking about
+* it was something to do with an average
+* but alpha is already basically an average as well as prop (if you say meth is 1 and unmeth is 0 - you count the meth and divide by total)
+* oh it was a per position thing - like each site has a value that is the average of the alphas that span the site
+* we wanted to then compare it to beta - except something is wrong with beta
+
+```{r}
+cg_sites
+```
+
+
+```{r}
+av_alpha <- all_samples %>% separate_rows(genom_positions, sep = ",")
+```
+
+```{r}
+av_alpha %>% group_by(genom_positions) %>% summarise(av_alpha = mean(alpha), median_alpha = median(alpha), sd_alpha = sd(alpha))
+```
+* I need the betas to compare against
+```{r}
+all_samples
 ```
 
