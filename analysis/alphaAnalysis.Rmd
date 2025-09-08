@@ -1,0 +1,81 @@
+---
+title: "alphaAnalysis"
+author: "caitlinpage"
+date: "2025-09-08"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+## Introduction
+
+```{r}
+library(plyranges)
+library(dplyr)
+library(ggplot2)
+```
+
+```{r}
+all_samples <- readRDS("/researchers/caitlin.page/cf_nano/r_output/all_samples.rds")
+```
+
+
+```{r}
+all_samples
+```
+
+# distribution of read lengths
+```{r}
+all_samples %>% 
+  ggplot(aes(x = log2(read_length), colour = type, group = sample)) +
+  geom_density()
+
+all_samples %>%
+  ggplot(aes(x = sample, y = log2(read_length), fill = type)) +
+  geom_boxplot()
+
+all_samples %>%
+  ggplot(aes(x = sample, y = log2(read_length), fill = type)) +
+  geom_violin()
+```
+
+# dsitribution of alpha values
+
+```{r}
+all_samples %>% 
+  ggplot(aes(x = alpha, colour = type, group = sample)) +
+  geom_density()
+
+
+all_samples %>%
+  ggplot(aes(x = sample, y = alpha, fill = type)) +
+  geom_boxplot()
+
+all_samples %>%
+  ggplot(aes(x = sample, y = alpha, fill = type)) +
+  geom_violin()
+```
+```{r}
+all_samples %>% group_by(meth_pattern) %>% summarise(n=n(), length_pat = nchar(meth_pattern)) %>% distinct()
+```
+
+
+```{r}
+all_samples %>% group_by(meth_pattern) %>% summarise(n=n(), length_pat = nchar(meth_pattern)) %>% distinct() %>% 
+  ungroup() %>% group_by(length_pat) %>% summarise(n_length = n(), sum_length = sum(n))
+
+all_samples %>% group_by(meth_pattern) %>% summarise(n=n(), length_pat = nchar(meth_pattern)) %>% distinct() %>% 
+  ungroup() %>% group_by(length_pat) %>% summarise(n_length = n(), sum_length = sum(n)) %>%
+  ggplot(aes(x = length_pat, y = n_length)) +
+  geom_point()
+
+all_samples %>% group_by(meth_pattern) %>% summarise(n=n(), length_pat = nchar(meth_pattern)) %>% distinct() %>% 
+  ungroup() %>% group_by(length_pat) %>% summarise(n_length = n(), sum_length = sum(n)) %>%
+  ggplot(aes(x = length_pat, y = sum_length)) +
+  geom_point()
+```
+
+```{r}
+all_samples %>% group_by(meth_pattern, type, sample) %>% summarise(n=n())
+```
+
