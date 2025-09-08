@@ -9,12 +9,18 @@ editor_options:
 
 ```{r}
 library(EnsDb.Hsapiens.v86)
+library(Biostrings)
 library(plyranges)
 library(tidyr)
 library(stringr)
 library(reshape2)
 library(dplyr)
 library(ggplot2)
+```
+
+# alpha values from [modkit output to read format](modkitOutputToreadFormat.html)
+```{r}
+all_samples <- readRDS("/researchers/caitlin.page/cf_nano/r_output/all_samples.rds")
 ```
 
 
@@ -105,7 +111,7 @@ for(i in 2:length(beta_files)) {
   wt_beta <- cbind(wt_beta, beta)
 }
 wt_beta[is.na(wt_beta)] <- 0
-wt_beta
+head(wt_beta)
 ```
 * now I need the positions
 ```{r}
@@ -134,7 +140,7 @@ wt_beta <- cbind(anno_seq[,1:4], wt_beta)
 ```
 
 ```{r}
-saveRDS(wt_beta, "/researchers/caitlin.page/cf_nano/r_output/wt_beta.rds")
+#saveRDS(wt_beta, "/researchers/caitlin.page/cf_nano/r_output/wt_beta.rds")
 ```
 
 
@@ -148,7 +154,7 @@ wt_beta_chr22 <- wt_beta %>% filter(seqnames == "chr22")
 wt_beta_chr22_cov <- wt_beta_chr22 %>% .[,c(1, grep("cov", colnames(.)))] %>% melt(id = "pos")
 ```
 ```{r}
-all_samples
+head(all_samples)
 ```
 
 
@@ -193,7 +199,7 @@ wt_beta_chr22_beta %>%
 * this is different to the bedgraphs
 * probably b/c bedgraphs excluded positions with 0 coverage, while I changed the beta to =0
 ```{r}
-wt_beta_chr22_cov
+head(wt_beta_chr22_cov)
 ```
 
 ```{r}
@@ -209,12 +215,12 @@ wt_beta_chr22_beta %>% filter(!pos %in% unique(filter(wt_beta_chr22_cov, value =
 * this does not appear to fix it
 * idk
 ```{r}
-wt_beta_chr22_beta
+head(wt_beta_chr22_beta)
 ```
 
 
 ```{r}
-bed_betas
+head(bed_betas)
 ```
 
 # need to repeat - don't want to replace 0s, want to leave them as nas
@@ -244,7 +250,7 @@ for(i in 2:length(beta_files)) {
   beta[,paste0(str_extract(beta_files, "^[^m]+")[i], "beta")] <- beta[,paste0(str_extract(beta_files, "^[^m]+")[i], "meth")]/beta[,paste0(str_extract(beta_files, "^[^m]+")[i], "cov")]
   wt_beta <- cbind(wt_beta, beta)
 }
-wt_beta
+head(wt_beta)
 ```
 * now I need the positions
 ```{r}
@@ -269,7 +275,7 @@ anno_seq %>% nrow(.)
 wt_beta <- cbind(anno_seq[,1:4], wt_beta)
 wt_beta_chr22 <- wt_beta %>% filter(seqnames == "chr22")
 
-wt_beta_chr22
+head(wt_beta_chr22)
 ```
 
 
