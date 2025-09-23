@@ -22,6 +22,7 @@ library(BSgenome.Hsapiens.UCSC.hg38)
 library(stringr)
 library(data.table)
 library(dplyr)
+library(stringr)
 ```
 
 ```{r}
@@ -348,6 +349,31 @@ pair_overlaps(as_granges(overlap_bins_reads), as_granges(ensdb_genes_prom)) %>% 
 
 
 # idk what I'm doing - cpg islands??
+```{r}
+healthy_epireads <- readRDS("/researchers/caitlin.page/cf_nano/r_output/fixed_healthy_epireads.rds")
+```
+
+
+```{r}
+he_hu5.10_bed <- read_bed("/researchers/caitlin.page/cf_nano/megalodonBedgraphs/HU005.10.meg242.remora1.edgefix.modbam2bed.5mC.cut0.667.hg38.sorted.bedgraph.gz")
+he_hu5.10_bed %>% data.frame() %>% filter(seqnames == "chr22")
+he_hu5.10_bed <- he_hu5.10_bed %>% data.frame() %>% filter(seqnames == "chr22")
+he_hu5.10_bed$name <- as.double(he_hu5.10_bed$name)
+bedgraphs <- list.files("/researchers/caitlin.page/cf_nano/megalodonBedgraphs")
+bedgraphs <- bedgraphs[grep("bedgraph", bedgraphs)]
+bedgraphs <- bedgraphs[grep(".tbi", bedgraphs, invert = TRUE)]
+he_hu5.10_bed$sample <- "HU005.10."
+
+bed_betas <- he_hu5.10_bed
+for(i in 2:length(bedgraphs)) {
+  bed <- read_bed(paste0("/researchers/caitlin.page/cf_nano/megalodonBedgraphs/", bedgraphs[i]))
+  bed <- bed %>% data.frame() %>% filter(seqnames == "chr22")
+  bed$name <- as.double(bed$name)
+  bed$sample <- str_extract(bedgraphs, "^[^m]+")[i]
+  bed_betas <- rbind(bed_betas, bed)
+}
+```
+
 ```{r}
 names(healthy_epireads)
 ```
