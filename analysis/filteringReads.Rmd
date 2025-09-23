@@ -1,0 +1,142 @@
+---
+title: "filteringReads"
+author: "caitlinpage"
+date: "2025-09-17"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+## Introduction
+
+```{r}
+library(plyranges)
+
+library(dplyr)
+library(ggplot2)
+```
+```{r}
+all_samples <- readRDS("/researchers/caitlin.page/cf_nano/r_output/all_samples.rds")
+```
+
+```{r}
+all_samples %>% filter(alpha == 0) %>% .$total %>% summary()
+all_samples %>% filter(alpha == 1) %>% .$total %>% summary()
+```
+```{r}
+all_samples %>% filter(alpha == 0, total >= 3) %>% .$total %>% summary()
+all_samples %>% filter(alpha == 1, total >= 3) %>% .$total %>% summary()
+
+all_samples %>% filter(alpha <= 0.2) %>% .$total %>% summary()
+all_samples %>% filter(alpha >= 0.8) %>% .$total %>% summary()
+
+
+all_samples %>% filter(alpha <= 0.2, total >= 3) %>% .$total %>% summary()
+all_samples %>% filter(alpha >= 0.8, total >= 3) %>% .$total %>% summary()
+```
+
+```{r}
+all_samples %>% filter(alpha %in% c(0,1)) %>%
+  ggplot(aes(x = log2(total), colour = as.factor(alpha))) +
+  geom_density()
+
+all_samples %>% filter(alpha %in% c(0,1)) %>%
+  ggplot(aes(x = as.factor(alpha), y= total, colour = as.factor(alpha))) +
+  geom_boxplot()
+
+all_samples %>% filter(alpha %in% c(0,1)) %>%
+  ggplot(aes(x = as.factor(alpha), y= log2(total), colour = as.factor(alpha))) +
+  geom_boxplot()
+```
+
+```{r}
+all_samples %>% filter(alpha %in% c(0,1), total >= 3) %>%
+  ggplot(aes(x = log2(total), colour = as.factor(alpha))) +
+  geom_density()
+
+all_samples %>% filter(alpha %in% c(0,1), total >= 3) %>%
+  ggplot(aes(x = as.factor(alpha), y= total, colour = as.factor(alpha))) +
+  geom_boxplot()
+
+all_samples %>% filter(alpha %in% c(0,1), total >= 3) %>%
+  ggplot(aes(x = as.factor(alpha), y= log2(total), colour = as.factor(alpha))) +
+  geom_boxplot()
+```
+* filtering to reads with at least 3 cpgs evens out the median in the log2 boxplot for alpha groups
+
+```{r}
+all_samples %>% filter(alpha >= 0.8 | alpha <= 0.2) %>% filter(total >= 3) %>% mutate(alpha_group = ifelse(alpha >= 0.8, ">=0.8", "<=0.2")) %>%
+  ggplot(aes(x = log2(total), colour = as.factor(alpha_group))) +
+  geom_density()
+
+all_samples %>% filter(alpha >= 0.8 | alpha <= 0.2) %>% filter(total >= 3) %>% mutate(alpha_group = ifelse(alpha >= 0.8, ">=0.8", "<=0.2")) %>%
+  ggplot(aes(x = as.factor(alpha_group), y= total, colour = as.factor(alpha_group))) +
+  geom_boxplot()
+
+all_samples %>% filter(alpha >= 0.8 | alpha <= 0.2) %>% filter(total >= 3) %>% mutate(alpha_group = ifelse(alpha >= 0.8, ">=0.8", "<=0.2")) %>%
+  ggplot(aes(x = as.factor(alpha_group), y= log2(total), colour = as.factor(alpha_group))) +
+  geom_boxplot()
+```
+
+```{r}
+all_samples %>% filter(alpha >= 0.8 | alpha <= 0.2) %>% mutate(alpha_group = ifelse(alpha >= 0.8, ">=0.8", "<=0.2")) %>%
+  ggplot(aes(x = log2(total), colour = as.factor(alpha_group))) +
+  geom_density()
+
+all_samples %>% filter(alpha >= 0.8 | alpha <= 0.2) %>% mutate(alpha_group = ifelse(alpha >= 0.8, ">=0.8", "<=0.2")) %>%
+  ggplot(aes(x = as.factor(alpha_group), y= total, colour = as.factor(alpha_group))) +
+  geom_boxplot()
+
+all_samples %>% filter(alpha >= 0.8 | alpha <= 0.2) %>% mutate(alpha_group = ifelse(alpha >= 0.8, ">=0.8", "<=0.2")) %>%
+  ggplot(aes(x = as.factor(alpha_group), y= log2(total), colour = as.factor(alpha_group))) +
+  geom_boxplot()
+```
+* same thing with lower cutoff alpha: median num cpgs higher in 0.8 - is not present when you filter to min cpg = 3
+
+
+* anyway this isn't really saying anything - except I guess reads that are alpha = 0 are more likely to have less cpgs
+```{r}
+t.test(filter(all_samples, alpha == 0)$total, filter(all_samples, alpha == 1)$total)
+```
+* and to be shorter in length
+```{r}
+t.test(filter(all_samples, alpha == 0)$read_length, filter(all_samples, alpha == 1)$read_length)
+```
+* however the differences are small
+
+```{r}
+t.test(filter(all_samples, alpha == 0, total >= 3)$total, filter(all_samples, alpha == 1, total >= 3)$total)
+
+t.test(filter(all_samples, alpha == 0, total >= 3)$read_length, filter(all_samples, alpha == 1, total >= 3)$read_length)
+```
+* but because there's so many reads - it's significant even when filtering and the differences are even smaller
+
+# add in cancer info
+
+```{r}
+all_samples %>% filter(alpha %in% c(0,1)) %>%
+  ggplot(aes(x = as.factor(alpha), y= total, colour = type)) +
+  geom_boxplot()
+
+all_samples %>% filter(alpha %in% c(0,1)) %>%
+  ggplot(aes(x = as.factor(alpha), y= log2(total), colour = type)) +
+  geom_boxplot()
+```
+```{r}
+all_samples %>% filter(alpha %in% c(0,1), total >= 3) %>%
+  ggplot(aes(x = as.factor(alpha), y= total, colour = type)) +
+  geom_boxplot()
+
+all_samples %>% filter(alpha %in% c(0,1), total >= 3) %>%
+  ggplot(aes(x = as.factor(alpha), y= log2(total), colour = type)) +
+  geom_boxplot()
+```
+* with all the data, alpha = 1 has a bigger distrib but that goes away when min cpg = 3
+* healthy bigger distrib than luad - but median is basically the same (still might be stat sig)
+
+```{r}
+t.test(filter(all_samples, alpha == 0, type == "healthy")$total, filter(all_samples, alpha == 0, type == "luad")$total)
+
+t.test(filter(all_samples, alpha == 1, type == "healthy")$total, filter(all_samples, alpha == 1, type == "luad")$total)
+```
+
