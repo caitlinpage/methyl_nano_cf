@@ -16,6 +16,7 @@ Beta values were then obtained again [here???](plotAlphaAndBeta.html)
 Goal was to plot alpha and beta together, [plots](plotAlphaAndBeta.html)
 
 But I think something went wrong and I no longer trust either my alpha or beta values
+an
 
 ## Packages
 
@@ -23,9 +24,17 @@ But I think something went wrong and I no longer trust either my alpha or beta v
 library(data.table)
 
 library(plyranges)
-
+library(tidyr)
 library(dplyr)
 library(ggplot2)
+```
+```{r}
+all_samples <- readRDS("/researchers/caitlin.page/cf_nano/r_output/all_samples.rds")
+overlap_bins_reads <- readRDS("/researchers/caitlin.page/cf_nano/r_output/overlap_bins_reads.rds")
+cg_sites <- readRDS("/researchers/caitlin.page/cf_nano/r_output/cg_sites.rds")
+bed_betas <- readRDS("/researchers/caitlin.page/cf_nano/r_output/bed_betas.rds")
+wt_beta_chr22 <- readRDS("/researchers/caitlin.page/cf_nano/r_output/wt_beta_chr22.rds")
+indiv_reads <- readRDS("/researchers/caitlin.page/cf_nano/r_output/indiv_reads.rds")
 ```
 
 ## Code for plot
@@ -71,6 +80,8 @@ overlap_bins_reads %>% filter(bin_num == 3780) %>%
 * this plot has alpha values and the methylation state for each cpg on a read
 
 * split the plot by sample
+
+
 ```{r}
 bed_betas %>% filter(sample == "hu5.10") %>% summary(.)
 summary(wt_beta_chr22$HU005.10.unmeth)
@@ -202,11 +213,7 @@ overlap_bins_reads %>% filter(bin_num == 3780) %>%
   labs(title = "bin 3780") +
   facet_wrap(~type, nrow = 2)
 ```
-```{r}
-overlap_bins_reads
-bin_cpgs
-bed_betas
-```
+
 
 ```{r}
 overlap_bins_reads %>% filter(bin_num == 3780, sample == "hu5.10") %>%
@@ -300,7 +307,7 @@ modkit_bed_hu5.10_chr22 <- modkit_bed_hu5.10 %>% filter(seqnames == "chr22")
 * here we go let's find that funky position again
 18895995
 ```{r}
-modkit_bed_hu5.10_chr22 %>% filter(start > 18895980)
+modkit_bed_hu5.10_chr22 %>% filter(start > 18895980) %>% head()
 ```
 * and of course here it doesn't even exist as a position
 * because we need another problem
@@ -310,7 +317,7 @@ modkit_bed_hu5.10_chr22 %>% filter(start > 18895980)
 * oh wait it doesn't automatically restrict to just cpgs (b/c I didn't do the cpg bit with the fasta - should try that again)
 
 ```{r}
-find_overlaps(as_granges(modkit_bed_hu5.10_chr22), as_granges(cg_sites)) %>% data.frame() 
+find_overlaps(as_granges(modkit_bed_hu5.10_chr22), as_granges(cg_sites)) %>% data.frame() %>% head()
 ```
 
 * so that's what I need but still that position is missing
@@ -330,15 +337,8 @@ indiv_reads %>% filter(ref_position > 18895980, ref_position < 18896100)
 ```
 * oh so it should be 0 - but they should be the same position - ref_position is 0 based
 ```{r}
-cg_sites %>% filter(start > 18895980)
+cg_sites %>% filter(start > 18895980) %>% head()
 ```
 
-```{r}
-bed_betas
-```
-
-```{r}
-cg_sites %>% filter(start > 18895980)
-```
 
 
