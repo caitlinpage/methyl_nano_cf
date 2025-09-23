@@ -11,17 +11,21 @@ editor_options:
 
 ```{r}
 library(plyranges)
+library(tidyr)
 library(dplyr)
 library(ggplot2)
 ```
 
 ```{r}
 all_samples <- readRDS("/researchers/caitlin.page/cf_nano/r_output/all_samples.rds")
+overlap_bins_reads <- readRDS("/researchers/caitlin.page/cf_nano/r_output/overlap_bins_reads.rds")
+cg_sites <- readRDS("/researchers/caitlin.page/cf_nano/r_output/cg_sites.rds")
 ```
 
 
+
 ```{r}
-all_samples
+head(all_samples)
 ```
 
 # distribution of read lengths
@@ -56,13 +60,13 @@ all_samples %>%
   geom_violin()
 ```
 ```{r}
-all_samples %>% group_by(meth_pattern) %>% summarise(n=n(), length_pat = nchar(meth_pattern)) %>% distinct()
+all_samples %>% group_by(meth_pattern) %>% summarise(n=n(), length_pat = nchar(meth_pattern)) %>% distinct() %>% head()
 ```
 
 
 ```{r}
 all_samples %>% group_by(meth_pattern) %>% summarise(n=n(), length_pat = nchar(meth_pattern)) %>% distinct() %>% 
-  ungroup() %>% group_by(length_pat) %>% summarise(n_length = n(), sum_length = sum(n))
+  ungroup() %>% group_by(length_pat) %>% summarise(n_length = n(), sum_length = sum(n)) %>% head()
 
 all_samples %>% group_by(meth_pattern) %>% summarise(n=n(), length_pat = nchar(meth_pattern)) %>% distinct() %>% 
   ungroup() %>% group_by(length_pat) %>% summarise(n_length = n(), sum_length = sum(n)) %>%
@@ -94,20 +98,20 @@ summary(unique(nchar(all_samples$meth_pattern)))
 * see total (num cpgs in read) as same as length of pattern
 
 ```{r}
-all_samples %>% group_by(meth_pattern, total, type) %>% summarise(n=n()) %>% group_by(type) %>% mutate(prop_pattern_in_type = n/sum(n)) %>% .[order(.$prop_pattern_in_type, decreasing = TRUE),]
+all_samples %>% group_by(meth_pattern, total, type) %>% summarise(n=n()) %>% group_by(type) %>% mutate(prop_pattern_in_type = n/sum(n)) %>% .[order(.$prop_pattern_in_type, decreasing = TRUE),] %>% head()
 ```
 * the highest proportion of patterns are basically the same for healthy and luad
 
 * only use patterns with at least 3 cpgs
 ```{r}
-all_samples %>% group_by(meth_pattern, total, type) %>% summarise(n=n()) %>% filter(total >= 3) %>% group_by(type) %>% mutate(prop_pattern_in_type = n/sum(n)) %>% .[order(.$prop_pattern_in_type, decreasing = TRUE),]
+all_samples %>% group_by(meth_pattern, total, type) %>% summarise(n=n()) %>% filter(total >= 3) %>% group_by(type) %>% mutate(prop_pattern_in_type = n/sum(n)) %>% .[order(.$prop_pattern_in_type, decreasing = TRUE),] %>% head()
 ```
 ```{r}
-all_samples %>% filter(meth_pattern == "CCC")
+all_samples %>% filter(meth_pattern == "CCC") %>% head()
 ```
 
 ```{r}
-all_samples %>% filter(total >= 3, total <= 10) %>% distinct(meth_pattern, alpha)
+all_samples %>% filter(total >= 3, total <= 10) %>% distinct(meth_pattern, alpha) %>% head()
 ```
 
 * what am I trying to do?
@@ -115,11 +119,11 @@ all_samples %>% filter(total >= 3, total <= 10) %>% distinct(meth_pattern, alpha
 * I guess was also wondering what patterns occur the most - and if there were any cancer specific
 
 ```{r}
-overlap_bins_reads %>% filter(bin_num == 3780) %>% group_by(meth_pattern, total) %>% summarise(num_times = n()) %>% ungroup() %>% mutate(prop = num_times/sum(num_times)) %>% .[order(.$prop, decreasing = TRUE),]
+overlap_bins_reads %>% filter(bin_num == 3780) %>% group_by(meth_pattern, total) %>% summarise(num_times = n()) %>% ungroup() %>% mutate(prop = num_times/sum(num_times)) %>% .[order(.$prop, decreasing = TRUE),] %>% head()
 ```
 
 ```{r}
-overlap_bins_reads %>% filter(bin_num == 3780) %>% group_by(meth_pattern, total, alpha, type) %>% summarise(num_times = n()) %>% ungroup() %>% group_by(type) %>% mutate(prop = num_times/sum(num_times)) %>% .[order(.$prop, decreasing = TRUE),]
+overlap_bins_reads %>% filter(bin_num == 3780) %>% group_by(meth_pattern, total, alpha, type) %>% summarise(num_times = n()) %>% ungroup() %>% group_by(type) %>% mutate(prop = num_times/sum(num_times)) %>% .[order(.$prop, decreasing = TRUE),] %>% head()
 ```
 * maybe question is: what are the alphas of the meth patterns that occur most frequently?
 * and are they more centered at 0 and 1 than the least frequent meth patterns?
@@ -143,15 +147,42 @@ overlap_bins_reads %>% filter(bin_num == 3780, total >= 3) %>% group_by(meth_pat
   geom_line()
 ```
 * props change quite a bit
+* also this is all specific to just one bin
 * is this interesting? - no clue
 ```{r}
-all_samples
+all_samples[1:10,]
 ```
 
 
 ```{r}
-all_samples %>% group_by(meth_pattern, type, sample) %>% summarise(n=n())
+all_samples %>% group_by(meth_pattern, type, sample) %>% summarise(n=n()) %>% head()
 ```
+
+# how long is a piece of string? - what's the longest for the same alpha
+
+```{r}
+all_samples %>% distinct(meth_pattern, total, alpha) %>% .[order(.$total, decreasing = TRUE),] %>% mutate(num = 1:n()) %>% head()
+```
+
+
+```{r}
+all_samples %>% distinct(meth_pattern, total, alpha) %>% .[order(.$total, decreasing = TRUE),] %>% mutate(num = 1:n()) %>% filter(alpha == 1 | alpha == 0) %>% head()
+```
+* longest is 70 unmethylated cpgs
+* then 68 methylated cpgs
+* 7/10 in top 10 are unmethylated strings - interesting
+
+```{r}
+all_samples %>% group_by(meth_pattern, total, alpha) %>% summarise(n_times = n()) %>% ungroup() %>% .[order(.$total, decreasing = TRUE),] %>% mutate(num = 1:n()) %>% filter(alpha == 1 | alpha == 0) %>% head()
+```
+* unsurprisingly - they are rare
+
+# are there any meth patterns that happen in only cancer or only normal?
+
+```{r}
+all_samples %>% group_by(type) %>% distinct(meth_pattern) %>% ungroup() %>% group_by(meth_pattern) %>% mutate(n_groups = n()) %>% ungroup() %>% filter(n_groups == 1) %>% group_by(type) %>% summarise(n_unique = n())
+```
+
 
 #
 
@@ -162,7 +193,7 @@ all_samples %>% group_by(meth_pattern, type, sample) %>% summarise(n=n())
 * we wanted to then compare it to beta - except something is wrong with beta
 
 ```{r}
-cg_sites
+cg_sites[1:10,]
 ```
 
 
@@ -171,10 +202,10 @@ av_alpha <- all_samples %>% separate_rows(genom_positions, sep = ",")
 ```
 
 ```{r}
-av_alpha %>% group_by(genom_positions) %>% summarise(av_alpha = mean(alpha), median_alpha = median(alpha), sd_alpha = sd(alpha))
+av_alpha %>% group_by(genom_positions) %>% summarise(av_alpha = mean(alpha), median_alpha = median(alpha), sd_alpha = sd(alpha)) %>% head()
 ```
 * I need the betas to compare against
 ```{r}
-all_samples
+all_samples[1:10,]
 ```
 
