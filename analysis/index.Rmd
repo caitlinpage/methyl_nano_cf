@@ -25,3 +25,11 @@ Welcome to my research website.
 [binning the genome](binningGenome.html)
 
 [coverage and beta distrib](coverageAndSummaryAnalysis.html)
+
+## newer work
+
+[analysis of alpha values](alphaAnalysis.html)
+
+[what reads should be filtered out?](filteringReads.html)
+
+[something weird happening with alpha and beta - mostly beta](checkAlphaAndBetaMatch.html)
