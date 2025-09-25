@@ -1,0 +1,109 @@
+---
+title: "bedFileBetas"
+author: "caitlinpage"
+date: "2025-09-24"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+## Description
+
+So I've identified in a few files that weird things are happening with bed files and beta files and beta values
+and them not lining up as expected with alpha
+or just not lining up with positions
+
+so making this the one stop shop for bed/beta organisation
+(because my solution to tidy things is always make another file)
+
+* first found problem in plotAlphaAndBeta.html
+* in bed_betas - which is the bed files
+* and position
+
+## Introduction
+
+```{r}
+library(plyranges)
+library(tidyr)
+library(reshape2)
+library(dplyr)
+library(ggplot2)
+```
+
+* bed_betas : just beta value and position from available data downloaded
+* wt_beta : wgbs_tools beta values
+
+```{r}
+bed_betas$pos <- paste0(bed_betas$seqnames, "-", bed_betas$start)
+```
+```{r}
+ bed_betas_hu5.10 <- bed_betas %>% filter(sample == "hu5.10")
+```
+```{r}
+wt_beta
+```
+
+```{r}
+wt_beta %>% filter(seqnames == "chr22") %>% .[,1:8] %>% mutate(bed_beta = bed_betas_hu5.10[match(.$pos, bed_betas_hu5.10$pos), "beta"]) %>%
+  mutate(beta_match = ifelse(bed_beta == HU005.10.beta, TRUE, FALSE)) %>% group_by(HU005.10.beta, bed_beta) %>% summarise(n())
+```
+
+```{r}
+wt_beta %>% filter(seqnames == "chr22") %>% .[,1:8] %>% mutate(bed_beta = bed_betas_hu5.10[match(.$pos, bed_betas_hu5.10$pos), "beta"]) %>%
+  mutate(beta_match = ifelse(bed_beta == HU005.10.beta, TRUE, FALSE)) %>%
+  ggplot(aes(x = HU005.10.beta, y = bed_beta)) +
+  geom_point(alpha = 0.3)
+```
+* yeah can't trust wgbs tools beta if it's only 1 (or 0 would be the Nas??)
+
+```{r}
+wt_beta %>% filter(seqnames == "chr22") %>% .[,1:8] %>% mutate(bed_beta = bed_betas_hu5.10[match(.$pos, bed_betas_hu5.10$pos), "beta"]) %>%
+  mutate(beta_match = ifelse(bed_beta == HU005.10.beta, TRUE, FALSE)) %>% group_by(beta_match) %>% summarise(n())
+```
+
+* what about my modkit bed files?
+* newer
+
+* if they match the beta values from megalodon that would be good
+```{r}
+list.files("/researchers/caitlin.page/cf_nano/modkit_output/bed")
+```
+
+```{r}
+modkit_bed_hu5.10 <- fread("/researchers/caitlin.page/cf_nano/modkit_output/bed/hu5.10.bed")
+```
+
+```{r}
+colnames(modkit_bed_hu5.10) <- c("seqnames", "start", "end", "mod_base_code", "score_same_as_coverage", "strand", "start_pos", "end_pos", "colour", "coverage", "beta", "n_mod", "n_canon", "n_other_mod", "n_delete", "n_fail", "n_diff", "n_nocall")
+
+modkit_bed_hu5.10 <- modkit_bed_hu5.10 %>% filter(seqnames == "chr22")
+modkit_bed_hu5.10$pos <- paste0(modkit_bed_hu5.10$seqnames, "-", modkit_bed_hu5.10$start)
+```
+```{r}
+nrow(indiv_reads)
+indiv_reads %>% filter(ref_position %in% modkit_bed_hu5.10$start)
+indiv_reads %>% filter(ref_position %in% modkit_bed_hu5.10$end)
+```
+```{r}
+bed_betas_hu5.10 %>% filter(start %in% modkit_bed_hu5.10$end )
+```
+92973
+```{r}
+modkit_bed_hu5.10 
+```
+```{r}
+find_overlaps(as_granges(modkit_bed_hu5.10), as_granges(bed_betas_hu5.10)) %>% data.frame()
+```
+
+```{r}
+find_overlaps(as_granges(modkit_bed_hu5.10), as_granges(bed_betas_hu5.10)) %>% data.frame() %>% distinct()
+```
+
+```{r}
+find_overlaps(as_granges(modkit_bed_hu5.10), as_granges(cg_sites)) %>% data.frame()
+```
+
+```{r}
+list.files
+```
+
