@@ -183,6 +183,7 @@ all_samples %>% group_by(meth_pattern, total, alpha) %>% summarise(n_times = n()
 all_samples %>% group_by(type) %>% distinct(meth_pattern) %>% ungroup() %>% group_by(meth_pattern) %>% mutate(n_groups = n()) %>% ungroup() %>% filter(n_groups == 1) %>% group_by(type) %>% summarise(n_unique = n())
 ```
 
+* this analysis is continued [here](mp1_methPattern.html)
 
 #
 
