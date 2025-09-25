@@ -1,0 +1,59 @@
+---
+title: "mp1_methPattern"
+author: "caitlinpage"
+date: "2025-09-25"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+## Description
+
+
+## Packages
+```{r}
+library(plyranges)
+library(data.table)
+library(tidyr)
+library(stringr)
+library(reshape2)
+library(dplyr)
+library(ggplot2)
+```
+
+## Data files
+```{r}
+all_samples <- readRDS("/researchers/caitlin.page/cf_nano/r_output/all_samples.rds")
+overlap_bins_reads <- readRDS("/researchers/caitlin.page/cf_nano/r_output/overlap_bins_reads.rds")
+cg_sites <- readRDS("/researchers/caitlin.page/cf_nano/r_output/cg_sites.rds")
+```
+
+
+## Analysis copied from (alphaAnalysis.html)
+
+
+# how long is a piece of string? - what's the longest for the same alpha
+
+```{r}
+all_samples %>% distinct(meth_pattern, total, alpha) %>% .[order(.$total, decreasing = TRUE),] %>% mutate(num = 1:n()) %>% head()
+```
+
+
+```{r}
+all_samples %>% distinct(meth_pattern, total, alpha) %>% .[order(.$total, decreasing = TRUE),] %>% mutate(num = 1:n()) %>% filter(alpha == 1 | alpha == 0) %>% head()
+```
+* longest is 70 unmethylated cpgs
+* then 68 methylated cpgs
+* 7/10 in top 10 are unmethylated strings - interesting
+
+```{r}
+all_samples %>% group_by(meth_pattern, total, alpha) %>% summarise(n_times = n()) %>% ungroup() %>% .[order(.$total, decreasing = TRUE),] %>% mutate(num = 1:n()) %>% filter(alpha == 1 | alpha == 0) %>% head()
+```
+* unsurprisingly - they are rare
+
+# are there any meth patterns that happen in only cancer or only normal?
+
+```{r}
+all_samples %>% group_by(type) %>% distinct(meth_pattern) %>% ungroup() %>% group_by(meth_pattern) %>% mutate(n_groups = n()) %>% ungroup() %>% filter(n_groups == 1) %>% group_by(type) %>% summarise(n_unique = n())
+```
+
