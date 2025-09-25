@@ -22,6 +22,13 @@ library(ggplot2)
 # files
 * stick with bedgraph betas for now
 * and all_samples file
+```{r}
+all_samples <- readRDS("/researchers/caitlin.page/cf_nano/r_output/all_samples.rds")
+overlap_bins_reads <- readRDS("/researchers/caitlin.page/cf_nano/r_output/overlap_bins_reads.rds")
+cg_sites <- readRDS("/researchers/caitlin.page/cf_nano/r_output/cg_sites.rds")
+bed_betas <- readRDS("/researchers/caitlin.page/cf_nano/r_output/bed_betas.rds")
+wt_beta_chr22 <- readRDS("/researchers/caitlin.page/cf_nano/r_output/wt_beta_chr22.rds")
+```
 
 
 # existing code
@@ -59,12 +66,10 @@ pair_overlaps(as_granges(overlap_bins_reads), as_granges(ensdb_genes_filt_prom))
 ```
 
 ```{r}
-overlap_bins_reads %>% .[order(.$num_reads_in_bin, decreasing = TRUE),] %>% distinct(bin_num, num_reads_in_bin, var_alpha)
+overlap_bins_reads %>% .[order(.$num_reads_in_bin, decreasing = TRUE),] %>% distinct(bin_num, num_reads_in_bin, var_alpha) %>% head()
 ```
 
-```{r}
-overlap_bins_reads %>% filter(bin_num == 3780)
-```
+
 
 ```{r}
 all_samples %>% filter(read_id %in% filter(overlap_bins_reads, bin_num == 3780)$read_id)
@@ -112,7 +117,7 @@ alpha_vec <- all_samples %>% filter(read_id %in% filter(overlap_bins_reads, bin_
 rep_vec <- all_samples %>% filter(read_id %in% filter(overlap_bins_reads, bin_num == 3780)$read_id) %>% .$total 
 
 bin_cpgs <- cbind(bin_cpgs, alpha = rep(x = alpha_vec, times = rep_vec))
-bin_cpgs
+bin_cpgs %>% head()
 ```
 
 
@@ -129,7 +134,7 @@ overlap_bins_reads %>% filter(bin_num == 3780) %>%
 * almost - I still need grouping by sample
 
 ```{r}
-overlap_bins_reads %>% filter(bin_num == 3780)
+overlap_bins_reads %>% filter(bin_num == 3780) %>% head()
 ```
 
 ```{r}
@@ -168,7 +173,6 @@ overlap_bins_reads %>% filter(bin_num == 3780) %>%
 
 * now I want to add beta values
 ```{r}
-bin_cpgs
 min(bin_cpgs$bin_cpgs)
 ```
 ```{r}
@@ -215,11 +219,7 @@ overlap_bins_reads %>% filter(bin_num == 3780) %>%
 
 * little bit worried these don't match up
 
-```{r}
-all_samples
-bin_cpgs
-bed_betas
-```
+
 
 ```{r}
 bin_cpgs %>% filter(bin_cpgs == 18895995, sample == "hu5.10")
@@ -266,7 +266,7 @@ wt_beta_chr22 %>% filter(start >= 18896125, start <= 18896310)
 * ooh maybe it's a probability thing??? - because I never filtered the sites
 * original file time
 ```{r}
-all_samples %>% filter(sample == "hu5.10")
+all_samples %>% filter(sample == "hu5.10") %>% head()
 ```
 
 
@@ -320,10 +320,7 @@ wt_beta_chr22 %>% filter(start >= 18896125, start <= 18896310)
 * I need to trust the bedgraphs because they were provided
 
 * and I think I need to filter
-```{r}
-indiv_reads %>% .[order(.$ref_position),] 
-bed_betas
-```
+
 * 10522590/591 is a single read/call that is unmod with prob > 0.9 but has fail = TRUE (if the base modification call fell below the pass threshold)
 * in bedgraph it's 1, and in beta file it's also 1
 * but why would modkit say that fail = TRUE when the call prob is so high??
@@ -335,7 +332,7 @@ indiv_reads %>%
 indiv_reads %>%
   ggplot(aes(x = fail, y = call_prob, fill = fail)) +
   geom_boxplot()
-indiv_reads %>% filter(fail == TRUE)
+indiv_reads %>% filter(fail == TRUE) %>% nrow()
 ```
 * weird that you can have calls of a high prob that failed
 
@@ -365,7 +362,7 @@ bed_betas
 ```
 
 ```{r}
-wt_beta_chr22 %>% filter(HU005.10.meth == 0)
+wt_beta_chr22 %>% filter(HU005.10.meth == 0) %>% nrow()
 #unmeth is only 0 which is surely wrong
 ```
 
