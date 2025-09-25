@@ -33,3 +33,26 @@ Welcome to my research website.
 [what reads should be filtered out?](filteringReads.html)
 
 [something weird happening with alpha and beta - mostly beta](checkAlphaAndBetaMatch.html)
+
+
+## want to do stuff about methylation patterns - like the pat file
+* but also about things like comethylation, epialleles, haplotypes
+* all those kinds of metrics
+
+* it's not really the priority but it could become part of it if there are things that are different between conditions
+
+* started this a bit in [analysis of alpha files](alphaAnalysis.html)
+* but new idea means new file (or groups of files)
+
+* start these files with prefix mp (for meth pattern)
+
+[initial analysis (some copied from alphaAnalysis)](mp1_methPattern.html)
+
+* files/analysis to do
+* genomic context: where are the patterns
+* pete thesis package mtuples
+* co-methylation
+* epiallele
+* entropy
+* haplotype
+* basically at least 1 file for the different methods - and try people's software
