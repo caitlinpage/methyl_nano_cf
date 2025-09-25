@@ -57,3 +57,68 @@ all_samples %>% group_by(meth_pattern, total, alpha) %>% summarise(n_times = n()
 all_samples %>% group_by(type) %>% distinct(meth_pattern) %>% ungroup() %>% group_by(meth_pattern) %>% mutate(n_groups = n()) %>% ungroup() %>% filter(n_groups == 1) %>% group_by(type) %>% summarise(n_unique = n())
 ```
 
+## what questions do I have?
+
+* The spatial relationship
+
+** so we know methylation is spatially correlated
+** but what does that look like on a read and when does that end?
+** what about distances between cpgs on the same read? (and there are some very long reads)
+** is it that when cpgs are close together - that's when it's the same
+** and how do we define close together?
+
+* genomic context
+** are the super long stretches repeats/ends of chroms??
+** do we see difference in betweens between groups in oncogenes? / and promoters?
+
+
+
+## some basic questions
+
+# how many patterns are there in this data set?
+```{r}
+all_samples %>% distinct(meth_pattern) %>% nrow()
+```
+
+* how many patterns for each type?
+```{r}
+all_samples %>% distinct(type, meth_pattern) %>% group_by(type) %>% summarise(n=n())
+```
+
+* how many patterns for each sample?
+```{r}
+all_samples %>% distinct(sample, meth_pattern) %>% group_by(sample) %>% summarise(n=n())
+```
+
+
+# what is the most common pattern?
+```{r}
+all_samples %>% group_by(meth_pattern, total) %>% summarise(n = n()) %>% ungroup() %>% mutate(prop = n/sum(n)) %>% .[order(.$n, decreasing = TRUE),] %>% .[1:10,]
+```
+A: C ~ 18% of all reads, followed by CC ~ 12%, T ~ 8%
+
+* is it different between cancer and normal?
+```{r}
+all_samples %>% group_by(meth_pattern, total, type) %>% summarise(n = n()) %>% ungroup() %>% group_by(type) %>% mutate(prop = n/sum(n)) %>% .[order(.$n, decreasing = TRUE),] %>% .[1:10,]
+```
+Top 3 luad: C ~ 18%, CC ~ 12%, T ~ 8%
+Top 3 healthy: C ~ 16%, CC ~ 11%, CCC ~ 7%
+So not really different
+
+* does it vary much between samples?
+```{r}
+all_samples %>% group_by(meth_pattern, total, sample, type) %>% summarise(n = n()) %>% ungroup() %>% group_by(sample) %>% mutate(prop = n/sum(n)) %>% .[order(.$n, decreasing = TRUE),] %>% mutate(rank = 1:n()) %>% filter(rank %in% 1:3) %>% .[order(.$rank),]
+```
+Top is CC, second is CC, third varies slightly
+
+# what about the least common?
+
+# frequency of pattern
+
+# change in frequency of pattern?
+can I do something cool 
+like a proportion change? - this is probs for genom context
+but I do have my bins right now
+so could see if I can do differential proportion across 2 diff bins?
+
+# most/least common lengths of patterns and groupings
