@@ -341,4 +341,159 @@ cg_sites %>% filter(start > 18895980) %>% head()
 ```
 
 
+# new idea
+* basically I think it's because I'm supposed to filter out reads that don't pass the probability thresh (0.8) / have fail = TRUE
 
+```{r}
+indiv_reads %>% group_by(fail) %>% summarise(n())
+```
+* weird that's a lot of fails
+```{r}
+indiv_reads %>% 
+  ggplot(aes(x = call_prob, colour = fail)) +
+  geom_density()
+
+indiv_reads %>% 
+  ggplot(aes(x = fail, y = call_prob, colour = fail)) +
+  geom_boxplot()
+```
+
+* but is it about the fail or the call_prob???
+* going to have to try both
+
+* I do think the bed file beta values and positions are more reliable - if only b/c modkit is weird as
+* but also should check with both
+
+```{r}
+indiv_reads %>% group_by(ref_position) %>% .[order(.$ref_position),] %>% mutate(n=n()) %>% filter(n>1)
+```
+```{r}
+indiv_reads <- indiv_reads %>% mutate(seqnames = "chr22", start = ref_position, end = ref_position)
+```
+```{r}
+indiv_reads <- indiv_reads %>% group_by(ref_position) %>% mutate(expec_beta = mean(call_code == "m"))
+```
+
+```{r}
+bed_betas_hu5.10 <- bed_betas_hu5.10 %>% mutate(start = start - 1, width = 2)
+```
+
+```{r}
+overlaps_bed_reads <- find_overlaps(as_granges(bed_betas_hu5.10), as_granges(indiv_reads)) %>% data.frame()
+```
+
+```{r}
+overlaps_bed_reads$pos <- paste0(overlaps_bed_reads$seqnames, "-", overlaps_bed_reads$start)
+```
+
+```{r}
+overlaps_bed_reads <- overlaps_bed_reads %>% mutate(prob_ge_0.8 = ifelse(call_prob >= 0.8, TRUE, FALSE))
+```
+
+```{r}
+overlaps_bed_reads <- overlaps_bed_reads %>% mutate(beta_match = ifelse(beta == expec_beta, TRUE, FALSE))
+```
+
+```{r}
+overlaps_bed_reads %>% group_by(beta_match) %>% summarise(n=n())
+```
+* ok this is good most do match
+* let's look at what's happening in true and in false
+
+* true for sense check
+```{r}
+overlaps_bed_reads %>% filter(beta_match == TRUE)
+```
+
+
+
+* false (hopefully its a prob thing)
+
+```{r}
+overlaps_bed_reads %>% filter(beta_match == FALSE) %>% group_by(prob_ge_0.8) %>% summarise(n=n())
+```
+* this is not saying what I was hoping
+```{r}
+overlaps_bed_reads %>% filter(beta_match == FALSE) %>% group_by(fail) %>% summarise(n=n())
+```
+```{r}
+overlaps_bed_reads %>% filter(beta_match == FALSE) %>% group_by(prob_ge_0.8, fail) %>% summarise(n=n())
+```
+
+```{r}
+overlaps_bed_reads %>% filter(beta_match == FALSE) %>% mutate(prob_g_0.95 = ifelse(call_prob > 0.95, TRUE, FALSE)) %>% group_by(prob_g_0.95, fail) %>% summarise(n=n())
+```
+* if I raise the prob threshold I'm still stuck with 1118 reads where prob is high and isn't a fail but beta doesn't match
+* ooh maybe because I need to remove the other reads and then recalculate betas
+
+* remove reads call prob < 0.8
+```{r}
+overlaps_bed_reads %>% filter(call_prob > 0.8) %>% group_by(ref_position) %>% mutate(expec_beta_filt = mean(call_code == "m")) %>% ungroup() %>% mutate(match_beta_filt = ifelse(beta == expec_beta_filt, TRUE, FALSE)) %>% group_by(match_beta_filt) %>% summarise(n=n()) %>% ungroup() %>% mutate(prop = n/sum(n))
+```
+well that is less than 3241 which is what I started with
+now 2097
+
+```{r}
+overlaps_bed_reads %>% filter(fail == FALSE) %>% group_by(ref_position) %>% mutate(expec_beta_filt = mean(call_code == "m")) %>% ungroup() %>% mutate(match_beta_filt = ifelse(beta == expec_beta_filt, TRUE, FALSE)) %>% group_by(match_beta_filt) %>% summarise(n=n()) %>% ungroup() %>% mutate(prop = n/sum(n))
+```
+
+```{r}
+overlaps_bed_reads %>% filter(call_prob > 0.8, fail == FALSE) %>% group_by(ref_position) %>% mutate(expec_beta_filt = mean(call_code == "m")) %>% ungroup() %>% mutate(match_beta_filt = ifelse(beta == expec_beta_filt, TRUE, FALSE)) %>% group_by(match_beta_filt) %>% summarise(n= n()) %>% ungroup() %>% mutate(prop = n/sum(n))
+```
+
+* can get it down to 1565 with some filtering
+
+* of these - do any of the original expec get it right?
+```{r}
+overlaps_bed_reads %>% filter(call_prob > 0.8, fail == FALSE) %>% group_by(ref_position) %>% mutate(expec_beta_filt = mean(call_code == "m")) %>% ungroup() %>% mutate(match_beta_filt = ifelse(beta == expec_beta_filt, TRUE, FALSE)) %>% group_by(match_beta_filt) %>% filter(match_beta_filt == FALSE) %>% group_by(match_beta_filt, beta_match) %>% summarise(n())
+```
+
+
+```{r}
+overlaps_bed_reads %>% filter(call_prob > 0.8, fail == FALSE) %>% group_by(ref_position) %>% mutate(expec_beta_filt = mean(call_code == "m")) %>% ungroup() %>% mutate(match_beta_filt = ifelse(beta == expec_beta_filt, TRUE, FALSE)) %>% group_by(match_beta_filt) %>% filter(match_beta_filt == FALSE)
+```
+
+modbam2bed actually uses threshold 0.66
+which is likely different to modkit threshold (fail)
+```{r}
+summary(filter(indiv_reads, fail == TRUE)$call_prob)
+```
+
+```{r}
+overlaps_bed_reads %>% filter(call_prob > 0.66) %>% group_by(ref_position) %>% mutate(expec_beta_filt = mean(call_code == "m")) %>% ungroup() %>% mutate(match_beta_filt = ifelse(beta == expec_beta_filt, TRUE, FALSE)) %>% group_by(match_beta_filt) %>% summarise(n= n()) %>% ungroup() %>% mutate(prop = n/sum(n))
+```
+
+```{r}
+c(num_reads = overlaps_bed_reads %>% filter(call_prob > 0.66) %>% group_by(ref_position) %>% mutate(expec_beta_filt = mean(call_code == "m")) %>% ungroup() %>% mutate(match_beta_filt = ifelse(beta == expec_beta_filt, TRUE, FALSE)) %>% filter(match_beta_filt == FALSE) %>% distinct(read_id) %>% nrow(), 
+  num_pos = overlaps_bed_reads %>% filter(call_prob > 0.66) %>% group_by(ref_position) %>% mutate(expec_beta_filt = mean(call_code == "m")) %>% ungroup() %>% mutate(match_beta_filt = ifelse(beta == expec_beta_filt, TRUE, FALSE)) %>% filter(match_beta_filt == FALSE) %>% distinct(pos) %>% nrow())
+```
+
+* oops wasn't doing this on distinct reads (be some double ups b/c overlap with pos)
+
+```{r}
+overlaps_bed_reads %>% filter(call_prob > 0.66) %>% group_by(ref_position) %>% mutate(expec_beta_filt = mean(call_code == "m")) %>% ungroup() %>% mutate(match_beta_filt = ifelse(beta == expec_beta_filt, TRUE, FALSE)) %>% distinct(read_id, match_beta_filt) %>% group_by(match_beta_filt) %>% summarise(n= n()) %>% ungroup() %>% mutate(prop = n/sum(n))
+
+overlaps_bed_reads %>% filter(call_prob > 0.8, fail == FALSE) %>% group_by(ref_position) %>% mutate(expec_beta_filt = mean(call_code == "m")) %>% ungroup() %>% mutate(match_beta_filt = ifelse(beta == expec_beta_filt, TRUE, FALSE)) %>% distinct(read_id, match_beta_filt) %>% group_by(match_beta_filt) %>% summarise(n= n()) %>% ungroup() %>% mutate(prop = n/sum(n))
+
+overlaps_bed_reads %>% filter(fail == FALSE) %>% group_by(ref_position) %>% mutate(expec_beta_filt = mean(call_code == "m")) %>% ungroup() %>% mutate(match_beta_filt = ifelse(beta == expec_beta_filt, TRUE, FALSE)) %>% distinct(read_id, match_beta_filt) %>% group_by(match_beta_filt) %>% summarise(n=n()) %>% ungroup() %>% mutate(prop = n/sum(n))
+
+overlaps_bed_reads %>% filter(call_prob > 0.8) %>% group_by(ref_position) %>% mutate(expec_beta_filt = mean(call_code == "m")) %>% ungroup() %>% mutate(match_beta_filt = ifelse(beta == expec_beta_filt, TRUE, FALSE)) %>% distinct(read_id, match_beta_filt) %>% group_by(match_beta_filt) %>% summarise(n=n()) %>% ungroup() %>% mutate(prop = n/sum(n))
+```
+
+```{r}
+indiv_reads
+```
+
+
+```{r}
+overlaps_bed_reads %>% group_by(beta_match) %>% summarise(n=n()) %>% ungroup() %>% mutate(prop = n/sum(n))
+```
+
+*look maybe its ok to have some be wrong as long as its small proportion
+* all similar but best is filt > 0.66, then filt > 0.8 - basically only 2% are wrong
+
+*so let's use 0.66 and move on for right now
+* actually try matching them up
+
+* oops I had forgotten to do distinct reads
+* 0.66 is still best but now they're all close to 5% (well that is standard error)
