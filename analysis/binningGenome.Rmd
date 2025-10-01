@@ -309,3 +309,8 @@ ensdb_genes_filt <- ensdb_genes %>% dplyr::filter(gene_name %in% genes_of_intere
 ```{r}
 pair_overlaps(as_granges(overlap_bins_reads), as_granges(ensdb_genes_filt)) %>% data.frame() %>% dplyr::filter(gene_name == "CYTH4")
 ```
+
+```{r}
+saveRDS(overlap_bins_reads, "/researchers/caitlin.page/cf_nano/r_output/overlap_bins_reads.rds")
+```
+
