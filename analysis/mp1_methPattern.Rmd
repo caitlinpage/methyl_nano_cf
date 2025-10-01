@@ -113,7 +113,57 @@ Top is CC, second is CC, third varies slightly
 
 # what about the least common?
 
+```{r}
+all_samples %>% group_by(meth_pattern, total) %>% summarise(n = n()) %>% ungroup() %>% mutate(prop = n/sum(n)) %>% .[order(.$n, decreasing = FALSE),] %>% .[1:10,] 
+```
+
+```{r}
+all_samples %>% group_by(meth_pattern, total) %>% summarise(n = n()) %>% ungroup() %>% filter(n == 1) %>% nrow()
+```
+* there are > 18k distinct methylation patterns that only occur once - so they are all the least likely
+
+* what about the distribution of those patterns? - for number of cpgs and for alpha?
+```{r}
+all_samples %>% group_by(meth_pattern, total, alpha) %>% summarise(n = n()) %>% ungroup() %>% filter(n == 1) %>% summary(.$alpha)
+```
+
+* differences between types
+```{r}
+all_samples %>% group_by(meth_pattern, total, type) %>% summarise(n = n()) %>% ungroup() %>% group_by(type) %>% mutate(prop = n/sum(n)) %>% .[order(.$n, decreasing = FALSE),] %>% filter(n == 1) %>% summarise(n_per_type = n())
+```
+* cancer has more distinct ones
+
+```{r}
+all_samples %>% group_by(meth_pattern, total, type) %>% summarise(n = n()) %>% ungroup() %>% group_by(type) %>% mutate(prop = n/sum(n)) %>% .[order(.$n, decreasing = FALSE),] %>% filter(n == 1) %>%
+  ggplot(aes(x = type, y = log2(total), colour = type)) +
+  geom_boxplot() +
+  labs(title = "Distrib of length pattern cancer/normal in meth patterns that only appear once") +
+  theme(legend.position = "none")
+
+all_samples %>% group_by(meth_pattern, total, type, alpha) %>% summarise(n = n()) %>% ungroup() %>% group_by(type) %>% mutate(prop = n/sum(n)) %>% .[order(.$n, decreasing = FALSE),] %>% filter(n == 1) %>%
+  ggplot(aes(x = type, y = alpha, colour = type)) +
+  geom_boxplot() +
+  labs(title = "Distrib of alpha cancer/normal in meth patterns that only appear once") +
+  theme(legend.position = "none")
+```
+```{r}
+all_samples %>% group_by(meth_pattern, total, type, alpha) %>% summarise(n = n()) %>% ungroup() %>% group_by(type) %>% mutate(prop = n/sum(n)) %>% .[order(.$n, decreasing = FALSE),] %>% filter(n == 1) %>%
+  ggplot(aes(x = total, colour = type)) +
+  geom_density() +
+  labs(title = "Distrib of length pat cancer/normal in meth patterns that only appear once")
+
+all_samples %>% group_by(meth_pattern, total, type, alpha) %>% summarise(n = n()) %>% ungroup() %>% group_by(type) %>% mutate(prop = n/sum(n)) %>% .[order(.$n, decreasing = FALSE),] %>% filter(n == 1) %>%
+  ggplot(aes(x = alpha, colour = type)) +
+  geom_density() +
+  labs(title = "Distrib of alpha cancer/normal in meth patterns that only appear once")
+```
+
+
 # frequency of pattern
+* be careful that when I group by type - that means some patterns will show up twice - and any n value is from the meth
+```{r}
+all_samples %>% group_by(meth_pattern, total, alpha, type) %>% summarise(n_by_type = n()) %>% ungroup() %>% group_by(type) %>% mutate(prop_type = n_by_type/sum(n_by_type)) %>% ungroup() %>% group_by(meth_pattern) %>% mutate(n_overall = sum(n_by_type)) %>% ungroup() %>% mutate(prop_overall = n_overall/sum(n_overall))
+```
 
 # change in frequency of pattern?
 can I do something cool 
