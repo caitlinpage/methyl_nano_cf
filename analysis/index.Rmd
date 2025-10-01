@@ -12,6 +12,10 @@ Welcome to my research website.
 
 [Data](00_ObtainData.html)
 
+[Overview of data files and their features](overviewFiles.html)
+
+# exploratory initial work
+
 [exploratory plots](exploratory_plots.html)
 
 [explore relationship with genes](exploratory_plots_genes.html)
@@ -26,14 +30,37 @@ Welcome to my research website.
 
 [coverage and beta distrib](coverageAndSummaryAnalysis.html)
 
-## newer work
+## newer analysis (ie slightly more organised)
+
+# alpha only
+
+[how I get the alphas](modkitOutputToReadFormat.html)
 
 [analysis of alpha values](alphaAnalysis.html)
 
 [what reads should be filtered out?](filteringReads.html)
 
-[something weird happening with alpha and beta - mostly beta](checkAlphaAndBetaMatch.html)
+# how do I get beta values? - the problem
 
+[trying to plot alpha and beta together](plotAlphaAndBeta.html)
+* discovered a problem - expanded on in next 2
+[something weird happening with alpha and beta - mostly beta](checkAlphaAndBetaMatch.html)
+* most obvious example was chr22"18895995
+* my indiv reads: 2 reads: 1 meth, 1 unmeth - so beta should be 0.5
+* but in bedgraph file from paper: beta = 1
+
+* I think I overcomplicated this
+* I think it is actually b/c one of those reads was low probability
+* which means it was filtered out (not flipped or anything else)
+* so then there is just 1 methylated read - therefore beta = 1
+
+* (I need to test this obviously)
+
+
+[how I'm getting the beta values](bedFileBetas.html)
+
+[How I'm going to join alpha and beta together](joinAlphaAndBeta)
+* this is going to be the fixed neat version
 
 ## want to do stuff about methylation patterns - like the pat file
 * but also about things like comethylation, epialleles, haplotypes
