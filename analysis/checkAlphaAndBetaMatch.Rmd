@@ -86,6 +86,7 @@ overlap_bins_reads %>% filter(bin_num == 3780) %>%
 bed_betas %>% filter(sample == "hu5.10") %>% summary(.)
 summary(wt_beta_chr22$HU005.10.unmeth)
 ```
+* wgbs_tools (wt) should have a range of unmeth values - file can't be trusted
 
 ```{r}
 overlap_bins_reads %>% filter(bin_num == 3780) %>%
@@ -290,6 +291,7 @@ positions are 0 based
 
 ```{r}
 colnames(modkit_bed_hu5.10) <- c("seqnames", "start", "end", "mod_base_code", "score_same_as_coverage", "strand", "start_pos", "end_pos", "colour", "coverage", "beta", "n_mod", "n_canon", "n_other_mod", "n_delete", "n_fail", "n_diff", "n_nocall")
+head(modkit_bed_hu5.10)
 ```
 ```{r}
 unique(modkit_bed_hu5.10$mod_base_code)
@@ -343,6 +345,9 @@ cg_sites %>% filter(start > 18895980) %>% head()
 
 # new idea
 * basically I think it's because I'm supposed to filter out reads that don't pass the probability thresh (0.8) / have fail = TRUE
+```{r}
+bed_betas_hu5.10 <- bed_betas %>% filter(sample == "hu5.10")
+```
 
 ```{r}
 indiv_reads %>% group_by(fail) %>% summarise(n())
@@ -365,7 +370,7 @@ indiv_reads %>%
 * but also should check with both
 
 ```{r}
-indiv_reads %>% group_by(ref_position) %>% .[order(.$ref_position),] %>% mutate(n=n()) %>% filter(n>1)
+indiv_reads %>% group_by(ref_position) %>% .[order(.$ref_position),] %>% mutate(n=n()) %>% filter(n>1) %>% head()
 ```
 ```{r}
 indiv_reads <- indiv_reads %>% mutate(seqnames = "chr22", start = ref_position, end = ref_position)
@@ -402,7 +407,7 @@ overlaps_bed_reads %>% group_by(beta_match) %>% summarise(n=n())
 
 * true for sense check
 ```{r}
-overlaps_bed_reads %>% filter(beta_match == TRUE)
+overlaps_bed_reads %>% filter(beta_match == TRUE) %>% head()
 ```
 
 
@@ -450,7 +455,7 @@ overlaps_bed_reads %>% filter(call_prob > 0.8, fail == FALSE) %>% group_by(ref_p
 
 
 ```{r}
-overlaps_bed_reads %>% filter(call_prob > 0.8, fail == TRUE) %>% group_by(ref_position) %>% mutate(expec_beta_filt = mean(call_code == "m")) %>% ungroup() %>% mutate(match_beta_filt = ifelse(beta == expec_beta_filt, TRUE, FALSE)) %>% group_by(match_beta_filt) %>% filter(match_beta_filt == FALSE)
+overlaps_bed_reads %>% filter(call_prob > 0.8, fail == TRUE) %>% group_by(ref_position) %>% mutate(expec_beta_filt = mean(call_code == "m")) %>% ungroup() %>% mutate(match_beta_filt = ifelse(beta == expec_beta_filt, TRUE, FALSE)) %>% group_by(match_beta_filt) %>% filter(match_beta_filt == FALSE) %>% head()
 ```
 
 modbam2bed actually uses threshold 0.66
