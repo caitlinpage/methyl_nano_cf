@@ -450,7 +450,7 @@ overlaps_bed_reads %>% filter(call_prob > 0.8, fail == FALSE) %>% group_by(ref_p
 
 
 ```{r}
-overlaps_bed_reads %>% filter(call_prob > 0.8, fail == FALSE) %>% group_by(ref_position) %>% mutate(expec_beta_filt = mean(call_code == "m")) %>% ungroup() %>% mutate(match_beta_filt = ifelse(beta == expec_beta_filt, TRUE, FALSE)) %>% group_by(match_beta_filt) %>% filter(match_beta_filt == FALSE)
+overlaps_bed_reads %>% filter(call_prob > 0.8, fail == TRUE) %>% group_by(ref_position) %>% mutate(expec_beta_filt = mean(call_code == "m")) %>% ungroup() %>% mutate(match_beta_filt = ifelse(beta == expec_beta_filt, TRUE, FALSE)) %>% group_by(match_beta_filt) %>% filter(match_beta_filt == FALSE)
 ```
 
 modbam2bed actually uses threshold 0.66
@@ -473,21 +473,23 @@ c(num_reads = overlaps_bed_reads %>% filter(call_prob > 0.66) %>% group_by(ref_p
 ```{r}
 overlaps_bed_reads %>% filter(call_prob > 0.66) %>% group_by(ref_position) %>% mutate(expec_beta_filt = mean(call_code == "m")) %>% ungroup() %>% mutate(match_beta_filt = ifelse(beta == expec_beta_filt, TRUE, FALSE)) %>% distinct(read_id, match_beta_filt) %>% group_by(match_beta_filt) %>% summarise(n= n()) %>% ungroup() %>% mutate(prop = n/sum(n))
 
-overlaps_bed_reads %>% filter(call_prob > 0.8, fail == FALSE) %>% group_by(ref_position) %>% mutate(expec_beta_filt = mean(call_code == "m")) %>% ungroup() %>% mutate(match_beta_filt = ifelse(beta == expec_beta_filt, TRUE, FALSE)) %>% distinct(read_id, match_beta_filt) %>% group_by(match_beta_filt) %>% summarise(n= n()) %>% ungroup() %>% mutate(prop = n/sum(n))
+overlaps_bed_reads %>% filter(call_prob > 0.8, fail == TRUE) %>% group_by(ref_position) %>% mutate(expec_beta_filt = mean(call_code == "m")) %>% ungroup() %>% mutate(match_beta_filt = ifelse(beta == expec_beta_filt, TRUE, FALSE)) %>% distinct(read_id, match_beta_filt) %>% group_by(match_beta_filt) %>% summarise(n= n()) %>% ungroup() %>% mutate(prop = n/sum(n))
 
-overlaps_bed_reads %>% filter(fail == FALSE) %>% group_by(ref_position) %>% mutate(expec_beta_filt = mean(call_code == "m")) %>% ungroup() %>% mutate(match_beta_filt = ifelse(beta == expec_beta_filt, TRUE, FALSE)) %>% distinct(read_id, match_beta_filt) %>% group_by(match_beta_filt) %>% summarise(n=n()) %>% ungroup() %>% mutate(prop = n/sum(n))
+overlaps_bed_reads %>% filter(fail == TRUE) %>% group_by(ref_position) %>% mutate(expec_beta_filt = mean(call_code == "m")) %>% ungroup() %>% mutate(match_beta_filt = ifelse(beta == expec_beta_filt, TRUE, FALSE)) %>% distinct(read_id, match_beta_filt) %>% group_by(match_beta_filt) %>% summarise(n=n()) %>% ungroup() %>% mutate(prop = n/sum(n))
 
 overlaps_bed_reads %>% filter(call_prob > 0.8) %>% group_by(ref_position) %>% mutate(expec_beta_filt = mean(call_code == "m")) %>% ungroup() %>% mutate(match_beta_filt = ifelse(beta == expec_beta_filt, TRUE, FALSE)) %>% distinct(read_id, match_beta_filt) %>% group_by(match_beta_filt) %>% summarise(n=n()) %>% ungroup() %>% mutate(prop = n/sum(n))
 ```
 
 ```{r}
-indiv_reads
+overlaps_bed_reads %>% filter(call_prob > 0.66) %>% group_by(ref_position) %>% mutate(expec_beta_filt = mean(call_code == "m")) %>% ungroup() %>% mutate(match_beta_filt = ifelse(beta == expec_beta_filt, TRUE, FALSE)) %>% distinct(pos, match_beta_filt) %>% group_by(match_beta_filt) %>% summarise(n= n()) %>% ungroup() %>% mutate(prop = n/sum(n))
+
+overlaps_bed_reads %>% filter(call_prob > 0.8, fail == TRUE) %>% group_by(ref_position) %>% mutate(expec_beta_filt = mean(call_code == "m")) %>% ungroup() %>% mutate(match_beta_filt = ifelse(beta == expec_beta_filt, TRUE, FALSE)) %>% distinct(pos, match_beta_filt) %>% group_by(match_beta_filt) %>% summarise(n= n()) %>% ungroup() %>% mutate(prop = n/sum(n))
+
+overlaps_bed_reads %>% filter(fail == TRUE) %>% group_by(ref_position) %>% mutate(expec_beta_filt = mean(call_code == "m")) %>% ungroup() %>% mutate(match_beta_filt = ifelse(beta == expec_beta_filt, TRUE, FALSE)) %>% distinct(pos, match_beta_filt) %>% group_by(match_beta_filt) %>% summarise(n=n()) %>% ungroup() %>% mutate(prop = n/sum(n))
+
+overlaps_bed_reads %>% filter(call_prob > 0.8) %>% group_by(ref_position) %>% mutate(expec_beta_filt = mean(call_code == "m")) %>% ungroup() %>% mutate(match_beta_filt = ifelse(beta == expec_beta_filt, TRUE, FALSE)) %>% distinct(pos, match_beta_filt) %>% group_by(match_beta_filt) %>% summarise(n=n()) %>% ungroup() %>% mutate(prop = n/sum(n))
 ```
 
-
-```{r}
-overlaps_bed_reads %>% group_by(beta_match) %>% summarise(n=n()) %>% ungroup() %>% mutate(prop = n/sum(n))
-```
 
 *look maybe its ok to have some be wrong as long as its small proportion
 * all similar but best is filt > 0.66, then filt > 0.8 - basically only 2% are wrong
@@ -497,3 +499,53 @@ overlaps_bed_reads %>% group_by(beta_match) %>% summarise(n=n()) %>% ungroup() %
 
 * oops I had forgotten to do distinct reads
 * 0.66 is still best but now they're all close to 5% (well that is standard error)
+
+(but also actually beta is about positions so should be distinct pos, not distinct read_id - still 66% is best - 1.8%)
+
+* so it's < 2% of CpGs and < 5% of reads
+
+* how wrong are the wrong ones with this approach?
+
+```{r}
+overlaps_bed_reads %>% filter(call_prob > 0.66) %>% group_by(ref_position) %>% mutate(expec_beta_filt = mean(call_code == "m")) %>% ungroup() %>% mutate(match_beta_filt = ifelse(beta == expec_beta_filt, TRUE, FALSE)) %>% distinct(pos, match_beta_filt, beta, expec_beta_filt) %>% mutate(diff_beta_minus_expec = beta - expec_beta_filt) %>%
+  ggplot(aes(x = diff_beta_minus_expec)) +
+  geom_density()
+```
+
+```{r}
+overlaps_bed_reads %>% filter(call_prob > 0.66) %>% group_by(ref_position) %>% mutate(expec_beta_filt = mean(call_code == "m")) %>% ungroup() %>% mutate(match_beta_filt = ifelse(beta == expec_beta_filt, TRUE, FALSE)) %>% distinct(pos, match_beta_filt, beta, expec_beta_filt) %>% mutate(diff_beta_minus_expec = beta - expec_beta_filt) %>%
+  ggplot(aes(x = match_beta_filt, y = diff_beta_minus_expec)) +
+  geom_boxplot() +
+  geom_violin()
+```
+
+```{r}
+overlaps_bed_reads %>% filter(call_prob > 0.66) %>% group_by(ref_position) %>% mutate(expec_beta_filt = mean(call_code == "m")) %>% ungroup() %>% mutate(match_beta_filt = ifelse(beta == expec_beta_filt, TRUE, FALSE)) %>% distinct(pos, match_beta_filt, beta, expec_beta_filt) %>% mutate(diff_beta_minus_expec = beta - expec_beta_filt) %>%
+  filter(match_beta_filt == FALSE) %>%
+  ggplot(aes(x = diff_beta_minus_expec)) +
+  geom_density()
+```
+
+```{r}
+overlaps_bed_reads %>% filter(call_prob > 0.66) %>% group_by(ref_position) %>% mutate(expec_beta_filt = mean(call_code == "m")) %>% ungroup() %>% mutate(match_beta_filt = ifelse(beta == expec_beta_filt, TRUE, FALSE)) %>% distinct(pos, match_beta_filt, beta, expec_beta_filt) %>% mutate(diff_beta_minus_expec = beta - expec_beta_filt) %>% .$diff_beta_minus_expec %>% summary()
+```
+
+```{r}
+overlaps_bed_reads %>% filter(call_prob > 0.66) %>% group_by(ref_position) %>% mutate(expec_beta_filt = mean(call_code == "m")) %>% ungroup() %>% mutate(match_beta_filt = ifelse(beta == expec_beta_filt, TRUE, FALSE)) %>% distinct(pos, match_beta_filt, beta, expec_beta_filt) %>% mutate(diff_beta_minus_expec = beta - expec_beta_filt) %>% filter(match_beta_filt == FALSE) %>% .$diff_beta_minus_expec %>% summary()
+```
+
+# use this filtering
+
+* and the ones that don't match? 
+* I say we just filter them out as well
+
+
+```{r}
+overlaps_bed_reads_filt <- overlaps_bed_reads %>% filter(call_prob > 0.66) %>% group_by(ref_position) %>% mutate(expec_beta_filt = mean(call_code == "m")) %>% ungroup() %>% mutate(match_beta_filt = ifelse(beta == expec_beta_filt, TRUE, FALSE)) %>% filter(match_beta_filt == TRUE)
+```
+
+* now I can use these positions from the bed file and these read ids to get alpha again
+* does this also mean I could infer coverage?
+* because that was the problem with the bed file - no coverage etc info
+
+
