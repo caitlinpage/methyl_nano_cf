@@ -390,7 +390,7 @@ class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span>
 <div class="tab-content">
 <div id="summary" class="tab-pane fade in active">
 <p>
-<strong>Last updated:</strong> 2025-09-24
+<strong>Last updated:</strong> 2025-10-03
 </p>
 <p>
 <strong>Checks:</strong> <span
@@ -521,15 +521,15 @@ project makes it easier to run your code on other machines.</p>
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpagemethylnanocftree330f8ae4336defef83046265e4fc67c6e0dc5909targetblank330f8aea">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpagemethylnanocftree77cc59e648de27ae6c71742710f46afb982332fctargetblank77cc59ea">
 <span class="glyphicon glyphicon-ok text-success"
 aria-hidden="true"></span> <strong>Repository version:</strong>
-<a href="https://github.com/caitlinpage/methyl_nano_cf/tree/330f8ae4336defef83046265e4fc67c6e0dc5909" target="_blank">330f8ae</a>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/tree/77cc59e648de27ae6c71742710f46afb982332fc" target="_blank">77cc59e</a>
 </a>
 </p>
 </div>
 <div
-id="strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpagemethylnanocftree330f8ae4336defef83046265e4fc67c6e0dc5909targetblank330f8aea"
+id="strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpagemethylnanocftree77cc59e648de27ae6c71742710f46afb982332fctargetblank77cc59ea"
 class="panel-collapse collapse">
 <div class="panel-body">
 <p>
@@ -539,7 +539,7 @@ reproducibility.
 </p>
 <p>
 The results in this page were generated with repository version
-<a href="https://github.com/caitlinpage/methyl_nano_cf/tree/330f8ae4336defef83046265e4fc67c6e0dc5909" target="_blank">330f8ae</a>.
+<a href="https://github.com/caitlinpage/methyl_nano_cf/tree/77cc59e648de27ae6c71742710f46afb982332fc" target="_blank">77cc59e</a>.
 See the <em>Past versions</em> tab to see a history of the changes made
 to the R Markdown and HTML files.
 </p>
@@ -563,8 +563,7 @@ Ignored files:
 Unstaged changes:
     Modified:   .Rprofile
     Modified:   .gitignore
-    Modified:   analysis/binningGenome.Rmd
-    Modified:   analysis/index.Rmd
+    Modified:   analysis/plotAlphaAndBeta.Rmd
 
 </code></pre>
 <p>
@@ -610,6 +609,74 @@ Message
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/77cc59e648de27ae6c71742710f46afb982332fc/analysis/checkAlphaAndBetaMatch.Rmd" target="_blank">77cc59e</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-10-03
+</td>
+<td>
+wflow_publish("analysis/checkAlphaAndBetaMatch.Rmd")
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/c9b58c85b4136f94336525fe0eb5f96000e62b18/analysis/checkAlphaAndBetaMatch.Rmd" target="_blank">c9b58c8</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-10-03
+</td>
+<td>
+figured out how handling the error
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/969a681e0f51cb3f52c5fcd03a81c09b112ef9e3/analysis/checkAlphaAndBetaMatch.Rmd" target="_blank">969a681</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-10-01
+</td>
+<td>
+commit - going to filter for 0.66 and move on with life
+</td>
+</tr>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/caitlinpage/methyl_nano_cf/3bd281fb04fbb21ee06e062c555b8b5adc959c5c/docs/checkAlphaAndBetaMatch.html" target="_blank">3bd281f</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-09-24
+</td>
+<td>
+Build site.
+</td>
+</tr>
 <tr>
 <td>
 Rmd
@@ -830,11 +897,48 @@ bin_cpgs &lt;- cbind(bin_cpgs, type = rep(x = alpha_vec, times = rep_vec))</code
                      name = &quot;Meth status&quot;, labels = c(`TRUE` = &quot;Unmeth&quot;, `FALSE` = &quot;Meth&quot;)) +
   labs(title = &quot;bin 3780&quot;) +
   facet_wrap(~type, nrow = 2)</code></pre>
-<p><img src="figure/checkAlphaAndBetaMatch.Rmd/unnamed-chunk-5-1.png" width="672" style="display: block; margin: auto;" />
-* this plot has alpha values and the methylation state for each cpg on a
-read</p>
+<p><img src="figure/checkAlphaAndBetaMatch.Rmd/unnamed-chunk-5-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-5-1">
+Past versions of unnamed-chunk-5-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-5-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/3bd281fb04fbb21ee06e062c555b8b5adc959c5c/docs/figure/checkAlphaAndBetaMatch.Rmd/unnamed-chunk-5-1.png" target="_blank">3bd281f</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-09-24
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <ul>
-<li>split the plot by sample</li>
+<li><p>this plot has alpha values and the methylation state for each cpg
+on a read</p></li>
+<li><p>split the plot by sample</p></li>
 </ul>
 <pre class="r"><code>bed_betas %&gt;% filter(sample == &quot;hu5.10&quot;) %&gt;% summary(.)</code></pre>
 <pre><code>    seqnames         start               end               width   strand   
@@ -864,6 +968,10 @@ read</p>
 <pre class="r"><code>summary(wt_beta_chr22$HU005.10.unmeth)</code></pre>
 <pre><code>   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
       0       0       0       0       0       0 </code></pre>
+<ul>
+<li>wgbs_tools (wt) should have a range of unmeth values - file can’t be
+trusted</li>
+</ul>
 <pre class="r"><code>overlap_bins_reads %&gt;% filter(bin_num == 3780) %&gt;%
   ggplot() +
   geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha, colour = type, group = sample)) +
@@ -873,6 +981,43 @@ read</p>
   labs(title = &quot;bin 3780&quot;) +
   facet_wrap(~sample)</code></pre>
 <p><img src="figure/checkAlphaAndBetaMatch.Rmd/unnamed-chunk-7-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-7-1">
+Past versions of unnamed-chunk-7-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-7-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/3bd281fb04fbb21ee06e062c555b8b5adc959c5c/docs/figure/checkAlphaAndBetaMatch.Rmd/unnamed-chunk-7-1.png" target="_blank">3bd281f</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-09-24
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>overlap_bins_reads %&gt;% filter(bin_num == 3780, sample == &quot;hu5.10&quot;) %&gt;%
   ggplot() +
   geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha, colour = type, group = sample)) +
@@ -881,6 +1026,43 @@ read</p>
                      name = &quot;Meth status&quot;, labels = c(`TRUE` = &quot;Unmeth&quot;, `FALSE` = &quot;Meth&quot;)) +
   labs(title = &quot;bin 3780: hu5.10&quot;)</code></pre>
 <p><img src="figure/checkAlphaAndBetaMatch.Rmd/unnamed-chunk-7-2.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-7-2">
+Past versions of unnamed-chunk-7-2.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-7-2" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/3bd281fb04fbb21ee06e062c555b8b5adc959c5c/docs/figure/checkAlphaAndBetaMatch.Rmd/unnamed-chunk-7-2.png" target="_blank">3bd281f</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-09-24
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>overlap_bins_reads %&gt;% filter(bin_num == 3780, sample == &quot;hu5.10&quot;, alpha %in% c(0,1)) </code></pre>
 <pre><code># A tibble: 7 × 21
   seqnames    start    end width strand bin_num read_id read_length type  sample
@@ -906,9 +1088,50 @@ read</p>
   scale_shape_manual(values = c(`TRUE` = 1, `FALSE` = 16),
                      name = &quot;Meth status&quot;, labels = c(`TRUE` = &quot;Unmeth&quot;, `FALSE` = &quot;Meth&quot;)) +
   labs(title = &quot;bin 3780: hu5.10&quot;)</code></pre>
-<p><img src="figure/checkAlphaAndBetaMatch.Rmd/unnamed-chunk-9-1.png" width="672" style="display: block; margin: auto;" />
-* need it to have the circle colours as well - read id in the bin_cpg *
-but also maybe making the line thicker and then opaque would help?</p>
+<p><img src="figure/checkAlphaAndBetaMatch.Rmd/unnamed-chunk-9-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-9-1">
+Past versions of unnamed-chunk-9-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-9-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/3bd281fb04fbb21ee06e062c555b8b5adc959c5c/docs/figure/checkAlphaAndBetaMatch.Rmd/unnamed-chunk-9-1.png" target="_blank">3bd281f</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-09-24
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<ul>
+<li>need it to have the circle colours as well - read id in the
+bin_cpg</li>
+<li>but also maybe making the line thicker and then opaque would
+help?</li>
+</ul>
 <pre class="r"><code>overlap_bins_reads %&gt;% filter(bin_num == 3780, sample == &quot;hu5.10&quot;) %&gt;%
   ggplot() +
   geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha, colour = sample, group = sample), alpha = 0.3) +
@@ -916,8 +1139,47 @@ but also maybe making the line thicker and then opaque would help?</p>
   scale_shape_manual(values = c(`TRUE` = 1, `FALSE` = 16),
                      name = &quot;Meth status&quot;, labels = c(`TRUE` = &quot;Unmeth&quot;, `FALSE` = &quot;Meth&quot;)) +
   labs(title = &quot;bin 3780: hu5.10&quot;)</code></pre>
-<p><img src="figure/checkAlphaAndBetaMatch.Rmd/unnamed-chunk-10-1.png" width="672" style="display: block; margin: auto;" />
-* that shows it a little bit</p>
+<p><img src="figure/checkAlphaAndBetaMatch.Rmd/unnamed-chunk-10-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-10-1">
+Past versions of unnamed-chunk-10-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-10-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/3bd281fb04fbb21ee06e062c555b8b5adc959c5c/docs/figure/checkAlphaAndBetaMatch.Rmd/unnamed-chunk-10-1.png" target="_blank">3bd281f</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-09-24
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<ul>
+<li>that shows it a little bit</li>
+</ul>
 <pre class="r"><code>overlap_bins_reads %&gt;% filter(bin_num == 3780) %&gt;%
   ggplot() +
   geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha, colour = sample, group = sample), alpha = 0.2) +
@@ -927,6 +1189,43 @@ but also maybe making the line thicker and then opaque would help?</p>
   labs(title = &quot;bin 3780&quot;) +
   facet_wrap(~type, nrow = 2)</code></pre>
 <p><img src="figure/checkAlphaAndBetaMatch.Rmd/unnamed-chunk-11-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-11-1">
+Past versions of unnamed-chunk-11-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-11-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/3bd281fb04fbb21ee06e062c555b8b5adc959c5c/docs/figure/checkAlphaAndBetaMatch.Rmd/unnamed-chunk-11-1.png" target="_blank">3bd281f</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-09-24
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>c(bins_20_highest_var = overlap_bins_reads %&gt;% .[order(.$var_alpha, decreasing = TRUE),] %&gt;% .$bin_num %&gt;% unique() %&gt;% .[1:20],
 bins_20_lowest_var = overlap_bins_reads %&gt;% .[order(.$var_alpha, decreasing = FALSE),] %&gt;% .$bin_num %&gt;% unique() %&gt;% .[1:20])</code></pre>
 <pre><code> bins_20_highest_var1  bins_20_highest_var2  bins_20_highest_var3 
@@ -967,36 +1266,225 @@ low_var_bins_20 &lt;- overlap_bins_reads %&gt;% .[order(.$var_alpha, decreasing 
   geom_density() +
   labs(title = &quot;Distribution of alpha in bins with highest var&quot;)</code></pre>
 <p><img src="figure/checkAlphaAndBetaMatch.Rmd/unnamed-chunk-14-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-14-1">
+Past versions of unnamed-chunk-14-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-14-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/3bd281fb04fbb21ee06e062c555b8b5adc959c5c/docs/figure/checkAlphaAndBetaMatch.Rmd/unnamed-chunk-14-1.png" target="_blank">3bd281f</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-09-24
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>overlap_bins_reads %&gt;% filter(bin_num %in% high_var_bins_20[1:20]) %&gt;%
   ggplot(aes(x = alpha, colour = as.factor(bin_num))) +
   geom_density() +
   labs(title = &quot;Distribution of alpha in bins with highest var&quot;) +
   facet_wrap(~type)</code></pre>
-<p><img src="figure/checkAlphaAndBetaMatch.Rmd/unnamed-chunk-14-2.png" width="672" style="display: block; margin: auto;" />
-* something weird going on in one the bins in the healthy samples *
-would have been nice if there was a distinct difference between the luad
-and healthy * but also this is highest var bins overall - not
-necessarily bins with high var for either * but I guess what we want
-would be bins with low var individually - but the meth is different</p>
+<p><img src="figure/checkAlphaAndBetaMatch.Rmd/unnamed-chunk-14-2.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-14-2">
+Past versions of unnamed-chunk-14-2.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-14-2" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/3bd281fb04fbb21ee06e062c555b8b5adc959c5c/docs/figure/checkAlphaAndBetaMatch.Rmd/unnamed-chunk-14-2.png" target="_blank">3bd281f</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-09-24
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<ul>
+<li>something weird going on in one the bins in the healthy samples</li>
+<li>would have been nice if there was a distinct difference between the
+luad and healthy</li>
+<li>but also this is highest var bins overall - not necessarily bins
+with high var for either</li>
+<li>but I guess what we want would be bins with low var individually -
+but the meth is different</li>
+</ul>
 <pre class="r"><code>overlap_bins_reads %&gt;% filter(bin_num %in% low_var_bins_20[1:20]) %&gt;%
   ggplot(aes(x = alpha, colour = as.factor(bin_num))) +
   geom_density() +
   labs(title = &quot;Distribution of alpha in bins with lowest var&quot;)</code></pre>
 <p><img src="figure/checkAlphaAndBetaMatch.Rmd/unnamed-chunk-15-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-15-1">
+Past versions of unnamed-chunk-15-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-15-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/3bd281fb04fbb21ee06e062c555b8b5adc959c5c/docs/figure/checkAlphaAndBetaMatch.Rmd/unnamed-chunk-15-1.png" target="_blank">3bd281f</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-09-24
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>overlap_bins_reads %&gt;% filter(bin_num %in% low_var_bins_20[1:20]) %&gt;%
   ggplot(aes(x = alpha, colour = as.factor(bin_num))) +
   geom_density() +
   labs(title = &quot;Distribution of alpha in bins with lowest var&quot;) +
   facet_wrap(~type)</code></pre>
 <p><img src="figure/checkAlphaAndBetaMatch.Rmd/unnamed-chunk-15-2.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-15-2">
+Past versions of unnamed-chunk-15-2.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-15-2" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/3bd281fb04fbb21ee06e062c555b8b5adc959c5c/docs/figure/checkAlphaAndBetaMatch.Rmd/unnamed-chunk-15-2.png" target="_blank">3bd281f</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-09-24
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>overlap_bins_reads %&gt;% filter(bin_num %in% low_var_bins_20[1:10]) %&gt;%
   ggplot(aes(x = alpha, colour = as.factor(bin_num))) +
   geom_density() +
   labs(title = &quot;Distribution of alpha in bins with lowest var&quot;)</code></pre>
-<p><img src="figure/checkAlphaAndBetaMatch.Rmd/unnamed-chunk-15-3.png" width="672" style="display: block; margin: auto;" />
-* this is nice</p>
+<p><img src="figure/checkAlphaAndBetaMatch.Rmd/unnamed-chunk-15-3.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-15-3">
+Past versions of unnamed-chunk-15-3.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-15-3" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/3bd281fb04fbb21ee06e062c555b8b5adc959c5c/docs/figure/checkAlphaAndBetaMatch.Rmd/unnamed-chunk-15-3.png" target="_blank">3bd281f</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-09-24
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <ul>
-<li>adding in betas</li>
+<li><p>this is nice</p></li>
+<li><p>adding in betas</p></li>
 </ul>
 <pre class="r"><code>match_names &lt;- cbind(sample_names = unique(overlap_bins_reads$sample)[c(12,8,13,3,9,10,1,2,5,6,11,4,7)], bed_names = unique(bed_betas$sample)) %&gt;% data.frame()
 
@@ -1014,6 +1502,43 @@ bed_betas &lt;- bed_betas %&gt;% mutate(sample = match_names[match(.$bed_sample,
   labs(title = &quot;bin 3780&quot;) +
   facet_wrap(~type, nrow = 2)</code></pre>
 <p><img src="figure/checkAlphaAndBetaMatch.Rmd/unnamed-chunk-17-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-17-1">
+Past versions of unnamed-chunk-17-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-17-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/3bd281fb04fbb21ee06e062c555b8b5adc959c5c/docs/figure/checkAlphaAndBetaMatch.Rmd/unnamed-chunk-17-1.png" target="_blank">3bd281f</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-09-24
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>overlap_bins_reads %&gt;% filter(bin_num == 3780, sample == &quot;hu5.10&quot;) %&gt;%
   ggplot() +
   geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha, colour = sample, group = sample), alpha = 0.2) +
@@ -1032,6 +1557,43 @@ bed_betas &lt;- bed_betas %&gt;% mutate(sample = match_names[match(.$bed_sample,
 <pre><code>Warning: Removed 6 rows containing missing values or values outside the scale range
 (`geom_line()`).</code></pre>
 <p><img src="figure/checkAlphaAndBetaMatch.Rmd/unnamed-chunk-18-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-18-1">
+Past versions of unnamed-chunk-18-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-18-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/3bd281fb04fbb21ee06e062c555b8b5adc959c5c/docs/figure/checkAlphaAndBetaMatch.Rmd/unnamed-chunk-18-1.png" target="_blank">3bd281f</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-09-24
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>overlap_bins_reads %&gt;% filter(bin_num == 3780, sample == &quot;hu5.10&quot;) </code></pre>
 <pre><code># A tibble: 10 × 21
    seqnames   start    end width strand bin_num read_id read_length type  sample
@@ -1253,7 +1815,29 @@ parameters</li>
 <p><a
 href="https://nanoporetech.github.io/modkit/intro_pileup.html">colnames
 of bed file</a> positions are 0 based</p>
-<pre class="r"><code>colnames(modkit_bed_hu5.10) &lt;- c(&quot;seqnames&quot;, &quot;start&quot;, &quot;end&quot;, &quot;mod_base_code&quot;, &quot;score_same_as_coverage&quot;, &quot;strand&quot;, &quot;start_pos&quot;, &quot;end_pos&quot;, &quot;colour&quot;, &quot;coverage&quot;, &quot;beta&quot;, &quot;n_mod&quot;, &quot;n_canon&quot;, &quot;n_other_mod&quot;, &quot;n_delete&quot;, &quot;n_fail&quot;, &quot;n_diff&quot;, &quot;n_nocall&quot;)</code></pre>
+<pre class="r"><code>colnames(modkit_bed_hu5.10) &lt;- c(&quot;seqnames&quot;, &quot;start&quot;, &quot;end&quot;, &quot;mod_base_code&quot;, &quot;score_same_as_coverage&quot;, &quot;strand&quot;, &quot;start_pos&quot;, &quot;end_pos&quot;, &quot;colour&quot;, &quot;coverage&quot;, &quot;beta&quot;, &quot;n_mod&quot;, &quot;n_canon&quot;, &quot;n_other_mod&quot;, &quot;n_delete&quot;, &quot;n_fail&quot;, &quot;n_diff&quot;, &quot;n_nocall&quot;)
+head(modkit_bed_hu5.10)</code></pre>
+<pre><code>  seqnames start   end mod_base_code score_same_as_coverage strand start_pos
+1     chr1 10475 10476             m                      1      +     10475
+2     chr1 10476 10477             m                      1      +     10476
+3     chr1 10477 10478             m                      1      +     10477
+4     chr1 10479 10480             m                      1      +     10479
+5     chr1 10482 10483             m                      1      +     10482
+6     chr1 10486 10487             m                      1      +     10486
+  end_pos  colour coverage beta n_mod n_canon n_other_mod n_delete n_fail
+1   10476 255,0,0        1    0     0       1           0        0      0
+2   10477 255,0,0        1    0     0       1           0        0      0
+3   10478 255,0,0        1    0     0       1           0        0      0
+4   10480 255,0,0        1    0     0       1           0        0      0
+5   10483 255,0,0        1    0     0       1           0        0      0
+6   10487 255,0,0        1    0     0       1           0        0      0
+  n_diff n_nocall
+1      0        0
+2      0        0
+3      0        0
+4      0        0
+5      0        0
+6      0        0</code></pre>
 <pre class="r"><code>unique(modkit_bed_hu5.10$mod_base_code)</code></pre>
 <pre><code>[1] &quot;m&quot;</code></pre>
 <pre class="r"><code>summary(modkit_bed_hu5.10$coverage)</code></pre>
@@ -1334,6 +1918,43 @@ don’t get why they don’t</li>
   ggplot(aes(x = beta)) +
   geom_density()</code></pre>
 <p><img src="figure/checkAlphaAndBetaMatch.Rmd/unnamed-chunk-32-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-32-1">
+Past versions of unnamed-chunk-32-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-32-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/3bd281fb04fbb21ee06e062c555b8b5adc959c5c/docs/figure/checkAlphaAndBetaMatch.Rmd/unnamed-chunk-32-1.png" target="_blank">3bd281f</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-09-24
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>indiv_reads %&gt;% filter(ref_position == 18895995)</code></pre>
 <pre><code>                                read_id forward_read_position ref_position
                                  &lt;char&gt;                 &lt;int&gt;        &lt;int&gt;
@@ -1383,6 +2004,337 @@ ref_position is 0 based</li>
 4 chr22-18896219    chr22 18896219 18896220     2  CG 99862
 5 chr22-18896226    chr22 18896226 18896227     2  CG 99863
 6 chr22-18896246    chr22 18896246 18896247     2  CG 99864</code></pre>
+</div>
+<div id="new-idea" class="section level1">
+<h1>new idea</h1>
+<ul>
+<li>basically I think it’s because I’m supposed to filter out reads that
+don’t pass the probability thresh (0.8) / have fail = TRUE</li>
+</ul>
+<pre class="r"><code>bed_betas_hu5.10 &lt;- bed_betas %&gt;% filter(sample == &quot;hu5.10&quot;)</code></pre>
+<pre class="r"><code>indiv_reads %&gt;% group_by(fail) %&gt;% summarise(n())</code></pre>
+<pre><code># A tibble: 2 × 2
+  fail  `n()`
+  &lt;lgl&gt; &lt;int&gt;
+1 FALSE 49840
+2 TRUE  56141</code></pre>
+<ul>
+<li>weird that’s a lot of fails</li>
+</ul>
+<pre class="r"><code>indiv_reads %&gt;% 
+  ggplot(aes(x = call_prob, colour = fail)) +
+  geom_density()</code></pre>
+<p><img src="figure/checkAlphaAndBetaMatch.Rmd/unnamed-chunk-37-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>indiv_reads %&gt;% 
+  ggplot(aes(x = fail, y = call_prob, colour = fail)) +
+  geom_boxplot()</code></pre>
+<p><img src="figure/checkAlphaAndBetaMatch.Rmd/unnamed-chunk-37-2.png" width="672" style="display: block; margin: auto;" /></p>
+<ul>
+<li><p>but is it about the fail or the call_prob???</p></li>
+<li><p>going to have to try both</p></li>
+<li><p>I do think the bed file beta values and positions are more
+reliable - if only b/c modkit is weird as</p></li>
+<li><p>but also should check with both</p></li>
+</ul>
+<pre class="r"><code>indiv_reads %&gt;% group_by(ref_position) %&gt;% .[order(.$ref_position),] %&gt;% mutate(n=n()) %&gt;% filter(n&gt;1) %&gt;% head()</code></pre>
+<pre><code># A tibble: 6 × 27
+# Groups:   ref_position [3]
+  read_id         forward_read_position ref_position chrom mod_strand ref_strand
+  &lt;chr&gt;                           &lt;int&gt;        &lt;int&gt; &lt;chr&gt; &lt;chr&gt;      &lt;chr&gt;     
+1 8dd08ad7-e4df-…                    91     10537632 chr22 +          -         
+2 f2126575-4306-…                   263     10537632 chr22 +          -         
+3 8ed79b75-f217-…                   169     10607409 chr22 +          -         
+4 7be4d42b-dae3-…                    82     10607409 chr22 +          -         
+5 89c5283a-8331-…                    19     10631766 chr22 +          -         
+6 b2a0e207-16f4-…                   134     10631766 chr22 +          -         
+# ℹ 21 more variables: ref_mod_strand &lt;chr&gt;, fw_soft_clipped_start &lt;int&gt;,
+#   fw_soft_clipped_end &lt;int&gt;, alignment_start &lt;int&gt;, alignment_end &lt;int&gt;,
+#   read_length &lt;int&gt;, call_prob &lt;dbl&gt;, call_code &lt;chr&gt;, base_qual &lt;int&gt;,
+#   ref_kmer &lt;chr&gt;, query_kmer &lt;chr&gt;, canonical_base &lt;chr&gt;,
+#   modified_primary_base &lt;chr&gt;, fail &lt;lgl&gt;, inferred &lt;lgl&gt;,
+#   within_alignment &lt;lgl&gt;, flag &lt;int&gt;, seqnames &lt;chr&gt;, start &lt;int&gt;, end &lt;int&gt;,
+#   n &lt;int&gt;</code></pre>
+<pre class="r"><code>indiv_reads &lt;- indiv_reads %&gt;% mutate(seqnames = &quot;chr22&quot;, start = ref_position, end = ref_position)</code></pre>
+<pre class="r"><code>indiv_reads &lt;- indiv_reads %&gt;% group_by(ref_position) %&gt;% mutate(expec_beta = mean(call_code == &quot;m&quot;))</code></pre>
+<pre class="r"><code>bed_betas_hu5.10 &lt;- bed_betas_hu5.10 %&gt;% mutate(start = start - 1, width = 2)</code></pre>
+<pre class="r"><code>overlaps_bed_reads &lt;- find_overlaps(as_granges(bed_betas_hu5.10), as_granges(indiv_reads)) %&gt;% data.frame()</code></pre>
+<pre class="r"><code>overlaps_bed_reads$pos &lt;- paste0(overlaps_bed_reads$seqnames, &quot;-&quot;, overlaps_bed_reads$start)</code></pre>
+<pre class="r"><code>overlaps_bed_reads &lt;- overlaps_bed_reads %&gt;% mutate(prob_ge_0.8 = ifelse(call_prob &gt;= 0.8, TRUE, FALSE))</code></pre>
+<pre class="r"><code>overlaps_bed_reads &lt;- overlaps_bed_reads %&gt;% mutate(beta_match = ifelse(beta == expec_beta, TRUE, FALSE))</code></pre>
+<pre class="r"><code>overlaps_bed_reads %&gt;% group_by(beta_match) %&gt;% summarise(n=n())</code></pre>
+<pre><code># A tibble: 2 × 2
+  beta_match      n
+  &lt;lgl&gt;       &lt;int&gt;
+1 FALSE        3241
+2 TRUE       100181</code></pre>
+<ul>
+<li><p>ok this is good most do match</p></li>
+<li><p>let’s look at what’s happening in true and in false</p></li>
+<li><p>true for sense check</p></li>
+</ul>
+<pre class="r"><code>overlaps_bed_reads %&gt;% filter(beta_match == TRUE) %&gt;% head()</code></pre>
+<pre><code>  seqnames    start      end width strand name sample    type beta bed_sample
+1    chr22 10521180 10521181     2      *    0 hu5.10 healthy    0     hu5.10
+2    chr22 10522480 10522481     2      *    1 hu5.10 healthy    1     hu5.10
+3    chr22 10522500 10522501     2      *    1 hu5.10 healthy    1     hu5.10
+4    chr22 10522590 10522591     2      *    0 hu5.10 healthy    0     hu5.10
+5    chr22 10522648 10522649     2      *    0 hu5.10 healthy    0     hu5.10
+6    chr22 10524770 10524771     2      *    0 hu5.10 healthy    0     hu5.10
+                               read_id forward_read_position ref_position chrom
+1 7f095597-d2c5-47a2-93aa-d84b7f9abc94                   274     10521180 chr22
+2 e9abf215-8192-48f4-a50f-ef92241e5de3                     7     10522480 chr22
+3 e9abf215-8192-48f4-a50f-ef92241e5de3                    27     10522500 chr22
+4 e9abf215-8192-48f4-a50f-ef92241e5de3                   117     10522590 chr22
+5 e9abf215-8192-48f4-a50f-ef92241e5de3                   175     10522648 chr22
+6 4203dd9d-9bff-4d14-b046-7716315e9699                   125     10524770 chr22
+  mod_strand ref_strand ref_mod_strand fw_soft_clipped_start
+1          +          -              -                     0
+2          +          +              +                     0
+3          +          +              +                     0
+4          +          +              +                     0
+5          +          +              +                     0
+6          +          +              +                     0
+  fw_soft_clipped_end alignment_start alignment_end read_length call_prob
+1                   0        10521100      10521455         355 0.9941406
+2                   0        10522473      10522658         185 0.9980469
+3                   0        10522473      10522658         185 0.9980469
+4                   0        10522473      10522658         185 0.9902344
+5                   0        10522473      10522658         185 0.9980469
+6                   0        10524645      10524786         141 0.7636719
+  call_code base_qual ref_kmer query_kmer canonical_base modified_primary_base
+1         -       255        .      GTCGC              C                     C
+2         m       255        .      CACGC              C                     C
+3         m       255        .      CTCGG              C                     C
+4         -       255        .      ACCGA              C                     C
+5         -       255        .      GGCGG              C                     C
+6         -       255        .      AACGT              C                     C
+   fail inferred within_alignment flag expec_beta            pos prob_ge_0.8
+1 FALSE    FALSE             TRUE   16          0 chr22-10521180        TRUE
+2 FALSE    FALSE             TRUE    0          1 chr22-10522480        TRUE
+3 FALSE    FALSE             TRUE    0          1 chr22-10522500        TRUE
+4  TRUE    FALSE             TRUE    0          0 chr22-10522590        TRUE
+5 FALSE    FALSE             TRUE    0          0 chr22-10522648        TRUE
+6  TRUE    FALSE             TRUE    0          0 chr22-10524770       FALSE
+  beta_match
+1       TRUE
+2       TRUE
+3       TRUE
+4       TRUE
+5       TRUE
+6       TRUE</code></pre>
+<ul>
+<li>false (hopefully its a prob thing)</li>
+</ul>
+<pre class="r"><code>overlaps_bed_reads %&gt;% filter(beta_match == FALSE) %&gt;% group_by(prob_ge_0.8) %&gt;% summarise(n=n())</code></pre>
+<pre><code># A tibble: 2 × 2
+  prob_ge_0.8     n
+  &lt;lgl&gt;       &lt;int&gt;
+1 FALSE         994
+2 TRUE         2247</code></pre>
+<ul>
+<li>this is not saying what I was hoping</li>
+</ul>
+<pre class="r"><code>overlaps_bed_reads %&gt;% filter(beta_match == FALSE) %&gt;% group_by(fail) %&gt;% summarise(n=n())</code></pre>
+<pre><code># A tibble: 2 × 2
+  fail      n
+  &lt;lgl&gt; &lt;int&gt;
+1 FALSE  1118
+2 TRUE   2123</code></pre>
+<pre class="r"><code>overlaps_bed_reads %&gt;% filter(beta_match == FALSE) %&gt;% group_by(prob_ge_0.8, fail) %&gt;% summarise(n=n())</code></pre>
+<pre><code>`summarise()` has grouped output by &#39;prob_ge_0.8&#39;. You can override using the
+`.groups` argument.</code></pre>
+<pre><code># A tibble: 3 × 3
+# Groups:   prob_ge_0.8 [2]
+  prob_ge_0.8 fail      n
+  &lt;lgl&gt;       &lt;lgl&gt; &lt;int&gt;
+1 FALSE       TRUE    994
+2 TRUE        FALSE  1118
+3 TRUE        TRUE   1129</code></pre>
+<pre class="r"><code>overlaps_bed_reads %&gt;% filter(beta_match == FALSE) %&gt;% mutate(prob_g_0.95 = ifelse(call_prob &gt; 0.95, TRUE, FALSE)) %&gt;% group_by(prob_g_0.95, fail) %&gt;% summarise(n=n())</code></pre>
+<pre><code>`summarise()` has grouped output by &#39;prob_g_0.95&#39;. You can override using the
+`.groups` argument.</code></pre>
+<pre><code># A tibble: 3 × 3
+# Groups:   prob_g_0.95 [2]
+  prob_g_0.95 fail      n
+  &lt;lgl&gt;       &lt;lgl&gt; &lt;int&gt;
+1 FALSE       TRUE   1530
+2 TRUE        FALSE  1118
+3 TRUE        TRUE    593</code></pre>
+<ul>
+<li><p>if I raise the prob threshold I’m still stuck with 1118 reads
+where prob is high and isn’t a fail but beta doesn’t match</p></li>
+<li><p>ooh maybe because I need to remove the other reads and then
+recalculate betas</p></li>
+<li><p>remove reads call prob &lt; 0.8</p></li>
+</ul>
+<pre class="r"><code>overlaps_bed_reads %&gt;% filter(call_prob &gt; 0.8) %&gt;% group_by(ref_position) %&gt;% mutate(expec_beta_filt = mean(call_code == &quot;m&quot;)) %&gt;% ungroup() %&gt;% mutate(match_beta_filt = ifelse(beta == expec_beta_filt, TRUE, FALSE)) %&gt;% group_by(match_beta_filt) %&gt;% summarise(n=n()) %&gt;% ungroup() %&gt;% mutate(prop = n/sum(n))</code></pre>
+<pre><code># A tibble: 2 × 3
+  match_beta_filt     n   prop
+  &lt;lgl&gt;           &lt;int&gt;  &lt;dbl&gt;
+1 FALSE            2097 0.0225
+2 TRUE            91198 0.978 </code></pre>
+<p>well that is less than 3241 which is what I started with now 2097</p>
+<pre class="r"><code>overlaps_bed_reads %&gt;% filter(fail == FALSE) %&gt;% group_by(ref_position) %&gt;% mutate(expec_beta_filt = mean(call_code == &quot;m&quot;)) %&gt;% ungroup() %&gt;% mutate(match_beta_filt = ifelse(beta == expec_beta_filt, TRUE, FALSE)) %&gt;% group_by(match_beta_filt) %&gt;% summarise(n=n()) %&gt;% ungroup() %&gt;% mutate(prop = n/sum(n))</code></pre>
+<pre><code># A tibble: 2 × 3
+  match_beta_filt     n   prop
+  &lt;lgl&gt;           &lt;int&gt;  &lt;dbl&gt;
+1 FALSE            1565 0.0298
+2 TRUE            50976 0.970 </code></pre>
+<pre class="r"><code>overlaps_bed_reads %&gt;% filter(call_prob &gt; 0.8, fail == FALSE) %&gt;% group_by(ref_position) %&gt;% mutate(expec_beta_filt = mean(call_code == &quot;m&quot;)) %&gt;% ungroup() %&gt;% mutate(match_beta_filt = ifelse(beta == expec_beta_filt, TRUE, FALSE)) %&gt;% group_by(match_beta_filt) %&gt;% summarise(n= n()) %&gt;% ungroup() %&gt;% mutate(prop = n/sum(n))</code></pre>
+<pre><code># A tibble: 2 × 3
+  match_beta_filt     n   prop
+  &lt;lgl&gt;           &lt;int&gt;  &lt;dbl&gt;
+1 FALSE            1565 0.0298
+2 TRUE            50976 0.970 </code></pre>
+<ul>
+<li><p>can get it down to 1565 with some filtering</p></li>
+<li><p>of these - do any of the original expec get it right?</p></li>
+</ul>
+<pre class="r"><code>overlaps_bed_reads %&gt;% filter(call_prob &gt; 0.8, fail == FALSE) %&gt;% group_by(ref_position) %&gt;% mutate(expec_beta_filt = mean(call_code == &quot;m&quot;)) %&gt;% ungroup() %&gt;% mutate(match_beta_filt = ifelse(beta == expec_beta_filt, TRUE, FALSE)) %&gt;% group_by(match_beta_filt) %&gt;% filter(match_beta_filt == FALSE) %&gt;% group_by(match_beta_filt, beta_match) %&gt;% summarise(n())</code></pre>
+<pre><code>`summarise()` has grouped output by &#39;match_beta_filt&#39;. You can override using
+the `.groups` argument.</code></pre>
+<pre><code># A tibble: 2 × 3
+# Groups:   match_beta_filt [1]
+  match_beta_filt beta_match `n()`
+  &lt;lgl&gt;           &lt;lgl&gt;      &lt;int&gt;
+1 FALSE           FALSE        915
+2 FALSE           TRUE         650</code></pre>
+<pre class="r"><code>overlaps_bed_reads %&gt;% filter(call_prob &gt; 0.8, fail == TRUE) %&gt;% group_by(ref_position) %&gt;% mutate(expec_beta_filt = mean(call_code == &quot;m&quot;)) %&gt;% ungroup() %&gt;% mutate(match_beta_filt = ifelse(beta == expec_beta_filt, TRUE, FALSE)) %&gt;% group_by(match_beta_filt) %&gt;% filter(match_beta_filt == FALSE) %&gt;% head()</code></pre>
+<pre><code># A tibble: 6 × 39
+# Groups:   match_beta_filt [1]
+  seqnames    start      end width strand  name sample type     beta bed_sample
+  &lt;fct&gt;       &lt;int&gt;    &lt;int&gt; &lt;int&gt; &lt;fct&gt;  &lt;dbl&gt; &lt;chr&gt;  &lt;chr&gt;   &lt;dbl&gt; &lt;chr&gt;     
+1 chr22    10625128 10625129     2 *        0   hu5.10 healthy   0   hu5.10    
+2 chr22    10657564 10657565     2 *        0.5 hu5.10 healthy   0.5 hu5.10    
+3 chr22    10663966 10663967     2 *        0   hu5.10 healthy   0   hu5.10    
+4 chr22    10685403 10685404     2 *        0   hu5.10 healthy   0   hu5.10    
+5 chr22    10708273 10708274     2 *        0.5 hu5.10 healthy   0.5 hu5.10    
+6 chr22    10713651 10713652     2 *        1   hu5.10 healthy   1   hu5.10    
+# ℹ 29 more variables: read_id &lt;chr&gt;, forward_read_position &lt;int&gt;,
+#   ref_position &lt;int&gt;, chrom &lt;chr&gt;, mod_strand &lt;chr&gt;, ref_strand &lt;chr&gt;,
+#   ref_mod_strand &lt;chr&gt;, fw_soft_clipped_start &lt;int&gt;,
+#   fw_soft_clipped_end &lt;int&gt;, alignment_start &lt;int&gt;, alignment_end &lt;int&gt;,
+#   read_length &lt;int&gt;, call_prob &lt;dbl&gt;, call_code &lt;chr&gt;, base_qual &lt;int&gt;,
+#   ref_kmer &lt;chr&gt;, query_kmer &lt;chr&gt;, canonical_base &lt;chr&gt;,
+#   modified_primary_base &lt;chr&gt;, fail &lt;lgl&gt;, inferred &lt;lgl&gt;, …</code></pre>
+<p>modbam2bed actually uses threshold 0.66 which is likely different to
+modkit threshold (fail)</p>
+<pre class="r"><code>summary(filter(indiv_reads, fail == TRUE)$call_prob)</code></pre>
+<pre><code>   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+ 0.5020  0.7520  0.9121  0.8511  0.9746  0.9902 </code></pre>
+<pre class="r"><code>overlaps_bed_reads %&gt;% filter(call_prob &gt; 0.66) %&gt;% group_by(ref_position) %&gt;% mutate(expec_beta_filt = mean(call_code == &quot;m&quot;)) %&gt;% ungroup() %&gt;% mutate(match_beta_filt = ifelse(beta == expec_beta_filt, TRUE, FALSE)) %&gt;% group_by(match_beta_filt) %&gt;% summarise(n= n()) %&gt;% ungroup() %&gt;% mutate(prop = n/sum(n))</code></pre>
+<pre><code># A tibble: 2 × 3
+  match_beta_filt      n   prop
+  &lt;lgl&gt;            &lt;int&gt;  &lt;dbl&gt;
+1 FALSE             2145 0.0210
+2 TRUE            100073 0.979 </code></pre>
+<pre class="r"><code>c(num_reads = overlaps_bed_reads %&gt;% filter(call_prob &gt; 0.66) %&gt;% group_by(ref_position) %&gt;% mutate(expec_beta_filt = mean(call_code == &quot;m&quot;)) %&gt;% ungroup() %&gt;% mutate(match_beta_filt = ifelse(beta == expec_beta_filt, TRUE, FALSE)) %&gt;% filter(match_beta_filt == FALSE) %&gt;% distinct(read_id) %&gt;% nrow(), 
+  num_pos = overlaps_bed_reads %&gt;% filter(call_prob &gt; 0.66) %&gt;% group_by(ref_position) %&gt;% mutate(expec_beta_filt = mean(call_code == &quot;m&quot;)) %&gt;% ungroup() %&gt;% mutate(match_beta_filt = ifelse(beta == expec_beta_filt, TRUE, FALSE)) %&gt;% filter(match_beta_filt == FALSE) %&gt;% distinct(pos) %&gt;% nrow())</code></pre>
+<pre><code>num_reads   num_pos 
+     1248      1726 </code></pre>
+<ul>
+<li>oops wasn’t doing this on distinct reads (be some double ups b/c
+overlap with pos)</li>
+</ul>
+<pre class="r"><code>overlaps_bed_reads %&gt;% filter(call_prob &gt; 0.66) %&gt;% group_by(ref_position) %&gt;% mutate(expec_beta_filt = mean(call_code == &quot;m&quot;)) %&gt;% ungroup() %&gt;% mutate(match_beta_filt = ifelse(beta == expec_beta_filt, TRUE, FALSE)) %&gt;% distinct(read_id, match_beta_filt) %&gt;% group_by(match_beta_filt) %&gt;% summarise(n= n()) %&gt;% ungroup() %&gt;% mutate(prop = n/sum(n))</code></pre>
+<pre><code># A tibble: 2 × 3
+  match_beta_filt     n   prop
+  &lt;lgl&gt;           &lt;int&gt;  &lt;dbl&gt;
+1 FALSE            1248 0.0459
+2 TRUE            25961 0.954 </code></pre>
+<pre class="r"><code>overlaps_bed_reads %&gt;% filter(call_prob &gt; 0.8, fail == TRUE) %&gt;% group_by(ref_position) %&gt;% mutate(expec_beta_filt = mean(call_code == &quot;m&quot;)) %&gt;% ungroup() %&gt;% mutate(match_beta_filt = ifelse(beta == expec_beta_filt, TRUE, FALSE)) %&gt;% distinct(read_id, match_beta_filt) %&gt;% group_by(match_beta_filt) %&gt;% summarise(n= n()) %&gt;% ungroup() %&gt;% mutate(prop = n/sum(n))</code></pre>
+<pre><code># A tibble: 2 × 3
+  match_beta_filt     n   prop
+  &lt;lgl&gt;           &lt;int&gt;  &lt;dbl&gt;
+1 FALSE            1172 0.0609
+2 TRUE            18068 0.939 </code></pre>
+<pre class="r"><code>overlaps_bed_reads %&gt;% filter(fail == TRUE) %&gt;% group_by(ref_position) %&gt;% mutate(expec_beta_filt = mean(call_code == &quot;m&quot;)) %&gt;% ungroup() %&gt;% mutate(match_beta_filt = ifelse(beta == expec_beta_filt, TRUE, FALSE)) %&gt;% distinct(read_id, match_beta_filt) %&gt;% group_by(match_beta_filt) %&gt;% summarise(n=n()) %&gt;% ungroup() %&gt;% mutate(prop = n/sum(n))</code></pre>
+<pre><code># A tibble: 2 × 3
+  match_beta_filt     n   prop
+  &lt;lgl&gt;           &lt;int&gt;  &lt;dbl&gt;
+1 FALSE            1793 0.0824
+2 TRUE            19957 0.918 </code></pre>
+<pre class="r"><code>overlaps_bed_reads %&gt;% filter(call_prob &gt; 0.8) %&gt;% group_by(ref_position) %&gt;% mutate(expec_beta_filt = mean(call_code == &quot;m&quot;)) %&gt;% ungroup() %&gt;% mutate(match_beta_filt = ifelse(beta == expec_beta_filt, TRUE, FALSE)) %&gt;% distinct(read_id, match_beta_filt) %&gt;% group_by(match_beta_filt) %&gt;% summarise(n=n()) %&gt;% ungroup() %&gt;% mutate(prop = n/sum(n))</code></pre>
+<pre><code># A tibble: 2 × 3
+  match_beta_filt     n   prop
+  &lt;lgl&gt;           &lt;int&gt;  &lt;dbl&gt;
+1 FALSE            1332 0.0502
+2 TRUE            25211 0.950 </code></pre>
+<pre class="r"><code>overlaps_bed_reads %&gt;% filter(call_prob &gt; 0.66) %&gt;% group_by(ref_position) %&gt;% mutate(expec_beta_filt = mean(call_code == &quot;m&quot;)) %&gt;% ungroup() %&gt;% mutate(match_beta_filt = ifelse(beta == expec_beta_filt, TRUE, FALSE)) %&gt;% distinct(pos, match_beta_filt) %&gt;% group_by(match_beta_filt) %&gt;% summarise(n= n()) %&gt;% ungroup() %&gt;% mutate(prop = n/sum(n))</code></pre>
+<pre><code># A tibble: 2 × 3
+  match_beta_filt     n   prop
+  &lt;lgl&gt;           &lt;int&gt;  &lt;dbl&gt;
+1 FALSE            1726 0.0183
+2 TRUE            92433 0.982 </code></pre>
+<pre class="r"><code>overlaps_bed_reads %&gt;% filter(call_prob &gt; 0.8, fail == TRUE) %&gt;% group_by(ref_position) %&gt;% mutate(expec_beta_filt = mean(call_code == &quot;m&quot;)) %&gt;% ungroup() %&gt;% mutate(match_beta_filt = ifelse(beta == expec_beta_filt, TRUE, FALSE)) %&gt;% distinct(pos, match_beta_filt) %&gt;% group_by(match_beta_filt) %&gt;% summarise(n= n()) %&gt;% ungroup() %&gt;% mutate(prop = n/sum(n))</code></pre>
+<pre><code># A tibble: 2 × 3
+  match_beta_filt     n   prop
+  &lt;lgl&gt;           &lt;int&gt;  &lt;dbl&gt;
+1 FALSE            1405 0.0357
+2 TRUE            37935 0.964 </code></pre>
+<pre class="r"><code>overlaps_bed_reads %&gt;% filter(fail == TRUE) %&gt;% group_by(ref_position) %&gt;% mutate(expec_beta_filt = mean(call_code == &quot;m&quot;)) %&gt;% ungroup() %&gt;% mutate(match_beta_filt = ifelse(beta == expec_beta_filt, TRUE, FALSE)) %&gt;% distinct(pos, match_beta_filt) %&gt;% group_by(match_beta_filt) %&gt;% summarise(n=n()) %&gt;% ungroup() %&gt;% mutate(prop = n/sum(n))</code></pre>
+<pre><code># A tibble: 2 × 3
+  match_beta_filt     n   prop
+  &lt;lgl&gt;           &lt;int&gt;  &lt;dbl&gt;
+1 FALSE            2204 0.0458
+2 TRUE            45929 0.954 </code></pre>
+<pre class="r"><code>overlaps_bed_reads %&gt;% filter(call_prob &gt; 0.8) %&gt;% group_by(ref_position) %&gt;% mutate(expec_beta_filt = mean(call_code == &quot;m&quot;)) %&gt;% ungroup() %&gt;% mutate(match_beta_filt = ifelse(beta == expec_beta_filt, TRUE, FALSE)) %&gt;% distinct(pos, match_beta_filt) %&gt;% group_by(match_beta_filt) %&gt;% summarise(n=n()) %&gt;% ungroup() %&gt;% mutate(prop = n/sum(n))</code></pre>
+<pre><code># A tibble: 2 × 3
+  match_beta_filt     n   prop
+  &lt;lgl&gt;           &lt;int&gt;  &lt;dbl&gt;
+1 FALSE            1757 0.0203
+2 TRUE            84741 0.980 </code></pre>
+<p><em>look maybe its ok to have some be wrong as long as its small
+proportion </em> all similar but best is filt &gt; 0.66, then filt &gt;
+0.8 - basically only 2% are wrong</p>
+<p><em>so let’s use 0.66 and move on for right now </em> actually try
+matching them up</p>
+<ul>
+<li>oops I had forgotten to do distinct reads</li>
+<li>0.66 is still best but now they’re all close to 5% (well that is
+standard error)</li>
+</ul>
+<p>(but also actually beta is about positions so should be distinct pos,
+not distinct read_id - still 66% is best - 1.8%)</p>
+<ul>
+<li><p>so it’s &lt; 2% of CpGs and &lt; 5% of reads</p></li>
+<li><p>how wrong are the wrong ones with this approach?</p></li>
+</ul>
+<pre class="r"><code>overlaps_bed_reads %&gt;% filter(call_prob &gt; 0.66) %&gt;% group_by(ref_position) %&gt;% mutate(expec_beta_filt = mean(call_code == &quot;m&quot;)) %&gt;% ungroup() %&gt;% mutate(match_beta_filt = ifelse(beta == expec_beta_filt, TRUE, FALSE)) %&gt;% distinct(pos, match_beta_filt, beta, expec_beta_filt) %&gt;% mutate(diff_beta_minus_expec = beta - expec_beta_filt) %&gt;%
+  ggplot(aes(x = diff_beta_minus_expec)) +
+  geom_density()</code></pre>
+<p><img src="figure/checkAlphaAndBetaMatch.Rmd/unnamed-chunk-62-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>overlaps_bed_reads %&gt;% filter(call_prob &gt; 0.66) %&gt;% group_by(ref_position) %&gt;% mutate(expec_beta_filt = mean(call_code == &quot;m&quot;)) %&gt;% ungroup() %&gt;% mutate(match_beta_filt = ifelse(beta == expec_beta_filt, TRUE, FALSE)) %&gt;% distinct(pos, match_beta_filt, beta, expec_beta_filt) %&gt;% mutate(diff_beta_minus_expec = beta - expec_beta_filt) %&gt;%
+  ggplot(aes(x = match_beta_filt, y = diff_beta_minus_expec)) +
+  geom_boxplot() +
+  geom_violin()</code></pre>
+<p><img src="figure/checkAlphaAndBetaMatch.Rmd/unnamed-chunk-63-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>overlaps_bed_reads %&gt;% filter(call_prob &gt; 0.66) %&gt;% group_by(ref_position) %&gt;% mutate(expec_beta_filt = mean(call_code == &quot;m&quot;)) %&gt;% ungroup() %&gt;% mutate(match_beta_filt = ifelse(beta == expec_beta_filt, TRUE, FALSE)) %&gt;% distinct(pos, match_beta_filt, beta, expec_beta_filt) %&gt;% mutate(diff_beta_minus_expec = beta - expec_beta_filt) %&gt;%
+  filter(match_beta_filt == FALSE) %&gt;%
+  ggplot(aes(x = diff_beta_minus_expec)) +
+  geom_density()</code></pre>
+<p><img src="figure/checkAlphaAndBetaMatch.Rmd/unnamed-chunk-64-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>overlaps_bed_reads %&gt;% filter(call_prob &gt; 0.66) %&gt;% group_by(ref_position) %&gt;% mutate(expec_beta_filt = mean(call_code == &quot;m&quot;)) %&gt;% ungroup() %&gt;% mutate(match_beta_filt = ifelse(beta == expec_beta_filt, TRUE, FALSE)) %&gt;% distinct(pos, match_beta_filt, beta, expec_beta_filt) %&gt;% mutate(diff_beta_minus_expec = beta - expec_beta_filt) %&gt;% .$diff_beta_minus_expec %&gt;% summary()</code></pre>
+<pre><code>     Min.   1st Qu.    Median      Mean   3rd Qu.      Max. 
+-1.000000  0.000000  0.000000 -0.000644  0.000000  1.000000 </code></pre>
+<pre class="r"><code>overlaps_bed_reads %&gt;% filter(call_prob &gt; 0.66) %&gt;% group_by(ref_position) %&gt;% mutate(expec_beta_filt = mean(call_code == &quot;m&quot;)) %&gt;% ungroup() %&gt;% mutate(match_beta_filt = ifelse(beta == expec_beta_filt, TRUE, FALSE)) %&gt;% distinct(pos, match_beta_filt, beta, expec_beta_filt) %&gt;% mutate(diff_beta_minus_expec = beta - expec_beta_filt) %&gt;% filter(match_beta_filt == FALSE) %&gt;% .$diff_beta_minus_expec %&gt;% summary()</code></pre>
+<pre><code>     Min.   1st Qu.    Median      Mean   3rd Qu.      Max. 
+-1.00e+00 -1.00e+00 -3.33e-05 -3.49e-02  1.00e+00  1.00e+00 </code></pre>
+</div>
+<div id="use-this-filtering" class="section level1">
+<h1>use this filtering</h1>
+<ul>
+<li>and the ones that don’t match?</li>
+<li>I say we just filter them out as well</li>
+</ul>
+<pre class="r"><code>overlaps_bed_reads_filt &lt;- overlaps_bed_reads %&gt;% filter(call_prob &gt; 0.66) %&gt;% group_by(ref_position) %&gt;% mutate(expec_beta_filt = mean(call_code == &quot;m&quot;)) %&gt;% ungroup() %&gt;% mutate(match_beta_filt = ifelse(beta == expec_beta_filt, TRUE, FALSE)) %&gt;% filter(match_beta_filt == TRUE)</code></pre>
+<ul>
+<li>now I can use these positions from the bed file and these read ids
+to get alpha again</li>
+<li>does this also mean I could infer coverage?</li>
+<li>because that was the problem with the bed file - no coverage etc
+info</li>
+</ul>
 <br>
 <p>
 <button type="button" class="btn btn-default btn-workflowr btn-workflowr-sessioninfo" data-toggle="collapse" data-target="#workflowr-sessioninfo" style="display: block;">
