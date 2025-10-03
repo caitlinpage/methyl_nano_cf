@@ -23,6 +23,7 @@ so making this the one stop shop for bed/beta organisation
 ## Introduction
 
 ```{r}
+library(data.table)
 library(plyranges)
 library(tidyr)
 library(reshape2)
@@ -30,39 +31,81 @@ library(dplyr)
 library(ggplot2)
 ```
 
+```{r}
+all_samples <- readRDS("/researchers/caitlin.page/cf_nano/r_output/all_samples.rds")
+overlap_bins_reads <- readRDS("/researchers/caitlin.page/cf_nano/r_output/overlap_bins_reads.rds")
+cg_sites <- readRDS("/researchers/caitlin.page/cf_nano/r_output/cg_sites.rds")
+bed_betas <- readRDS("/researchers/caitlin.page/cf_nano/r_output/bed_betas.rds")
+wt_beta_chr22 <- readRDS("/researchers/caitlin.page/cf_nano/r_output/wt_beta_chr22.rds")
+indiv_reads <- readRDS("/researchers/caitlin.page/cf_nano/r_output/indiv_reads.rds")
+```
+
+
 * bed_betas : just beta value and position from available data downloaded
 * wt_beta : wgbs_tools beta values
+* modkit_bed
+
+USING: bed_betas (downloaded data)
+
+WHY:
+* something wrong with wt_beta - unmeth is always 0 (clearly wrong)
+* modkit_bed has weird position things happening that I don't like
+
+* can see this in (checkAlphaAndBet.html)
+
+# bed_betas
 
 ```{r}
 bed_betas$pos <- paste0(bed_betas$seqnames, "-", bed_betas$start)
 ```
 ```{r}
- bed_betas_hu5.10 <- bed_betas %>% filter(sample == "hu5.10")
+bed_betas_hu5.10 <- bed_betas %>% filter(sample == "hu5.10")
 ```
+
+* decision from (checkAlphaAndBeta.html)
+beta values match expected beta values (calculated from indiv_reads) when expected beta is calculated by filtering to reads with a call probability of > 0.66
+this value was selected as it's what [modbam2bed](https://github.com/epi2me-labs/modbam2bed) default filtering option is which is what the [paper](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-022-02710-1#Sec10) used to make the processed bed file they used in their own analysis
+
 ```{r}
-wt_beta
+overlaps_bed_reads <- find_overlaps(as_granges(bed_betas_hu5.10), as_granges(indiv_reads)) %>% data.frame()
+overlaps_bed_reads$pos <- paste0(overlaps_bed_reads$seqnames, "-", overlaps_bed_reads$start)
+
+overlaps_bed_reads_filt <- overlaps_bed_reads %>% 
+  filter(call_prob > 0.66) %>% 
+  group_by(ref_position) %>% 
+  mutate(expec_beta_filt = mean(call_code == "m")) %>% 
+  ungroup() %>% 
+  mutate(match_beta_filt = ifelse(beta == expec_beta_filt, TRUE, FALSE)) %>% 
+  filter(match_beta_filt == TRUE)
+
+nrow(overlaps_bed_reads)
+nrow(overlaps_bed_reads_filt)
 ```
 
 ```{r}
-wt_beta %>% filter(seqnames == "chr22") %>% .[,1:8] %>% mutate(bed_beta = bed_betas_hu5.10[match(.$pos, bed_betas_hu5.10$pos), "beta"]) %>%
-  mutate(beta_match = ifelse(bed_beta == HU005.10.beta, TRUE, FALSE)) %>% group_by(HU005.10.beta, bed_beta) %>% summarise(n())
+head(overlaps_bed_reads_filt)
 ```
+
+
+# wt_beta
 
 ```{r}
-wt_beta %>% filter(seqnames == "chr22") %>% .[,1:8] %>% mutate(bed_beta = bed_betas_hu5.10[match(.$pos, bed_betas_hu5.10$pos), "beta"]) %>%
-  mutate(beta_match = ifelse(bed_beta == HU005.10.beta, TRUE, FALSE)) %>%
-  ggplot(aes(x = HU005.10.beta, y = bed_beta)) +
-  geom_point(alpha = 0.3)
+wt_beta_chr22[1:5,]
 ```
-* yeah can't trust wgbs tools beta if it's only 1 (or 0 would be the Nas??)
+```{r}
+summary(wt_beta_chr22$HU005.10.meth)
+summary(wt_beta_chr22$HU005.10.unmeth)
+summary(wt_beta_chr22$HU005.10.cov)
+```
+
 
 ```{r}
-wt_beta %>% filter(seqnames == "chr22") %>% .[,1:8] %>% mutate(bed_beta = bed_betas_hu5.10[match(.$pos, bed_betas_hu5.10$pos), "beta"]) %>%
-  mutate(beta_match = ifelse(bed_beta == HU005.10.beta, TRUE, FALSE)) %>% group_by(beta_match) %>% summarise(n())
+wt_beta_chr22 %>%  
+  ggplot(aes(x = HU005.10.beta)) +
+  geom_density()
 ```
 
-* what about my modkit bed files?
-* newer
+# modkit
 
 * if they match the beta values from megalodon that would be good
 ```{r}
@@ -81,29 +124,27 @@ modkit_bed_hu5.10$pos <- paste0(modkit_bed_hu5.10$seqnames, "-", modkit_bed_hu5.
 ```
 ```{r}
 nrow(indiv_reads)
-indiv_reads %>% filter(ref_position %in% modkit_bed_hu5.10$start)
-indiv_reads %>% filter(ref_position %in% modkit_bed_hu5.10$end)
+#indiv_reads %>% filter(ref_position %in% modkit_bed_hu5.10$start) %>% nrow()
+#indiv_reads %>% filter(ref_position %in% modkit_bed_hu5.10$end)
 ```
 ```{r}
-bed_betas_hu5.10 %>% filter(start %in% modkit_bed_hu5.10$end )
+#bed_betas_hu5.10 %>% filter(start %in% modkit_bed_hu5.10$end)
 ```
 92973
 ```{r}
-modkit_bed_hu5.10 
+modkit_bed_hu5.10[1:5,]
 ```
 ```{r}
-find_overlaps(as_granges(modkit_bed_hu5.10), as_granges(bed_betas_hu5.10)) %>% data.frame()
+find_overlaps(as_granges(modkit_bed_hu5.10), as_granges(bed_betas_hu5.10)) %>% data.frame() %>% nrow()
 ```
 
 ```{r}
-find_overlaps(as_granges(modkit_bed_hu5.10), as_granges(bed_betas_hu5.10)) %>% data.frame() %>% distinct()
+find_overlaps(as_granges(modkit_bed_hu5.10), as_granges(bed_betas_hu5.10)) %>% data.frame() %>% distinct() %>% nrow()
 ```
 
 ```{r}
-find_overlaps(as_granges(modkit_bed_hu5.10), as_granges(cg_sites)) %>% data.frame()
+find_overlaps(as_granges(modkit_bed_hu5.10), as_granges(cg_sites)) %>% data.frame() %>% nrow()
 ```
 
-```{r}
-list.files
-```
+
 
