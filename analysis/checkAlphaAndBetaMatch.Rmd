@@ -554,3 +554,44 @@ overlaps_bed_reads_filt <- overlaps_bed_reads %>% filter(call_prob > 0.66) %>% g
 * because that was the problem with the bed file - no coverage etc info
 
 
+# sense check with genes
+
+```{r}
+library(TxDb.Hsapiens.UCSC.hg38.knownGene)
+```
+
+
+```{r}
+genes_txdb <- genes(TxDb.Hsapiens.UCSC.hg38.knownGene)
+
+promoters_txdb <- promoters(TxDb.Hsapiens.UCSC.hg38.knownGene)
+```
+
+* promoters should be less methylated than genes(bodies)
+* as that is where transcription is activated - and need demethylation to turn on a gene
+```{r}
+overlaps_bed_reads_filt
+```
+
+```{r}
+find_overlaps(genes_txdb, as_granges(overlaps_bed_reads_filt)) %>% data.frame() %>% distinct(pos, gene_id, beta) %>%
+  ggplot(aes(x = beta)) +
+  geom_density() +
+  scale_y_continuous(limits = c(0,7)) +
+  labs(title = "Distribution of betas overlapping genes")
+```
+
+```{r}
+find_overlaps(promoters_txdb, as_granges(overlaps_bed_reads_filt)) %>% data.frame() %>% distinct(pos, tx_id, beta) %>%
+  ggplot(aes(x = beta)) +
+  geom_density() +
+  scale_y_continuous(limits = c(0,7)) +
+  labs(title = "Distribution of betas overlapping promoters")
+```
+
+* yes sense check passes
+* plots are on the same scale, and much less full methylation at beta = 1
+
+* note: I only did this with sample hu5.10
+** need to repeat for all other samples
+
