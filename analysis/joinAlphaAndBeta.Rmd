@@ -7,9 +7,297 @@ editor_options:
   chunk_output_type: inline
 ---
 
-## Introduction
+## Description
+
+Here I want to figure out how I am going to meaningfully link my alphas and betas
+Do they go together in a data frame?
+Do they follow more like a summarised experiment format with different sections?
+(last discussion this was more likely)
+
+Follows from previous beta file based analysis - figuring out betas [here](checkAlphaAndBeta.html), summarised beta decisions [here](bedFileBetas.html)
+
+## Packages and files
+
+```{r}
+library(data.table)
+library(plyranges)
+library(tidyr)
+library(reshape2)
+library(stringr)
+library(dplyr)
+library(ggplot2)
+```
+
+
+```{r}
+all_samples <- readRDS("/researchers/caitlin.page/cf_nano/r_output/all_samples.rds")
+overlap_bins_reads <- readRDS("/researchers/caitlin.page/cf_nano/r_output/overlap_bins_reads.rds")
+cg_sites <- readRDS("/researchers/caitlin.page/cf_nano/r_output/cg_sites.rds")
+bed_betas <- readRDS("/researchers/caitlin.page/cf_nano/r_output/bed_betas.rds")
+indiv_reads <- readRDS("/researchers/caitlin.page/cf_nano/r_output/indiv_reads.rds")
+```
+
+```{r}
+bed_betas$pos <- paste0(bed_betas$seqnames, "-", bed_betas$start)
+bed_betas_hu5.10 <- bed_betas %>% filter(sample == "hu5.10")
+head(bed_betas_hu5.10)
+```
+
+
+## Filtering the files
+
+(see previous work for decisions - but this is to make sure betas and alphas match up as expected)
+```{r}
+overlaps_bed_reads <- find_overlaps(as_granges(bed_betas_hu5.10), as_granges(indiv_reads)) %>% data.frame()
+overlaps_bed_reads$pos <- paste0(overlaps_bed_reads$seqnames, "-", overlaps_bed_reads$start)
+
+overlaps_bed_reads_filt <- overlaps_bed_reads %>% 
+  filter(call_prob > 0.66) %>% 
+  group_by(ref_position) %>% 
+  mutate(expec_beta_filt = mean(call_code == "m")) %>% 
+  ungroup() %>% 
+  mutate(match_beta_filt = ifelse(beta == expec_beta_filt, TRUE, FALSE)) %>% 
+  filter(match_beta_filt == TRUE)
+head(overlaps_bed_reads_filt)
+```
+
+* now I have the positions and read_ids of the positions and reads I'm going to keep
+* this is only for sample hu5.10
+```{r}
+bed_betas_hu5.10_filt <- bed_betas_hu5.10 %>% filter(pos %in% overlaps_bed_reads_filt$pos)
+indiv_reads_filt <- indiv_reads %>% filter(read_id %in% overlaps_bed_reads_filt$read_id)
+```
+
+```{r}
+# current alpha format
+alpha_format_hu5.10_filt <- all_samples %>% filter(read_id %in% overlaps_bed_reads_filt$read_id) 
+head(alpha_format_hu5.10_filt)
+```
+
+
+## Now let's play around
+
+I have read structure and position structure
+
+Traditional position structure:
+```{r}
+colnames(bed_betas_hu5.10_filt)[c(11,1:5,9)]
+```
+
+* actually place to start is with my overlaps_bed_reads_filt
+* because it's already got betas plus reads
+* all it needs is the alpha info
+* and it's a ginormous data frame with all the info
+* can't overlap alpha and beta file b/c alpha file is read positions so won't line up nicely enough
+
+```{r}
+colnames(alpha_format_hu5.10_filt)
+```
+
+* I want the read_start, read_end, read_length, meth_pattern, genom_positions, num_meth, total, alpha
+
+
+```{r}
+alpha_and_beta <- overlaps_bed_reads_filt %>% 
+  mutate(read_start = alpha_format_hu5.10_filt[match(.$read_id, alpha_format_hu5.10_filt$read_id), "read_start"],
+         read_end = alpha_format_hu5.10_filt[match(.$read_id, alpha_format_hu5.10_filt$read_id), "read_end"],
+         read_length = alpha_format_hu5.10_filt[match(.$read_id, alpha_format_hu5.10_filt$read_id), "read_length"],
+         meth_pattern = alpha_format_hu5.10_filt[match(.$read_id, alpha_format_hu5.10_filt$read_id), "meth_pattern"],
+         genom_positions = alpha_format_hu5.10_filt[match(.$read_id, alpha_format_hu5.10_filt$read_id), "genom_positions"],
+         num_meth = alpha_format_hu5.10_filt[match(.$read_id, alpha_format_hu5.10_filt$read_id), "num_meth"],
+         total = alpha_format_hu5.10_filt[match(.$read_id, alpha_format_hu5.10_filt$read_id), "total"],
+         alpha = alpha_format_hu5.10_filt[match(.$read_id, alpha_format_hu5.10_filt$read_id), "alpha"])
+head(alpha_and_beta)
+```
+
+* this is a form that has all the info, and is technically an approach - a beta centric
+
+# position based
+```{r}
+alpha_and_beta[1:5,]
+```
+* every row is a position
+* positions do repeat - b/c it's position per read
+```{r}
+alpha_and_beta %>% group_by(pos) %>% summarise(n=n()) %>%
+  ggplot(aes(x = n)) +
+  geom_bar()
+```
+* but majority of positions only occur once
+* highlighting that reads don't often overlap
+
+
+# read based
+* honestly I don't think it's worth spending any time on this
+* or at least not right now
+* because I think the trick will be in separating things out
+
+# some kind of combo
+* maybe something like summarised experiment style?
+* jovana spent a bit of time on this thinking at research sprint ages ago
+
+Cpg positions link to beta values
+Reads are a vector of cpg positions, and each read_id has an alpha value
+
+* let's just split everything up and see what I can use to link them
+** pos
+** and maybe just row num if I order by cpg_pos
+
+```{r}
+cpg_pos_gr <- as_granges(distinct(alpha_and_beta[,c("seqnames", "start", "end", "width", "pos", "beta")]))
+cpg_pos_gr
+```
+* keep pos in there as an identifier?
+* or maybe it should be numbers increasing and then can use row numbers
+* could do both
+
+```{r}
+beta_matrix <- cbind(distinct(alpha_and_beta[,c("pos", "beta")])$beta)
+rownames(beta_matrix) <- distinct(alpha_and_beta[,c("pos", "beta")])$pos
+colnames(beta_matrix) <- "hu5.10" # one column per sample
+head(beta_matrix)
+```
+
+* I don't have coverage or methylation info and that's what I need - the bed file was missing it and I haven't tried again to estimate it straight from bam/indiv_files
+
+* that was the beta based items
+* now for the read - icky
+
+* read positions - actually just granges might be simplest?
+```{r}
+read_pos_gr <- as_granges(distinct(mutate(alpha_and_beta, start = read_start, end = read_end, width = end - start + 1)[,c("seqnames", "start", "end", "width", "read_id")]))
+read_pos_gr
+```
+
+
+```{r}
+alpha_matrix <- as.matrix(distinct(alpha_and_beta[,c("alpha", "read_id")])$alpha)
+rownames(alpha_matrix) <- distinct(alpha_and_beta[,c("alpha", "read_id")])$read_id
+colnames(alpha_matrix) <- "hu5.10" # one column per sample
+head(alpha_matrix)
+```
+
+
+* another matrix for meth pattern? - also I know I copied pat naming but I think I prefer M and U - clearer - also it's not C/T b/c not BS
+* what about meth pattern as a list: meth pattern, and then inside the list is the read ids that it matches?
+* also because matrix is for assay in sumexp - and assay is like counts things - so like my alpha, beta, meth, etc
+```{r}
+alpha_and_beta %>% distinct(meth_pattern, read_id) %>% group_by(meth_pattern) %>% summarise(n=n()) %>%
+  ggplot(aes(x = n)) +
+  geom_boxplot()
+```
+
+```{r}
+meth_pattern_list <- split(distinct(alpha_and_beta, meth_pattern, read_id)$read_id, distinct(alpha_and_beta, meth_pattern, read_id)$meth_pattern)
+meth_pattern_list$CTTTTCCT
+```
+* ooh this is cool
+
+
+* ok I have some of my pieces of info
+* can I find a way to put them together?
+* maybe try to make a plot?
+
+
+
+## try to plot
+* I had been using bins but currently don't have bins
+* that's ok I do
+* worse though I need the read split up to know if each cpg on read is meth or unmeth
+* wait just reverse the meth pattern split
+* and as a row names the genom position
+```{r}
+read_pattern_list <- split(distinct(alpha_and_beta, meth_pattern, read_id)$meth_pattern, distinct(alpha_and_beta, meth_pattern, read_id)$read_id)
+read_pattern_list <- lapply(read_pattern_list, function(vec) {
+  unlist(strsplit(vec, split = ""))
+})
+```
+
+```{r}
+read_genom_list <- split(distinct(alpha_and_beta, genom_positions, read_id)$genom_positions, distinct(alpha_and_beta, genom_positions, read_id)$read_id)
+read_genom_list <- lapply(read_genom_list, function(vec) {
+  unlist(strsplit(vec, split = ","))
+})
+
+unlist(read_genom_list)
+```
+
+```{r}
+#master_object <- c(cpg_pos_gr, read_pos_gr, beta_matrix, alpha_matrix, read_pattern_list, read_genom_list)
+```
+
+
+
+```{r}
+overlap_bins_reads %>% filter(sample == "hu5.10") %>% group_by(bin_num) %>% summarise(n= n()) %>% .[order(.$n, decreasing = TRUE),] %>% .[1:5,]
+```
+```{r}
+region_reads <- overlap_bins_reads %>% filter(bin_num == 2364, sample == "hu5.10") %>% .$read_id
+```
+
+```{r}
+plot_region_info <- filter(data.frame(read_pos_gr), read_id %in% region_reads)
+plot_region_info$alpha <- alpha_matrix[match(plot_region_info$read_id, rownames(alpha_matrix), "hu5.10")]
+```
+
+```{r}
+plot_region_site <- unlist(read_genom_list)
+plot_region_site <- plot_region_site[names(plot_region_site) %in% region_reads]
+```
 
 ```{r}
 
 ```
 
+```{r}
+bin_cpgs
+```
+```{r}
+
+```
+
+
+```{r}
+ggplot() +
+  geom_segment(data = plot_region_info, 
+               aes(x = start, xend = end, y = alpha, yend = alpha), alpha = 0.3) +
+  geom_point()
+```
+
+
+```{r}
+overlap_bins_reads %>% filter(bin_num == 3780, sample == "hu5.10") %>%
+  ggplot() +
+  geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha, colour = sample, group = sample), alpha = 0.2) +
+  geom_point(data = filter(bin_cpgs, sample == "hu5.10"), aes(x = bin_cpgs, y = alpha, shape = site_is_unmeth, colour = sample, group = sample)) +
+  scale_shape_manual(values = c(`TRUE` = 1, `FALSE` = 16),
+                     name = "Meth status", labels = c(`TRUE` = "Unmeth", `FALSE` = "Meth")) +
+  geom_line(data = filter(bed_betas, sample == "hu5.10", start >= min(bin_cpgs$bin_cpgs), start <= max(bin_cpgs$bin_cpgs)),
+            aes(x = start, y = beta, colour = sample, group = sample),
+            linetype = "dashed") +
+  labs(title = "bin 3780: hu5.10") +
+  scale_x_continuous(limits = c(18896000, 18897000))
+```
+
+
+
+
+# was meaning more for meth patterns analysis but maybe peter hickeys package could help?
+"analysing, managing, and visualising meth tuples" (not quite a read but similar)
+
+* hmm more about the pattern because it's setting the length
+* and then counting reads
+```{r}
+#renv::install("PeteHaitch/MethylationTuples")
+#library(MethylationTuples)
+```
+https://github.com/PeteHaitch/methtuple
+
+?MethylationTuples::MethPat()
+```{r}
+?MethylationTuples::MethPat()
+```
+
+pete hickey also has this [genomictuples bioconductor package](https://bioconductor.org/packages/release/bioc/vignettes/GenomicTuples/inst/doc/GenomicTuplesIntroduction.html)
+interesting except that reads vary in num cpgs - this requires same
+but it builds off granges
