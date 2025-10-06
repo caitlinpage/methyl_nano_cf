@@ -144,7 +144,7 @@ Reads are a vector of cpg positions, and each read_id has an alpha value
 ** and maybe just row num if I order by cpg_pos
 
 ```{r}
-cpg_pos_gr <- as_granges(distinct(alpha_and_beta[,c("seqnames", "start", "end", "width", "pos", "beta")]))
+cpg_pos_gr <- as_granges(distinct(alpha_and_beta[,c("seqnames", "start", "end", "width", "pos")]))
 cpg_pos_gr
 ```
 * keep pos in there as an identifier?
@@ -200,7 +200,7 @@ meth_pattern_list$CTTTTCCT
 
 
 
-## try to plot
+
 * I had been using bins but currently don't have bins
 * that's ok I do
 * worse though I need the read split up to know if each cpg on read is meth or unmeth
@@ -231,6 +231,12 @@ unlist(read_genom_list)
 ```{r}
 overlap_bins_reads %>% filter(sample == "hu5.10") %>% group_by(bin_num) %>% summarise(n= n()) %>% .[order(.$n, decreasing = TRUE),] %>% .[1:5,]
 ```
+
+
+
+
+## try to plot
+
 ```{r}
 region_reads <- overlap_bins_reads %>% filter(bin_num == 2364, sample == "hu5.10") %>% .$read_id
 ```
@@ -279,6 +285,116 @@ overlap_bins_reads %>% filter(bin_num == 3780, sample == "hu5.10") %>%
   scale_x_continuous(limits = c(18896000, 18897000))
 ```
 
+
+## ok I was overcomplicating it and the plot wasn't working
+* let's try simpler
+
+* beta can go with cpg positions b/c all the same
+```{r}
+cpg_pos_gr <- as_granges(distinct(alpha_and_beta[,c("seqnames", "start", "end", "width", "pos", "beta")]))
+cpg_pos_gr
+```
+
+* alpha can go with read
+```{r}
+read_pos_gr <- as_granges(distinct(mutate(alpha_and_beta, start = read_start, end = read_end, width = end - start + 1)[,c("seqnames", "start", "end", "width", "read_id", "alpha")]))
+read_pos_gr
+```
+
+* how big would the genomic ranges list be if it's a list per read or per position with all the cpgs and meth status of that position?
+* this is the awkward one
+* modkit just has it as a table
+* I want to do a bit better than that
+
+* this is where the tuples is interesting - but is limited to a set size
+* and also the pat
+
+* for now though
+```{r}
+read_pos_gr <- as_granges(distinct(mutate(alpha_and_beta, start = read_start, end = read_end, width = end - start + 1)[,c("seqnames", "start", "end", "width", "read_id", "alpha", "genom_positions", "meth_pattern", "total")]))
+read_pos_gr
+```
+
+## try plot again
+```{r}
+region_reads <- overlap_bins_reads %>% filter(bin_num == 2364, sample == "hu5.10") %>% .$read_id
+region_reads
+```
+
+```{r}
+site_meth <- cbind(position = filter(data.frame(read_pos_gr), read_id %in% region_reads) %>% .$genom_positions %>% strsplit(",") %>% unlist() %>% as.double(), 
+      meth = filter(data.frame(read_pos_gr), read_id %in% region_reads) %>% .$meth_pattern %>% strsplit("") %>% unlist()) %>% data.frame()
+site_meth <- site_meth %>% mutate(site_is_unmeth = ifelse(meth == "T", TRUE, FALSE))
+
+alpha_vec <- filter(data.frame(read_pos_gr), read_id %in% region_reads) %>% .$alpha 
+rep_vec <- filter(data.frame(read_pos_gr), read_id %in% region_reads) %>% .$total 
+
+site_meth <- cbind(site_meth, alpha = rep(x = alpha_vec, times = rep_vec))
+site_meth$position <- as.double(site_meth$position)
+```
+
+```{r}
+ggplot(data = filter(data.frame(read_pos_gr), read_id %in% region_reads)) +
+  geom_segment(aes(x = start, xend = end, y = alpha, yend = alpha), alpha = 0.2) +
+  geom_point(data = site_meth, aes(x = position, y = alpha, shape = site_is_unmeth)) +
+  scale_shape_manual(values = c(`TRUE` = 1, `FALSE` = 16),
+                     name = "Meth status", labels = c(`TRUE` = "Unmeth", `FALSE` = "Meth")) +
+  geom_line(data = filter(data.frame(cpg_pos_gr), start >= min(site_meth$position), start <= max(site_meth$position)),
+            aes(x = start, y = beta),
+            linetype = "dashed")
+```
+
+this is ugly
+and idk if its accurate
+```{r}
+ggplot(data = filter(data.frame(read_pos_gr), read_id %in% region_reads)) +
+  geom_segment(aes(x = start, xend = end, y = alpha, yend = alpha), alpha = 0.2) +
+  geom_point(data = site_meth, aes(x = position, y = alpha, shape = site_is_unmeth)) +
+  scale_shape_manual(values = c(`TRUE` = 1, `FALSE` = 16),
+                     name = "Meth status", labels = c(`TRUE` = "Unmeth", `FALSE` = "Meth")) +
+  geom_line(data = filter(data.frame(cpg_pos_gr), start >= min(site_meth$position), start <= max(site_meth$position)),
+            aes(x = start, y = beta),
+            linetype = "dashed") +
+  scale_x_continuous(limits = c(11815580, 11815650))
+```
+```{r}
+alpha_and_beta %>% filter(start >= 11815500, end <= 11816100)
+alpha_and_beta %>% filter(start >= 11815500, end <= 11816100) %>% distinct(read_id, meth_pattern, alpha)
+alpha_and_beta %>% filter(ref_position >= 11815580, ref_position <= 11815650) %>% distinct(read_id, ref_position, call_code, beta) %>% .[order(.$ref_position),]
+alpha_and_beta %>% filter(start >= 11815500, end <= 11816100) %>% distinct(ref_position, beta)
+```
+* ah I think on the plot they look closer together than they are
+* also idk anymore (again)
+
+
+bin_cpgs <- all_samples %>% filter(read_id %in% filter(overlap_bins_reads, bin_num == 3780)$read_id) %>% .$genom_positions %>% strsplit(",") %>% unlist() %>% as.double()
+bin_cpgs <- data.frame(bin_cpgs)
+bin_cpgs <- cbind(bin_cpgs, meth = all_samples %>% filter(read_id %in% filter(overlap_bins_reads, bin_num == 3780)$read_id) %>% .$meth_pattern %>% strsplit("") %>% unlist())
+bin_cpgs <- bin_cpgs %>% mutate(site_is_unmeth = ifelse(meth == "T", TRUE, FALSE))
+
+alpha_vec <- all_samples %>% filter(read_id %in% filter(overlap_bins_reads, bin_num == 3780)$read_id) %>% .$alpha 
+rep_vec <- all_samples %>% filter(read_id %in% filter(overlap_bins_reads, bin_num == 3780)$read_id) %>% .$total 
+
+bin_cpgs <- cbind(bin_cpgs, alpha = rep(x = alpha_vec, times = rep_vec))
+# sample
+alpha_vec <- all_samples %>% filter(read_id %in% filter(overlap_bins_reads, bin_num == 3780)$read_id) %>% .$sample 
+rep_vec <- all_samples %>% filter(read_id %in% filter(overlap_bins_reads, bin_num == 3780)$read_id) %>% .$total 
+bin_cpgs <- cbind(bin_cpgs, sample = rep(x = alpha_vec, times = rep_vec))
+# type
+alpha_vec <- all_samples %>% filter(read_id %in% filter(overlap_bins_reads, bin_num == 3780)$read_id) %>% .$type 
+rep_vec <- all_samples %>% filter(read_id %in% filter(overlap_bins_reads, bin_num == 3780)$read_id) %>% .$total 
+bin_cpgs <- cbind(bin_cpgs, type = rep(x = alpha_vec, times = rep_vec))
+overlap_bins_reads %>% filter(bin_num == 3780, sample == "hu5.10") %>%
+  ggplot() +
+  geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha, colour = sample, group = sample), alpha = 0.2) +
+  geom_point(data = filter(bin_cpgs, sample == "hu5.10"), aes(x = bin_cpgs, y = alpha, shape = site_is_unmeth, colour = sample, group = sample)) +
+  scale_shape_manual(values = c(`TRUE` = 1, `FALSE` = 16),
+                     name = "Meth status", labels = c(`TRUE` = "Unmeth", `FALSE` = "Meth")) +
+  geom_line(data = filter(bed_betas, sample == "hu5.10", start >= min(bin_cpgs$bin_cpgs), start <= max(bin_cpgs$bin_cpgs)),
+            aes(x = start, y = beta, colour = sample, group = sample),
+            linetype = "dashed") +
+  labs(title = "bin 3780: hu5.10") +
+  scale_x_continuous(limits = c(18896000, 18897000))
 
 
 
