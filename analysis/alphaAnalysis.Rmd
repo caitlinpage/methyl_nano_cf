@@ -210,3 +210,7 @@ av_alpha %>% group_by(genom_positions) %>% summarise(av_alpha = mean(alpha), med
 all_samples[1:10,]
 ```
 
+```{r}
+1+1
+```
+
