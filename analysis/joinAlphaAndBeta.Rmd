@@ -252,18 +252,6 @@ plot_region_site <- plot_region_site[names(plot_region_site) %in% region_reads]
 ```
 
 ```{r}
-
-```
-
-```{r}
-bin_cpgs
-```
-```{r}
-
-```
-
-
-```{r}
 ggplot() +
   geom_segment(data = plot_region_info, 
                aes(x = start, xend = end, y = alpha, yend = alpha), alpha = 0.3) +
@@ -377,9 +365,7 @@ overlaps_bed_reads_filt %>% filter(ref_position >= 11815580, ref_position <= 118
 alpha_and_beta %>% filter(ref_position >= 11815580, ref_position <= 11815650) %>% distinct()
 ```
 yep I've screwed up these positions do weird double ups but also not
-```{r}
-overlaps_bed_reads_filt %>% distinct(read_id, start, end, )
-```
+
 
 
 ## back to the beginning
@@ -390,16 +376,6 @@ overlaps_bed_reads_filt %>% distinct(read_id, start, end, )
 indiv_reads$read_and_pos <- paste0(indiv_reads$read_id, ":", indiv_reads$ref_position)
 ```
 
-
-```{r}
-indiv_reads
-bed_betas_hu5.10
-```
-
-
-```{r}
-cg_sites
-```
 
 # sense check everything
 * does everything match to a cpg site?
@@ -639,6 +615,7 @@ indiv_reads %>% filter(ref_position %in% cg_sites$end) %>% group_by(mod_strand, 
 indiv_reads <- readRDS("/researchers/caitlin.page/cf_nano/r_output/indiv_reads.rds")
 indiv_reads$ref_position <- indiv_reads$ref_position + 1 # convert to 1 based
 indiv_reads <- indiv_reads %>% mutate(ref_position = ifelse(ref_strand == "-", ref_position - 1, ref_position))
+indiv_reads$read_and_pos <- paste0(indiv_reads$read_id, ":", indiv_reads$ref_position)
 indiv_reads$start <- indiv_reads$ref_position
 indiv_reads$end <- indiv_reads$ref_position
 alpha_and_beta2 <- find_overlaps(as_granges(indiv_reads), as_granges(bed_betas_hu5.10)) %>% data.frame() %>% filter(call_prob > 0.66) %>%
