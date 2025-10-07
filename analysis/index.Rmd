@@ -59,7 +59,7 @@ Welcome to my research website.
 
 [how I'm getting the beta values](bedFileBetas.html)
 
-[How I'm going to join alpha and beta together](joinAlphaAndBeta)
+[How I'm going to join alpha and beta together](joinAlphaAndBeta.html)
 * this is going to be the fixed neat version
 
 ## want to do stuff about methylation patterns - like the pat file
