@@ -388,3 +388,40 @@ overlap_bins_reads %>% filter(bin_num == 3780, sample == "hu5.10") %>%
   scale_x_continuous(limits = c(18896000, 18897000))
 ```
 
+## develop function
+
+# plot copied from [joinAlphaAndBeta](joinAlphaAndBeta.html)
+```{r}
+alpha_and_beta2 %>% filter(read_id %in% region_reads) %>% distinct(read_id, alignment_start, alignment_end, alpha) %>%
+  ggplot() +
+  geom_segment(aes(x = alignment_start, xend = alignment_end, y = alpha, yend = alpha), alpha = 0.2) +
+  geom_count(data = filter(alpha_and_beta2, read_id %in% region_reads), 
+             aes(x = ref_position, y = alpha, colour = call_code)) +
+  geom_line(data = distinct(filter(alpha_and_beta2, read_id %in% region_reads), ref_position, beta), 
+            aes(x = ref_position, y = beta), linetype = "dashed") +
+  geom_segment(data = filter(cg_sites, start >= min(filter(alpha_and_beta2, read_id %in% region_reads)$alignment_start), end <= max(filter(alpha_and_beta2, read_id %in% region_reads)$alignment_end)), aes(x = start, xend = start, y = -0.15, yend = -0.05), colour = "green")
+```
+
+Still to determine
+* how best to show betas (line is a bit messy)
+** jovana suggested just an x instead
+* how to select a region
+
+Inputs
+* region
+
+* need read positions with alpha for read line
+* read + cpgs on read + meth status of cpgs + alpha - dots
+* cpg pos + betas - dotted line
+* all cpg pos - lines
+
+```{r}
+plot_fn <- function(chrom = chrom, region = c(start, end), data_big = data_big) {
+  chr <- chrom
+  start <- region[1]
+  end <- region[2]
+  
+  data <- data_big
+}
+```
+
