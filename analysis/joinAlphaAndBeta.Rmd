@@ -259,19 +259,6 @@ ggplot() +
 ```
 
 
-```{r}
-overlap_bins_reads %>% filter(bin_num == 3780, sample == "hu5.10") %>%
-  ggplot() +
-  geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha, colour = sample, group = sample), alpha = 0.2) +
-  geom_point(data = filter(bin_cpgs, sample == "hu5.10"), aes(x = bin_cpgs, y = alpha, shape = site_is_unmeth, colour = sample, group = sample)) +
-  scale_shape_manual(values = c(`TRUE` = 1, `FALSE` = 16),
-                     name = "Meth status", labels = c(`TRUE` = "Unmeth", `FALSE` = "Meth")) +
-  geom_line(data = filter(bed_betas, sample == "hu5.10", start >= min(bin_cpgs$bin_cpgs), start <= max(bin_cpgs$bin_cpgs)),
-            aes(x = start, y = beta, colour = sample, group = sample),
-            linetype = "dashed") +
-  labs(title = "bin 3780: hu5.10") +
-  scale_x_continuous(limits = c(18896000, 18897000))
-```
 
 
 ## ok I was overcomplicating it and the plot wasn't working
