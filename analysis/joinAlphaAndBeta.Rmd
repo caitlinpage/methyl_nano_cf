@@ -346,10 +346,12 @@ ggplot(data = filter(data.frame(read_pos_gr), read_id %in% region_reads)) +
 
 this is ugly
 and idk if its accurate
+# this plot is a problem so let's figure it out
+
 ```{r}
 ggplot(data = filter(data.frame(read_pos_gr), read_id %in% region_reads)) +
   geom_segment(aes(x = start, xend = end, y = alpha, yend = alpha), alpha = 0.2) +
-  geom_point(data = site_meth, aes(x = position, y = alpha, shape = site_is_unmeth)) +
+  geom_point(data = site_meth, aes(x = position, y = alpha, shape = site_is_unmeth, colour = )) +
   scale_shape_manual(values = c(`TRUE` = 1, `FALSE` = 16),
                      name = "Meth status", labels = c(`TRUE` = "Unmeth", `FALSE` = "Meth")) +
   geom_line(data = filter(data.frame(cpg_pos_gr), start >= min(site_meth$position), start <= max(site_meth$position)),
@@ -357,6 +359,9 @@ ggplot(data = filter(data.frame(read_pos_gr), read_id %in% region_reads)) +
             linetype = "dashed") +
   scale_x_continuous(limits = c(11815580, 11815650))
 ```
+
+* it could look wrong just from my data manipulation?
+
 ```{r}
 alpha_and_beta %>% filter(start >= 11815500, end <= 11816100)
 alpha_and_beta %>% filter(start >= 11815500, end <= 11816100) %>% distinct(read_id, meth_pattern, alpha)
@@ -365,36 +370,321 @@ alpha_and_beta %>% filter(start >= 11815500, end <= 11816100) %>% distinct(ref_p
 ```
 * ah I think on the plot they look closer together than they are
 * also idk anymore (again)
+```{r}
+overlaps_bed_reads_filt %>% filter(ref_position >= 11815580, ref_position <= 11815650) %>% distinct()
+```
+```{r}
+alpha_and_beta %>% filter(ref_position >= 11815580, ref_position <= 11815650) %>% distinct()
+```
+yep I've screwed up these positions do weird double ups but also not
+```{r}
+overlaps_bed_reads_filt %>% distinct(read_id, start, end, )
+```
 
 
-bin_cpgs <- all_samples %>% filter(read_id %in% filter(overlap_bins_reads, bin_num == 3780)$read_id) %>% .$genom_positions %>% strsplit(",") %>% unlist() %>% as.double()
-bin_cpgs <- data.frame(bin_cpgs)
-bin_cpgs <- cbind(bin_cpgs, meth = all_samples %>% filter(read_id %in% filter(overlap_bins_reads, bin_num == 3780)$read_id) %>% .$meth_pattern %>% strsplit("") %>% unlist())
-bin_cpgs <- bin_cpgs %>% mutate(site_is_unmeth = ifelse(meth == "T", TRUE, FALSE))
+## back to the beginning
 
-alpha_vec <- all_samples %>% filter(read_id %in% filter(overlap_bins_reads, bin_num == 3780)$read_id) %>% .$alpha 
-rep_vec <- all_samples %>% filter(read_id %in% filter(overlap_bins_reads, bin_num == 3780)$read_id) %>% .$total 
+* I want this to be the last time
 
-bin_cpgs <- cbind(bin_cpgs, alpha = rep(x = alpha_vec, times = rep_vec))
-# sample
-alpha_vec <- all_samples %>% filter(read_id %in% filter(overlap_bins_reads, bin_num == 3780)$read_id) %>% .$sample 
-rep_vec <- all_samples %>% filter(read_id %in% filter(overlap_bins_reads, bin_num == 3780)$read_id) %>% .$total 
-bin_cpgs <- cbind(bin_cpgs, sample = rep(x = alpha_vec, times = rep_vec))
-# type
-alpha_vec <- all_samples %>% filter(read_id %in% filter(overlap_bins_reads, bin_num == 3780)$read_id) %>% .$type 
-rep_vec <- all_samples %>% filter(read_id %in% filter(overlap_bins_reads, bin_num == 3780)$read_id) %>% .$total 
-bin_cpgs <- cbind(bin_cpgs, type = rep(x = alpha_vec, times = rep_vec))
-overlap_bins_reads %>% filter(bin_num == 3780, sample == "hu5.10") %>%
+```{r}
+indiv_reads$read_and_pos <- paste0(indiv_reads$read_id, ":", indiv_reads$ref_position)
+```
+
+
+```{r}
+indiv_reads
+bed_betas_hu5.10
+```
+
+
+```{r}
+cg_sites
+```
+
+# sense check everything
+* does everything match to a cpg site?
+
+```{r}
+distinct(indiv_reads, ref_position) %>% nrow()
+nrow(cg_sites)
+```
+
+
+* indiv reads change start and end to the pos - not the read length
+* make end ref_position + 1 to capture all positions on indiv reads
+```{r}
+find_overlaps(as_granges(cg_sites), as_granges(mutate(indiv_reads, start = ref_position, end = ref_position + 1))) %>% data.frame() %>% distinct(ref_position) %>% nrow()
+find_overlaps(as_granges(cg_sites), as_granges(mutate(indiv_reads, start = ref_position, end = ref_position + 1))) %>% data.frame() %>% distinct(index) %>% nrow()
+```
+
+* am I getting double ups?
+
+```{r}
+find_overlaps(as_granges(cg_sites), as_granges(mutate(indiv_reads, start = ref_position, end = ref_position + 1))) %>% data.frame() %>% group_by(read_id, index) %>% summarise(n=n()) %>%
+  filter(n > 1)
+
+c(reads_with_double_ups = find_overlaps(as_granges(cg_sites), as_granges(mutate(indiv_reads, start = ref_position, end = ref_position + 1))) %>% data.frame() %>% group_by(read_id, index) %>% summarise(n=n()) %>% filter(n > 1) %>% ungroup() %>% distinct(read_id) %>% nrow(),
+  positions_with_double_ups = find_overlaps(as_granges(cg_sites), as_granges(mutate(indiv_reads, start = ref_position, end = ref_position + 1))) %>% data.frame() %>% group_by(read_id, index) %>% summarise(n=n()) %>% filter(n > 1) %>% ungroup() %>% distinct(index) %>% nrow())
+```
+
+* yes oops
+1534 instances
+1096 reads / 1464 cpg_index
+
+```{r}
+find_overlaps(as_granges(cg_sites), as_granges(mutate(indiv_reads, start = ref_position, end = ref_position + 1))) %>% data.frame() %>% filter(read_id == "0020f01c-2762-458d-a442-cfa10005a64b")
+```
+
+```{r}
+cg_sites[122078:122083,]
+```
+
+* ok so it's instances where 2 cpg sites in a row
+* and modkit is 0 based coordinates [ref](https://nanoporetech.github.io/modkit/intro_extract.html)
+* bsgenome I'm 98% sure is 1-based - and google ai says so as well
+* so I need to convert 1
+* google ai also says bed files are normally 0 based
+* I must have modified it though because my bed file lines up with my cg file
+* and I will always return to my cg file
+
+```{r}
+bed_betas_hu5.10 %>% filter(start >= 20031112, end <= 20031215)
+```
+
+```{r}
+find_overlaps(as_granges(cg_sites), as_granges(mutate(indiv_reads, start = ref_position + 1, end = ref_position + 1))) %>% data.frame() %>% group_by(read_id, index) %>% summarise(n=n()) %>%
+  filter(n > 1)
+```
+* nice
+
+* make indiv reads 1 based: and change start and end to ref position, not read position
+```{r}
+indiv_reads$ref_position <- indiv_reads$ref_position + 1
+indiv_reads$start <- indiv_reads$ref_position
+indiv_reads$end <- indiv_reads$ref_position
+```
+
+```{r}
+find_overlaps(as_granges(indiv_reads), as_granges(bed_betas_hu5.10)) %>% data.frame() %>% group_by(read_and_pos) %>% summarise(n=n()) %>% filter(n> 1)
+find_overlaps(as_granges(indiv_reads), as_granges(bed_betas_hu5.10)) %>% data.frame() %>% group_by(pos) %>% summarise(n=n()) %>% filter(n> 1) %>% nrow()
+```
+* it's ok that bed positions double up as that's because of multiple reads
+* but good I have no double up of read:pos pairs
+
+* make the expected beta again
+* first without filtering
+
+* expected beta (mean m grouped by ref_position)
+
+```{r}
+find_overlaps(as_granges(indiv_reads), as_granges(bed_betas_hu5.10)) %>% data.frame() %>% group_by(ref_position) %>% mutate(expec_beta = mean(call_code == "m")) %>%
+  ggplot(aes(x = expec_beta, y = beta)) +
+  geom_point(alpha = 0.2)
+
+find_overlaps(as_granges(indiv_reads), as_granges(bed_betas_hu5.10)) %>% data.frame() %>% group_by(ref_position) %>% mutate(expec_beta = mean(call_code == "m")) %>%
+  ggplot(aes(x = expec_beta, y = beta)) +
+  geom_count()
+```
+* again but filtering to call_prob > 0.66: used by modbam2bed (what the paper used to make bed file)
+```{r}
+find_overlaps(as_granges(indiv_reads), as_granges(bed_betas_hu5.10)) %>% data.frame() %>% filter(call_prob > 0.66) %>% group_by(ref_position) %>% mutate(expec_beta = mean(call_code == "m")) %>%
+  ggplot(aes(x = expec_beta, y = beta)) +
+  geom_point(alpha = 0.2)
+
+find_overlaps(as_granges(indiv_reads), as_granges(bed_betas_hu5.10)) %>% data.frame() %>% filter(call_prob > 0.66) %>% group_by(ref_position) %>% mutate(expec_beta = mean(call_code == "m")) %>%
+  ggplot(aes(x = expec_beta, y = beta)) +
+  geom_count()
+```
+```{r}
+find_overlaps(as_granges(indiv_reads), as_granges(bed_betas_hu5.10)) %>% data.frame() %>% filter(call_prob > 0.66) %>% group_by(ref_position) %>% mutate(expec_beta = mean(call_code == "m")) %>% ungroup() %>% mutate(match_beta = ifelse(beta == expec_beta, TRUE, FALSE)) %>% group_by(match_beta) %>% summarise(n=n()) %>% ungroup() %>% mutate(prop = n/sum(n))
+```
+
+
+* with the filtering and then removing the sites that don't align
+```{r}
+find_overlaps(as_granges(indiv_reads), as_granges(bed_betas_hu5.10)) %>% data.frame() %>% filter(call_prob > 0.66) %>% group_by(ref_position) %>% mutate(expec_beta = mean(call_code == "m")) %>% ungroup() %>% filter(beta == expec_beta) %>%
+  ggplot(aes(x = expec_beta, y = beta)) +
+  geom_point(alpha = 0.2)
+
+find_overlaps(as_granges(indiv_reads), as_granges(bed_betas_hu5.10)) %>% data.frame() %>% filter(call_prob > 0.66) %>% group_by(ref_position) %>% mutate(expec_beta = mean(call_code == "m")) %>% ungroup() %>% filter(beta == expec_beta) %>%
+  ggplot(aes(x = expec_beta, y = beta)) +
+  geom_count()
+```
+
+# now to add alphas into this
+* calculate on the filtered calls, these positions are then ignored
+
+* get meth_pattern again
+* this time use M and U not C and T (wgbs specific)
+```{r}
+alpha_and_beta2 <- find_overlaps(as_granges(indiv_reads), as_granges(bed_betas_hu5.10)) %>% data.frame() %>% filter(call_prob > 0.66) %>%
+  group_by(read_id) %>% .[order(.$alignment_start),] %>% 
+  mutate(call_code = ifelse(call_code == "m", "M", "U")) %>%
+  mutate(meth_pattern = paste(call_code, collapse = "")) %>%
+  mutate(num_meth = str_count(meth_pattern, pattern = "M"),
+         total = str_length(meth_pattern),
+         alpha = num_meth/total) %>%
+  mutate(genom_positions = paste0(ref_position, collapse = ",")) %>%
+  ungroup()
+alpha_and_beta2 <- alpha_and_beta2 %>% data.frame()
+head(alpha_and_beta2)
+```
+
+* now how can I check that this is right?
+* try to make the same plot I guess
+
+
+* let's look at that specific section first though
+
+```{r}
+alpha_and_beta2 %>% filter(start >= 20031112, end <= 20031215)
+```
+* 6 positions good
+* all on the same read
+
+* let's look up that other problem position
+```{r}
+alpha_and_beta2 %>% filter(start == 18895995)
+```
+* yep just 1 read because we filter out the other one as it was low probability at that position
+
+* ok let's see if the plot looks neater now
+
+```{r}
+region_reads <- overlap_bins_reads %>% filter(bin_num == 2364, sample == "hu5.10") %>% .$read_id
+region_reads
+```
+
+```{r}
+alpha_and_beta2 %>% filter(read_id %in% region_reads) %>% distinct(read_id, alignment_start, alignment_end, alpha) %>%
   ggplot() +
-  geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha, colour = sample, group = sample), alpha = 0.2) +
-  geom_point(data = filter(bin_cpgs, sample == "hu5.10"), aes(x = bin_cpgs, y = alpha, shape = site_is_unmeth, colour = sample, group = sample)) +
-  scale_shape_manual(values = c(`TRUE` = 1, `FALSE` = 16),
-                     name = "Meth status", labels = c(`TRUE` = "Unmeth", `FALSE` = "Meth")) +
-  geom_line(data = filter(bed_betas, sample == "hu5.10", start >= min(bin_cpgs$bin_cpgs), start <= max(bin_cpgs$bin_cpgs)),
-            aes(x = start, y = beta, colour = sample, group = sample),
-            linetype = "dashed") +
-  labs(title = "bin 3780: hu5.10") +
-  scale_x_continuous(limits = c(18896000, 18897000))
+  geom_segment(aes(x = alignment_start, xend = alignment_end, y = alpha, yend = alpha, alpha = 0.2)) +
+  geom_count(data = filter(alpha_and_beta2, read_id %in% region_reads), aes(x = ref_position, y = alpha, colour = call_code)) 
+```
+
+```{r}
+alpha_and_beta2 %>% filter(read_id %in% region_reads) %>% distinct(read_id, alignment_start, alignment_end, alpha) %>%
+  ggplot() +
+  geom_segment(aes(x = alignment_start, xend = alignment_end, y = alpha, yend = alpha, alpha = 0.2)) +
+  geom_count(data = filter(alpha_and_beta2, read_id %in% region_reads), aes(x = ref_position, y = alpha, colour = call_code)) +
+  scale_size_area()
+```
+
+```{r}
+alpha_and_beta2 %>% filter(read_id %in% region_reads) %>% distinct(read_id, alignment_start, alignment_end, alpha) %>%
+  ggplot() +
+  geom_segment(aes(x = alignment_start, xend = alignment_end, y = alpha, yend = alpha, alpha = 0.2)) +
+  geom_count(data = filter(alpha_and_beta2, read_id %in% region_reads), 
+             aes(x = ref_position, y = alpha, colour = call_code)) +
+  geom_line(data = distinct(filter(alpha_and_beta2, read_id %in% region_reads), ref_position, beta), 
+            aes(x = ref_position, y = beta), linetype = "dashed")
+```
+
+```{r}
+alpha_and_beta2 %>% filter(read_id %in% region_reads) %>% distinct(read_id, alignment_start, alignment_end, alpha) %>%
+  ggplot() +
+  geom_segment(aes(x = alignment_start, xend = alignment_end, y = alpha, yend = alpha, alpha = 0.2)) +
+  geom_count(data = filter(alpha_and_beta2, read_id %in% region_reads), 
+             aes(x = ref_position, y = alpha, colour = call_code)) +
+  geom_line(data = distinct(filter(alpha_and_beta2, read_id %in% region_reads), ref_position, beta), 
+            aes(x = ref_position, y = beta), linetype = "dashed") +
+  scale_x_continuous(limits = c(11815580, 11815650))
+```
+
+* ok that's more chaotic then it used to be so it may be right now
+* though there's still the thing of looking at the reads it wasn't that many here?
+* I need to add in cpg positions here
+
+```{r}
+min(filter(alpha_and_beta2, read_id %in% region_reads)$alignment_start)
+```
+
+```{r}
+alpha_and_beta2 %>% filter(read_id %in% region_reads) %>% distinct(read_id, alignment_start, alignment_end, alpha) %>%
+  ggplot() +
+  geom_segment(aes(x = alignment_start, xend = alignment_end, y = alpha, yend = alpha, alpha = 0.2)) +
+  geom_count(data = filter(alpha_and_beta2, read_id %in% region_reads), 
+             aes(x = ref_position, y = alpha, colour = call_code)) +
+  geom_line(data = distinct(filter(alpha_and_beta2, read_id %in% region_reads), ref_position, beta), 
+            aes(x = ref_position, y = beta), linetype = "dashed") +
+  geom_vline(data = filter(cg_sites, start >= min(filter(alpha_and_beta2, read_id %in% region_reads)$alignment_start), end <= max(filter(alpha_and_beta2, read_id %in% region_reads)$alignment_end)), aes(xintercept = start), colour = "green") +
+  scale_x_continuous(limits = c(11815580, 11815650))
+```
+```{r}
+distinct(filter(alpha_and_beta2, read_id %in% region_reads), ref_position, beta) %>% filter(ref_position >= 11815580, ref_position <= 11815650)
+filter(alpha_and_beta2, read_id %in% region_reads) %>% filter(ref_position >= 11815580, ref_position <= 11815650) %>% group_by(ref_position)%>% summarise(n())
+filter(cg_sites, start >= min(filter(alpha_and_beta2, read_id %in% region_reads)$alignment_start), end <= max(filter(alpha_and_beta2, read_id %in% region_reads)$alignment_end)) %>%
+  filter(start >= 11815580, start <= 11815650)
+cg_sites %>%
+  filter(start >= 11815580, start <= 11815650)
+```
+
+* ah it's still a ref position thing
+* my guess is it's ones on oppo strand
+
+```{r}
+alpha_and_beta2 %>% filter(ref_position >= 11815580, ref_position <= 11815650)
+```
+
+* yep it's ones that have ref_strand negative
+* ok need to go back and adjust
+* if strand is negative, ref_position - 1
+(but for which column? - or for all?)
+```{r}
+rbind(indiv_reads %>% filter(ref_position %in% cg_sites$start) %>% group_by(mod_strand, ref_strand, ref_mod_strand) %>% summarise(n()),
+indiv_reads %>% filter(ref_position %in% cg_sites$end) %>% group_by(mod_strand, ref_strand, ref_mod_strand) %>% summarise(n()))
+```
+* can use either
+```{r}
+indiv_reads <- readRDS("/researchers/caitlin.page/cf_nano/r_output/indiv_reads.rds")
+indiv_reads$ref_position <- indiv_reads$ref_position + 1 # convert to 1 based
+indiv_reads <- indiv_reads %>% mutate(ref_position = ifelse(ref_strand == "-", ref_position - 1, ref_position))
+indiv_reads$start <- indiv_reads$ref_position
+indiv_reads$end <- indiv_reads$ref_position
+alpha_and_beta2 <- find_overlaps(as_granges(indiv_reads), as_granges(bed_betas_hu5.10)) %>% data.frame() %>% filter(call_prob > 0.66) %>%
+  group_by(read_id) %>% .[order(.$alignment_start),] %>% 
+  mutate(call_code = ifelse(call_code == "m", "M", "U")) %>%
+  mutate(meth_pattern = paste(call_code, collapse = "")) %>%
+  mutate(num_meth = str_count(meth_pattern, pattern = "M"),
+         total = str_length(meth_pattern),
+         alpha = num_meth/total) %>%
+  mutate(genom_positions = paste0(ref_position, collapse = ",")) %>%
+  ungroup()
+alpha_and_beta2 <- alpha_and_beta2 %>% data.frame()
+head(alpha_and_beta2)
+```
+
+```{r}
+alpha_and_beta2 %>% filter(read_id %in% region_reads) %>% distinct(read_id, alignment_start, alignment_end, alpha) %>%
+  ggplot() +
+  geom_segment(aes(x = alignment_start, xend = alignment_end, y = alpha, yend = alpha), alpha = 0.2) +
+  geom_count(data = filter(alpha_and_beta2, read_id %in% region_reads), 
+             aes(x = ref_position, y = alpha, colour = call_code)) +
+  geom_line(data = distinct(filter(alpha_and_beta2, read_id %in% region_reads), ref_position, beta), 
+            aes(x = ref_position, y = beta), linetype = "dashed") +
+  geom_segment(data = filter(cg_sites, start >= min(filter(alpha_and_beta2, read_id %in% region_reads)$alignment_start), end <= max(filter(alpha_and_beta2, read_id %in% region_reads)$alignment_end)), aes(x = start, xend = start, y = -0.2, yend = 0), colour = "green") +
+  scale_x_continuous(limits = c(11815580, 11815650))
+```
+```{r}
+filter(alpha_and_beta2, read_id %in% region_reads) %>% filter(ref_position >= 11815580, ref_position <= 11815650) %>% distinct(read_id, alpha)
+```
+```{r}
+alpha_and_beta2 %>% filter(read_id %in% region_reads) %>% distinct(read_id, alignment_start, alignment_end, alpha) %>% filter(alignment_start >= 11815580)
+```
+
+* yay!
+* now I just need it for all the samples
+
+```{r}
+alpha_and_beta2 %>% filter(read_id %in% region_reads) %>% distinct(read_id, alignment_start, alignment_end, alpha) %>%
+  ggplot() +
+  geom_segment(aes(x = alignment_start, xend = alignment_end, y = alpha, yend = alpha), alpha = 0.2) +
+  geom_count(data = filter(alpha_and_beta2, read_id %in% region_reads), 
+             aes(x = ref_position, y = alpha, colour = call_code)) +
+  geom_line(data = distinct(filter(alpha_and_beta2, read_id %in% region_reads), ref_position, beta), 
+            aes(x = ref_position, y = beta), linetype = "dashed") +
+  geom_segment(data = filter(cg_sites, start >= min(filter(alpha_and_beta2, read_id %in% region_reads)$alignment_start), end <= max(filter(alpha_and_beta2, read_id %in% region_reads)$alignment_end)), aes(x = start, xend = start, y = -0.15, yend = -0.05), colour = "green")
+```
 
 
 
@@ -411,7 +701,7 @@ https://github.com/PeteHaitch/methtuple
 
 ?MethylationTuples::MethPat()
 ```{r}
-?MethylationTuples::MethPat()
+#?MethylationTuples::MethPat()
 ```
 
 pete hickey also has this [genomictuples bioconductor package](https://bioconductor.org/packages/release/bioc/vignettes/GenomicTuples/inst/doc/GenomicTuplesIntroduction.html)
