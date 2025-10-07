@@ -1,0 +1,53 @@
+---
+title: "defineARegion"
+author: "Caitlin Page"
+date: "2025-09-03"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+Done a bit of genome binning in binningGenome
+
+But let's be a bit more exact about it thinking wise
+
+At least in chrom 22, reads in one sample spike at 175bp, and then ~300
+
+I had been binning 5kbp 
+
+Way too big for a region level alpha
+
+need to do plots at 1kbp
+
+but for a region we'll want smaller
+
+or maybe it can be big - b/c alpha does group higher at 0 and 1, and bump at 0.5
+so reads are more similar than not (and/or not many cpgs on read)
+
+
+Measurement:
+mean, median?
+variance? - this I like but it wouldn't give an idea of if alpha is close to 0 or 1 or what
+I feel like there would be some way to model it
+Or fit it to a Beta distribution maybe? - like let me stick it in an equation and see them line up
+
+but at some point that would just turn back into the beta
+
+ooh maybe something like it measures the variation first
+and if not much variation - get one value - like the median
+and if a lot - say it looks more bimodal - then you get 2 - one for each
+and then you would summarise but still have a level of acknowledging the reads and any potential patterns
+
+if I want to try anything like this it would need to be on the highest cancer samples (best chance)
+
+and having some biology info would help as well here - even though it would be nice to be purely data driven
+looking at specific genes/promoters would make life easier
+
+
+
+## Introduction
+
+```{r}
+
+```
+
