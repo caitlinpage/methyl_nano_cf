@@ -595,3 +595,15 @@ find_overlaps(promoters_txdb, as_granges(overlaps_bed_reads_filt)) %>% data.fram
 * note: I only did this with sample hu5.10
 ** need to repeat for all other samples
 
+##
+
+```{r}
+overlaps_bed_reads_filt %>%
+  ggplot(aes(x = expec_beta_filt, y = beta)) +
+  geom_point()
+```
+
+```{r}
+overlaps_bed_reads_filt
+```
+
