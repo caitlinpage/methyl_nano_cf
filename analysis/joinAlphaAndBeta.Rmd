@@ -650,6 +650,124 @@ alpha_and_beta2 %>% filter(read_id %in% region_reads) %>% distinct(read_id, alig
   geom_segment(data = filter(cg_sites, start >= min(filter(alpha_and_beta2, read_id %in% region_reads)$alignment_start), end <= max(filter(alpha_and_beta2, read_id %in% region_reads)$alignment_end)), aes(x = start, xend = start, y = -0.15, yend = -0.05), colour = "green")
 ```
 
+```{r}
+alpha_and_beta2 %>% filter(read_id %in% region_reads[1:15]) %>% distinct(read_id, alignment_start, alignment_end, alpha) %>%
+  ggplot() +
+  geom_segment(aes(x = alignment_start, xend = alignment_end, y = alpha, yend = alpha), alpha = 0.2) +
+  geom_count(data = filter(alpha_and_beta2, read_id %in% region_reads[1:15]), 
+             aes(x = ref_position, y = alpha, colour = call_code)) +
+  geom_line(data = distinct(filter(alpha_and_beta2, read_id %in% region_reads[1:15]), ref_position, beta), 
+            aes(x = ref_position, y = beta), linetype = "dashed") +
+  geom_segment(data = filter(cg_sites, start >= min(filter(alpha_and_beta2, read_id %in% region_reads[1:15])$alignment_start), end <= max(filter(alpha_and_beta2, read_id %in% region_reads[1:15])$alignment_end)), aes(x = start, xend = start, y = -0.15, yend = -0.05), colour = "green")
+```
+
+```{r}
+alpha_and_beta2 %>% filter(read_id %in% region_reads[1:15]) %>% distinct(read_id, alignment_start, alignment_end, alpha) %>%
+  ggplot() +
+  geom_segment(aes(x = alignment_start, xend = alignment_end, y = alpha, yend = alpha), alpha = 0.2) +
+  geom_count(data = filter(alpha_and_beta2, read_id %in% region_reads[1:15]), 
+             aes(x = ref_position, y = alpha, colour = call_code)) +
+  geom_point(data = distinct(filter(alpha_and_beta2, read_id %in% region_reads[1:15]), ref_position, beta), 
+            aes(x = ref_position, y = beta), shape = 4, size = 3) +
+  geom_segment(data = filter(cg_sites, start >= min(filter(alpha_and_beta2, read_id %in% region_reads[1:15])$alignment_start), end <= max(filter(alpha_and_beta2, read_id %in% region_reads[1:15])$alignment_end)), aes(x = start, xend = start, y = -0.15, yend = -0.05), colour = "green")
+```
+
+```{r}
+alpha_and_beta2 %>% filter(read_id %in% region_reads[1:15]) %>% distinct(read_id, alignment_start, alignment_end, alpha) %>%
+  ggplot() +
+  geom_segment(aes(x = alignment_start, xend = alignment_end, y = alpha, yend = alpha), alpha = 0.2) +
+  geom_point(data = filter(alpha_and_beta2, read_id %in% region_reads[1:15]), 
+             aes(x = ref_position, y = alpha, colour = call_code)) +
+  geom_point(data = distinct(filter(alpha_and_beta2, read_id %in% region_reads[1:15]), ref_position, beta), 
+            aes(x = ref_position, y = beta), shape = 4, size = 3) +
+  geom_segment(data = filter(cg_sites, start >= min(filter(alpha_and_beta2, read_id %in% region_reads[1:15])$alignment_start), end <= max(filter(alpha_and_beta2, read_id %in% region_reads[1:15])$alignment_end)), aes(x = start, xend = start, y = -0.15, yend = -0.05), colour = "green")
+```
+
+# transform into more pat style format
+* jovana wants that style to plot
+
+pat format is
+chr | 1st pos. |  meth pat. | # occurences
+chr1 | 500.    |.   MMUM.   |.  3
+
+```{r}
+alpha_and_beta2 %>% 
+  mutate(start_pos = sapply(str_split(genom_positions, ","), head, 1),
+                           end_pos = sapply(str_split(genom_positions, ","), tail, 1)) %>%
+  distinct(read_id, seqnames, start_pos, meth_pattern) %>% 
+  group_by(seqnames, start_pos, meth_pattern) %>%
+  summarise(n=n()) %>%
+  head()
+
+alpha_and_beta2 %>% 
+  mutate(start_pos = sapply(str_split(genom_positions, ","), head, 1),
+                           end_pos = sapply(str_split(genom_positions, ","), tail, 1)) %>%
+  distinct(read_id, seqnames, start_pos, meth_pattern) %>% 
+  group_by(seqnames, start_pos, meth_pattern) %>%
+  summarise(n=n()) %>%
+  group_by(n) %>%
+  summarise(n())
+```
+
+* that was easy to make actually
+* except you don't really get the betas with it
+
+* trying to add in alpha and genom pos messes it up
+
+
+```{r}
+alpha_and_beta2_pat <- alpha_and_beta2 %>% 
+  mutate(start_pos = sapply(str_split(genom_positions, ","), head, 1)) %>%
+  distinct(read_id, seqnames, start_pos, meth_pattern) %>% 
+  group_by(seqnames, start_pos, meth_pattern) %>% 
+  summarise(n=n()) %>%
+  ungroup()
+nrow(alpha_and_beta2_pat)
+alpha_and_beta2_pat[1:10,]
+```
+
+* ok I only get 1 extra row when I add in rest of info and I can live with that (for now)
+
+```{r}
+alpha_and_beta2_pat <- alpha_and_beta2 %>% 
+  mutate(start_pos = sapply(str_split(genom_positions, ","), head, 1),
+         end_pos = sapply(str_split(genom_positions, ","), tail, 1)) %>% 
+  filter(ref_position == start_pos) %>%
+  distinct(read_id, seqnames, start_pos, meth_pattern, alpha, end_pos, beta) %>% 
+  group_by(seqnames, start_pos, meth_pattern, alpha, end_pos, beta) %>% 
+  summarise(n=n()) %>%
+  ungroup()
+nrow(alpha_and_beta2_pat)
+alpha_and_beta2_pat[1:10,]
+```
+```{r}
+alpha_and_beta2_pat <- alpha_and_beta2_pat %>%
+  mutate(start_pos = as.integer(start_pos),
+         end_pos = as.integer(end_pos))
+```
+
+```{r}
+ref_pos <- alpha_and_beta2 %>% filter(read_id %in% region_reads[1:15]) %>% .$ref_position
+```
+
+```{r}
+alpha_and_beta2_pat %>% filter(start_pos %in% ref_pos) %>% 
+  ggplot() +
+  geom_point(aes(x = start_pos, y = alpha, size = n)) +
+  geom_segment(aes(x = start_pos, xend = end_pos, y = alpha, yend = alpha), alpha = 0.2) 
+```
+
+```{r}
+alpha_and_beta2_pat %>% filter(start_pos %in% ref_pos) %>% 
+  ggplot() +
+  geom_point(aes(x = start_pos, y = alpha, size = n)) +
+  geom_segment(aes(x = start_pos, xend = end_pos, y = alpha, yend = alpha), alpha = 0.2) +
+  geom_point(aes(x = start_pos, y = beta), shape = 4, size = 3, colour = "red") +
+  geom_segment(data = filter(cg_sites, start >= min(filter(alpha_and_beta2_pat, start_pos %in% ref_pos)$start_pos), 
+                             end <= max(filter(alpha_and_beta2_pat, start_pos %in% ref_pos)$end_pos)), 
+               aes(x = start, xend = start, y = -0.15, yend = -0.05), colour = "green")
+```
+
 
 
 # was meaning more for meth patterns analysis but maybe peter hickeys package could help?
