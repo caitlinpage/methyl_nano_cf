@@ -1,0 +1,72 @@
+---
+title: "rrbsData"
+author: "Caitlin Page"
+date: "2025-10-08"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+## Introduction
+
+# cancer cell line encyclopedia
+https://sites.broadinstitute.org/ccle/datasets
+https://depmap.org/portal/data_page/?tab=allData
+promoter data 
+```{r}
+read.table("../data/rrbs/dep_map_cancer_cell_line/CCLE_RRBS_TSS_1kb_20180614.txt", header = TRUE)
+```
+no I don't like this I don't understand it and it's too processed
+
+[raw data](https://www.ncbi.nlm.nih.gov/sra/?term=PRJNA523380+rrbs)
+except have to go through sra and it's fastq
+I would prefer bam
+
+# breast cancer
+https://www.nature.com/articles/s41467-021-25661-w#data-availability
+
+just has a link to download processed methylation values so we'll see
+also has fastq upon request
+
+# healthy indiv neutrophils rrbs
+Genome-scale DNA methylome and transcriptome profiling of human neutrophils
+https://www.nature.com/articles/sdata201619#Sec12
+https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE59163
+* potentially
+13 samples
+* GSE table files
+```{r}
+read.table("../data/rrbs/neutrophil_paper_2016/GSE59163_RAW/GSM1429638_X9006_ad3tr65.fastq_bismark.sam_methpcNF2t10.txt.gz")
+```
+* damn no column names
+* guess: v4 = num meth, v5 = num unmeth, v7 = beta as %
+```{r}
+(92)/(92+8) * 100
+52/(52+3)*100
+```
+* nope they don't match
+
+# rrbsdata (bioconductor package)
+https://bioconductor.org/packages/release/data/experiment/html/RRBSdata.html
+has 12 samples
+this is the paper they got the data from: https://ashpublications.org/blood/article/121/1/178/31062/DNA-methylation-changes-are-a-late-event-in-acute
+
+```{r}
+renv::install("bioc::RRBSdata")
+```
+```{r}
+library(BiSeq)
+```
+```{r}
+data(rrbs)
+rrbs
+```
+```{r}
+colData(rrbs)
+```
+APL - acute promyelocytic leukaemia
+
+```{r}
+rrbs@rowRanges
+```
+* it's not read level info though - not bams, just cpgs
