@@ -70,3 +70,53 @@ APL - acute promyelocytic leukaemia
 rrbs@rowRanges
 ```
 * it's not read level info though - not bams, just cpgs
+
+
+
+
+# paper - BSseq (pancreatic cancer)
+[GEO](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE63123)
+has 19 samples
+* 4 individuals, diff replicates and situations
+* processed with hg19
+
+with bams available to download through SRA toolkit
+
+so it's not actually RRBS data - but it's data and it exists so it's good enough
+
+downloading 4 samples via tmux and file transfer server
+all from sample A_38
+Lg is lung metastasis
+Per is peritoneal metastasis
+
+* SRR1646792: Lg rep 1
+* SRR1646793: Lg rep 2
+* SRR1646794: Per rep 1
+* SRR1646795: Per rep 2
+
+* oops there's 2 more for this sample: 2 liver metastasis: SRR3427332, SRR3427334
+
+* also all of these are massive files
+2 fastqs each, 93 is 51.8gb per fastq - thank goodness for gz compression
+
+Steps to download fastqs
+SRA run explorer
+* Save SRR accession numbers
+* FastQ downloads
+* Aspera commands - Copy
+
+Steps to process FastQs
+(may as well follow the paper the data is from)
+[paper](https://www.nature.com/articles/ng.3753#Sec8)
+* 100 base pair seq
+* BSmooth for alignment
+* Bowtie2 for alignment (says this immediately after saying using BSmooth for alignment)
+** BSmooth offers 2 options for alignment - 1 of them uses bowtie (so that's what the paper used)
+* and the lambda phage genome (hold on this is all supposed to be human)
+* got meth measurement for each CpG
+* filtering: mapping qual < 20, nuc base qual at cyt position < 10
+* filtering: removed meas from 5' most 10nt of both paired reads
+* DMRs: bsseq
+* DMRs: >= 3 reads per CpG
+* DMRs: small: smooth window 20 CpGs, 1kb used, t stat 4.6, meth diff > 20%
+* DMRs: big: smooth window 200 CpGs, 10kbp, t stat 2, meth diff > 10%, length dmr > 5kb
