@@ -739,6 +739,7 @@ alpha_and_beta2_pat <- alpha_and_beta2 %>%
   ungroup()
 nrow(alpha_and_beta2_pat)
 alpha_and_beta2_pat[1:10,]
+alpha_and_beta2_pat %>% group_by(n) %>% summarise(n())
 ```
 ```{r}
 alpha_and_beta2_pat <- alpha_and_beta2_pat %>%
