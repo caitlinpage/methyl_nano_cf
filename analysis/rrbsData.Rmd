@@ -120,3 +120,47 @@ Steps to process FastQs
 * DMRs: >= 3 reads per CpG
 * DMRs: small: smooth window 20 CpGs, 1kb used, t stat 4.6, meth diff > 20%
 * DMRs: big: smooth window 200 CpGs, 10kbp, t stat 2, meth diff > 10%, length dmr > 5kb
+
+
+WHAT I DID:
+I had to make a conda environment which was annoying
+oh yeah i ran bwa-meth
+to make sams to bams
+and then align the bams
+samtools sort
+samtools index
+modkit extract calls
+
+```{r}
+list.files("/researchers/caitlin.page/pancreatic_cancer_wgbs")
+```
+
+
+```{r}
+fread(paste0("/researchers/caitlin.page/pancreatic_cancer_wgbs/", list.files("/researchers/caitlin.page/pancreatic_cancer_wgbs")[4]))
+```
+
+I missed a step
+b/c this is BS not nanopore
+I need a tool like bismark to process the bams
+and modkit is built for nanopore
+cancerdetector used bismark to process
+have to hope this will get me read level info
+
+it wants the bam file but outputs are currently 0bytes
+i think i need to realign just using bismark
+
+ok can't use sorted file (by pos)
+can be sorted by read (samtools sort -n)
+
+using unsorted bam got some some for m bias and splitting report, but still nothing for cpg report
+
+try to align with bismark
+[Bismark steps](https://felixkrueger.github.io/Bismark/quick_reference/)
+Bismark genome preparation:
+* made a genome index folder in /researchers/caitlin.page called Bisulfite_Genome
+Bismark
+* aligned the fastq file
+* resulting bam stored in /researchers/caitlin.page/pancreatic_cancer_wgbs/bismark_res
+bismark_methylation_extractor
+* running now on bam file
