@@ -402,11 +402,42 @@ alpha_and_beta2 %>% filter(read_id %in% region_reads) %>% distinct(read_id, alig
   geom_segment(data = filter(cg_sites, start >= min(filter(alpha_and_beta2, read_id %in% region_reads)$alignment_start), end <= max(filter(alpha_and_beta2, read_id %in% region_reads)$alignment_end)), aes(x = start, xend = start, y = -0.15, yend = -0.05), colour = "green")
 ```
 
+
+
 Still to determine
 * how best to show betas (line is a bit messy)
 ** jovana suggested just an x instead
-* how to select a region
 
+```{r}
+alpha_and_beta2 %>% filter(read_id %in% region_reads[1:15]) %>% distinct(read_id, alignment_start, alignment_end, alpha) %>%
+  ggplot() +
+  geom_segment(aes(x = alignment_start, xend = alignment_end, y = alpha, yend = alpha), alpha = 0.2) +
+  geom_count(data = filter(alpha_and_beta2, read_id %in% region_reads[1:15]), 
+             aes(x = ref_position, y = alpha, colour = call_code)) +
+  geom_point(data = distinct(filter(alpha_and_beta2, read_id %in% region_reads[1:15]), ref_position, beta), 
+            aes(x = ref_position, y = beta), shape = 4, size = 3) +
+  geom_segment(data = filter(cg_sites, start >= min(filter(alpha_and_beta2, read_id %in% region_reads[1:15])$alignment_start), end <= max(filter(alpha_and_beta2, read_id %in% region_reads[1:15])$alignment_end)), aes(x = start, xend = start, y = -0.15, yend = -0.05), colour = "green")
+
+alpha_and_beta2 %>% filter(read_id %in% region_reads[1:15]) %>% distinct(read_id, alignment_start, alignment_end, alpha) %>%
+  ggplot() +
+  geom_segment(aes(x = alignment_start, xend = alignment_end, y = alpha, yend = alpha), alpha = 0.2) +
+  geom_point(data = filter(alpha_and_beta2, read_id %in% region_reads[1:15]), 
+             aes(x = ref_position, y = alpha, colour = call_code)) +
+  geom_point(data = distinct(filter(alpha_and_beta2, read_id %in% region_reads[1:15]), ref_position, beta), 
+            aes(x = ref_position, y = beta), shape = 4, size = 3) +
+  geom_segment(data = filter(cg_sites, start >= min(filter(alpha_and_beta2, read_id %in% region_reads[1:15])$alignment_start), end <= max(filter(alpha_and_beta2, read_id %in% region_reads[1:15])$alignment_end)), aes(x = start, xend = start, y = -0.15, yend = -0.05), colour = "green")
+```
+
+
+
+# jovana wants something more like pat
+* she thinks having the indiv meth call is too much
+
+
+
+
+## function
+* how to select a region
 Inputs
 * region
 
