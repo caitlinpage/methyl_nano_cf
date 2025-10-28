@@ -129,7 +129,7 @@ samtools index
 modkit extract calls
 
 ```{r}
-list.files("/researchers/caitlin.page/pancreatic_cancer_wgbs")
+list.files("/researchers/caitlin.page/pancreatic_cancer_wgbs")[grep("fastq", list.files("/researchers/caitlin.page/pancreatic_cancer_wgbs"))]
 ```
 
 
@@ -278,6 +278,17 @@ alpha_and_beta2_pat <- alpha_and_beta2_pat %>%
 # other sources of data
 
 [encode rrbs fastqs avail](https://www.encodeproject.org/search/?type=Experiment&control_type%21=%2A&related_series.%40type=ReferenceEpigenome&replicates.library.biosample.donor.organism.scientific_name=Homo+sapiens&status=released&assay_title=RRBS)
+* has 13 rrbs data sets
+
+[GM12878 cell line](https://www.encodeproject.org/experiments/ENCSR000DFT/)
+* it's a lymphoblastoid cell line
+* picked it because it has no cancer or anything else - a few had cancer
+* also immune cells - nice and have used before
+* also it's blood - which ties in with my cell free analysis
+
+* has 2 technical replicates
+
+
 
 [roadmap epigenome](https://egg2.wustl.edu/roadmap/web_portal/)
 * still need to do some digging to find the files
