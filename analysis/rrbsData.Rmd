@@ -23,15 +23,15 @@ except have to go through sra and it's fastq
 I would prefer bam
 
 # breast cancer
-https://www.nature.com/articles/s41467-021-25661-w#data-availability
+[paper](https://www.nature.com/articles/s41467-021-25661-w#data-availability)
 
 just has a link to download processed methylation values so we'll see
 also has fastq upon request
 
 # healthy indiv neutrophils rrbs
 Genome-scale DNA methylome and transcriptome profiling of human neutrophils
-https://www.nature.com/articles/sdata201619#Sec12
-https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE59163
+[paper](https://www.nature.com/articles/sdata201619#Sec12)
+[GEO](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE59163)
 * potentially
 13 samples
 * GSE table files
@@ -46,14 +46,11 @@ read.table("../data/rrbs/neutrophil_paper_2016/GSE59163_RAW/GSM1429638_X9006_ad3
 ```
 * nope they don't match
 
-# rrbsdata (bioconductor package)
-https://bioconductor.org/packages/release/data/experiment/html/RRBSdata.html
+# [rrbsdata (bioconductor package)](https://bioconductor.org/packages/release/data/experiment/html/RRBSdata.html)
 has 12 samples
 this is the paper they got the data from: https://ashpublications.org/blood/article/121/1/178/31062/DNA-methylation-changes-are-a-late-event-in-acute
 
-```{r}
-renv::install("bioc::RRBSdata")
-```
+
 ```{r}
 library(BiSeq)
 ```
@@ -164,3 +161,123 @@ Bismark
 * resulting bam stored in /researchers/caitlin.page/pancreatic_cancer_wgbs/bismark_res
 bismark_methylation_extractor
 * running now on bam file
+```{r}
+list.files("/researchers/caitlin.page/pancreatic_cancer_wgbs/bismark_res")
+```
+
+```{r}
+bismark_cg <- fread(paste0("/researchers/caitlin.page/pancreatic_cancer_wgbs/bismark_res/", "SRR1646792_GSM1541788_38-Lg_rep1_BS-Seq_Homo_sapiens_Bisulfite-Seq_1_bismark_bt2_pe.CpG_report.txt"))
+names(bismark_cg) <- c("seq_id.chrom", "position", "strand", "num_meth", "num_unmeth", "c_context", "trinuc_context")
+bismark_cg[1:10,]
+```
+This is a summarised output, not the read level
+The genome-wide cytosine report (optional) is tab-delimited in the following format (1-based coords):
+```{r}
+bismark_cg %>% filter(seq_id.chrom == "chr22")
+```
+
+```{r}
+bismark_cg %>% distinct(seq_id.chrom)
+```
+
+```{r}
+fread()
+```
+
+```{r}
+fread(paste0("/researchers/caitlin.page/pancreatic_cancer_wgbs/bismark_res/", "SRR1646792_GSM1541788_38-Lg_rep1_BS-Seq_Homo_sapiens_Bisulfite-Seq_1_bismark_bt2_pe.cytosine_context_summary.txt"))
+```
+
+```{r}
+bismark_read_bottom_strand <- fread(paste0("/researchers/caitlin.page/pancreatic_cancer_wgbs/bismark_res/", "CpG_OB_SRR1646792_GSM1541788_38-Lg_rep1_BS-Seq_Homo_sapiens_Bisulfite-Seq_1_bismark_bt2_pe.txt"))
+names(bismark_read_bottom_strand) <- c("seq_id", "strand", "seqnames", "start", "meth_status")
+```
+```{r}
+bismark_read_top_strand <- fread(paste0("/researchers/caitlin.page/pancreatic_cancer_wgbs/bismark_res/", "CpG_OT_SRR1646792_GSM1541788_38-Lg_rep1_BS-Seq_Homo_sapiens_Bisulfite-Seq_1_bismark_bt2_pe.txt"))
+names(bismark_read_top_strand) <- c("seq_id", "strand", "seqnames", "start", "meth_status")
+bismark_read_top_strand
+```
+```{r}
+nrow(bismark_read_top_strand)
+```
+
+Z: methylation
+z: unmethylated
+[source](https://toolshed.g2.bx.psu.edu/repository/display_tool?repository_id=0df2df1072d600d7&tool_config=%2Fsrv%2Ftoolshed-repos%2Fmain%2F000%2Frepo_463%2Fbismark_methylation_extractor.xml&changeset_revision=8c191acde702&render_repository_actions_for=tool_shed)
+```{r}
+distinct(bismark_read_top_strand, seq_id) %>% nrow()
+```
+
+
+```{r}
+bismark_read_top_strand <- bismark_read_top_strand %>% filter(seqnames == "chr22")
+nrow(bismark_read_top_strand)
+nrow(distinct(bismark_read_top_strand, seq_id))
+bismark_read_top_strand[1:10,]
+```
+
+* sense check positions match those in my cg sites list
+
+```{r}
+bismark_read_top_strand$start %in% cg_sites$start %>% summary()
+bismark_read_top_strand$start %in% cg_sites$end %>% summary()
+```
+
+```{r}
+bismark_read_top_strand %>% group_by(seq_id) %>% summarise(num_cpgs_in_read=n()) %>% group_by(num_cpgs_in_read) %>% summarise(n=n())
+```
+* comparatively - nanopore has 1500 reads with 4 cpgs
+```{r}
+bismark_read_top_strand <- bismark_read_top_strand %>% .[order(.$start),]
+```
+
+```{r}
+bismark_read_top_strand %>% .[order(.$seq_id),] %>% .[1:10000,] %>% .[order(.$start),] %>% 
+  group_by(seq_id) %>%
+  mutate(meth_status = ifelse(meth_status == "Z", "M", "U")) %>%
+  mutate(meth_pattern = paste(meth_status, collapse = "")) %>%
+  mutate(num_meth = str_count(meth_pattern, pattern = "M"),
+         total = str_length(meth_pattern),
+         alpha = num_meth/total) %>%
+  mutate(genom_positions = paste0(start, collapse = ",")) %>%
+  ungroup() %>% .[order(.$seq_id),]
+```
+* learn to use data table because dplyr is not memory efficient enough and R will crash
+```{r}
+bismark_read_top_strand[, meth_status := ifelse(meth_status == "Z", "M", "U")]
+bismark_read_top_strand[, meth_pattern := paste0(meth_status, collapse = ""), by = seq_id]
+bismark_read_top_strand[, num_meth := str_count(meth_pattern, pattern = "M")]
+bismark_read_top_strand[, total := str_length(meth_pattern)]
+bismark_read_top_strand[, alpha := num_meth/total]
+bismark_read_top_strand[, genom_positions := paste0(start, collapse = ","), by = seq_id]
+
+bismark_read_top_strand <- bismark_read_top_strand %>% .[order(.$seq_id),]
+bismark_read_top_strand[1:10,]
+```
+
+```{r}
+
+```
+
+
+alpha_and_beta2_pat <- alpha_and_beta2 %>% 
+  mutate(start_pos = sapply(str_split(genom_positions, ","), head, 1),
+         end_pos = sapply(str_split(genom_positions, ","), tail, 1)) %>% 
+  filter(ref_position == start_pos) %>%
+  distinct(read_id, seqnames, start_pos, meth_pattern, alpha, end_pos, beta) %>% 
+  group_by(seqnames, start_pos, meth_pattern, alpha, end_pos, beta) %>% 
+  summarise(n=n()) %>%
+  ungroup()
+nrow(alpha_and_beta2_pat)
+alpha_and_beta2_pat[1:10,]
+alpha_and_beta2_pat %>% group_by(n) %>% summarise(n())
+
+alpha_and_beta2_pat <- alpha_and_beta2_pat %>%
+  mutate(start_pos = as.integer(start_pos),
+         end_pos = as.integer(end_pos))
+# other sources of data
+
+[encode rrbs fastqs avail](https://www.encodeproject.org/search/?type=Experiment&control_type%21=%2A&related_series.%40type=ReferenceEpigenome&replicates.library.biosample.donor.organism.scientific_name=Homo+sapiens&status=released&assay_title=RRBS)
+
+[roadmap epigenome](https://egg2.wustl.edu/roadmap/web_portal/)
+* still need to do some digging to find the files
