@@ -35,6 +35,9 @@ modkit_files <- list.files("/researchers/caitlin.page/cf_nano/modkit_output")
 modkit_files <- paste0("/researchers/caitlin.page/cf_nano/modkit_output/", modkit_files)
 modkit_files
 ```
+```{r}
+modkit_files <- modkit_files[grep(".tsv", modkit_files)]
+```
 
 ```{r}
 modkit_files[grep("filt_ec", modkit_files)]
