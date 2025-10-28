@@ -446,13 +446,42 @@ Inputs
 * cpg pos + betas - dotted line
 * all cpg pos - lines
 
+Considerations for plotting
+* layers could be optional - maybe they don't want everything
+* style of the layers
+** maybe they want beta as a line, not as an x
+
+
+# 1 dot per read (alpha)
+* size of dot indicates how many reads have the same alpha/position
+* dot is coloured by methylated or not
 ```{r}
-plot_fn <- function(chrom = chrom, region = c(start, end), data_big = data_big) {
+plot_fn <- function(chrom = chrom, region = c(start, end), data_big = data_big, cg_sites = cg_sites) {
   chr <- chrom
   start <- region[1]
   end <- region[2]
   
   data <- data_big
+  cpgs <- cg_sites
+  
+  data <- data %>% 
+    filter(seqnames == chr,
+           start >= start,
+           end <= end) 
+  data2 <- data %>%
+    distinct(read_id, alignment_start, alignment_end, alpha)
+  
+  plot <- data2 %>% 
+    ggplot() +
+    geom_segment(aes(x = alignment_start, xend = alignment_end, #read length
+                     y = alpha, yend = alpha), alpha = 0.2) +
+    geom_point(data = data, 
+             aes(x = ref_position, y = alpha, colour = call_code)) + # alpha dots, 1 per read
+    geom_point(data = distinct(data, ref_position, beta),            # beta as X
+            aes(x = ref_position, y = beta), shape = 4, size = 3) +
+    geom_segment(data = filter(cpgs, start >= start, end <= end),    # green lines showing cpg positions
+                 aes(x = start, xend = start, y = -0.15, yend = -0.05), colour = "green")
+  plot
 }
 ```
 
