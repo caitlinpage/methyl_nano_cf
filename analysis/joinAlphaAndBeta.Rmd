@@ -769,7 +769,39 @@ alpha_and_beta2_pat %>% filter(start_pos %in% ref_pos) %>%
                aes(x = start, xend = start, y = -0.15, yend = -0.05), colour = "green")
 ```
 
+# summarised experiment object style
 
+assays: matrix object 
+* store methylation states
+* could I have rows as cpgs, columns as reads?
+* yes it would be ginormous
+* but also it would work - b/c dfs anyway are cpgs
+* would just need NAs for the cpgs where reads don't cover them
+
+* could then have another assay of beta values
+* easy because just 1 value per cpg
+* row = cpg, col = sample
+
+* could have another assay of alpha values
+* just 1 value per read
+* row = read, col = sample
+
+* I would have 2 matrices where row is same = cpg
+* but 1 where row is read
+* and this would mess with rowData and colData stuff 
+* b/c they should match
+* look I could make the first cpg represent the read in alpha
+* but then it's an issue because there will be multiple reads that start at the same site
+* which would mean repeat rows - or another column saying the num occurences - which becomes pat format
+
+rowData
+* metadata: annotation info etc for rows
+
+colData
+* metadata: annotation info etc for cols
+
+rowRanges
+* maybe i could use petehickey's genomicTuples here? to store positions in the granges?
 
 # was meaning more for meth patterns analysis but maybe peter hickeys package could help?
 "analysing, managing, and visualising meth tuples" (not quite a read but similar)
@@ -790,3 +822,208 @@ https://github.com/PeteHaitch/methtuple
 pete hickey also has this [genomictuples bioconductor package](https://bioconductor.org/packages/release/bioc/vignettes/GenomicTuples/inst/doc/GenomicTuplesIntroduction.html)
 interesting except that reads vary in num cpgs - this requires same
 but it builds off granges
+
+* could have this but in like a list situation
+* so one ranges for each length of read
+* which is actually what he has in the example
+** but also potentially not?? - I need to play around with it
+* but would get out of hand length wise
+* pat is definitely a neater format than anything else
+
+```{r}
+library(GenomicTuples)
+```
+
+```{r}
+alpha_and_beta2[1:4,c(1,6,8,18,19,31,33,39)] # 1 read
+```
+
+```{r}
+gt4 <- GTuples(seqnames = Rle("chr22", 1),
+          tuples = matrix(c(10522481,10522501,10522591,10522649), ncol =4),
+          strand = Rle("*", 1),
+          alpha = 0.5)
+names(gt4) <- alpha_and_beta2$read_id[1]
+gt4
+```
+```{r}
+gt4$alpha
+gt4@internalPos
+gt4@internalPos[1]
+gt4@ranges
+gt4@ranges@start
+```
+* ok it's kinda cute
+* and can extract the positions
+* problem though is only works for same num cpgs
+```{r}
+alpha_and_beta2_pat %>% mutate(num_cpgs = nchar(meth_pattern)) %>% group_by(num_cpgs) %>% summarise(n=n()) %>% nrow()
+```
+* 53 gtuples objects - and that's just for this sample (and for chrom 22)
+* even if we filtered some out - it's still a lot
+
+```{r}
+alpha_and_beta2_pat %>% mutate(num_cpgs = nchar(meth_pattern)) %>% group_by(num_cpgs) %>% summarise(n=n()) %>% .[1:10,]
+```
+* it would be 1517 for the 4tuple though
+* if you were interested in a specific length, I think this is kind of nice
+* I like that it has all the positions - and you can extract them
+
+```{r}
+alpha_and_beta2 %>% filter(total == 4) %>% distinct(read_id) %>% nrow()
+alpha_and_beta2 %>% filter(total == 4) %>% distinct(genom_positions) %>% nrow()
+alpha_and_beta2 %>% filter(total == 4) %>% distinct(genom_positions, alpha) %>% nrow()
+```
+* this is going to complicate it
+* hold on this form is basically almost pat
+* but with granges
+* and honestly pat is probably better
+
+```{r}
+alpha_and_beta2 %>% filter(total == 4) %>% distinct(read_id) %>% nrow()
+alpha_and_beta2 %>% filter(total == 4) %>% .$genom_positions %>% data.frame() %>% separate('.', into = c("a", "b", "c", "d"), sep = ",") %>% mutate(a = as.double(a), b = as.double(b), c = as.double(c), d = as.double(d)) %>% distinct()
+```
+
+```{r}
+GTuples(seqnames = alpha_and_beta2 %>% filter(total == 4) %>% distinct(read_id, seqnames) %>% .$seqnames,
+        tuples = 
+
+```
+
+
+```{r}
+gt4 <- GTuples(seqnames = "chr22",
+          tuples = matrix(c(10522481,10522501,10522591,10522649), ncol =4),
+          strand = "*",
+          alpha = 0.5)
+names(gt4) <- alpha_and_beta2$read_id[1]
+```
+
+
+```{r}
+Rle(c("chr1", "chr2", "chr1", "chr3"),
+                              c(1, 3, 2, 4))
+matrix(c(1:10, 2:11, 3:12), ncol = 3)
+```
+```{r}
+seqinfo <- Seqinfo(paste0("chr", 1:3), c(1000, 2000, 1500), NA, "mock1")
+gt3 <- GTuples(seqnames = Rle(c("chr1", "chr2", "chr1", "chr3"),
+                              c(1, 3, 2, 4)),
+               tuples = matrix(c(1:10, 2:11, 3:12), ncol = 3),
+               strand = Rle(strand(c("-", "+", "*", "+", "-")),
+                            c(1, 2, 2, 3, 2)),
+               score = 1:10, GC = seq(1, 0, length = 10), seqinfo = seqinfo)
+names(gt3) <- letters[1:10]
+gt3
+```
+
+seqinfo <- Seqinfo(paste0("chr", 1:3), c(1000, 2000, 1500), NA, "mock1")
+gt3 <- GTuples(seqnames = Rle(c("chr1", "chr2", "chr1", "chr3"),
+                              c(1, 3, 2, 4)),
+               tuples = matrix(c(1:10, 2:11, 3:12), ncol = 3),
+               strand = Rle(strand(c("-", "+", "*", "+", "-")),
+                            c(1, 2, 2, 3, 2)),
+               score = 1:10, GC = seq(1, 0, length = 10), seqinfo = seqinfo)
+names(gt3) <- letters[1:10]
+
+# [pat format](https://github.com/nloyfer/wgbs_tools/blob/master/docs/pat_format.md)
+* it does keep coming back to pat being a fairly elegant format
+* my issue with it is just that you lose information
+* but I guess actually you can just have other columns or bits and pieces to associate back to it
+
+```{r}
+alpha_and_beta2_pat[1:10,]
+```
+```{r}
+alpha_and_beta2_pat %>% .[order(.$start_pos),]
+```
+
+* also hold up I could plot with the pat format
+* lol i knew that that's how I made the simplified plot
+
+```{r}
+region_reads
+```
+
+
+# Instructions on making PAT format
+```{r}
+alpha_and_beta2
+```
+
+```{r}
+indiv_reads <- readRDS("/researchers/caitlin.page/cf_nano/r_output/indiv_reads.rds")
+indiv_reads$ref_position <- indiv_reads$ref_position + 1 # convert to 1 based
+indiv_reads <- indiv_reads %>% mutate(ref_position = ifelse(ref_strand == "-", ref_position - 1, ref_position))
+indiv_reads$read_and_pos <- paste0(indiv_reads$read_id, ":", indiv_reads$ref_position)
+indiv_reads$start <- indiv_reads$ref_position
+indiv_reads$end <- indiv_reads$ref_position
+alpha_and_beta2 <- find_overlaps(as_granges(indiv_reads), as_granges(bed_betas_hu5.10)) %>% data.frame() %>% filter(call_prob > 0.66) %>%
+  group_by(read_id) %>% .[order(.$alignment_start),] %>% 
+  mutate(call_code = ifelse(call_code == "m", "M", "U")) %>%
+  mutate(meth_pattern = paste(call_code, collapse = "")) %>%
+  mutate(num_meth = str_count(meth_pattern, pattern = "M"),
+         total = str_length(meth_pattern),
+         alpha = num_meth/total) %>%
+  mutate(genom_positions = paste0(ref_position, collapse = ",")) %>%
+  ungroup()
+alpha_and_beta2 <- alpha_and_beta2 %>% data.frame()
+head(alpha_and_beta2)
+```
+
+```{r}
+alpha_and_beta2 %>% 
+  mutate(start_pos = sapply(str_split(genom_positions, ","), head, 1),
+                           end_pos = sapply(str_split(genom_positions, ","), tail, 1)) %>%
+  distinct(read_id, seqnames, start_pos, meth_pattern) %>% 
+  group_by(seqnames, start_pos, meth_pattern) %>%
+  summarise(n=n()) %>%
+  head()
+
+alpha_and_beta2 %>% 
+  mutate(start_pos = sapply(str_split(genom_positions, ","), head, 1),
+                           end_pos = sapply(str_split(genom_positions, ","), tail, 1)) %>%
+  distinct(read_id, seqnames, start_pos, meth_pattern) %>% 
+  group_by(seqnames, start_pos, meth_pattern) %>%
+  summarise(n=n()) %>%
+  group_by(n) %>%
+  summarise(n())
+```
+
+* that was easy to make actually
+* except you don't really get the betas with it
+
+* trying to add in alpha and genom pos messes it up
+
+
+```{r}
+alpha_and_beta2_pat <- alpha_and_beta2 %>% 
+  mutate(start_pos = sapply(str_split(genom_positions, ","), head, 1)) %>%
+  distinct(read_id, seqnames, start_pos, meth_pattern) %>% 
+  group_by(seqnames, start_pos, meth_pattern) %>% 
+  summarise(n=n()) %>%
+  ungroup()
+nrow(alpha_and_beta2_pat)
+alpha_and_beta2_pat[1:10,]
+```
+
+* ok I only get 1 extra row when I add in rest of info and I can live with that (for now)
+
+```{r}
+alpha_and_beta2_pat <- alpha_and_beta2 %>% 
+  mutate(start_pos = sapply(str_split(genom_positions, ","), head, 1),
+         end_pos = sapply(str_split(genom_positions, ","), tail, 1)) %>% 
+  filter(ref_position == start_pos) %>%
+  distinct(read_id, seqnames, start_pos, meth_pattern, alpha, end_pos, beta) %>% 
+  group_by(seqnames, start_pos, meth_pattern, alpha, end_pos, beta) %>% 
+  summarise(n=n()) %>%
+  ungroup()
+nrow(alpha_and_beta2_pat)
+alpha_and_beta2_pat[1:10,]
+alpha_and_beta2_pat %>% group_by(n) %>% summarise(n())
+```
+```{r}
+alpha_and_beta2_pat <- alpha_and_beta2_pat %>%
+  mutate(start_pos = as.integer(start_pos),
+         end_pos = as.integer(end_pos))
+```
