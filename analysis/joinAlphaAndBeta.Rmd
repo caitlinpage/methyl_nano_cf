@@ -971,43 +971,6 @@ alpha_and_beta2 <- alpha_and_beta2 %>% data.frame()
 head(alpha_and_beta2)
 ```
 
-```{r}
-alpha_and_beta2 %>% 
-  mutate(start_pos = sapply(str_split(genom_positions, ","), head, 1),
-                           end_pos = sapply(str_split(genom_positions, ","), tail, 1)) %>%
-  distinct(read_id, seqnames, start_pos, meth_pattern) %>% 
-  group_by(seqnames, start_pos, meth_pattern) %>%
-  summarise(n=n()) %>%
-  head()
-
-alpha_and_beta2 %>% 
-  mutate(start_pos = sapply(str_split(genom_positions, ","), head, 1),
-                           end_pos = sapply(str_split(genom_positions, ","), tail, 1)) %>%
-  distinct(read_id, seqnames, start_pos, meth_pattern) %>% 
-  group_by(seqnames, start_pos, meth_pattern) %>%
-  summarise(n=n()) %>%
-  group_by(n) %>%
-  summarise(n())
-```
-
-* that was easy to make actually
-* except you don't really get the betas with it
-
-* trying to add in alpha and genom pos messes it up
-
-
-```{r}
-alpha_and_beta2_pat <- alpha_and_beta2 %>% 
-  mutate(start_pos = sapply(str_split(genom_positions, ","), head, 1)) %>%
-  distinct(read_id, seqnames, start_pos, meth_pattern) %>% 
-  group_by(seqnames, start_pos, meth_pattern) %>% 
-  summarise(n=n()) %>%
-  ungroup()
-nrow(alpha_and_beta2_pat)
-alpha_and_beta2_pat[1:10,]
-```
-
-* ok I only get 1 extra row when I add in rest of info and I can live with that (for now)
 
 ```{r}
 alpha_and_beta2_pat <- alpha_and_beta2 %>% 
@@ -1021,8 +984,7 @@ alpha_and_beta2_pat <- alpha_and_beta2 %>%
 nrow(alpha_and_beta2_pat)
 alpha_and_beta2_pat[1:10,]
 alpha_and_beta2_pat %>% group_by(n) %>% summarise(n())
-```
-```{r}
+
 alpha_and_beta2_pat <- alpha_and_beta2_pat %>%
   mutate(start_pos = as.integer(start_pos),
          end_pos = as.integer(end_pos))
