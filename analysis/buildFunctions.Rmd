@@ -1,0 +1,137 @@
+---
+title: "buildFunctions"
+author: "caitlinpage"
+date: "2025-10-29"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+## Introduction
+
+```{r}
+library(plyranges)
+library(dplyr)
+library(ggplot2)
+library(data.table)
+```
+
+* starting a new file because outputs from modkit (nanopore) and bismark (wgbs + rrbs) are very very different
+* and I want to get them in the same place
+
+* then this also stays centralised as a way to make sure if I modify pieces other functions still run
+* and I love making new files for new ideas
+* so use this as an end to end workflow as well
+
+
+* going from read+cpg to context with beta and alpha
+
+# files
+* pat file (with extra info) : gives alpha
+* beta file
+* og read level: has everything
+
+* technically can get beta from alpha
+* nanopore issue was figuring out the filtering metrics from modkit for that to be accurate
+
+* will have to go through the same process for bismark files
+
+# processing files
+
+## nanopore
+```{r}
+for(i in 1:length(healthy_samples)) {
+  make_epiread <- read.table(healthy_samples[i], header = FALSE)
+  colnames(make_epiread) <- modkit_colnames
+  make_epiread$seqnames <- make_epiread$chrom
+  make_epiread$start <- make_epiread$alignment_start
+  make_epiread$end <- make_epiread$alignment_end
+  make_epiread <- make_epiread[grep("..CG.", make_epiread$query_kmer),]
+  
+  make_epiread <- make_epiread %>% group_by(read_id) %>% mutate(num_cg = n()) %>% ungroup()
+  overlaps <- find_overlaps(as_granges(make_epiread), as_granges(cg_sites)) %>% data.frame() %>% 
+    group_by(read_id) %>% summarise(min_index = min(index)) %>% ungroup() %>% data.frame()
+  make_epiread <- make_epiread %>% mutate(index_cg = overlaps[match(.$read_id, overlaps$read_id), "min_index"]) %>% data.frame()
+  
+  make_epiread <- make_epiread %>% group_by(read_id, seqnames, start, end, chrom, alignment_start, alignment_end, read_length, num_cg, index_cg) %>% 
+    mutate(call_code2 = ifelse(call_code == "m", "C", "T")) %>%
+    summarise(meth_pattern = paste(call_code2, collapse = "")) %>% .[order(.$alignment_start),] %>% ungroup()
+  
+  cpg_positions <- data.frame(cpg_positions = as.character())
+    for(x in 1:nrow(make_epiread)) {
+      cpg_positions <- rbind(cpg_positions, paste0(seq(from = make_epiread$index_cg[x], length = make_epiread$num_cg[x]), collapse = ","))
+  
+    }
+  colnames(cpg_positions) <- "cpg_positions"
+  make_epiread <- cbind(make_epiread, cpg_positions)
+  
+  genom_positions <- data.frame(genom_positions = as.character())
+  for(y in 1:nrow(make_epiread)) {
+    genom_positions <- rbind(genom_positions, paste0(cg_sites[seq(from = make_epiread$index_cg[y], length = make_epiread$num_cg[y]), "start"], collapse = ","))
+  
+  }
+  colnames(genom_positions) <- "genom_positions"
+  make_epiread <- cbind(make_epiread, genom_positions)
+  
+  make_epiread <- make_epiread %>%
+  mutate(num_meth = str_count(make_epiread$meth_pattern, "C"), 
+         total = str_length(make_epiread$meth_pattern),
+         alpha = num_meth/total)
+  
+  healthy_epireads[[healthy_headers[i]]] <- make_epiread
+}
+```
+
+```{r}
+indiv_reads <- readRDS("/researchers/caitlin.page/cf_nano/r_output/indiv_reads.rds")
+indiv_reads$ref_position <- indiv_reads$ref_position + 1 # convert to 1 based
+indiv_reads <- indiv_reads %>% mutate(ref_position = ifelse(ref_strand == "-", ref_position - 1, ref_position))
+indiv_reads$read_and_pos <- paste0(indiv_reads$read_id, ":", indiv_reads$ref_position)
+indiv_reads$start <- indiv_reads$ref_position
+indiv_reads$end <- indiv_reads$ref_position
+alpha_and_beta2 <- find_overlaps(as_granges(indiv_reads), as_granges(bed_betas_hu5.10)) %>% data.frame() %>% filter(call_prob > 0.66) %>%
+  group_by(read_id) %>% .[order(.$alignment_start),] %>% 
+  mutate(call_code = ifelse(call_code == "m", "M", "U")) %>%
+  mutate(meth_pattern = paste(call_code, collapse = "")) %>%
+  mutate(num_meth = str_count(meth_pattern, pattern = "M"),
+         total = str_length(meth_pattern),
+         alpha = num_meth/total) %>%
+  mutate(genom_positions = paste0(ref_position, collapse = ",")) %>%
+  ungroup()
+alpha_and_beta2 <- alpha_and_beta2 %>% data.frame()
+head(alpha_and_beta2)
+
+alpha_and_beta2_pat <- alpha_and_beta2 %>% 
+  mutate(start_pos = sapply(str_split(genom_positions, ","), head, 1),
+         end_pos = sapply(str_split(genom_positions, ","), tail, 1)) %>% 
+  filter(ref_position == start_pos) %>%
+  distinct(read_id, seqnames, start_pos, meth_pattern, alpha, end_pos, beta) %>% 
+  group_by(seqnames, start_pos, meth_pattern, alpha, end_pos, beta) %>% 
+  summarise(n=n()) %>%
+  ungroup()
+nrow(alpha_and_beta2_pat)
+alpha_and_beta2_pat[1:10,]
+alpha_and_beta2_pat %>% group_by(n) %>% summarise(n())
+
+alpha_and_beta2_pat <- alpha_and_beta2_pat %>%
+  mutate(start_pos = as.integer(start_pos),
+         end_pos = as.integer(end_pos))
+```
+
+## wgbs/rrbs
+
+```{r}
+bismark_read_top_strand <- fread(paste0("/researchers/caitlin.page/pancreatic_cancer_wgbs/bismark_res/", "CpG_OT_SRR1646792_GSM1541788_38-Lg_rep1_BS-Seq_Homo_sapiens_Bisulfite-Seq_1_bismark_bt2_pe.txt"))
+names(bismark_read_top_strand) <- c("seq_id", "strand", "seqnames", "start", "meth_status")
+
+bismark_read_top_strand[, meth_status := ifelse(meth_status == "Z", "M", "U")]
+bismark_read_top_strand[, meth_pattern := paste0(meth_status, collapse = ""), by = seq_id]
+bismark_read_top_strand[, num_meth := str_count(meth_pattern, pattern = "M")]
+bismark_read_top_strand[, total := str_length(meth_pattern)]
+bismark_read_top_strand[, alpha := num_meth/total]
+bismark_read_top_strand[, genom_positions := paste0(start, collapse = ","), by = seq_id]
+
+bismark_read_top_strand <- bismark_read_top_strand %>% .[order(.$seq_id),]
+bismark_read_top_strand[1:10,]
+```
+
