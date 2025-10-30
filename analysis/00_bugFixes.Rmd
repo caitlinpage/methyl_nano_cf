@@ -21,3 +21,9 @@ editor_options:
 * install data.table and try that instead - far more efficient for large datasets
 * ran a 9G file in seconds
 * and can be converted to data.frame()
+
+# 27/10/2025
+# crashed RStudio: getting alpha from bismark meth extract
+* WGBS is a lot bigger than nanopore
+* and this was still on chr22
+* solution: data.table for everything - no more dplyr and mutate
