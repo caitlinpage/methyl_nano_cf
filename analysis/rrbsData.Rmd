@@ -287,8 +287,25 @@ alpha_and_beta2_pat <- alpha_and_beta2_pat %>%
 * also it's blood - which ties in with my cell free analysis
 
 * has 2 technical replicates
+* single end this time
 
+```{r}
+list.files("/researchers/caitlin.page/rrbs_encode_cell_line") %>% .[grep("fastq", .)]
+```
 
+output files from bismark methylation_extractor
+
+```{r}
+list.files("/researchers/caitlin.page/rrbs_encode_cell_line") %>% .[grep("txt", .)]
+```
+
+```{r}
+fread("/researchers/caitlin.page/rrbs_encode_cell_line/CpG_OB_ENCFF000LYP_bismark_bt2.txt")
+```
+
+mnmnmmnmjmknkmkhk
 
 [roadmap epigenome](https://egg2.wustl.edu/roadmap/web_portal/)
 * still need to do some digging to find the files
+
+
