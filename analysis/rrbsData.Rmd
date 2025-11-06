@@ -305,7 +305,15 @@ fread("/researchers/caitlin.page/rrbs_encode_cell_line/CpG_OB_ENCFF000LYP_bismar
 
 mnmnmmnmjmknkmkhk
 
+* also there was actually a processed file so let's take a squiz at that
+```{r}
+#read.table("../data/rrbs/pancreatic_cancer/GSM1541788_38-Lg_rep1.cg.txt.gz", header = TRUE)
+```
+
 [roadmap epigenome](https://egg2.wustl.edu/roadmap/web_portal/)
 * still need to do some digging to find the files
+* the paper data is used in the BSmooth paper
+[GEO](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE16256)
+[paper](https://www.nature.com/articles/nature08514#accession-codes) 2009
 
 
