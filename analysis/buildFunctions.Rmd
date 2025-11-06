@@ -39,48 +39,7 @@ library(data.table)
 # processing files
 
 ## nanopore
-```{r}
-for(i in 1:length(healthy_samples)) {
-  make_epiread <- read.table(healthy_samples[i], header = FALSE)
-  colnames(make_epiread) <- modkit_colnames
-  make_epiread$seqnames <- make_epiread$chrom
-  make_epiread$start <- make_epiread$alignment_start
-  make_epiread$end <- make_epiread$alignment_end
-  make_epiread <- make_epiread[grep("..CG.", make_epiread$query_kmer),]
-  
-  make_epiread <- make_epiread %>% group_by(read_id) %>% mutate(num_cg = n()) %>% ungroup()
-  overlaps <- find_overlaps(as_granges(make_epiread), as_granges(cg_sites)) %>% data.frame() %>% 
-    group_by(read_id) %>% summarise(min_index = min(index)) %>% ungroup() %>% data.frame()
-  make_epiread <- make_epiread %>% mutate(index_cg = overlaps[match(.$read_id, overlaps$read_id), "min_index"]) %>% data.frame()
-  
-  make_epiread <- make_epiread %>% group_by(read_id, seqnames, start, end, chrom, alignment_start, alignment_end, read_length, num_cg, index_cg) %>% 
-    mutate(call_code2 = ifelse(call_code == "m", "C", "T")) %>%
-    summarise(meth_pattern = paste(call_code2, collapse = "")) %>% .[order(.$alignment_start),] %>% ungroup()
-  
-  cpg_positions <- data.frame(cpg_positions = as.character())
-    for(x in 1:nrow(make_epiread)) {
-      cpg_positions <- rbind(cpg_positions, paste0(seq(from = make_epiread$index_cg[x], length = make_epiread$num_cg[x]), collapse = ","))
-  
-    }
-  colnames(cpg_positions) <- "cpg_positions"
-  make_epiread <- cbind(make_epiread, cpg_positions)
-  
-  genom_positions <- data.frame(genom_positions = as.character())
-  for(y in 1:nrow(make_epiread)) {
-    genom_positions <- rbind(genom_positions, paste0(cg_sites[seq(from = make_epiread$index_cg[y], length = make_epiread$num_cg[y]), "start"], collapse = ","))
-  
-  }
-  colnames(genom_positions) <- "genom_positions"
-  make_epiread <- cbind(make_epiread, genom_positions)
-  
-  make_epiread <- make_epiread %>%
-  mutate(num_meth = str_count(make_epiread$meth_pattern, "C"), 
-         total = str_length(make_epiread$meth_pattern),
-         alpha = num_meth/total)
-  
-  healthy_epireads[[healthy_headers[i]]] <- make_epiread
-}
-```
+
 
 ```{r}
 indiv_reads <- readRDS("/researchers/caitlin.page/cf_nano/r_output/indiv_reads.rds")
@@ -134,4 +93,41 @@ bismark_read_top_strand[, genom_positions := paste0(start, collapse = ","), by =
 bismark_read_top_strand <- bismark_read_top_strand %>% .[order(.$seq_id),]
 bismark_read_top_strand[1:10,]
 ```
+
+
+
+# plotting
+
+```{r}
+plot_fn <- function(chrom = chrom, region = c(start, end), data_big = data_big, cg_sites = cg_sites) {
+  chr <- chrom
+  start <- region[1]
+  end <- region[2]
+  
+  data <- data_big
+  cpgs <- cg_sites
+  
+  data <- data %>% 
+    filter(seqnames == chr,
+           start >= start,
+           end <= end) 
+  data2 <- data %>%
+    distinct(read_id, alignment_start, alignment_end, alpha)
+  
+  plot <- data2 %>% 
+    ggplot() +
+    geom_segment(aes(x = alignment_start, xend = alignment_end, #read length
+                     y = alpha, yend = alpha), alpha = 0.2) +
+    geom_point(data = data, 
+             aes(x = ref_position, y = alpha, colour = call_code)) + # alpha dots, 1 per read
+    geom_point(data = distinct(data, ref_position, beta),            # beta as X
+            aes(x = ref_position, y = beta), shape = 4, size = 3) +
+    geom_segment(data = filter(cpgs, start >= start, end <= end),    # green lines showing cpg positions
+                 aes(x = start, xend = start, y = -0.15, yend = -0.05), colour = "green")
+  plot
+}
+```
+
+
+
 
