@@ -884,11 +884,7 @@ alpha_and_beta2 %>% filter(total == 4) %>% distinct(read_id) %>% nrow()
 alpha_and_beta2 %>% filter(total == 4) %>% .$genom_positions %>% data.frame() %>% separate('.', into = c("a", "b", "c", "d"), sep = ",") %>% mutate(a = as.double(a), b = as.double(b), c = as.double(c), d = as.double(d)) %>% distinct()
 ```
 
-```{r}
-GTuples(seqnames = alpha_and_beta2 %>% filter(total == 4) %>% distinct(read_id, seqnames) %>% .$seqnames,
-        tuples = 
 
-```
 
 
 ```{r}
@@ -917,15 +913,6 @@ names(gt3) <- letters[1:10]
 gt3
 ```
 
-seqinfo <- Seqinfo(paste0("chr", 1:3), c(1000, 2000, 1500), NA, "mock1")
-gt3 <- GTuples(seqnames = Rle(c("chr1", "chr2", "chr1", "chr3"),
-                              c(1, 3, 2, 4)),
-               tuples = matrix(c(1:10, 2:11, 3:12), ncol = 3),
-               strand = Rle(strand(c("-", "+", "*", "+", "-")),
-                            c(1, 2, 2, 3, 2)),
-               score = 1:10, GC = seq(1, 0, length = 10), seqinfo = seqinfo)
-names(gt3) <- letters[1:10]
-
 # [pat format](https://github.com/nloyfer/wgbs_tools/blob/master/docs/pat_format.md)
 * it does keep coming back to pat being a fairly elegant format
 * my issue with it is just that you lose information
@@ -941,9 +928,6 @@ alpha_and_beta2_pat %>% .[order(.$start_pos),]
 * also hold up I could plot with the pat format
 * lol i knew that that's how I made the simplified plot
 
-```{r}
-region_reads
-```
 
 
 # Instructions on making PAT format
@@ -982,10 +966,11 @@ alpha_and_beta2_pat <- alpha_and_beta2 %>%
   summarise(n=n()) %>%
   ungroup()
 nrow(alpha_and_beta2_pat)
-alpha_and_beta2_pat[1:10,]
 alpha_and_beta2_pat %>% group_by(n) %>% summarise(n())
 
 alpha_and_beta2_pat <- alpha_and_beta2_pat %>%
   mutate(start_pos = as.integer(start_pos),
          end_pos = as.integer(end_pos))
+
+alpha_and_beta2_pat[1:10,]
 ```
