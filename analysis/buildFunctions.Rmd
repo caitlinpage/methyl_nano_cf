@@ -11,6 +11,8 @@ editor_options:
 
 ```{r}
 library(plyranges)
+library(stringr)
+library(BSgenome.Hsapiens.UCSC.hg38)
 library(dplyr)
 library(ggplot2)
 library(data.table)
@@ -37,8 +39,65 @@ library(data.table)
 * will have to go through the same process for bismark files
 
 # processing files
+* from practical standpoint: use datatable and fread because files are LARGE
+
+## helpers
+```{r}
+cg_sites <- cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38[["chr22"]])), seqnames = "chr22") %>% 
+  mutate(pos = paste0(seqnames, "-", start)) %>%
+  relocate(pos, seqnames)
+cg_sites$index <- 1:nrow(cg_sites)
+c(number_of_sites = nrow(cg_sites))
+head(cg_sites)
+```
+
 
 ## nanopore
+
+* need modkit read file from modkit_extract_full
+* bed file from downloaded data (bed file from modkit was weird)
+```{r}
+process_modkit <- function(path_to_modkit_output, path_to_bed_file) {
+  reads <- fread(path_to_modkit_output)
+  reads <- reads$ref_position + 1 # convert to 1 based
+  reads <- reads[, ref_position := ifelse(strand == "-", ref_position - 1, ref_position)] # convert to 1 based
+  reads <- reads[, read_and_pos := paste0(reads$read_id, ":", reads$ref_position)]
+  reads$start <- reads$ref_position
+  reads$end <- reads$ref_position
+  
+  bed <- fread(path_to_bed_file)
+  
+  alpha_and_beta2 <- find_overlaps(as_granges(reads), as_granges(bed)) %>% data.frame() %>% 
+    filter(call_prob > 0.66) %>% # solution for alpha and beta match
+    group_by(read_id) %>% 
+    .[order(.$alignment_start),] %>% 
+    mutate(call_code = ifelse(call_code == "m", "M", "U")) %>% 
+    mutate(meth_pattern = paste(call_code, collapse = "")) %>% 
+    mutate(num_meth = str_count(meth_pattern, pattern = "M"),
+         total = str_length(meth_pattern),
+         alpha = num_meth/total) %>% 
+    mutate(genom_positions = paste0(ref_position, collapse = ",")) %>% 
+    ungroup()
+  alpha_and_beta2 <- alpha_and_beta2 %>% data.frame()
+  alpha_and_beta2
+}
+
+modkit_to_pat <- function(alpha_and_beta) {
+  alpha_and_beta2_pat <- alpha_and_beta2 %>% 
+    mutate(start_pos = sapply(str_split(genom_positions, ","), head, 1),
+           end_pos = sapply(str_split(genom_positions, ","), tail, 1)) %>% 
+    filter(ref_position == start_pos) %>% 
+    distinct(read_id, seqnames, start_pos, meth_pattern, alpha, end_pos, beta) %>% 
+    group_by(seqnames, start_pos, meth_pattern, alpha, end_pos, beta) %>% 
+    summarise(n=n()) %>% 
+    ungroup()
+
+  alpha_and_beta2_pat <- alpha_and_beta2_pat %>% 
+    mutate(start_pos = as.integer(start_pos), 
+           end_pos = as.integer(end_pos))
+  alpha_and_beta2_pat
+}
+```
 
 
 ```{r}
@@ -78,6 +137,32 @@ alpha_and_beta2_pat <- alpha_and_beta2_pat %>%
 ```
 
 ## wgbs/rrbs
+
+```{r}
+process_wgbs <- function(path_to_bismark_res, path_to_bed) {
+  read <- fread(path_to_bismark_res)
+  names(read) <- c("read_id", "strand", "seqnames", "start", "meth_status")
+  read$end <- read$start
+  
+  bed <- fread(path_to_bed)
+  
+  read_overlap <- find_overlaps(as_granges(read), as_granges(bed)) %>% data.frame()
+  
+  read_overlap[, meth_status := ifelse(meth_status == "Z", "M", "U")]
+  read_overlap[, meth_pattern := paste0(meth_status, collapse = ""), by = read_id]
+  read_overlap[, num_meth := str_count(meth_pattern, pattern = "M")]
+  read_overlap[, total := str_length(meth_pattern)]
+  read_overlap[, alpha := num_meth/total]
+  read_overlap[, genom_positions := paste0(start, collapse = ","), by = read_id]
+
+  read_overlap <- read_overlap %>% .[order(.$read_id),]
+  
+  read
+}
+
+
+```
+
 
 ```{r}
 bismark_read_top_strand <- fread(paste0("/researchers/caitlin.page/pancreatic_cancer_wgbs/bismark_res/", "CpG_OT_SRR1646792_GSM1541788_38-Lg_rep1_BS-Seq_Homo_sapiens_Bisulfite-Seq_1_bismark_bt2_pe.txt"))
