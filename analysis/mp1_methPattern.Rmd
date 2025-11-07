@@ -222,26 +222,8 @@ for_beta %>% filter(start >= 12693660, start <= 12693800) %>% group_by(read_id) 
   ggplot() +
   geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha), alpha = 0.3)
 ```
-```{r}
-got_beta <- data.frame(got_beta)
-```
 
-```{r}
-for_beta <- for_beta %>% group_by(read_id) %>% mutate(read_start = min(start), read_end = max(end), genom_positions = paste0(start, collapse = ",")) %>% ungroup()
-for_beta <- for_beta %>% data.frame() %>% mutate(beta = got_beta[match(.$start, got_beta$start), "beta"])
-```
-```{r}
-rrbs_for_beta_pat <- for_beta %>% 
-  mutate(start_pos = sapply(str_split(genom_positions, ","), head, 1),
-         end_pos = sapply(str_split(genom_positions, ","), tail, 1)) %>% 
-  filter(start == start_pos) %>%
-  distinct(read_id, seqnames, start_pos, meth_pattern, alpha, end_pos, beta) %>% 
-  group_by(seqnames, start_pos, meth_pattern, alpha, end_pos, beta) %>% 
-  summarise(n=n()) %>%
-  ungroup()  %>%
-  mutate(start_pos = as.integer(start_pos),
-         end_pos = as.integer(end_pos))
-```
+
 * pat can help us find positions with interesting groups?
 ```{r}
 rrbs_for_beta_pat %>% group_by(start_pos) %>% summarise(n_groups = n(), sum_reads = sum(n)) %>% .[order(.$n_groups, decreasing = TRUE),]
@@ -333,21 +315,6 @@ rrbs_for_beta_pat %>% filter(start == 48646638)
 rrbs_for_beta_pat %>% group_by(start_pos) %>% summarise(sum = sum(n)) %>% .[order(.$sum, decreasing = TRUE),]
 ```
 
-```{r}
-rrbs_plot <- function(long_data, read_ids, cpgs = cg_sites) {
-  long_data %>% filter(read_id %in% read_ids) %>% 
-    distinct(read_id, read_start, read_end, alpha) %>%
-  ggplot() +
-  geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha), alpha = 0.2) +
-  geom_point(data = filter(long_data, read_id %in% read_ids), 
-             aes(x = start, y = alpha, colour = meth_status)) +
-  geom_point(data = distinct(filter(long_data, read_id %in% read_ids), start, beta), 
-            aes(x = start, y = beta), shape = 4, size = 3) +
-  geom_segment(data = filter(cg_sites, start >= min(filter(long_data, read_id %in% read_ids)$start), 
-                             end <= max(filter(long_data, read_id %in% read_ids)$end)), 
-               aes(x = start, xend = start, y = -0.15, yend = -0.05), colour = "green")
-}
-```
 
 ```{r}
 rrbs_plot(for_beta, rrbs_region)
