@@ -13,6 +13,7 @@ editor_options:
 library(plyranges)
 library(stringr)
 library(BSgenome.Hsapiens.UCSC.hg38)
+library(tidyr)
 library(dplyr)
 library(ggplot2)
 library(data.table)
@@ -59,9 +60,8 @@ head(cg_sites)
 
 * fread is a nightmare
 ```{r}
-fread(path_to_modkit_output)
+#fread(path_to_modkit_output)
 process_modkit <- function(modkit_fread, path_to_bed_file) {
-  #reads <- fread(path_to_modkit_output)
   reads <- modkit_fread
   reads <- reads$ref_position + 1 # convert to 1 based
   reads <- reads[, ref_position := ifelse(strand == "-", ref_position - 1, ref_position)] # convert to 1 based
@@ -104,42 +104,6 @@ modkit_to_pat <- function(alpha_and_beta) {
 ```
 
 
-```{r}
-indiv_reads <- readRDS("/researchers/caitlin.page/cf_nano/r_output/indiv_reads.rds")
-indiv_reads$ref_position <- indiv_reads$ref_position + 1 # convert to 1 based
-indiv_reads <- indiv_reads %>% mutate(ref_position = ifelse(ref_strand == "-", ref_position - 1, ref_position))
-indiv_reads$read_and_pos <- paste0(indiv_reads$read_id, ":", indiv_reads$ref_position)
-indiv_reads$start <- indiv_reads$ref_position
-indiv_reads$end <- indiv_reads$ref_position
-alpha_and_beta2 <- find_overlaps(as_granges(indiv_reads), as_granges(bed_betas_hu5.10)) %>% data.frame() %>% filter(call_prob > 0.66) %>%
-  group_by(read_id) %>% .[order(.$alignment_start),] %>% 
-  mutate(call_code = ifelse(call_code == "m", "M", "U")) %>%
-  mutate(meth_pattern = paste(call_code, collapse = "")) %>%
-  mutate(num_meth = str_count(meth_pattern, pattern = "M"),
-         total = str_length(meth_pattern),
-         alpha = num_meth/total) %>%
-  mutate(genom_positions = paste0(ref_position, collapse = ",")) %>%
-  ungroup()
-alpha_and_beta2 <- alpha_and_beta2 %>% data.frame()
-head(alpha_and_beta2)
-
-alpha_and_beta2_pat <- alpha_and_beta2 %>% 
-  mutate(start_pos = sapply(str_split(genom_positions, ","), head, 1),
-         end_pos = sapply(str_split(genom_positions, ","), tail, 1)) %>% 
-  filter(ref_position == start_pos) %>%
-  distinct(read_id, seqnames, start_pos, meth_pattern, alpha, end_pos, beta) %>% 
-  group_by(seqnames, start_pos, meth_pattern, alpha, end_pos, beta) %>% 
-  summarise(n=n()) %>%
-  ungroup()
-nrow(alpha_and_beta2_pat)
-alpha_and_beta2_pat[1:10,]
-alpha_and_beta2_pat %>% group_by(n) %>% summarise(n())
-
-alpha_and_beta2_pat <- alpha_and_beta2_pat %>%
-  mutate(start_pos = as.integer(start_pos),
-         end_pos = as.integer(end_pos))
-```
-
 ## wgbs/rrbs
 
 * fread is a nightmare
@@ -176,7 +140,7 @@ process_wgbs <- function(bismark, bed = NULL) {
            genom_positions = paste0(start, collapse = ",")) %>% 
     ungroup()
   read_overlap <- read_overlap %>% data.frame() %>% 
-    mutate(beta = got_beta[match(.$start, got_beta$start), "beta"])
+    mutate(beta = betas[match(.$start, betas$start), "beta"])
   
   read_overlap
 }
@@ -185,9 +149,7 @@ process_wgbs <- function(bismark, bed = NULL) {
 ```
 ```{r}
 betas_for_wgbs <- function(bismark_processed) {
-  res <- process_wgbs_short(bismark)
-  
-  res <- res %>% group_by(start, meth_status) %>% 
+  res <- bismark_processed %>% group_by(start, meth_status) %>% 
   .[order(.$start),] %>%
   mutate(meth_count_pos = n(), unmeth_count_pos = n()) %>%
   mutate(meth_count_pos = ifelse(meth_status == "M", meth_count_pos, NA),
