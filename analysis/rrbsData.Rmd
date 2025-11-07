@@ -9,67 +9,30 @@ editor_options:
 
 ## Introduction
 
-# cancer cell line encyclopedia
-https://sites.broadinstitute.org/ccle/datasets
-https://depmap.org/portal/data_page/?tab=allData
-promoter data 
 ```{r}
-read.table("../data/rrbs/dep_map_cancer_cell_line/CCLE_RRBS_TSS_1kb_20180614.txt", header = TRUE)
+library(plyranges)
+library(stringr)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(data.table)
 ```
-no I don't like this I don't understand it and it's too processed
-
-[raw data](https://www.ncbi.nlm.nih.gov/sra/?term=PRJNA523380+rrbs)
-except have to go through sra and it's fastq
-I would prefer bam
-
-# breast cancer
-[paper](https://www.nature.com/articles/s41467-021-25661-w#data-availability)
-
-just has a link to download processed methylation values so we'll see
-also has fastq upon request
-
-# healthy indiv neutrophils rrbs
-Genome-scale DNA methylome and transcriptome profiling of human neutrophils
-[paper](https://www.nature.com/articles/sdata201619#Sec12)
-[GEO](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE59163)
-* potentially
-13 samples
-* GSE table files
-```{r}
-read.table("../data/rrbs/neutrophil_paper_2016/GSE59163_RAW/GSM1429638_X9006_ad3tr65.fastq_bismark.sam_methpcNF2t10.txt.gz")
-```
-* damn no column names
-* guess: v4 = num meth, v5 = num unmeth, v7 = beta as %
-```{r}
-(92)/(92+8) * 100
-52/(52+3)*100
-```
-* nope they don't match
-
-# [rrbsdata (bioconductor package)](https://bioconductor.org/packages/release/data/experiment/html/RRBSdata.html)
-has 12 samples
-this is the paper they got the data from: https://ashpublications.org/blood/article/121/1/178/31062/DNA-methylation-changes-are-a-late-event-in-acute
-
 
 ```{r}
-library(BiSeq)
+cg_sites <- cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38[["chr22"]])), seqnames = "chr22") %>% 
+  mutate(pos = paste0(seqnames, "-", start)) %>%
+  relocate(pos, seqnames)
+cg_sites$index <- 1:nrow(cg_sites)
 ```
-```{r}
-data(rrbs)
-rrbs
-```
-```{r}
-colData(rrbs)
-```
-APL - acute promyelocytic leukaemia
 
-```{r}
-rrbs@rowRanges
-```
-* it's not read level info though - not bams, just cpgs
-
-
-
+# processing wgbs/rrbs data with Bismark
+* process with bismark
+[Bismark steps](https://felixkrueger.github.io/Bismark/quick_reference/)
+Bismark genome preparation:
+** made a genome index folder in /researchers/caitlin.page called Bisulfite_Genome
+** aligned the fastq file
+** resulting bam stored in /researchers/caitlin.page/pancreatic_cancer_wgbs/bismark_res
+** bismark_methylation_extractor
 
 # paper - BSseq (pancreatic cancer)
 [GEO](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE63123)
@@ -77,11 +40,6 @@ has 19 samples
 * 4 individuals, diff replicates and situations
 * processed with hg19
 
-with bams available to download through SRA toolkit
-
-so it's not actually RRBS data - but it's data and it exists so it's good enough
-
-downloading 4 samples via tmux and file transfer server
 all from sample A_38
 Lg is lung metastasis
 Per is peritoneal metastasis
@@ -93,99 +51,11 @@ Per is peritoneal metastasis
 
 * oops there's 2 more for this sample: 2 liver metastasis: SRR3427332, SRR3427334
 
-* also all of these are massive files
-2 fastqs each, 93 is 51.8gb per fastq - thank goodness for gz compression
-
-Steps to download fastqs
-SRA run explorer
-* Save SRR accession numbers
-* FastQ downloads
-* Aspera commands - Copy
-
-Steps to process FastQs
-(may as well follow the paper the data is from)
-[paper](https://www.nature.com/articles/ng.3753#Sec8)
-* 100 base pair seq
-* BSmooth for alignment
-* Bowtie2 for alignment (says this immediately after saying using BSmooth for alignment)
-** BSmooth offers 2 options for alignment - 1 of them uses bowtie (so that's what the paper used)
-* and the lambda phage genome (hold on this is all supposed to be human)
-* got meth measurement for each CpG
-* filtering: mapping qual < 20, nuc base qual at cyt position < 10
-* filtering: removed meas from 5' most 10nt of both paired reads
-* DMRs: bsseq
-* DMRs: >= 3 reads per CpG
-* DMRs: small: smooth window 20 CpGs, 1kb used, t stat 4.6, meth diff > 20%
-* DMRs: big: smooth window 200 CpGs, 10kbp, t stat 2, meth diff > 10%, length dmr > 5kb
-
-
-WHAT I DID:
-I had to make a conda environment which was annoying
-oh yeah i ran bwa-meth
-to make sams to bams
-and then align the bams
-samtools sort
-samtools index
-modkit extract calls
-
 ```{r}
 list.files("/researchers/caitlin.page/pancreatic_cancer_wgbs")[grep("fastq", list.files("/researchers/caitlin.page/pancreatic_cancer_wgbs"))]
 ```
-
-
-```{r}
-fread(paste0("/researchers/caitlin.page/pancreatic_cancer_wgbs/", list.files("/researchers/caitlin.page/pancreatic_cancer_wgbs")[4]))
-```
-
-I missed a step
-b/c this is BS not nanopore
-I need a tool like bismark to process the bams
-and modkit is built for nanopore
-cancerdetector used bismark to process
-have to hope this will get me read level info
-
-it wants the bam file but outputs are currently 0bytes
-i think i need to realign just using bismark
-
-ok can't use sorted file (by pos)
-can be sorted by read (samtools sort -n)
-
-using unsorted bam got some some for m bias and splitting report, but still nothing for cpg report
-
-try to align with bismark
-[Bismark steps](https://felixkrueger.github.io/Bismark/quick_reference/)
-Bismark genome preparation:
-* made a genome index folder in /researchers/caitlin.page called Bisulfite_Genome
-Bismark
-* aligned the fastq file
-* resulting bam stored in /researchers/caitlin.page/pancreatic_cancer_wgbs/bismark_res
-bismark_methylation_extractor
-* running now on bam file
 ```{r}
 list.files("/researchers/caitlin.page/pancreatic_cancer_wgbs/bismark_res")
-```
-
-```{r}
-bismark_cg <- fread(paste0("/researchers/caitlin.page/pancreatic_cancer_wgbs/bismark_res/", "SRR1646792_GSM1541788_38-Lg_rep1_BS-Seq_Homo_sapiens_Bisulfite-Seq_1_bismark_bt2_pe.CpG_report.txt"))
-names(bismark_cg) <- c("seq_id.chrom", "position", "strand", "num_meth", "num_unmeth", "c_context", "trinuc_context")
-bismark_cg[1:10,]
-```
-This is a summarised output, not the read level
-The genome-wide cytosine report (optional) is tab-delimited in the following format (1-based coords):
-```{r}
-bismark_cg %>% filter(seq_id.chrom == "chr22")
-```
-
-```{r}
-bismark_cg %>% distinct(seq_id.chrom)
-```
-
-```{r}
-fread()
-```
-
-```{r}
-fread(paste0("/researchers/caitlin.page/pancreatic_cancer_wgbs/bismark_res/", "SRR1646792_GSM1541788_38-Lg_rep1_BS-Seq_Homo_sapiens_Bisulfite-Seq_1_bismark_bt2_pe.cytosine_context_summary.txt"))
 ```
 
 ```{r}
@@ -195,7 +65,7 @@ names(bismark_read_bottom_strand) <- c("seq_id", "strand", "seqnames", "start", 
 ```{r}
 bismark_read_top_strand <- fread(paste0("/researchers/caitlin.page/pancreatic_cancer_wgbs/bismark_res/", "CpG_OT_SRR1646792_GSM1541788_38-Lg_rep1_BS-Seq_Homo_sapiens_Bisulfite-Seq_1_bismark_bt2_pe.txt"))
 names(bismark_read_top_strand) <- c("seq_id", "strand", "seqnames", "start", "meth_status")
-bismark_read_top_strand
+bismark_read_top_strand[1:10,]
 ```
 ```{r}
 nrow(bismark_read_top_strand)
@@ -205,7 +75,7 @@ Z: methylation
 z: unmethylated
 [source](https://toolshed.g2.bx.psu.edu/repository/display_tool?repository_id=0df2df1072d600d7&tool_config=%2Fsrv%2Ftoolshed-repos%2Fmain%2F000%2Frepo_463%2Fbismark_methylation_extractor.xml&changeset_revision=8c191acde702&render_repository_actions_for=tool_shed)
 ```{r}
-distinct(bismark_read_top_strand, seq_id) %>% nrow()
+distinct(bismark_read_top_strand, seq_id) %>% nrow() # number of reads
 ```
 
 
@@ -224,24 +94,15 @@ bismark_read_top_strand$start %in% cg_sites$end %>% summary()
 ```
 
 ```{r}
-bismark_read_top_strand %>% group_by(seq_id) %>% summarise(num_cpgs_in_read=n()) %>% group_by(num_cpgs_in_read) %>% summarise(n=n())
+bismark_read_top_strand %>% group_by(seq_id) %>% summarise(num_cpgs_in_read=n()) %>% group_by(num_cpgs_in_read) %>% summarise(n=n()) %>%
+  ggplot(aes(x = num_cpgs_in_read, y = n)) +
+  geom_point()
 ```
 * comparatively - nanopore has 1500 reads with 4 cpgs
 ```{r}
 bismark_read_top_strand <- bismark_read_top_strand %>% .[order(.$start),]
 ```
 
-```{r}
-bismark_read_top_strand %>% .[order(.$seq_id),] %>% .[1:10000,] %>% .[order(.$start),] %>% 
-  group_by(seq_id) %>%
-  mutate(meth_status = ifelse(meth_status == "Z", "M", "U")) %>%
-  mutate(meth_pattern = paste(meth_status, collapse = "")) %>%
-  mutate(num_meth = str_count(meth_pattern, pattern = "M"),
-         total = str_length(meth_pattern),
-         alpha = num_meth/total) %>%
-  mutate(genom_positions = paste0(start, collapse = ",")) %>%
-  ungroup() %>% .[order(.$seq_id),]
-```
 * learn to use data table because dplyr is not memory efficient enough and R will crash
 ```{r}
 bismark_read_top_strand[, meth_status := ifelse(meth_status == "Z", "M", "U")]
@@ -255,26 +116,7 @@ bismark_read_top_strand <- bismark_read_top_strand %>% .[order(.$seq_id),]
 bismark_read_top_strand[1:10,]
 ```
 
-```{r}
 
-```
-
-
-alpha_and_beta2_pat <- alpha_and_beta2 %>% 
-  mutate(start_pos = sapply(str_split(genom_positions, ","), head, 1),
-         end_pos = sapply(str_split(genom_positions, ","), tail, 1)) %>% 
-  filter(ref_position == start_pos) %>%
-  distinct(read_id, seqnames, start_pos, meth_pattern, alpha, end_pos, beta) %>% 
-  group_by(seqnames, start_pos, meth_pattern, alpha, end_pos, beta) %>% 
-  summarise(n=n()) %>%
-  ungroup()
-nrow(alpha_and_beta2_pat)
-alpha_and_beta2_pat[1:10,]
-alpha_and_beta2_pat %>% group_by(n) %>% summarise(n())
-
-alpha_and_beta2_pat <- alpha_and_beta2_pat %>%
-  mutate(start_pos = as.integer(start_pos),
-         end_pos = as.integer(end_pos))
 # other sources of data
 
 [encode rrbs fastqs avail](https://www.encodeproject.org/search/?type=Experiment&control_type%21=%2A&related_series.%40type=ReferenceEpigenome&replicates.library.biosample.donor.organism.scientific_name=Homo+sapiens&status=released&assay_title=RRBS)
@@ -300,40 +142,16 @@ list.files("/researchers/caitlin.page/rrbs_encode_cell_line") %>% .[grep("txt", 
 ```
 
 ```{r}
-fread("/researchers/caitlin.page/rrbs_encode_cell_line/CpG_OB_ENCFF000LYP_bismark_bt2.txt")
-```
-```{r}
-list.files("/researchers/caitlin.page/rrbs_encode_cell_line") %>% .[grep("txt", .)] %>% .[grep("CpG", .)]
+fread("/researchers/caitlin.page/rrbs_encode_cell_line/CpG_OB_ENCFF000LYP_bismark_bt2.txt")[1:10,]
 ```
 
 ```{r}
-process_wgbs("/researchers/caitlin.page/rrbs_encode_cell_line/CpG_OT_ENCFF000LYO_bismark_bt2.txt")
-```
-```{r}
-path <- "/researchers/caitlin.page/rrbs_encode_cell_line/CpG_OT_ENCFF000LYO_bismark_bt2.txt"
-process_wgbs(as.character(path)[1])
-```
-```{r}
+source("../code/processData.R")
 bis <- fread("/researchers/caitlin.page/rrbs_encode_cell_line/CpG_OT_ENCFF000LYO_bismark_bt2.txt")
-process_wgbs(bis)
-```
-
-```{r}
-fread("/researchers/caitlin.page/rrbs_encode_cell_line/CpG_OT_ENCFF000LYO_bismark_bt2.txt")
+process_wgbs(bis) %>% head()
 ```
 
 
-mnmnmmnmjmknkmkhk
 
-* also there was actually a processed file so let's take a squiz at that
-```{r}
-#read.table("../data/rrbs/pancreatic_cancer/GSM1541788_38-Lg_rep1.cg.txt.gz", header = TRUE)
-```
-
-[roadmap epigenome](https://egg2.wustl.edu/roadmap/web_portal/)
-* still need to do some digging to find the files
-* the paper data is used in the BSmooth paper
-[GEO](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE16256)
-[paper](https://www.nature.com/articles/nature08514#accession-codes) 2009
 
 
