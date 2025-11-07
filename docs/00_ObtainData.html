@@ -390,11 +390,11 @@ class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span>
 <div class="tab-content">
 <div id="summary" class="tab-pane fade in active">
 <p>
-<strong>Last updated:</strong> 2025-08-15
+<strong>Last updated:</strong> 2025-11-07
 </p>
 <p>
 <strong>Checks:</strong> <span
-class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 2
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 7
 <span class="glyphicon glyphicon-exclamation-sign text-danger"
 aria-hidden="true"></span> 0
 </p>
@@ -437,15 +437,99 @@ results.</p>
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpagemethylnanocftreebfb9b48745407b3b5e084950c21769123793e84ftargetblankbfb9b48a">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongEnvironmentstrongempty">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Environment:</strong> empty </a>
+</p>
+</div>
+<div id="strongEnvironmentstrongempty" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! The global environment was empty. Objects defined in the
+global environment can affect the analysis in your R Markdown file in
+unknown ways. For reproduciblity it’s best to always run the code in an
+empty environment.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSeedstrongcodesetseed20250606code">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Seed:</strong>
+<code>set.seed(20250606)</code> </a>
+</p>
+</div>
+<div id="strongSeedstrongcodesetseed20250606code"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>The command <code>set.seed(20250606)</code> was run prior to running
+the code in the R Markdown file. Setting a seed ensures that any results
+that rely on randomness, e.g. subsampling or permutations, are
+reproducible.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSessioninformationstrongrecorded">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Session information:</strong>
+recorded </a>
+</p>
+</div>
+<div id="strongSessioninformationstrongrecorded"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Recording the operating system, R version, and package
+versions is critical for reproducibility.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongCachestrongnone">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Cache:</strong> none </a>
+</p>
+</div>
+<div id="strongCachestrongnone" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Nice! There were no cached chunks for this analysis, so you can be
+confident that you successfully produced the results during this
+run.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongFilepathsstrongrelative">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>File paths:</strong> relative </a>
+</p>
+</div>
+<div id="strongFilepathsstrongrelative" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Using relative paths to the files within your workflowr
+project makes it easier to run your code on other machines.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpagemethylnanocftree4917c1fca1a13fac04d3c429ae37df88a71e7825targetblank4917c1fa">
 <span class="glyphicon glyphicon-ok text-success"
 aria-hidden="true"></span> <strong>Repository version:</strong>
-<a href="https://github.com/caitlinpage/methyl_nano_cf/tree/bfb9b48745407b3b5e084950c21769123793e84f" target="_blank">bfb9b48</a>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/tree/4917c1fca1a13fac04d3c429ae37df88a71e7825" target="_blank">4917c1f</a>
 </a>
 </p>
 </div>
 <div
-id="strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpagemethylnanocftreebfb9b48745407b3b5e084950c21769123793e84ftargetblankbfb9b48a"
+id="strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpagemethylnanocftree4917c1fca1a13fac04d3c429ae37df88a71e7825targetblank4917c1fa"
 class="panel-collapse collapse">
 <div class="panel-body">
 <p>
@@ -455,7 +539,7 @@ reproducibility.
 </p>
 <p>
 The results in this page were generated with repository version
-<a href="https://github.com/caitlinpage/methyl_nano_cf/tree/bfb9b48745407b3b5e084950c21769123793e84f" target="_blank">bfb9b48</a>.
+<a href="https://github.com/caitlinpage/methyl_nano_cf/tree/4917c1fca1a13fac04d3c429ae37df88a71e7825" target="_blank">4917c1f</a>.
 See the <em>Past versions</em> tab to see a history of the changes made
 to the R Markdown and HTML files.
 </p>
@@ -472,13 +556,14 @@ were generated:
 Ignored files:
     Ignored:    .Rhistory
     Ignored:    .Rproj.user/
-
-Untracked files:
-    Untracked:  renv.lock
-    Untracked:  renv/
+    Ignored:    renv.lock
+    Ignored:    renv/
 
 Unstaged changes:
-    Modified:   analysis/exploratory_plots_genes.Rmd
+    Modified:   .Rprofile
+    Modified:   .gitignore
+    Modified:   analysis/rrbsData.Rmd
+    Modified:   code/seqFastqToReadMeth.txt
 
 </code></pre>
 <p>
@@ -528,6 +613,74 @@ Message
 Rmd
 </td>
 <td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/4917c1fca1a13fac04d3c429ae37df88a71e7825/analysis/00_ObtainData.Rmd" target="_blank">4917c1f</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-11-07
+</td>
+<td>
+wflow_publish("analysis/00_ObtainData.Rmd")
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/2b9e16ec82fa06e9b8241b43393ebc545079c50f/analysis/00_ObtainData.Rmd" target="_blank">2b9e16e</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-08-28
+</td>
+<td>
+update of tf
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/77733c9d774d4eb8704f8ed6700f2df8fce75379/analysis/00_ObtainData.Rmd" target="_blank">77733c9</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-08-19
+</td>
+<td>
+update with samples
+</td>
+</tr>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/caitlinpage/methyl_nano_cf/59166fd20661f9af4d097277d03c5fce8b94954a/docs/00_ObtainData.html" target="_blank">59166fd</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-08-15
+</td>
+<td>
+Build site.
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
 <a href="https://github.com/caitlinpage/methyl_nano_cf/blob/1b7294c3c959a697eabf653dc019d2e4cecbdb55/analysis/00_ObtainData.Rmd" target="_blank">1b7294c</a>
 </td>
 <td>
@@ -547,8 +700,8 @@ document where data is coming from - first is nanopore cf
 </div>
 </div>
 </div>
-<div id="introduction" class="section level2">
-<h2>Introduction</h2>
+<div id="nanopore" class="section level2">
+<h2>Nanopore</h2>
 <ol style="list-style-type: decimal">
 <li>Nanopore cell-free Methylation Paper: <a
 href="https://genomebiology.biomedcentral.com/articles/10.1186/s13059-022-02710-1#availability-of-data-and-materials">Detecting
@@ -561,6 +714,184 @@ from Nanopore sequencing</a> Data: Data located:</li>
 href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE185307">GEO</a>
 Zenodo is the method recommended by the authors Data accessed by:</li>
 </ul>
+<p>Samples: 13 files: (main one - epiread format) hu5.10</p>
+<p>Healthy samples * hu5.10 * hu5.11 * hu5.12 * ispro.bc2 * ispro.bc3 *
+ispro.bc4 * ispro.bc5</p>
+<p>LUAD cancer samples * ispro.s1 * ispro.bc1 * ispro.bc8 * ispro.bc9 *
+ispro.bc10 * ispro.bc11</p>
+<p>bc8 and bc9 have the lowest tumour fraction of the samples bc10 and
+bc11 have the highest tumour fraction</p>
+</div>
+<div id="rrbs" class="section level2">
+<h2>RRBS</h2>
+<ol start="2" style="list-style-type: decimal">
+<li>Encode RRBS cell-line</li>
+</ol>
+<p><a
+href="https://www.encodeproject.org/search/?type=Experiment&amp;control_type%21=%2A&amp;related_series.%40type=ReferenceEpigenome&amp;replicates.library.biosample.donor.organism.scientific_name=Homo+sapiens&amp;status=released&amp;assay_title=RRBS">encode
+rrbs fastqs avail</a> * has 13 rrbs data sets</p>
+<p><a
+href="https://www.encodeproject.org/experiments/ENCSR000DFT/">GM12878
+cell line</a> * it’s a lymphoblastoid cell line * picked it because it
+has no cancer or anything else - a few had cancer * also immune cells -
+nice and have used before * also it’s blood - which ties in with my cell
+free analysis</p>
+<ul>
+<li><p>has 2 technical replicates</p></li>
+<li><p>single end this time</p></li>
+<li><p>processed fastq with bismark</p></li>
+</ul>
+</div>
+<div id="wgbs" class="section level2">
+<h2>WGBS</h2>
+<ol start="3" style="list-style-type: decimal">
+<li>BSseq pancreatic cancer Paper: <a
+href="https://www.nature.com/articles/ng.3753">Epigenomic reprogramming
+during pancreatic cancer progression links anabolic glucose metabolism
+to distant metastasis</a> <a
+href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE63123">GEO</a>
+has 19 samples</li>
+</ol>
+<ul>
+<li>4 individuals, diff replicates and situations</li>
+<li>processed with hg19</li>
+</ul>
+<p>with bams available to download through SRA toolkit</p>
+<p>downloading 4 samples via tmux and file transfer server all from
+sample A_38 Lg is lung metastasis Per is peritoneal metastasis</p>
+<ul>
+<li><p>SRR1646792: Lg rep 1</p></li>
+<li><p>SRR1646793: Lg rep 2</p></li>
+<li><p>SRR1646794: Per rep 1</p></li>
+<li><p>SRR1646795: Per rep 2</p></li>
+<li><p>oops there’s 2 more for this sample: 2 liver metastasis:
+SRR3427332, SRR3427334</p></li>
+<li><p>also all of these are massive files 2 fastqs each, 93 is 51.8gb
+per fastq</p></li>
+</ul>
+<p>Steps to process FastQs <a
+href="https://www.nature.com/articles/ng.3753#Sec8">processing
+method</a> * 100 base pair seq * BSmooth for alignment * Bowtie2 for
+alignment (says this immediately after saying using BSmooth for
+alignment) ** BSmooth offers 2 options for alignment - 1 of them uses
+bowtie (so that’s what the paper used) * and the lambda phage genome
+(hold on this is all supposed to be human) * got meth measurement for
+each CpG * filtering: mapping qual &lt; 20, nuc base qual at cyt
+position &lt; 10 * filtering: removed meas from 5’ most 10nt of both
+paired reads * DMRs: bsseq * DMRs: &gt;= 3 reads per CpG * DMRs: small:
+smooth window 20 CpGs, 1kb used, t stat 4.6, meth diff &gt; 20% * DMRs:
+big: smooth window 200 CpGs, 10kbp, t stat 2, meth diff &gt; 10%, length
+dmr &gt; 5kb</p>
+<p>WHAT I DID: * bismark <a
+href="https://felixkrueger.github.io/Bismark/quick_reference/">Bismark
+steps</a> <a href="code/seqFastqToReadMeth.txt">steps</a></p>
+<p>Z: methylation z: unmethylated <a
+href="https://toolshed.g2.bx.psu.edu/repository/display_tool?repository_id=0df2df1072d600d7&amp;tool_config=%2Fsrv%2Ftoolshed-repos%2Fmain%2F000%2Frepo_463%2Fbismark_methylation_extractor.xml&amp;changeset_revision=8c191acde702&amp;render_repository_actions_for=tool_shed">source</a></p>
+</div>
+<div id="maybe-use" class="section level2">
+<h2>maybe use</h2>
+<p><a href="https://egg2.wustl.edu/roadmap/web_portal/">roadmap
+epigenome</a> * still need to do some digging to find the files * the
+paper data is used in the BSmooth paper <a
+href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE16256">GEO</a>
+<a
+href="https://www.nature.com/articles/nature08514#accession-codes">paper</a>
+2009</p>
+</div>
+<div id="cancer-cell-line-encyclopedia-come-back-to-this-one"
+class="section level1">
+<h1>cancer cell line encyclopedia = come back to this one</h1>
+<p><a href="https://sites.broadinstitute.org/ccle/datasets"
+class="uri">https://sites.broadinstitute.org/ccle/datasets</a> <a
+href="https://depmap.org/portal/data_page/?tab=allData"
+class="uri">https://depmap.org/portal/data_page/?tab=allData</a>
+promoter data</p>
+<p><a href="https://www.ncbi.nlm.nih.gov/sra/?term=PRJNA523380+rrbs">raw
+data</a> * fastq files</p>
+<div id="identified-but-unused-data-sets" class="section level2">
+<h2>Identified but unused data sets</h2>
+</div>
+</div>
+<div id="breast-cancer" class="section level1">
+<h1>breast cancer</h1>
+<p><a
+href="https://www.nature.com/articles/s41467-021-25661-w#data-availability">paper</a></p>
+<p>just has a link to download processed methylation values so we’ll see
+also has fastq upon request</p>
+</div>
+<div id="healthy-indiv-neutrophils-rrbs" class="section level1">
+<h1>healthy indiv neutrophils rrbs</h1>
+<p>Genome-scale DNA methylome and transcriptome profiling of human
+neutrophils <a
+href="https://www.nature.com/articles/sdata201619#Sec12">paper</a> <a
+href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE59163">GEO</a>
+* potentially 13 samples * GSE table files</p>
+<pre class="r"><code>#read.table(&quot;../data/rrbs/neutrophil_paper_2016/GSE59163_RAW/GSM1429638_X9006_ad3tr65.fastq_bismark.sam_methpcNF2t10.txt.gz&quot;)</code></pre>
+<ul>
+<li>no column names</li>
+<li>guess: v4 = num meth, v5 = num unmeth, v7 = beta as %</li>
+</ul>
+<pre class="r"><code>(92)/(92+8) * 100</code></pre>
+<pre><code>[1] 92</code></pre>
+<pre class="r"><code>52/(52+3)*100</code></pre>
+<pre><code>[1] 94.54545</code></pre>
+<ul>
+<li>nope they don’t match</li>
+</ul>
+</div>
+<div id="rrbsdata-bioconductor-package" class="section level1">
+<h1><a
+href="https://bioconductor.org/packages/release/data/experiment/html/RRBSdata.html">rrbsdata
+(bioconductor package)</a></h1>
+<p>has 12 samples this is the paper they got the data from: <a
+href="https://ashpublications.org/blood/article/121/1/178/31062/DNA-methylation-changes-are-a-late-event-in-acute"
+class="uri">https://ashpublications.org/blood/article/121/1/178/31062/DNA-methylation-changes-are-a-late-event-in-acute</a>
+* data was not available at the read level</p>
+<br>
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-sessioninfo" data-toggle="collapse" data-target="#workflowr-sessioninfo" style="display: block;">
+<span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
+Session information
+</button>
+</p>
+<div id="workflowr-sessioninfo" class="collapse">
+<pre class="r"><code>sessionInfo()</code></pre>
+<pre><code>R version 4.4.1 (2024-06-14)
+Platform: x86_64-pc-linux-gnu
+Running under: Rocky Linux 9.6 (Blue Onyx)
+
+Matrix products: default
+BLAS/LAPACK: FlexiBLAS OPENBLAS-OPENMP;  LAPACK version 3.9.0
+
+locale:
+ [1] LC_CTYPE=en_AU.UTF-8       LC_NUMERIC=C              
+ [3] LC_TIME=en_AU.UTF-8        LC_COLLATE=en_AU.UTF-8    
+ [5] LC_MONETARY=en_AU.UTF-8    LC_MESSAGES=en_AU.UTF-8   
+ [7] LC_PAPER=en_AU.UTF-8       LC_NAME=C                 
+ [9] LC_ADDRESS=C               LC_TELEPHONE=C            
+[11] LC_MEASUREMENT=en_AU.UTF-8 LC_IDENTIFICATION=C       
+
+time zone: Australia/Melbourne
+tzcode source: system (glibc)
+
+attached base packages:
+[1] stats     graphics  grDevices datasets  utils     methods   base     
+
+loaded via a namespace (and not attached):
+ [1] vctrs_0.6.5         cli_3.6.5           knitr_1.50         
+ [4] rlang_1.1.6         xfun_0.52           stringi_1.8.7      
+ [7] renv_1.1.5          promises_1.3.3      jsonlite_2.0.0     
+[10] workflowr_1.7.1     glue_1.8.0          rprojroot_2.1.0    
+[13] git2r_0.36.2        htmltools_0.5.8.1   httpuv_1.6.16      
+[16] sass_0.4.10         rmarkdown_2.29      jquerylib_0.1.4    
+[19] evaluate_1.0.4      tibble_3.3.0        fastmap_1.2.0      
+[22] yaml_2.3.10         lifecycle_1.0.4     whisker_0.4.1      
+[25] BiocManager_1.30.26 stringr_1.5.1       compiler_4.4.1     
+[28] fs_1.6.6            Rcpp_1.1.0          pkgconfig_2.0.3    
+[31] rstudioapi_0.17.1   later_1.4.2         digest_0.6.37      
+[34] R6_2.6.1            pillar_1.11.0       magrittr_2.0.3     
+[37] bslib_0.9.0         tools_4.4.1         cachem_1.1.0       </code></pre>
+</div>
 </div>
 </div>
 </div>
