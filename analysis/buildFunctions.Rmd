@@ -56,9 +56,13 @@ head(cg_sites)
 
 * need modkit read file from modkit_extract_full
 * bed file from downloaded data (bed file from modkit was weird)
+
+* fread is a nightmare
 ```{r}
-process_modkit <- function(path_to_modkit_output, path_to_bed_file) {
-  reads <- fread(path_to_modkit_output)
+fread(path_to_modkit_output)
+process_modkit <- function(modkit_fread, path_to_bed_file) {
+  #reads <- fread(path_to_modkit_output)
+  reads <- modkit_fread
   reads <- reads$ref_position + 1 # convert to 1 based
   reads <- reads[, ref_position := ifelse(strand == "-", ref_position - 1, ref_position)] # convert to 1 based
   reads <- reads[, read_and_pos := paste0(reads$read_id, ":", reads$ref_position)]
@@ -138,16 +142,22 @@ alpha_and_beta2_pat <- alpha_and_beta2_pat %>%
 
 ## wgbs/rrbs
 
+* fread is a nightmare
 ```{r}
-process_wgbs <- function(path_to_bismark_res, path_to_bed) {
-  read <- fread(path_to_bismark_res)
+read <- fread(file = path_to_bismark_res)
+process_wgbs <- function(bismark_modkit, path_to_bed = NULL) {
+  #read <- fread(file = path_to_bismark_res)
+  read <- bismark_modkit
   names(read) <- c("read_id", "strand", "seqnames", "start", "meth_status")
   read$end <- read$start
   
-  bed <- fread(path_to_bed)
-  
-  read_overlap <- find_overlaps(as_granges(read), as_granges(bed)) %>% data.frame()
-  
+ # if (is.null(bed) == TRUE) {
+#    read_overlap <- read
+ # } else {
+  #bed <- fread(path_to_bed)
+#  read_overlap <- find_overlaps(as_granges(read), as_granges(bed)) %>% data.frame()
+ # }
+  read_overlap <- read
   read_overlap[, meth_status := ifelse(meth_status == "Z", "M", "U")]
   read_overlap[, meth_pattern := paste0(meth_status, collapse = ""), by = read_id]
   read_overlap[, num_meth := str_count(meth_pattern, pattern = "M")]
@@ -161,6 +171,110 @@ process_wgbs <- function(path_to_bismark_res, path_to_bed) {
 }
 
 
+```
+* haven't made bed files so will need to make betas myself
+```{r}
+process_wgbs_short <- function(bismark_modkit, path_to_bed = NULL) {
+  #read <- fread(file = path_to_bismark_res)
+  read <- bismark_modkit
+  names(read) <- c("read_id", "strand", "seqnames", "start", "meth_status")
+  read$end <- read$start
+  
+ # if (is.null(bed) == TRUE) {
+#    read_overlap <- read
+ # } else {
+  #bed <- fread(path_to_bed)
+#  read_overlap <- find_overlaps(as_granges(read), as_granges(bed)) %>% data.frame()
+ # }
+  read_overlap <- read
+  read_overlap[, meth_status := ifelse(meth_status == "Z", "M", "U")]
+  read_overlap[, meth_pattern := paste0(meth_status, collapse = ""), by = read_id]
+  read_overlap[, num_meth := str_count(meth_pattern, pattern = "M")]
+  read_overlap[, total := str_length(meth_pattern)]
+  read_overlap[, alpha := num_meth/total]
+  read_overlap
+}
+for_beta <- process_wgbs_short(bis)
+for_beta <- for_beta %>% filter(seqnames == "chr22")
+```
+
+
+```{r}
+for_beta %>% group_by(start, meth_status) %>% 
+  .[order(.$start),] %>% .[1:350,] %>%
+  mutate(meth_count_pos = n(), unmeth_count_pos = n()) %>%
+  mutate(meth_count_pos = ifelse(meth_status == "M", meth_count_pos, NA),
+         unmeth_count_pos = ifelse(meth_status == "U", unmeth_count_pos, NA)) %>% ungroup() %>% distinct(seqnames, start, end, meth_count_pos, unmeth_count_pos) %>%  
+ group_by(start) %>% .[order(.$meth_count_pos),] %>%
+  fill(meth_count_pos, .direction = "down") %>%
+  fill(unmeth_count_pos, .direction = "up") %>% 
+  replace(is.na(.), 0) %>%
+         mutate(beta = meth_count_pos/(meth_count_pos + unmeth_count_pos)) %>%
+  ungroup() %>%
+  distinct(seqnames, start, end, meth_count_pos, unmeth_count_pos, beta)
+```
+* ok this worked :)
+
+```{r}
+betas_for_wgbs <- function(bismark_modkit) {
+  res <- process_wgbs_short(bismark_modkit)
+  
+  res <- res %>% group_by(start, meth_status) %>% 
+  .[order(.$start),] %>%
+  mutate(meth_count_pos = n(), unmeth_count_pos = n()) %>%
+  mutate(meth_count_pos = ifelse(meth_status == "M", meth_count_pos, NA),
+         unmeth_count_pos = ifelse(meth_status == "U", unmeth_count_pos, NA)) %>% ungroup() %>% distinct(seqnames, start, end, meth_count_pos, unmeth_count_pos) %>%  
+ group_by(start) %>% .[order(.$meth_count_pos),] %>%
+  fill(meth_count_pos, .direction = "down") %>%
+  fill(unmeth_count_pos, .direction = "up") %>% 
+  replace(is.na(.), 0) %>%
+         mutate(beta = meth_count_pos/(meth_count_pos + unmeth_count_pos)) %>%
+  ungroup() %>%
+  distinct(seqnames, start, end, meth_count_pos, unmeth_count_pos, beta)
+  
+  res
+}
+```
+```{r}
+got_beta <- betas_for_wgbs(bis)
+```
+
+
+(short is the same as og - it's unneccessary)
+```{r}
+process_wgbs_2 <- function(bismark_modkit) {
+  read <- bismark_modkit
+  names(read) <- c("read_id", "strand", "seqnames", "start", "meth_status")
+  read$end <- read$start
+  
+  read_overlap <- read
+  read_overlap[, meth_status := ifelse(meth_status == "Z", "M", "U")]
+  read_overlap[, meth_pattern := paste0(meth_status, collapse = ""), by = read_id]
+  read_overlap[, num_meth := str_count(meth_pattern, pattern = "M")]
+  read_overlap[, total := str_length(meth_pattern)]
+  read_overlap[, alpha := num_meth/total]
+  read_overlap[, genom_positions := paste0(start, collapse = ","), by = read_id]
+
+  read_overlap <- read_overlap %>% .[order(.$read_id),]
+  
+  
+}
+```
+
+
+
+```{r}
+ beta_format <-  beta_format %>% separate_longer_position(cols = meth_pattern, width = 1) %>% 
+    group_by(read_id) %>% 
+    mutate(cpg_pos = index_cg:c(index_cg + n() -1)) %>% ungroup() %>%
+    mutate(genom_pos = cg_sites[match(.$cpg_pos, cg_sites$index), "start"])
+  beta_format <- beta_format %>% group_by(cpg_pos) %>%
+    mutate(site_pattern = paste(meth_pattern, collapse = "")) %>% ungroup() %>% distinct(cpg_pos, genom_pos, site_pattern) %>%
+    mutate(num_meth = str_count(.$site_pattern, "C"), num_unmeth = str_count(.$site_pattern, "T"))
+```
+
+```{r}
+bismark_read_top_strand
 ```
 
 
