@@ -21,7 +21,7 @@ bismark --parallel 4 -o /researchers/caitlin.page/pancreatic_cancer_wgbs/bismark
 --genome /researchers/caitlin.page -q /
 -1 SRR1646792_GSM1541788_38-Lg_rep1_BS-Seq_Homo_sapiens_Bisulfite-Seq_1.fastq.gz /
 -2 SRR1646792_GSM1541788_38-Lg_rep1_BS-Seq_Homo_sapiens_Bisulfite-Seq_2.fastq.gz
-
+# rrbs data just the one fastq file (single end)
 
 # methylation extractor (did cytosine report but don't need that)
 # did from bismark_res folder
@@ -32,5 +32,7 @@ module load bowtie
 bismark_methylation_extractor --multicore 8 --cytosine_report /
 --genome_folder /researchers/caitlin.page -p /
 SRR1646792_GSM1541788_38-Lg_rep1_BS-Seq_Homo_sapiens_Bisulfite-Seq_1_bismark_bt2_pe.bam
+
+# rrbs data -s (single end)
 
 # important output file is CpG_(OB/OT)_file_name.txt
