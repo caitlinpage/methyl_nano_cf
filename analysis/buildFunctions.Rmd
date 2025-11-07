@@ -143,18 +143,20 @@ alpha_and_beta2_pat <- alpha_and_beta2_pat %>%
 ## wgbs/rrbs
 
 * fread is a nightmare
+* it won't run within a fn - doesn't trust the path
+* but it's way faster than any other alternative
+* so for now - read in the file with fread and then put that into the fn
 ```{r}
-read <- fread(file = path_to_bismark_res)
-process_wgbs <- function(bismark_modkit, path_to_bed = NULL) {
-  #read <- fread(file = path_to_bismark_res)
-  read <- bismark_modkit
+#read <- fread(file = path_to_bismark_res)
+#bed <- fread(file = path_to_bed) # for betas - otherwise will make them myself
+process_wgbs <- function(bismark, bed = NULL) {
+  read <- bismark
   names(read) <- c("read_id", "strand", "seqnames", "start", "meth_status")
   read$end <- read$start
   
  # if (is.null(bed) == TRUE) {
 #    read_overlap <- read
  # } else {
-  #bed <- fread(path_to_bed)
 #  read_overlap <- find_overlaps(as_granges(read), as_granges(bed)) %>% data.frame()
  # }
   read_overlap <- read
@@ -167,33 +169,61 @@ process_wgbs <- function(bismark_modkit, path_to_bed = NULL) {
 
   read_overlap <- read_overlap %>% .[order(.$read_id),]
   
-  read
+  betas <- betas_for_wgbs(read_overlap)
+  betas <- data.frame(betas)
+  read_overlap <- read_overlap %>% group_by(read_id) %>% 
+    mutate(read_start = min(start), read_end = max(end), 
+           genom_positions = paste0(start, collapse = ",")) %>% 
+    ungroup()
+  read_overlap <- read_overlap %>% data.frame() %>% 
+    mutate(beta = got_beta[match(.$start, got_beta$start), "beta"])
+  
+  read_overlap
 }
 
 
 ```
-* haven't made bed files so will need to make betas myself
 ```{r}
-process_wgbs_short <- function(bismark_modkit, path_to_bed = NULL) {
-  #read <- fread(file = path_to_bismark_res)
-  read <- bismark_modkit
-  names(read) <- c("read_id", "strand", "seqnames", "start", "meth_status")
-  read$end <- read$start
+betas_for_wgbs <- function(bismark_processed) {
+  res <- process_wgbs_short(bismark)
   
- # if (is.null(bed) == TRUE) {
-#    read_overlap <- read
- # } else {
-  #bed <- fread(path_to_bed)
-#  read_overlap <- find_overlaps(as_granges(read), as_granges(bed)) %>% data.frame()
- # }
-  read_overlap <- read
-  read_overlap[, meth_status := ifelse(meth_status == "Z", "M", "U")]
-  read_overlap[, meth_pattern := paste0(meth_status, collapse = ""), by = read_id]
-  read_overlap[, num_meth := str_count(meth_pattern, pattern = "M")]
-  read_overlap[, total := str_length(meth_pattern)]
-  read_overlap[, alpha := num_meth/total]
-  read_overlap
+  res <- res %>% group_by(start, meth_status) %>% 
+  .[order(.$start),] %>%
+  mutate(meth_count_pos = n(), unmeth_count_pos = n()) %>%
+  mutate(meth_count_pos = ifelse(meth_status == "M", meth_count_pos, NA),
+         unmeth_count_pos = ifelse(meth_status == "U", unmeth_count_pos, NA)) %>% 
+    ungroup() %>% 
+    distinct(seqnames, start, end, meth_count_pos, unmeth_count_pos) %>%  
+ group_by(start) %>% 
+    .[order(.$meth_count_pos),] %>%
+  fill(meth_count_pos, .direction = "down") %>%
+  fill(unmeth_count_pos, .direction = "up") %>% 
+  replace(is.na(.), 0) %>%
+  mutate(beta = meth_count_pos/(meth_count_pos + unmeth_count_pos)) %>%
+  ungroup() %>%
+  distinct(seqnames, start, end, meth_count_pos, unmeth_count_pos, beta)
+  
+  res
 }
+```
+```{r}
+pat_for_wgbs <- function(process_res) {
+  pat <- process_res %>% 
+  mutate(start_pos = sapply(str_split(genom_positions, ","), head, 1),
+         end_pos = sapply(str_split(genom_positions, ","), tail, 1)) %>% 
+  filter(start == start_pos) %>%
+  distinct(read_id, seqnames, start_pos, meth_pattern, alpha, end_pos, beta) %>% 
+  group_by(seqnames, start_pos, meth_pattern, alpha, end_pos, beta) %>% 
+  summarise(n=n()) %>%
+  ungroup()  %>%
+  mutate(start_pos = as.integer(start_pos),
+         end_pos = as.integer(end_pos))
+  
+  pat
+}
+```
+
+```{r}
 for_beta <- process_wgbs_short(bis)
 for_beta <- for_beta %>% filter(seqnames == "chr22")
 ```
@@ -349,6 +379,7 @@ plot_fn <- function(chrom = chrom, region = c(start, end), data_big = data_big, 
 ```
 
 ```{r}
+# provide vector of read ids
 rrbs_plot <- function(long_data, read_ids, cpgs = cg_sites) {
   long_data %>% filter(read_id %in% read_ids) %>% 
     distinct(read_id, read_start, read_end, alpha) %>%
