@@ -468,7 +468,7 @@ plot_fn <- function(chrom = chrom, region = c(start, end), data_big = data_big, 
     filter(seqnames == chr,
            start >= start,
            end <= end) 
-  data2 <- data %>%
+  data2 <- data %>% mutate(alignment_start = start_pos, alignment_end = end_pos)
     distinct(read_id, alignment_start, alignment_end, alpha)
   
   plot <- data2 %>% 
@@ -483,5 +483,13 @@ plot_fn <- function(chrom = chrom, region = c(start, end), data_big = data_big, 
                  aes(x = start, xend = start, y = -0.15, yend = -0.05), colour = "green")
   plot
 }
+```
+
+```{r}
+alpha_and_beta2_pat
+```
+
+```{r}
+plot_fn("chr22", c(10522481, 10524771), alpha_and_beta2_pat, cpg_positions)
 ```
 
