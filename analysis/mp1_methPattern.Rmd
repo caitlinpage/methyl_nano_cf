@@ -172,3 +172,206 @@ but I do have my bins right now
 so could see if I can do differential proportion across 2 diff bins?
 
 # most/least common lengths of patterns and groupings
+
+
+
+
+
+################
+
+## new stuff
+
+* idea is that we could smooth the graph a bit
+* shaded narrow and wide - spread of reads
+* which is variation in alpha - because can't do that with beta
+
+* what is beta when alpha is at its highest var?
+```{r}
+alpha_and_beta2
+alpha_and_beta2_pat
+```
+```{r}
+for_beta
+got_beta <- got_beta %>% filter(seqnames == "chr22")
+```
+
+```{r}
+got_beta %>% .[order(.$meth_count_pos, decreasing = TRUE),]
+got_beta %>% mutate(cov = meth_count_pos + unmeth_count_pos) %>% .[order(.$cov, decreasing = TRUE),]
+```
+
+```{r}
+got_beta %>%
+  ggplot(aes(x = meth_count_pos, y = unmeth_count_pos)) +
+  geom_point(alpha = 0.3)
+```
+
+```{r}
+got_beta %>% filter(start == 12693698)
+for_beta %>% filter(start == 12693698)
+```
+```{r}
+for_beta %>% filter(start >= 12693660, start <= 12693800)
+got_beta %>% filter(start >= 12693660, start <= 12693800)
+for_beta %>% filter(start >= 12693660, start <= 12693800) %>% distinct(read_id, meth_pattern)
+```
+
+```{r}
+for_beta %>% filter(start >= 12693660, start <= 12693800) %>% group_by(read_id) %>% mutate(read_start = min(start), read_end = max(end), genom_positions = paste0(start, collapse = ",")) %>% ungroup() %>%
+  distinct(seqnames, read_start, read_end, genom_positions, alpha) %>%
+  ggplot() +
+  geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha), alpha = 0.3)
+```
+```{r}
+got_beta <- data.frame(got_beta)
+```
+
+```{r}
+for_beta <- for_beta %>% group_by(read_id) %>% mutate(read_start = min(start), read_end = max(end), genom_positions = paste0(start, collapse = ",")) %>% ungroup()
+for_beta <- for_beta %>% data.frame() %>% mutate(beta = got_beta[match(.$start, got_beta$start), "beta"])
+```
+```{r}
+rrbs_for_beta_pat <- for_beta %>% 
+  mutate(start_pos = sapply(str_split(genom_positions, ","), head, 1),
+         end_pos = sapply(str_split(genom_positions, ","), tail, 1)) %>% 
+  filter(start == start_pos) %>%
+  distinct(read_id, seqnames, start_pos, meth_pattern, alpha, end_pos, beta) %>% 
+  group_by(seqnames, start_pos, meth_pattern, alpha, end_pos, beta) %>% 
+  summarise(n=n()) %>%
+  ungroup()  %>%
+  mutate(start_pos = as.integer(start_pos),
+         end_pos = as.integer(end_pos))
+```
+* pat can help us find positions with interesting groups?
+```{r}
+rrbs_for_beta_pat %>% group_by(start_pos) %>% summarise(n_groups = n(), sum_reads = sum(n)) %>% .[order(.$n_groups, decreasing = TRUE),]
+```
+
+```{r}
+rrbs_for_beta_pat %>% filter(start_pos == 43411502)
+```
+
+```{r}
+rrbs_for_beta_pat %>% filter(start_pos >= 12693660, end_pos <= 12693800) %>% 
+  ggplot() +
+  geom_segment(aes(x = start_pos, xend = end_pos, y = alpha, yend = alpha), alpha = 0.3) +
+  geom_line(aes(x = start_pos, y = beta), colour = "red")
+```
+```{r}
+rrbs_region <- for_beta %>% filter(start>= 12693660, end <= 12693800) %>% .$read_id %>% unique()
+```
+
+```{r}
+for_beta %>% filter(read_id %in% rrbs_region[1:15]) %>% distinct(read_id, read_start, read_end, alpha) %>%
+  ggplot() +
+  geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha), alpha = 0.2) +
+  geom_point(data = filter(for_beta, read_id %in% rrbs_region[1:15]), 
+             aes(x = start, y = alpha, colour = meth_status)) +
+  geom_point(data = distinct(filter(for_beta, read_id %in% rrbs_region[1:15]), start, beta), 
+            aes(x = start, y = beta), shape = 4, size = 3) +
+  geom_segment(data = filter(cg_sites, start >= min(filter(for_beta, read_id %in% rrbs_region[1:15])$start), end <= max(filter(for_beta, read_id %in% rrbs_region[1:15])$end)), aes(x = start, xend = start, y = -0.15, yend = -0.05), colour = "green")
+```
+
+```{r}
+for_beta %>% filter(read_id %in% rrbs_region) %>% distinct(read_id, read_start, read_end, alpha) %>%
+  ggplot() +
+  geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha), alpha = 0.2) +
+  geom_point(data = filter(for_beta, read_id %in% rrbs_region), 
+             aes(x = start, y = alpha, colour = meth_status)) +
+  geom_point(data = distinct(filter(for_beta, read_id %in% rrbs_region), start, beta), 
+            aes(x = start, y = beta), shape = 4, size = 3) +
+  geom_segment(data = filter(cg_sites, start >= min(filter(for_beta, read_id %in% rrbs_region)$start), end <= max(filter(for_beta, read_id %in% rrbs_region)$end)), aes(x = start, xend = start, y = -0.15, yend = -0.05), colour = "green")
+```
+```{r}
+for_beta %>% filter(read_id %in% rrbs_region) %>% distinct(read_id, read_start, read_end, alpha) %>%
+  ggplot() +
+  geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha), alpha = 0.2) +
+  geom_count(data = filter(for_beta, read_id %in% rrbs_region), 
+             aes(x = start, y = alpha, colour = meth_status)) +
+  geom_point(data = distinct(filter(for_beta, read_id %in% rrbs_region), start, beta), 
+            aes(x = start, y = beta), shape = 4, size = 3) +
+  geom_segment(data = filter(cg_sites, start >= min(filter(for_beta, read_id %in% rrbs_region)$start), end <= max(filter(for_beta, read_id %in% rrbs_region)$end)), aes(x = start, xend = start, y = -0.15, yend = -0.05), colour = "green")
+```
+
+```{r}
+for_beta %>% filter(read_id %in% rrbs_region) %>% distinct(read_id, start, alpha, beta) %>%
+  ggplot(aes(x = as.factor(start), y = alpha)) +
+  geom_violin(scale = "count")
+?geom_boxplot
+?geom_violin
+```
+```{r}
+for_beta %>% filter(read_id %in% rrbs_region) %>% distinct(read_id, start, alpha, beta) %>%
+  ggplot(aes(x = as.factor(beta), y = alpha)) +
+  geom_boxplot()
+```
+
+```{r}
+for_beta %>% distinct(read_id, start, alpha, beta) %>% .[order(.$start),] %>% .[300:800,] %>%
+  ggplot(aes(x = as.factor(beta), y = alpha)) +
+  geom_boxplot()
+```
+```{r}
+for_beta %>% filter(beta == 0.5) %>%
+  ggplot(aes(x = as.factor(beta), y = alpha)) +
+  geom_violin()
+```
+
+```{r}
+for_beta %>%
+  ggplot(aes(x = beta)) +
+  geom_density()
+```
+```{r}
+rrbs_for_beta_pat %>% filter(beta == 0.5) %>% group_by(start_pos) %>% mutate(num_pat = n())
+```
+```{r}
+rrbs_for_beta_pat %>% filter(start == 48646638)
+```
+
+```{r}
+rrbs_for_beta_pat %>% group_by(start_pos) %>% summarise(sum = sum(n)) %>% .[order(.$sum, decreasing = TRUE),]
+```
+
+```{r}
+rrbs_plot <- function(long_data, read_ids, cpgs = cg_sites) {
+  long_data %>% filter(read_id %in% read_ids) %>% 
+    distinct(read_id, read_start, read_end, alpha) %>%
+  ggplot() +
+  geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha), alpha = 0.2) +
+  geom_point(data = filter(long_data, read_id %in% read_ids), 
+             aes(x = start, y = alpha, colour = meth_status)) +
+  geom_point(data = distinct(filter(long_data, read_id %in% read_ids), start, beta), 
+            aes(x = start, y = beta), shape = 4, size = 3) +
+  geom_segment(data = filter(cg_sites, start >= min(filter(long_data, read_id %in% read_ids)$start), 
+                             end <= max(filter(long_data, read_id %in% read_ids)$end)), 
+               aes(x = start, xend = start, y = -0.15, yend = -0.05), colour = "green")
+}
+```
+
+```{r}
+rrbs_plot(for_beta, rrbs_region)
+```
+
+```{r}
+rrbs_for_beta_pat
+got_beta %>% .[order(.$meth_count_pos, decreasing = TRUE),]
+```
+
+```{r}
+rrbs_for_beta_pat %>% filter(start_pos >= 20918800, end_pos <= 20919100)
+```
+
+```{r}
+quartiles <- filter(for_beta, start >= 20918800, end <= 20919100) %>% summarise(q1 = quantile(alpha, 0.25), q3 = quantile(alpha, 0.75))
+```
+
+```{r}
+rrbs_plot(for_beta, unique(filter(for_beta, start >= 20918800, end <= 20919100)$read_id)) +
+  geom_ribbon(data = quartiles, aes(x = 20918800, ymin = q1, ymax = q3))
+```
+
+```{r}
+filter(for_beta, start >= 20918800, end <= 20919100) %>% summary(.$alpha)
+```
+
