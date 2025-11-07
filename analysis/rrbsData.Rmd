@@ -302,6 +302,26 @@ list.files("/researchers/caitlin.page/rrbs_encode_cell_line") %>% .[grep("txt", 
 ```{r}
 fread("/researchers/caitlin.page/rrbs_encode_cell_line/CpG_OB_ENCFF000LYP_bismark_bt2.txt")
 ```
+```{r}
+list.files("/researchers/caitlin.page/rrbs_encode_cell_line") %>% .[grep("txt", .)] %>% .[grep("CpG", .)]
+```
+
+```{r}
+process_wgbs("/researchers/caitlin.page/rrbs_encode_cell_line/CpG_OT_ENCFF000LYO_bismark_bt2.txt")
+```
+```{r}
+path <- "/researchers/caitlin.page/rrbs_encode_cell_line/CpG_OT_ENCFF000LYO_bismark_bt2.txt"
+process_wgbs(as.character(path)[1])
+```
+```{r}
+bis <- fread("/researchers/caitlin.page/rrbs_encode_cell_line/CpG_OT_ENCFF000LYO_bismark_bt2.txt")
+process_wgbs(bis)
+```
+
+```{r}
+fread("/researchers/caitlin.page/rrbs_encode_cell_line/CpG_OT_ENCFF000LYO_bismark_bt2.txt")
+```
+
 
 mnmnmmnmjmknkmkhk
 
