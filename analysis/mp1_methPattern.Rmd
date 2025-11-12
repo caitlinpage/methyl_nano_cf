@@ -342,3 +342,215 @@ rrbs_plot(for_beta, unique(filter(for_beta, start >= 20918800, end <= 20919100)$
 filter(for_beta, start >= 20918800, end <= 20919100) %>% summary(.$alpha)
 ```
 
+######
+
+# continue with this pattern when beta = 0.5
+
+* things are interesting when beta = 0.5
+* overall distrib is bimodal esque
+* but we want to find a smaller region with that
+* will need stats
+
+```{r}
+for_beta %>% filter(beta == 0.5) %>%
+  ggplot(aes(x = as.factor(beta), y = alpha)) +
+  geom_violin()
+
+for_beta %>% mutate(a = "a") %>%
+  ggplot(aes(x=a, y = alpha)) +
+  geom_violin()
+```
+
+```{r}
+for_beta %>% filter(beta == 0.5) %>%
+  ggplot(aes(x = alpha)) +
+  geom_histogram()
+
+for_beta %>%
+  ggplot(aes(x = alpha)) +
+  geom_histogram()
+```
+
+* these plots - alphas repeat - because it's the per thing per read format
+* but that's ok?
+
+```{r}
+for_beta %>% dplyr::filter(beta == 0.5) %>%
+  ggplot(aes(x = as.factor(beta), y = alpha)) +
+  geom_violin()
+
+for_beta %>% dplyr::filter(beta == 0.5) %>% distinct(read_id, alpha) %>% mutate(a = "b_is_0.5") %>%
+  ggplot(aes(x = a, y = alpha)) +
+  geom_violin()
+```
+* didn't dramatically change the shape: that's good
+
+
+* stat ideas
+* I asked perplexity
+* diptest: does the data switch from unimodal (does it dip?) [package](https://rdrr.io/cran/diptest/man/dip.test.html)
+* BimodalIndex: for biological data [package](https://cran.r-project.org/web/packages/BimodalIndex/BimodalIndex.pdf)
+
+# [diptest](https://rdrr.io/cran/diptest/man/dip.test.html)
+```{r}
+library(diptest)
+```
+
+```{r}
+dip.test(filter(for_beta, beta == 0.5)$alpha)
+```
+
+```{r}
+dip(filter(for_beta, beta == 0.5)$alpha, full.result = TRUE)
+```
+* documentation has a plotting fn but not available here
+* must be a version thing b/c this is an old version of R
+
+```{r}
+dip.test(for_beta$alpha)
+```
+
+* doesn't tell us anything else
+
+
+# [findpeaks](https://rdrr.io/cran/gsignal/man/findpeaks.html)
+
+```{r}
+renv::install("gsignal")
+library(gsignal)
+```
+
+```{r}
+findpeaks(dplyr::filter(for_beta, beta == 0.5)$alpha)
+```
+* found > 800 peaks so that's not good
+* especially when what we want is a peak at around 0, and a peak at around 1
+
+
+#####
+# thoughts
+* none of this is really what I want
+* what I want is to find a region where we have 2 distinct groups of reads - that have clumped together at 0 and 1
+* and beta is 0.5 for all these points
+* no clue if this exists but I want to find it
+* to get it
+* alpha distrib would be bimodal - which i can find
+
+# sliding windows
+```{r}
+renv::install("zoo")
+library(zoo)
+```
+
+```{r}
+rollapply(for_beta$alpha, width = 100, FUN = mean, align = "center")
+```
+
+
+```{r}
+plot(for_beta$alpha[1:1000], type = "l")
+lines(rollapply(for_beta$alpha[1:1000], width = 100, FUN = mean, align = "center"), col = "red")
+```
+
+```{r}
+window_size <- 100  # adjust based on your data
+
+# Example with rollapply to apply dip.test over sliding windows
+dip_results <- rollapply(for_beta$alpha[1:1000], width = window_size, by = 1, FUN = function(x) dip.test(x)$p.value, fill = NA)
+
+# Identify windows with p-values indicating possible bimodality (e.g. p < 0.05)
+bimodal_windows <- which(dip_results < 0.05)
+
+# Optionally merge adjacent indices for continuous regions
+bimodal_regions <- split(bimodal_windows, cumsum(c(1, diff(bimodal_windows) != 1)))
+```
+
+```{r}
+for_beta[874:950,] %>%
+  ggplot(aes(x = alpha)) +
+  geom_density()
+
+for_beta[880:890,] %>%
+  ggplot(aes(x = alpha)) +
+  geom_density()
+```
+
+
+```{r}
+reads <- for_beta[874:950,] %>% .$read_id %>% unique()
+```
+```{r}
+rrbs_plot(for_beta, read_ids = reads)
+```
+* it's being pissy because gsignal messed with filter, but even with adding dplyr::filter to the function it's being fussy
+
+* ok so this is a very big region to plot but it worked??? - wild
+
+```{r}
+rrbs_plot(for_beta, read_ids = reads[7:17]) 
+rrbs_plot(for_beta, read_ids = reads[2]) 
+```
+```{r}
+for_beta %>% filter(read_id %in% reads[7:17]) %>%
+  ggplot(aes(x = beta)) +
+  geom_density()
+```
+
+
+* please don't tell me it's all 1 cpgs 
+```{r}
+for_beta[874:950,]
+```
+* no it's just massive areas so you can't see the line
+
+* now want a string of cpgs at beta = 0.5
+* and do the windows on them
+
+```{r}
+just_beta <- for_beta %>% distinct(start, beta) %>% .[order(.$start),]
+```
+```{r}
+rle_b <- rle(just_beta$beta)
+max(rle_b$lengths)
+rle_b$values[which(rle_b$lengths == 39)[1]]
+```
+```{r}
+max(rle_b$lengths[rle_b$values == 0.5]) # longest run of 0.5 is 5 cpgs
+```
+* get those indexes
+
+
+
+##################
+
+* think I need to go back to a simpler approach
+* variance and IQR stuff
+* google keeps talking about kernel density estimation
+* as an alternative to binning
+
+# kde
+```{r}
+density(dplyr::filter(for_beta, beta == 0.5)$alpha)
+```
+
+```{r}
+which(diff(sign(diff(density(dplyr::filter(for_beta, beta == 0.5)$alpha)$y))) == -2) # indices maxima
+density(dplyr::filter(for_beta, beta == 0.5)$alpha)$x[which(diff(sign(diff(density(dplyr::filter(for_beta, beta == 0.5)$alpha)$y))) == -2)] # peak positions
+```
+
+```{r}
+dplyr::filter(for_beta, beta == 0.5) %>% mutate(row_num = 1:n()) %>% dplyr::filter(row_num %in% c(79,257,313,432))
+```
+
+* geom_density uses kde
+```{r}
+dplyr::filter(for_beta, beta == 0.5) %>%
+  ggplot(aes(x = alpha)) +
+  geom_density()
+```
+* basically it's just the density function in R
+
+
+
+
+
