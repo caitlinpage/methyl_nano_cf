@@ -1,3 +1,10 @@
+library(plyranges)
+library(dplyr)
+library(stringr)
+library(tidyr)
+library(data.table)
+library(ggplot2)
+
 process_modkit <- function(modkit_fread, path_to_bed_file) {
   reads <- modkit_fread
   reads <- reads$ref_position + 1 # convert to 1 based
@@ -107,15 +114,15 @@ pat_for_wgbs <- function(process_res) {
 }
 
 rrbs_plot <- function(long_data, read_ids, cpgs = cg_sites) {
-  long_data %>% filter(read_id %in% read_ids) %>%
+  long_data %>% dplyr::filter(read_id %in% read_ids) %>%
     distinct(read_id, read_start, read_end, alpha) %>%
     ggplot() +
     geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha), alpha = 0.2) +
-    geom_point(data = filter(long_data, read_id %in% read_ids),
+    geom_point(data = dplyr::filter(long_data, read_id %in% read_ids),
                aes(x = start, y = alpha, colour = meth_status)) +
-    geom_point(data = distinct(filter(long_data, read_id %in% read_ids), start, beta),
+    geom_point(data = distinct(dplyr::filter(long_data, read_id %in% read_ids), start, beta),
                aes(x = start, y = beta), shape = 4, size = 3) +
-    geom_segment(data = filter(cg_sites, start >= min(filter(long_data, read_id %in% read_ids)$start),
-                               end <= max(filter(long_data, read_id %in% read_ids)$end)),
+    geom_segment(data = filter(cg_sites, start >= min(dplyr::filter(long_data, read_id %in% read_ids)$start),
+                               end <= max(dplyr::filter(long_data, read_id %in% read_ids)$end)),
                  aes(x = start, xend = start, y = -0.15, yend = -0.05), colour = "green")
 }
