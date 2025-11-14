@@ -416,8 +416,7 @@ dip.test(for_beta$alpha)
 # [findpeaks](https://rdrr.io/cran/gsignal/man/findpeaks.html)
 
 ```{r}
-renv::install("gsignal")
-library(gsignal)
+#library(gsignal)
 ```
 
 ```{r}
@@ -438,7 +437,6 @@ findpeaks(dplyr::filter(for_beta, beta == 0.5)$alpha)
 
 # sliding windows
 ```{r}
-renv::install("zoo")
 library(zoo)
 ```
 
@@ -519,6 +517,364 @@ max(rle_b$lengths[rle_b$values == 0.5]) # longest run of 0.5 is 5 cpgs
 ```
 * get those indexes
 
+```{r}
+which.max(rle_b$lengths)
+cumsum(rle_b$lengths)
+```
+* I can't figure out this rle stuff
+* but getting consecutive sequences is something I did with damsel peak calling
+* and I think I just used dplyr for that so let's try to do that again
+
+```{r}
+just_beta %>%
+  mutate(row_id = row_number()) %>%  # keep row indices
+  summarise(
+    rle_vals = list(rle(just_beta$beta))[[1]]$lengths,    # run length encoding in list-column
+    row_ids = list(row_id)
+  ) %>%
+  rowwise() %>%
+  mutate(
+    # Find longest run length index
+    longest_run_idx = which.max(rle_vals$lengths),
+    # Calculate cumulative sums to get ends
+    ends = list(cumsum(rle_vals$lengths)),
+    starts = list(ends[[1]] - rle_vals$lengths + 1),
+    # Extract indices of longest run from original indices
+    longest_indices = list(
+      row_ids[[1]][starts[[1]][longest_run_idx]:ends[[1]][longest_run_idx]]
+    )
+  )
+```
+```{r}
+sequence(rle_b$lengths)
+```
+
+```{r}
+just_beta %>% mutate(seqnames = "chr22") %>%
+  mutate(row_num = 1:nrow(.)) %>%
+  group_by(beta) %>%
+  mutate(consec = n()) %>%
+  mutate(count = 1:n()) %>%
+  ungroup() %>%
+  mutate(length = sequence(rle(.$beta)$lengths)) %>%
+  group_by(beta) %>%
+  filter(beta == 0.5, length == max(length))
+
+```
+
+```{r}
+just_beta[6064:6068,]
+```
+
+```{r}
+for_beta %>% filter(start %in% just_beta[6064:6068,]$start)
+```
+
+```{r}
+source("../code/processData.R")
+rrbs_plot(for_beta, for_beta %>% filter(start %in% just_beta[6064:6068,]$start) %>% .$read_id %>% unique())
+```
+* ok so this is the thing
+* it would just be nicer if it was a lot denser data wise
+
+* group betas by range of methylation
+* low, medium, high
+* range will be inclusive for each
+* let's experiment with ranges
+* low : 0 - 0.2 
+* medium : 0.4 - 0.6
+* high : 0.8 - 1
+
+```{r}
+just_beta %>% mutate(seqnames = "chr22") %>%
+  mutate(row_num = 1:nrow(.)) %>%
+  mutate(beta_range = case_when(beta >= 0 & beta <= 0.2 ~ "low", 
+                                beta >= 0.4 & beta <= 0.6 ~ "medium",
+                                beta >= 0.8 & beta <= 1 ~ "high",
+                                beta > 0.2 & beta < 0.4 ~ "low_med",
+                                TRUE ~ "med_high")) %>%
+  group_by(beta_range) %>%
+  mutate(consec = n()) %>%
+  mutate(count = 1:n()) %>%
+  ungroup() %>%
+  mutate(length = sequence(rle(.$beta_range)$lengths)) %>%
+  group_by(beta_range) %>%
+  summarise(max_length = max(length))
+```
+
+
+```{r}
+just_beta %>% mutate(seqnames = "chr22") %>%
+  mutate(row_num = 1:nrow(.)) %>%
+  mutate(beta_range = case_when(beta >= 0 & beta <= 0.2 ~ "low", 
+                                beta >= 0.4 & beta <= 0.6 ~ "medium",
+                                beta >= 0.8 & beta <= 1 ~ "high",
+                                beta > 0.2 & beta < 0.4 ~ "low_med",
+                                TRUE ~ "med_high")) %>%
+  group_by(beta_range) %>%
+  mutate(consec = n()) %>%
+  mutate(count = 1:n()) %>%
+  ungroup() %>%
+  mutate(length = sequence(rle(.$beta_range)$lengths)) %>%
+  group_by(beta_range) %>%
+  filter(beta_range == "medium", length == max(length))
+```
+
+```{r}
+for_beta %>% filter(start %in% just_beta[128:133,]$start) %>% .$read_id %>% unique()
+```
+
+```{r}
+source("../code/processData.R")
+rrbs_plot(for_beta, for_beta %>% filter(start %in% just_beta[128:133,]$start) %>% .$read_id %>% unique())
+```
+* still would be nice if it was denser but hey it worked
+
+* little fn to find it
+```{r}
+string_same_beta <- function(betas_only, range_type = "medium") {
+  df <- betas_only %>% 
+   # mutate(seqnames = "chr22") %>% # will need seqnames later for scale
+    mutate(row_num = 1:nrow(.)) %>%
+    mutate(beta_range = case_when(beta >= 0 & beta <= 0.2 ~ "low", 
+                                beta >= 0.4 & beta <= 0.6 ~ "medium",
+                                beta >= 0.8 & beta <= 1 ~ "high",
+                                beta > 0.2 & beta < 0.4 ~ "low_med",
+                                TRUE ~ "med_high")) %>%
+  mutate(length = sequence(rle(.$beta_range)$lengths)) %>% # when I have all chroms this will need to change a bit
+  group_by(beta_range) %>%
+  filter(beta_range == range_type, 
+         length == max(length))
+  num_cpgs <- df$length
+  end_row <- df$row_num
+  start_row <- end_row - num_cpgs + 1
+  
+  c(betas_only[start_row,]$start, betas_only[end_row,]$start) # at some point this will need a chromosome
+}
+string_same_beta(just_beta)
+```
+
+```{r}
+for_beta %>% filter(start >= string_same_beta(just_beta)[1], start <= string_same_beta(just_beta)[2]) %>% .$read_id %>% unique()
+```
+
+
+* can I find an area that maybe has less in a row but has higher coverage?
+* coverage is just num that overlap a site: easy - just count the reads per site
+```{r}
+for_beta %>% group_by(start) %>% mutate(coverage = n()) %>% 
+  distinct(start, beta, coverage) %>%
+  ggplot(aes(x = coverage, y = beta)) +
+  geom_point()
+```
+* lol thats my old plots
+
+```{r}
+for_beta <- for_beta %>% group_by(start) %>% mutate(coverage = n()) %>% ungroup() %>% data.frame()
+for_beta %>% filter(start == 10571812)
+```
+
+```{r}
+just_beta <- just_beta %>% mutate(coverage = for_beta[match(.$start, for_beta$start), "coverage"])
+```
+
+```{r}
+just_beta %>% mutate(seqnames = "chr22") %>%
+  mutate(row_num = 1:nrow(.)) %>%
+  mutate(beta_range = case_when(beta >= 0 & beta <= 0.2 ~ "low", 
+                                beta >= 0.4 & beta <= 0.6 ~ "medium",
+                                beta >= 0.8 & beta <= 1 ~ "high",
+                                beta > 0.2 & beta < 0.4 ~ "low_med",
+                                TRUE ~ "med_high")) %>%
+  group_by(beta_range) %>%
+  mutate(consec = n()) %>%
+  mutate(count = 1:n()) %>%
+  ungroup() %>%
+  mutate(length = sequence(rle(.$beta_range)$lengths))
+```
+
+```{r}
+source("../code/processData.R")
+rrbs_plot(for_beta, for_beta %>% filter(start %in% just_beta[1:6,]$start) %>% .$read_id %>% unique())
+rrbs_plot(for_beta, for_beta %>% filter(start %in% just_beta[1:7,]$start) %>% .$read_id %>% unique())
+rrbs_plot(for_beta, for_beta %>% filter(start %in% just_beta[1:6,]$start) %>% .$read_id %>% unique(), count_instead = TRUE)
+```
+
+```{r}
+just_beta %>% mutate(seqnames = "chr22") %>%
+  mutate(row_num = 1:nrow(.)) %>%
+  mutate(beta_range = case_when(beta >= 0 & beta <= 0.2 ~ "low", 
+                                beta >= 0.4 & beta <= 0.6 ~ "medium",
+                                beta >= 0.8 & beta <= 1 ~ "high",
+                                beta > 0.2 & beta < 0.4 ~ "low_med",
+                                TRUE ~ "med_high")) %>%
+  group_by(beta_range) %>%
+  mutate(consec = n()) %>%
+  mutate(count = 1:n()) %>%
+  ungroup() %>%
+  mutate(length = sequence(rle(.$beta_range)$lengths)) %>%
+  group_by(beta_range) %>%
+  filter(beta_range == "medium", length >= 3)
+```
+
+```{r}
+source("../code/processData.R")
+rrbs_plot(for_beta, for_beta %>% filter(start %in% just_beta[29807:29812,]$start) %>% .$read_id %>% unique())
+rrbs_plot(for_beta, for_beta %>% filter(start %in% just_beta[29807:29812,]$start) %>% .$read_id %>% unique(), count_instead = TRUE)
+for_beta %>% filter(start %in% just_beta[29807:29812,]$start) %>% distinct(read_id) %>% nrow()
+for_beta %>% filter(start %in% just_beta[29807:29812,]$start) %>% distinct(read_id, alpha) %>% group_by(alpha) %>% summarise(n=n())
+for_beta %>% filter(start %in% just_beta[29807:29812,]$start) %>% distinct(read_id, alpha, total) %>% group_by(alpha, total) %>% summarise(n=n())
+```
+# best plot yet right above
+* because there it is there's 2 distinct patterns, high coverage, and beta is around 0.5
+```{r}
+rrbs_plot(for_beta, for_beta %>% filter(start %in% just_beta[29807:29812,]$start, total > 1) %>% .$read_id %>% unique())
+```
+```{r}
+good_region_reads <- for_beta %>% filter(start %in% just_beta[29807:29812,]$start) %>% .$read_id %>% unique()
+```
+
+```{r}
+for_beta %>% filter(start %in% just_beta[29807:29812,]$start) %>% group_by(start) %>% mutate(mean_alpha = mean(alpha)) %>%
+    distinct(read_id, read_start, read_end, alpha, mean_alpha) %>%
+    ggplot() +
+    geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha), alpha = 0.2) +
+    geom_point(data = dplyr::filter(for_beta, read_id %in% good_region_reads),
+               aes(x = start, y = alpha, colour = meth_status)) +
+    geom_point(data = distinct(dplyr::filter(for_beta, read_id %in% good_region_reads), start, beta),
+               aes(x = start, y = beta), shape = 4, size = 3) +
+    geom_segment(data = filter(cg_sites, start >= min(dplyr::filter(for_beta, read_id %in% good_region_reads)$start),
+                               end <= max(dplyr::filter(for_beta, read_id %in% good_region_reads)$end)),
+                 aes(x = start, xend = start, y = -0.15, yend = -0.05), colour = "green") +
+  geom_point(aes(x = start, y = mean_alpha), shape = 5, colour = "purple")
+```
+
+```{r}
+for_beta %>% group_by(start) %>% mutate(mean_alpha = mean(alpha)) %>%
+  ggplot(aes(x = beta, y = mean_alpha)) +
+  geom_point(alpha = 0.3) +
+  geom_abline(colour = "red", linetype = "dashed")
+for_beta %>% group_by(start) %>% mutate(mean_alpha = mean(alpha)) %>% distinct(start, beta, mean_alpha) %>%
+  ggplot(aes(x = beta, y = mean_alpha)) +
+  geom_point(alpha = 0.3) +
+  geom_abline(colour = "red", linetype = "dashed")
+```
+* oops forgot that this is a beta level thing and all my data repeats, so repeating all plots with both
+* very much changes the intensity of the opacity
+```{r}
+for_beta %>% group_by(start) %>% mutate(mean_alpha = mean(alpha)) %>%
+  ggplot(aes(x = beta, y = mean_alpha)) +
+  geom_point(aes(size = coverage), alpha = 0.3) +
+  geom_abline(colour = "red", linetype = "dashed")
+
+for_beta %>% group_by(start) %>% mutate(mean_alpha = mean(alpha)) %>% distinct(start, beta, mean_alpha, coverage) %>%
+  ggplot(aes(x = beta, y = mean_alpha)) +
+  geom_point(aes(size = coverage), alpha = 0.3) +
+  geom_abline(colour = "red", linetype = "dashed")
+```
+```{r}
+for_beta %>% filter(total > 1) %>% group_by(start) %>% mutate(mean_alpha = mean(alpha)) %>%
+  ggplot(aes(x = beta, y = mean_alpha)) +
+  geom_point(aes(size = coverage), alpha = 0.3) +
+  geom_abline(colour = "red", linetype = "dashed")
+
+for_beta %>% filter(total > 1) %>% group_by(start) %>% mutate(mean_alpha = mean(alpha)) %>% distinct(start, beta, mean_alpha, coverage) %>%
+  ggplot(aes(x = beta, y = mean_alpha)) +
+  geom_point(aes(size = coverage), alpha = 0.3) +
+  geom_abline(colour = "red", linetype = "dashed")
+
+for_beta %>% filter(total > 2) %>% group_by(start) %>% mutate(mean_alpha = mean(alpha)) %>%
+  ggplot(aes(x = beta, y = mean_alpha)) +
+  geom_point(aes(size = coverage), alpha = 0.3) +
+  geom_abline(colour = "red", linetype = "dashed")
+```
+```{r}
+for_beta %>% filter(total > 1) %>% group_by(start) %>% mutate(mean_alpha = mean(alpha)) %>%
+  ggplot(aes(x = beta, y = mean_alpha)) +
+  geom_hex(bins = 50) +
+  geom_abline(colour = "red", linetype = "dashed")
+
+for_beta %>% filter(total > 1) %>% group_by(start) %>% mutate(mean_alpha = mean(alpha)) %>% distinct(start, beta, mean_alpha, coverage) %>%
+  ggplot(aes(x = beta, y = mean_alpha)) +
+  geom_hex(bins = 50) +
+  geom_abline(colour = "red", linetype = "dashed")
+
+for_beta %>% filter(total > 2) %>% group_by(start) %>% mutate(mean_alpha = mean(alpha)) %>%
+  ggplot(aes(x = beta, y = mean_alpha)) +
+  geom_hex() +
+  geom_abline(colour = "red", linetype = "dashed")
+```
+```{r}
+for_beta %>% filter(total > 1) %>% group_by(start) %>% mutate(mean_alpha = mean(alpha)) %>%
+  ggplot(aes(x = beta, y = mean_alpha - beta)) +
+  geom_point(aes(size = coverage), alpha = 0.3) +
+  geom_abline(colour = "red", linetype = "dashed")
+
+for_beta %>% filter(total > 1) %>% group_by(start) %>% mutate(mean_alpha = mean(alpha)) %>% distinct(start, beta, mean_alpha, coverage) %>%
+  ggplot(aes(x = beta, y = mean_alpha - beta)) +
+  geom_point(aes(size = coverage), alpha = 0.3) +
+  geom_abline(colour = "red", linetype = "dashed")
+```
+
+```{r}
+for_beta %>% filter(total > 1) %>% group_by(start) %>% mutate(mean_alpha = mean(alpha)) %>%
+  ggplot(aes(x = beta, y = mean_alpha - beta)) +
+  geom_hex(bins = 50) +
+  geom_abline(colour = "red", linetype = "dashed")
+
+for_beta %>% filter(total > 1) %>% group_by(start) %>% mutate(mean_alpha = mean(alpha)) %>% distinct(start, beta, mean_alpha, coverage) %>%
+  ggplot(aes(x = beta, y = mean_alpha - beta)) +
+  geom_hex(bins = 50) +
+  geom_abline(colour = "red", linetype = "dashed")
+```
+
+```{r}
+for_beta
+```
+
+
+* ok redo the fn
+
+```{r}
+string_same_beta <- function(betas_only, range_type = "medium") {
+  df <- betas_only %>% 
+   # mutate(seqnames = "chr22") %>% # will need seqnames later for scale
+    mutate(row_num = 1:nrow(.)) %>%
+    mutate(beta_range = case_when(beta >= 0 & beta <= 0.2 ~ "low", 
+                                beta >= 0.4 & beta <= 0.6 ~ "medium",
+                                beta >= 0.8 & beta <= 1 ~ "high",
+                                beta > 0.2 & beta < 0.4 ~ "low_med",
+                                TRUE ~ "med_high")) %>%
+  mutate(length = sequence(rle(.$beta_range)$lengths)) %>% # when I have all chroms this will need to change a bit
+  group_by(beta_range) %>%
+  filter(beta_range == range_type, 
+         length == max(length))
+  num_cpgs <- df$length
+  end_row <- df$row_num
+  start_row <- end_row - num_cpgs + 1
+  
+  c(betas_only[start_row,]$start, betas_only[end_row,]$start) # at some point this will need a chromosome
+}
+```
+
+
+```{r}
+just_beta %>% mutate(seqnames = "chr22") %>%
+  mutate(row_num = 1:nrow(.)) %>%
+  mutate(beta_range = case_when(beta >= 0 & beta <= 0.2 ~ "low", 
+                                beta >= 0.4 & beta <= 0.6 ~ "medium",
+                                beta >= 0.8 & beta <= 1 ~ "high",
+                                beta > 0.2 & beta < 0.4 ~ "low_med",
+                                TRUE ~ "med_high")) %>%
+  group_by(beta_range) %>%
+  mutate(consec = n()) %>%
+  mutate(count = 1:n()) %>%
+  ungroup() %>%
+  mutate(length = sequence(rle(.$beta_range)$lengths)) %>% 
+  mutate(group = cumsum(c(TRUE, diff(length) <= 0))) # thanks perplexity that's what I wanted
+  group_by(beta_range) %>%
+  filter(beta_range == "medium", length >= 3)
+```
 
 
 ##################
