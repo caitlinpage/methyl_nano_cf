@@ -113,8 +113,9 @@ pat_for_wgbs <- function(process_res) {
   pat
 }
 
-rrbs_plot <- function(long_data, read_ids, cpgs = cg_sites) {
-  long_data %>% dplyr::filter(read_id %in% read_ids) %>%
+rrbs_plot <- function(long_data, read_ids, cpgs = cg_sites, count_instead = FALSE) {
+  if(count_instead == FALSE) {
+  plot <- long_data %>% dplyr::filter(read_id %in% read_ids) %>%
     distinct(read_id, read_start, read_end, alpha) %>%
     ggplot() +
     geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha), alpha = 0.2) +
@@ -125,4 +126,18 @@ rrbs_plot <- function(long_data, read_ids, cpgs = cg_sites) {
     geom_segment(data = filter(cg_sites, start >= min(dplyr::filter(long_data, read_id %in% read_ids)$start),
                                end <= max(dplyr::filter(long_data, read_id %in% read_ids)$end)),
                  aes(x = start, xend = start, y = -0.15, yend = -0.05), colour = "green")
+  } else {
+    plot <- long_data %>% dplyr::filter(read_id %in% read_ids) %>%
+      distinct(read_id, read_start, read_end, alpha) %>%
+      ggplot() +
+      geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha), alpha = 0.2) +
+      geom_count(data = dplyr::filter(long_data, read_id %in% read_ids),
+                 aes(x = start, y = alpha, colour = meth_status)) +
+      geom_point(data = distinct(dplyr::filter(long_data, read_id %in% read_ids), start, beta),
+                 aes(x = start, y = beta), shape = 4, size = 3) +
+      geom_segment(data = filter(cg_sites, start >= min(dplyr::filter(long_data, read_id %in% read_ids)$start),
+                                 end <= max(dplyr::filter(long_data, read_id %in% read_ids)$end)),
+                   aes(x = start, xend = start, y = -0.15, yend = -0.05), colour = "green")
+  }
+  plot
 }
