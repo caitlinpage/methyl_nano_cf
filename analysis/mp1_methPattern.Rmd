@@ -812,8 +812,8 @@ for_beta %>% filter(total > 1) %>% group_by(start) %>% mutate(mean_alpha = mean(
 
 for_beta %>% filter(total > 1) %>% group_by(start) %>% mutate(mean_alpha = mean(alpha)) %>% distinct(start, beta, mean_alpha, coverage) %>%
   ggplot(aes(x = beta, y = mean_alpha - beta)) +
-  geom_point(aes(size = coverage), alpha = 0.3) +
-  geom_abline(colour = "red", linetype = "dashed")
+  geom_point(aes(size = coverage), alpha = 0.3) #+
+ # geom_abline(colour = "red", linetype = "dashed")
 ```
 
 ```{r}
