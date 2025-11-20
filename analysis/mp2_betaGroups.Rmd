@@ -1,0 +1,351 @@
+---
+title: "mp2_betaGroups"
+author: "Caitlin Page"
+date: "2025-11-20"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+## Introduction
+
+```{r}
+library(data.table)
+library(plyranges)
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+```
+
+
+## Data files
+```{r}
+cg_sites <- cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38[["chr22"]])), seqnames = "chr22") %>% 
+  mutate(pos = paste0(seqnames, "-", start)) %>%
+  relocate(pos, seqnames)
+cg_sites$index <- 1:nrow(cg_sites)
+```
+
+
+
+* rrbs cell line
+```{r}
+source("../processData.R")
+
+bis <- fread("/researchers/caitlin.page/rrbs_encode_cell_line/CpG_OT_ENCFF000LYO_bismark_bt2.txt")
+for_beta <- process_wgbs(bis)
+for_beta <- for_beta %>% filter(seqnames == "chr22")
+rrbs_for_beta_pat <- pat_for_wgbs(for_beta)
+```
+
+
+```{r}
+for_beta <- for_beta %>% group_by(start) %>% mutate(coverage = n()) %>% ungroup() %>% data.frame()
+just_beta <- just_beta %>% mutate(coverage = for_beta[match(.$start, for_beta$start), "coverage"])
+```
+
+
+## Analysis
+* copied from mp1_methPattern.html
+
+```{r}
+for_beta %>% filter(beta == 0.5) %>%
+  ggplot(aes(x = as.factor(beta), y = alpha)) +
+  geom_violin()
+
+for_beta %>%
+  ggplot(aes(x = beta)) +
+  geom_density()
+```
+
+* group betas by range of methylation
+* low, medium, high
+* range will be inclusive for each
+* let's experiment with ranges
+* low : 0 - 0.2 
+* medium : 0.4 - 0.6
+* high : 0.8 - 1
+
+```{r}
+just_beta %>% mutate(seqnames = "chr22") %>%
+  mutate(row_num = 1:nrow(.)) %>%
+  mutate(beta_range = case_when(beta >= 0 & beta <= 0.2 ~ "low", 
+                                beta >= 0.4 & beta <= 0.6 ~ "medium",
+                                beta >= 0.8 & beta <= 1 ~ "high",
+                                beta > 0.2 & beta < 0.4 ~ "low_med",
+                                TRUE ~ "med_high")) %>%
+  group_by(beta_range) %>%
+  mutate(consec = n()) %>%
+  mutate(count = 1:n()) %>%
+  ungroup() %>%
+  mutate(length = sequence(rle(.$beta_range)$lengths)) %>%
+  group_by(beta_range) %>%
+  summarise(max_length = max(length))
+```
+
+```{r}
+just_beta %>% mutate(seqnames = "chr22") %>%
+  mutate(row_num = 1:nrow(.)) %>%
+  mutate(beta_range = case_when(beta >= 0 & beta <= 0.2 ~ "low", 
+                                beta >= 0.4 & beta <= 0.6 ~ "medium",
+                                beta >= 0.8 & beta <= 1 ~ "high",
+                                beta > 0.2 & beta < 0.4 ~ "low_med",
+                                TRUE ~ "med_high")) %>%
+  group_by(beta_range) %>%
+  mutate(consec = n()) %>%
+  mutate(count = 1:n()) %>%
+  ungroup() %>%
+  mutate(length = sequence(rle(.$beta_range)$lengths)) %>%
+  group_by(beta_range) %>%
+  filter(beta_range == "medium", length == max(length))
+```
+
+```{r}
+for_beta %>% filter(start %in% just_beta[128:133,]$start) %>% .$read_id %>% unique()
+```
+
+```{r}
+source("../code/processData.R")
+rrbs_plot(for_beta, for_beta %>% filter(start %in% just_beta[128:133,]$start) %>% .$read_id %>% unique())
+```
+
+
+```{r}
+string_same_beta <- function(betas_only, range_type = "medium") {
+  df <- betas_only %>% 
+   # mutate(seqnames = "chr22") %>% # will need seqnames later for scale
+    mutate(row_num = 1:nrow(.)) %>%
+    mutate(beta_range = case_when(beta >= 0 & beta <= 0.2 ~ "low", 
+                                beta >= 0.4 & beta <= 0.6 ~ "medium",
+                                beta >= 0.8 & beta <= 1 ~ "high",
+                                beta > 0.2 & beta < 0.4 ~ "low_med",
+                                TRUE ~ "med_high")) %>%
+  mutate(length = sequence(rle(.$beta_range)$lengths)) %>% # when I have all chroms this will need to change a bit
+  group_by(beta_range) %>%
+  filter(beta_range == range_type, 
+         length == max(length))
+  num_cpgs <- df$length
+  end_row <- df$row_num
+  start_row <- end_row - num_cpgs + 1
+  
+  c(betas_only[start_row,]$start, betas_only[end_row,]$start) # at some point this will need a chromosome
+}
+string_same_beta(just_beta)
+```
+
+```{r}
+for_beta %>% filter(start >= string_same_beta(just_beta)[1], start <= string_same_beta(just_beta)[2]) %>% .$read_id %>% unique()
+```
+
+* ah my function searched for the longest pattern
+* which has meant it didn't care about coverage
+* and I definitely care about coverage
+
+```{r}
+just_beta %>% mutate(seqnames = "chr22") %>%
+  mutate(row_num = 1:nrow(.)) %>%
+  mutate(beta_range = case_when(beta >= 0 & beta <= 0.2 ~ "low", 
+                                beta >= 0.4 & beta <= 0.6 ~ "medium",
+                                beta >= 0.8 & beta <= 1 ~ "high",
+                                beta > 0.2 & beta < 0.4 ~ "low_med",
+                                TRUE ~ "med_high")) %>%
+  group_by(beta_range) %>%
+  mutate(consec = n()) %>%
+  mutate(count = 1:n()) %>%
+  ungroup() %>%
+  mutate(length = sequence(rle(.$beta_range)$lengths)) %>% .[1:5,]
+```
+
+```{r}
+source("../code/processData.R")
+rrbs_plot(for_beta, for_beta %>% filter(start %in% just_beta[1:6,]$start) %>% .$read_id %>% unique())
+rrbs_plot(for_beta, for_beta %>% filter(start %in% just_beta[1:7,]$start) %>% .$read_id %>% unique())
+rrbs_plot(for_beta, for_beta %>% filter(start %in% just_beta[1:6,]$start) %>% .$read_id %>% unique(), count_instead = TRUE)
+```
+
+```{r}
+just_beta %>% mutate(seqnames = "chr22") %>%
+  mutate(row_num = 1:nrow(.)) %>%
+  mutate(beta_range = case_when(beta >= 0 & beta <= 0.2 ~ "low", 
+                                beta >= 0.4 & beta <= 0.6 ~ "medium",
+                                beta >= 0.8 & beta <= 1 ~ "high",
+                                beta > 0.2 & beta < 0.4 ~ "low_med",
+                                TRUE ~ "med_high")) %>%
+  group_by(beta_range) %>%
+  mutate(consec = n()) %>%
+  mutate(count = 1:n()) %>%
+  ungroup() %>%
+  mutate(length = sequence(rle(.$beta_range)$lengths)) %>%
+  group_by(beta_range) %>%
+  filter(beta_range == "medium", length >= 3) %>% .[1:5,]
+```
+
+```{r}
+just_beta %>% mutate(seqnames = "chr22") %>%
+  mutate(row_num = 1:nrow(.)) %>%
+  mutate(beta_range = case_when(beta >= 0 & beta <= 0.2 ~ "low", 
+                                beta >= 0.4 & beta <= 0.6 ~ "medium",
+                                beta >= 0.8 & beta <= 1 ~ "high",
+                                beta > 0.2 & beta < 0.4 ~ "low_med",
+                                TRUE ~ "med_high")) %>%
+  group_by(beta_range) %>%
+  mutate(consec = n()) %>%
+  mutate(count = 1:n()) %>%
+  ungroup() %>%
+  mutate(length = sequence(rle(.$beta_range)$lengths)) %>% 
+  mutate(group = cumsum(c(TRUE, diff(length) <= 0))) # thanks perplexity that's what I wanted
+  group_by(beta_range) %>%
+  filter(beta_range == "medium", length >= 3) %>% .[1:5,]
+```
+
+```{r}
+just_beta %>% mutate(seqnames = "chr22") %>%
+  mutate(row_num = 1:nrow(.)) %>%
+  mutate(beta_range = case_when(beta >= 0 & beta <= 0.2 ~ "low", 
+                                beta >= 0.4 & beta <= 0.6 ~ "medium",
+                                beta >= 0.8 & beta <= 1 ~ "high",
+                                beta > 0.2 & beta < 0.4 ~ "low_med",
+                                TRUE ~ "med_high")) %>%
+  group_by(beta_range) %>%
+  mutate(consec = n()) %>%
+  mutate(count = 1:n()) %>%
+  ungroup() %>%
+  mutate(length = sequence(rle(.$beta_range)$lengths)) %>% 
+  mutate(group = cumsum(c(TRUE, diff(length) <= 0))) %>%
+  group_by(group) %>%
+  mutate(length = n(), av_coverage = mean(coverage), av_beta = mean(beta)) %>%
+  ungroup() %>%
+  distinct(group, beta_range, length, av_coverage, av_beta) %>% .[1:5,]
+```
+
+```{r}
+just_beta %>% mutate(seqnames = "chr22") %>%
+  mutate(row_num = 1:nrow(.)) %>%
+  mutate(beta_range = case_when(beta >= 0 & beta <= 0.2 ~ "low", 
+                                beta >= 0.4 & beta <= 0.6 ~ "medium",
+                                beta >= 0.8 & beta <= 1 ~ "high",
+                                beta > 0.2 & beta < 0.4 ~ "low_med",
+                                TRUE ~ "med_high")) %>%
+  group_by(beta_range) %>%
+  mutate(consec = n()) %>%
+  mutate(count = 1:n()) %>%
+  ungroup() %>%
+  mutate(length = sequence(rle(.$beta_range)$lengths)) %>% 
+  mutate(group = cumsum(c(TRUE, diff(length) <= 0))) %>%
+  group_by(group) %>%
+  mutate(length = n(), av_coverage = mean(coverage), av_beta = mean(beta)) %>%
+  ungroup() %>%
+  distinct(group, beta_range, length, av_coverage, av_beta) %>% filter(beta_range == "medium", length > 2) %>% .[order(.$length, decreasing = TRUE),] %>% nrow()
+```
+
+```{r}
+just_beta %>% mutate(seqnames = "chr22") %>%
+  mutate(row_num = 1:nrow(.)) %>%
+  mutate(beta_range = case_when(beta >= 0 & beta <= 0.2 ~ "low", 
+                                beta >= 0.4 & beta <= 0.6 ~ "medium",
+                                beta >= 0.8 & beta <= 1 ~ "high",
+                                beta > 0.2 & beta < 0.4 ~ "low_med",
+                                TRUE ~ "med_high")) %>%
+  group_by(beta_range) %>%
+  mutate(consec = n()) %>%
+  mutate(count = 1:n()) %>%
+  ungroup() %>%
+  mutate(length = sequence(rle(.$beta_range)$lengths)) %>% 
+  mutate(group = cumsum(c(TRUE, diff(length) <= 0))) %>% filter(group == 1557)
+```
+
+
+```{r}
+source("../code/processData.R")
+rrbs_plot(for_beta, for_beta %>% filter(start %in% just_beta[5763:5767,]$start) %>% .$read_id %>% unique(), count_instead = TRUE)
+```
+* right I got stuck on how to make this work better
+* I feel like 3 cpgs is a good min
+* so maybe it's pull out the regions with at least 3 cpgs and medium beta?? - as regions of interest
+* ooh maybe violin plot of alphas in that grouping????
+
+
+
+```{r}
+grouped_betas <- just_beta %>% mutate(seqnames = "chr22") %>%
+  mutate(row_num = 1:nrow(.)) %>%
+  mutate(beta_range = case_when(beta >= 0 & beta <= 0.2 ~ "low", 
+                                beta >= 0.4 & beta <= 0.6 ~ "medium",
+                                beta >= 0.8 & beta <= 1 ~ "high",
+                                beta > 0.2 & beta < 0.4 ~ "low_med",
+                                TRUE ~ "med_high")) %>%
+  group_by(beta_range) %>%
+  mutate(consec = n()) %>%
+  mutate(count = 1:n()) %>%
+  ungroup() %>%
+  mutate(length = sequence(rle(.$beta_range)$lengths)) %>% 
+  mutate(group = cumsum(c(TRUE, diff(length) <= 0))) %>%
+  group_by(group) %>%
+  mutate(length = n(), av_coverage = mean(coverage), av_beta = mean(beta)) %>%
+  ungroup() %>% filter(beta_range == "medium", length > 2) %>% data.frame() %>% .[1:5,]
+```
+
+```{r}
+for_beta %>% mutate(beta_range_group_num = grouped_betas[match(.$start, grouped_betas$start), "group"],
+                    beta_range_group_length = grouped_betas[match(.$start, grouped_betas$start), "length"]) %>% 
+  filter(!is.na(beta_range_group_num)) %>% 
+  ggplot(aes(x = as.factor(beta_range_group_num), y = alpha)) +
+  geom_boxplot()
+
+for_beta %>% mutate(beta_range_group_num = grouped_betas[match(.$start, grouped_betas$start), "group"],
+                    beta_range_group_length = grouped_betas[match(.$start, grouped_betas$start), "length"]) %>% 
+  filter(!is.na(beta_range_group_num)) %>% 
+  ggplot(aes(colour = as.factor(beta_range_group_num), x = alpha)) +
+  geom_density()
+```
+
+```{r}
+for_beta %>% mutate(beta_range_group_num = grouped_betas[match(.$start, grouped_betas$start), "group"],
+                    beta_range_group_length = grouped_betas[match(.$start, grouped_betas$start), "length"]) %>% 
+  filter(!is.na(beta_range_group_num)) %>% distinct(read_id, alpha, beta_range_group_num, beta_range_group_length) %>%
+  mutate(beta_range_group_num = as.factor(beta_range_group_num)) %>%
+  group_by(beta_range_group_num) %>%
+  summarise(bimodal_p = list(diptest::dip.test(alpha)$p.value)
+  ) %>%
+  unnest(cols = c(bimodal_p)) %>%
+  ggplot(aes(x = bimodal_p)) +
+  geom_density()
+```
+```{r}
+poten_groups <- for_beta %>% mutate(beta_range_group_num = grouped_betas[match(.$start, grouped_betas$start), "group"],
+                    beta_range_group_length = grouped_betas[match(.$start, grouped_betas$start), "length"]) %>% 
+  filter(!is.na(beta_range_group_num)) %>% distinct(read_id, alpha, beta_range_group_num, beta_range_group_length) %>%
+  mutate(beta_range_group_num = as.factor(beta_range_group_num)) %>%
+  group_by(beta_range_group_num) %>%
+  summarise(bimodal_p = list(diptest::dip.test(alpha)$p.value)
+  ) %>%
+  unnest(cols = c(bimodal_p)) %>% filter(bimodal_p < 0.01) %>% .$beta_range_group_num 
+```
+
+
+```{r}
+source("../code/processData.R")
+plot_list <- list()
+for (i in 1:length(poten_groups)) {
+  row_pos <- just_beta %>% mutate(seqnames = "chr22") %>%
+  mutate(row_num = 1:nrow(.)) %>%
+  mutate(beta_range = case_when(beta >= 0 & beta <= 0.2 ~ "low", 
+                                beta >= 0.4 & beta <= 0.6 ~ "medium",
+                                beta >= 0.8 & beta <= 1 ~ "high",
+                                beta > 0.2 & beta < 0.4 ~ "low_med",
+                                TRUE ~ "med_high")) %>%
+  group_by(beta_range) %>%
+  mutate(consec = n()) %>%
+  mutate(count = 1:n()) %>%
+  ungroup() %>%
+  mutate(length = sequence(rle(.$beta_range)$lengths)) %>% 
+  mutate(group = cumsum(c(TRUE, diff(length) <= 0))) %>% filter(group == i)
+  min_row <- min(row_pos$row_num)
+  max_row <- max(row_pos$row_num)
+  plot_list[[i]] <- rrbs_plot(for_beta, for_beta %>% filter(start %in% just_beta[min_row:max_row,]$start) %>% .$read_id %>% unique(), count_instead = TRUE)
+}
+plot_list
+```
+
+
+
