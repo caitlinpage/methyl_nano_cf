@@ -1,0 +1,64 @@
+---
+title: "00_importantObjects"
+author: "Caitlin Page"
+date: "2025-11-20"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+## Description
+* I have a lot of objects I use across analysis files
+* And I am bad at keeping track of them and where they start
+* Which is a problem for building websites and having them work
+* So all the file processing put here and save the RDS objects to load at the start of each website
+
+## Packages
+
+```{r}
+library(BSgenome.Hsapiens.UCSC.hg38)
+library(data.table)
+library(plyranges)
+library(tidyr)
+library(stringr)
+library(dplyr)
+library(ggplot2)
+```
+
+
+## Objects
+
+
+# CpG sites
+* just make it every time
+```{r}
+cg_sites <- cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38[["chr22"]])), seqnames = "chr22") %>% 
+  mutate(pos = paste0(seqnames, "-", start)) %>%
+  relocate(pos, seqnames)
+cg_sites$index <- 1:nrow(cg_sites)
+```
+
+
+
+# Nanopore processed file
+
+# WGBS data
+
+# RRBS processed file
+* ENCODE cell line
+```{r}
+files <- list.files("/researchers/caitlin.page/rrbs_encode_cell_line/")
+files[grep("CpG", files)]
+```
+
+
+```{r}
+source("../processData.R")
+
+bis <- fread("/researchers/caitlin.page/rrbs_encode_cell_line/CpG_OT_ENCFF000LYO_bismark_bt2.txt")
+for_beta <- process_wgbs(bis)
+for_beta <- for_beta %>% filter(seqnames == "chr22")
+rrbs_for_beta_pat <- pat_for_wgbs(for_beta)
+```
+
+
