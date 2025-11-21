@@ -521,15 +521,15 @@ project makes it easier to run your code on other machines.</p>
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpagemethylnanocftree062536bb4e024917b46f0b26c9bc42b8b2401d4dtargetblank062536ba">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpagemethylnanocftree7e5e24f669d96f9abb2ce7b351cc67b9e120d578targetblank7e5e24fa">
 <span class="glyphicon glyphicon-ok text-success"
 aria-hidden="true"></span> <strong>Repository version:</strong>
-<a href="https://github.com/caitlinpage/methyl_nano_cf/tree/062536bb4e024917b46f0b26c9bc42b8b2401d4d" target="_blank">062536b</a>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/tree/7e5e24f669d96f9abb2ce7b351cc67b9e120d578" target="_blank">7e5e24f</a>
 </a>
 </p>
 </div>
 <div
-id="strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpagemethylnanocftree062536bb4e024917b46f0b26c9bc42b8b2401d4dtargetblank062536ba"
+id="strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpagemethylnanocftree7e5e24f669d96f9abb2ce7b351cc67b9e120d578targetblank7e5e24fa"
 class="panel-collapse collapse">
 <div class="panel-body">
 <p>
@@ -539,7 +539,7 @@ reproducibility.
 </p>
 <p>
 The results in this page were generated with repository version
-<a href="https://github.com/caitlinpage/methyl_nano_cf/tree/062536bb4e024917b46f0b26c9bc42b8b2401d4d" target="_blank">062536b</a>.
+<a href="https://github.com/caitlinpage/methyl_nano_cf/tree/7e5e24f669d96f9abb2ce7b351cc67b9e120d578" target="_blank">7e5e24f</a>.
 See the <em>Past versions</em> tab to see a history of the changes made
 to the R Markdown and HTML files.
 </p>
@@ -565,6 +565,7 @@ Unstaged changes:
     Modified:   _workflowr.yml
     Modified:   analysis/00_importantObjects.Rmd
     Modified:   analysis/mp2_betaGroups.Rmd
+    Modified:   analysis/mp3_betaGroupsHighBeta.Rmd
 
 </code></pre>
 <p>
@@ -609,6 +610,40 @@ Message
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/7e5e24f669d96f9abb2ce7b351cc67b9e120d578/analysis/mp3_betaGroupsLowBeta.Rmd" target="_blank">7e5e24f</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-11-21
+</td>
+<td>
+wflow_publish("mp3_betaGroupsLowBeta.Rmd")
+</td>
+</tr>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/caitlinpage/methyl_nano_cf/b41cfabbd0e70ea7c11272384889df857f03a3bc/docs/mp3_betaGroupsLowBeta.html" target="_blank">b41cfab</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-11-21
+</td>
+<td>
+Build site.
+</td>
+</tr>
 <tr>
 <td>
 Rmd
@@ -748,7 +783,7 @@ just_beta &lt;- for_beta %&gt;% distinct(start, beta, coverage) %&gt;% .[order(.
 <h1>just look at data when beta &gt; 0, beta &lt; 0.1</h1>
 <pre class="r"><code>just_beta &lt;- just_beta %&gt;% mutate(seqnames = &quot;chr22&quot;) %&gt;%
   mutate(row_num = 1:nrow(.)) %&gt;%
-  mutate(beta_low = ifelse(beta &gt;= 0.9 &amp; beta &lt; 1, &quot;low&quot;, &quot;other&quot;))
+  mutate(beta_low = ifelse(beta &gt; 0 &amp; beta &lt; 0.1, &quot;low&quot;, &quot;other&quot;))
 just_beta[1:10,]</code></pre>
 <pre><code>         start      beta coverage seqnames row_num beta_low
 3708  10571812 0.5294118       34    chr22       1    other
@@ -769,7 +804,7 @@ just_beta[1:10,]</code></pre>
   mutate(length = sequence(rle(.$beta_low)$lengths)) %&gt;%
   group_by(beta_low) %&gt;%
   filter(beta_low == &quot;low&quot;, length &gt;= 3) %&gt;% nrow()</code></pre>
-<pre><code>[1] 143</code></pre>
+<pre><code>[1] 632</code></pre>
 <pre class="r"><code>grouped_betas &lt;- just_beta %&gt;% 
   group_by(beta_low) %&gt;%
   mutate(consec = n()) %&gt;%
@@ -781,40 +816,114 @@ just_beta[1:10,]</code></pre>
   mutate(length = n(), av_coverage = mean(coverage), av_beta = mean(beta)) %&gt;%
   ungroup() %&gt;% filter(beta_low == &quot;low&quot;, length &gt; 2) %&gt;% data.frame() 
 grouped_betas[1:10,]</code></pre>
-<pre><code>      start      beta coverage seqnames row_num beta_low consec count length
-1  11253409 0.9230769       39    chr22      48      low   1222     4      3
-2  11253440 0.9230769       39    chr22      49      low   1222     5      3
-3  11253443 0.9736842       38    chr22      50      low   1222     6      3
-4  11628818 0.9375000       32    chr22     147      low   1222    20      3
-5  11628820 0.9375000       32    chr22     148      low   1222    21      3
-6  11628835 0.9687500       32    chr22     149      low   1222    22      3
-7  17037510 0.9545455       22    chr22     489      low   1222    32      4
-8  17037531 0.9545455       22    chr22     490      low   1222    33      4
-9  17037536 0.9545455       22    chr22     491      low   1222    34      4
-10 17037538 0.9545455       22    chr22     492      low   1222    35      4
-   group av_coverage   av_beta
-1      6    38.66667 0.9399460
-2      6    38.66667 0.9399460
-3      6    38.66667 0.9399460
-4     30    32.00000 0.9479167
-5     30    32.00000 0.9479167
-6     30    32.00000 0.9479167
-7     48    22.00000 0.9545455
-8     48    22.00000 0.9545455
-9     48    22.00000 0.9545455
-10    48    22.00000 0.9545455</code></pre>
+<pre><code>      start       beta coverage seqnames row_num beta_low consec count length
+1  16601869 0.02857143       35    chr22     362      low   3353     7      3
+2  16601878 0.08571429       35    chr22     363      low   3353     8      3
+3  16601880 0.08571429       35    chr22     364      low   3353     9      3
+4  16602291 0.08333333       72    chr22     385      low   3353    10      4
+5  16602293 0.05633803       71    chr22     386      low   3353    11      4
+6  16602302 0.05555556       72    chr22     387      low   3353    12      4
+7  16602310 0.07142857       70    chr22     388      low   3353    13      4
+8  17036163 0.04225352      142    chr22     479      low   3353    23      4
+9  17036172 0.03521127      142    chr22     480      low   3353    24      4
+10 17036190 0.05000000      140    chr22     481      low   3353    25      4
+   group av_coverage    av_beta
+1     14       35.00 0.06666667
+2     14       35.00 0.06666667
+3     14       35.00 0.06666667
+4     16       71.25 0.06666387
+5     16       71.25 0.06666387
+6     16       71.25 0.06666387
+7     16       71.25 0.06666387
+8     32      141.50 0.03538732
+9     32      141.50 0.03538732
+10    32      141.50 0.03538732</code></pre>
 <pre class="r"><code>for_beta %&gt;% mutate(beta_range_group_num = grouped_betas[match(.$start, grouped_betas$start), &quot;group&quot;],
                     beta_range_group_length = grouped_betas[match(.$start, grouped_betas$start), &quot;length&quot;]) %&gt;% 
   filter(!is.na(beta_range_group_num)) %&gt;% 
   ggplot(aes(x = as.factor(beta_range_group_num), y = alpha)) +
   geom_boxplot()</code></pre>
 <p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-8-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-8-1">
+Past versions of unnamed-chunk-8-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-8-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/b41cfabbd0e70ea7c11272384889df857f03a3bc/docs/figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-8-1.png" target="_blank">b41cfab</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-11-21
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>for_beta %&gt;% mutate(beta_range_group_num = grouped_betas[match(.$start, grouped_betas$start), &quot;group&quot;],
                     beta_range_group_length = grouped_betas[match(.$start, grouped_betas$start), &quot;length&quot;]) %&gt;% 
   filter(!is.na(beta_range_group_num)) %&gt;% 
   ggplot(aes(colour = as.factor(beta_range_group_num), x = alpha)) +
   geom_density()</code></pre>
 <p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-8-2.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-8-2">
+Past versions of unnamed-chunk-8-2.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-8-2" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/b41cfabbd0e70ea7c11272384889df857f03a3bc/docs/figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-8-2.png" target="_blank">b41cfab</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-11-21
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>poten_groups &lt;- for_beta %&gt;% mutate(beta_range_group_num = grouped_betas[match(.$start, grouped_betas$start), &quot;group&quot;],
                     beta_range_group_length = grouped_betas[match(.$start, grouped_betas$start), &quot;length&quot;]) %&gt;% 
   filter(!is.na(beta_range_group_num)) %&gt;% distinct(read_id, alpha, beta_range_group_num, beta_range_group_length) %&gt;%
@@ -840,75 +949,1137 @@ for (i in 1:length(poten_groups)) {
 plot_list</code></pre>
 <pre><code>[[1]]</code></pre>
 <p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-10-1">
+Past versions of unnamed-chunk-10-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-10-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/b41cfabbd0e70ea7c11272384889df857f03a3bc/docs/figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-1.png" target="_blank">b41cfab</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-11-21
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre><code>
 [[2]]</code></pre>
 <p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-2.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-10-2">
+Past versions of unnamed-chunk-10-2.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-10-2" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/b41cfabbd0e70ea7c11272384889df857f03a3bc/docs/figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-2.png" target="_blank">b41cfab</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-11-21
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre><code>
 [[3]]</code></pre>
 <p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-3.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-10-3">
+Past versions of unnamed-chunk-10-3.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-10-3" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/b41cfabbd0e70ea7c11272384889df857f03a3bc/docs/figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-3.png" target="_blank">b41cfab</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-11-21
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre><code>
 [[4]]</code></pre>
 <p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-4.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-10-4">
+Past versions of unnamed-chunk-10-4.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-10-4" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/b41cfabbd0e70ea7c11272384889df857f03a3bc/docs/figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-4.png" target="_blank">b41cfab</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-11-21
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre><code>
 [[5]]</code></pre>
 <p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-5.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-10-5">
+Past versions of unnamed-chunk-10-5.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-10-5" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/b41cfabbd0e70ea7c11272384889df857f03a3bc/docs/figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-5.png" target="_blank">b41cfab</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-11-21
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre><code>
 [[6]]</code></pre>
 <p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-6.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-10-6">
+Past versions of unnamed-chunk-10-6.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-10-6" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/b41cfabbd0e70ea7c11272384889df857f03a3bc/docs/figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-6.png" target="_blank">b41cfab</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-11-21
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre><code>
 [[7]]</code></pre>
 <p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-7.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-10-7">
+Past versions of unnamed-chunk-10-7.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-10-7" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/b41cfabbd0e70ea7c11272384889df857f03a3bc/docs/figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-7.png" target="_blank">b41cfab</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-11-21
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre><code>
 [[8]]</code></pre>
 <p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-8.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-10-8">
+Past versions of unnamed-chunk-10-8.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-10-8" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/b41cfabbd0e70ea7c11272384889df857f03a3bc/docs/figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-8.png" target="_blank">b41cfab</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-11-21
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre><code>
 [[9]]</code></pre>
 <p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-9.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-10-9">
+Past versions of unnamed-chunk-10-9.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-10-9" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/b41cfabbd0e70ea7c11272384889df857f03a3bc/docs/figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-9.png" target="_blank">b41cfab</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-11-21
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre><code>
 [[10]]</code></pre>
 <p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-10.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-10-10">
+Past versions of unnamed-chunk-10-10.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-10-10" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/b41cfabbd0e70ea7c11272384889df857f03a3bc/docs/figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-10.png" target="_blank">b41cfab</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-11-21
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre><code>
 [[11]]</code></pre>
 <p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-11.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-10-11">
+Past versions of unnamed-chunk-10-11.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-10-11" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/b41cfabbd0e70ea7c11272384889df857f03a3bc/docs/figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-11.png" target="_blank">b41cfab</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-11-21
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre><code>
 [[12]]</code></pre>
 <p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-12.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-10-12">
+Past versions of unnamed-chunk-10-12.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-10-12" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/b41cfabbd0e70ea7c11272384889df857f03a3bc/docs/figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-12.png" target="_blank">b41cfab</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-11-21
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre><code>
 [[13]]</code></pre>
 <p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-13.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-10-13">
+Past versions of unnamed-chunk-10-13.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-10-13" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/b41cfabbd0e70ea7c11272384889df857f03a3bc/docs/figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-13.png" target="_blank">b41cfab</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-11-21
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre><code>
 [[14]]</code></pre>
 <p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-14.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-10-14">
+Past versions of unnamed-chunk-10-14.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-10-14" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/b41cfabbd0e70ea7c11272384889df857f03a3bc/docs/figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-14.png" target="_blank">b41cfab</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-11-21
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre><code>
 [[15]]</code></pre>
 <p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-15.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-10-15">
+Past versions of unnamed-chunk-10-15.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-10-15" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/b41cfabbd0e70ea7c11272384889df857f03a3bc/docs/figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-15.png" target="_blank">b41cfab</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-11-21
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre><code>
 [[16]]</code></pre>
 <p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-16.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-10-16">
+Past versions of unnamed-chunk-10-16.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-10-16" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/b41cfabbd0e70ea7c11272384889df857f03a3bc/docs/figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-16.png" target="_blank">b41cfab</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-11-21
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre><code>
 [[17]]</code></pre>
 <p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-17.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-10-17">
+Past versions of unnamed-chunk-10-17.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-10-17" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/b41cfabbd0e70ea7c11272384889df857f03a3bc/docs/figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-17.png" target="_blank">b41cfab</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-11-21
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre><code>
 [[18]]</code></pre>
 <p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-18.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-10-18">
+Past versions of unnamed-chunk-10-18.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-10-18" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/b41cfabbd0e70ea7c11272384889df857f03a3bc/docs/figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-18.png" target="_blank">b41cfab</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-11-21
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre><code>
 [[19]]</code></pre>
 <p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-19.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-10-19">
+Past versions of unnamed-chunk-10-19.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-10-19" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/b41cfabbd0e70ea7c11272384889df857f03a3bc/docs/figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-19.png" target="_blank">b41cfab</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-11-21
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre><code>
 [[20]]</code></pre>
 <p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-20.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-10-20">
+Past versions of unnamed-chunk-10-20.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-10-20" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/b41cfabbd0e70ea7c11272384889df857f03a3bc/docs/figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-20.png" target="_blank">b41cfab</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-11-21
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre><code>
 [[21]]</code></pre>
 <p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-21.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-10-21">
+Past versions of unnamed-chunk-10-21.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-10-21" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/b41cfabbd0e70ea7c11272384889df857f03a3bc/docs/figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-21.png" target="_blank">b41cfab</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-11-21
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre><code>
 [[22]]</code></pre>
 <p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-22.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-10-22">
+Past versions of unnamed-chunk-10-22.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-10-22" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/b41cfabbd0e70ea7c11272384889df857f03a3bc/docs/figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-22.png" target="_blank">b41cfab</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-11-21
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre><code>
 [[23]]</code></pre>
 <p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-23.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-10-23">
+Past versions of unnamed-chunk-10-23.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-10-23" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/b41cfabbd0e70ea7c11272384889df857f03a3bc/docs/figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-23.png" target="_blank">b41cfab</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-11-21
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre><code>
 [[24]]</code></pre>
 <p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-24.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-10-24">
+Past versions of unnamed-chunk-10-24.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-10-24" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/b41cfabbd0e70ea7c11272384889df857f03a3bc/docs/figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-24.png" target="_blank">b41cfab</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-11-21
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<pre><code>
+[[25]]</code></pre>
+<p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-25.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[26]]</code></pre>
+<p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-26.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[27]]</code></pre>
+<p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-27.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[28]]</code></pre>
+<p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-28.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[29]]</code></pre>
+<p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-29.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[30]]</code></pre>
+<p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-30.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[31]]</code></pre>
+<p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-31.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[32]]</code></pre>
+<p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-32.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[33]]</code></pre>
+<p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-33.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[34]]</code></pre>
+<p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-34.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[35]]</code></pre>
+<p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-35.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[36]]</code></pre>
+<p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-36.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[37]]</code></pre>
+<p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-37.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[38]]</code></pre>
+<p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-38.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[39]]</code></pre>
+<p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-39.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[40]]</code></pre>
+<p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-40.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[41]]</code></pre>
+<p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-41.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[42]]</code></pre>
+<p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-42.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[43]]</code></pre>
+<p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-43.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[44]]</code></pre>
+<p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-44.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[45]]</code></pre>
+<p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-45.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[46]]</code></pre>
+<p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-46.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[47]]</code></pre>
+<p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-47.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[48]]</code></pre>
+<p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-48.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[49]]</code></pre>
+<p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-49.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[50]]</code></pre>
+<p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-50.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[51]]</code></pre>
+<p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-51.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[52]]</code></pre>
+<p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-52.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[53]]</code></pre>
+<p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-53.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[54]]</code></pre>
+<p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-54.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[55]]</code></pre>
+<p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-55.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[56]]</code></pre>
+<p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-56.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[57]]</code></pre>
+<p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-57.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[58]]</code></pre>
+<p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-58.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[59]]</code></pre>
+<p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-59.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[60]]</code></pre>
+<p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-60.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[61]]</code></pre>
+<p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-61.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[62]]</code></pre>
+<p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-62.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[63]]</code></pre>
+<p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-63.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[64]]</code></pre>
+<p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-64.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[65]]</code></pre>
+<p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-65.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[66]]</code></pre>
+<p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-66.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[67]]</code></pre>
+<p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-67.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[68]]</code></pre>
+<p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-68.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[69]]</code></pre>
+<p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-69.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[70]]</code></pre>
+<p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-70.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[71]]</code></pre>
+<p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-71.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[72]]</code></pre>
+<p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-72.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[73]]</code></pre>
+<p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-73.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[74]]</code></pre>
+<p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-74.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[75]]</code></pre>
+<p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-75.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[76]]</code></pre>
+<p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-76.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[77]]</code></pre>
+<p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-77.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[78]]</code></pre>
+<p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-78.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[79]]</code></pre>
+<p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-79.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[80]]</code></pre>
+<p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-80.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[81]]</code></pre>
+<p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-81.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[82]]</code></pre>
+<p><img src="figure/mp3_betaGroupsLowBeta.Rmd/unnamed-chunk-10-82.png" width="672" style="display: block; margin: auto;" /></p>
 <br>
 <p>
 <button type="button" class="btn btn-default btn-workflowr btn-workflowr-sessioninfo" data-toggle="collapse" data-target="#workflowr-sessioninfo" style="display: block;">
