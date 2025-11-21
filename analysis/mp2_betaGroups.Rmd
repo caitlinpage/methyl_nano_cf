@@ -13,6 +13,7 @@ editor_options:
 library(data.table)
 library(plyranges)
 library(tidyr)
+library(stringr)
 library(dplyr)
 library(ggplot2)
 ```
@@ -30,10 +31,9 @@ cg_sites$index <- 1:nrow(cg_sites)
 
 * rrbs cell line
 ```{r}
-source("../processData.R")
+source("../code/processData.R")
 
-bis <- fread("/researchers/caitlin.page/rrbs_encode_cell_line/CpG_OT_ENCFF000LYO_bismark_bt2.txt")
-for_beta <- process_wgbs(bis)
+for_beta <- readRDS("/researchers/caitlin.page/cf_nano/r_output/rrbs_alpha_beta.rds")
 for_beta <- for_beta %>% filter(seqnames == "chr22")
 rrbs_for_beta_pat <- pat_for_wgbs(for_beta)
 ```
@@ -41,8 +41,9 @@ rrbs_for_beta_pat <- pat_for_wgbs(for_beta)
 
 ```{r}
 for_beta <- for_beta %>% group_by(start) %>% mutate(coverage = n()) %>% ungroup() %>% data.frame()
-just_beta <- just_beta %>% mutate(coverage = for_beta[match(.$start, for_beta$start), "coverage"])
+just_beta <- for_beta %>% distinct(start, beta, coverage) %>% .[order(.$start),]
 ```
+
 
 
 ## Analysis
@@ -142,13 +143,19 @@ for_beta %>% filter(start >= string_same_beta(just_beta)[1], start <= string_sam
 * and I definitely care about coverage
 
 ```{r}
-just_beta %>% mutate(seqnames = "chr22") %>%
+just_beta <- just_beta %>% mutate(seqnames = "chr22") %>%
   mutate(row_num = 1:nrow(.)) %>%
   mutate(beta_range = case_when(beta >= 0 & beta <= 0.2 ~ "low", 
                                 beta >= 0.4 & beta <= 0.6 ~ "medium",
                                 beta >= 0.8 & beta <= 1 ~ "high",
                                 beta > 0.2 & beta < 0.4 ~ "low_med",
-                                TRUE ~ "med_high")) %>%
+                                TRUE ~ "med_high"))
+just_beta[1:5,]
+```
+
+
+```{r}
+just_beta %>%
   group_by(beta_range) %>%
   mutate(consec = n()) %>%
   mutate(count = 1:n()) %>%
@@ -164,13 +171,7 @@ rrbs_plot(for_beta, for_beta %>% filter(start %in% just_beta[1:6,]$start) %>% .$
 ```
 
 ```{r}
-just_beta %>% mutate(seqnames = "chr22") %>%
-  mutate(row_num = 1:nrow(.)) %>%
-  mutate(beta_range = case_when(beta >= 0 & beta <= 0.2 ~ "low", 
-                                beta >= 0.4 & beta <= 0.6 ~ "medium",
-                                beta >= 0.8 & beta <= 1 ~ "high",
-                                beta > 0.2 & beta < 0.4 ~ "low_med",
-                                TRUE ~ "med_high")) %>%
+just_beta %>% 
   group_by(beta_range) %>%
   mutate(consec = n()) %>%
   mutate(count = 1:n()) %>%
@@ -181,31 +182,19 @@ just_beta %>% mutate(seqnames = "chr22") %>%
 ```
 
 ```{r}
-just_beta %>% mutate(seqnames = "chr22") %>%
-  mutate(row_num = 1:nrow(.)) %>%
-  mutate(beta_range = case_when(beta >= 0 & beta <= 0.2 ~ "low", 
-                                beta >= 0.4 & beta <= 0.6 ~ "medium",
-                                beta >= 0.8 & beta <= 1 ~ "high",
-                                beta > 0.2 & beta < 0.4 ~ "low_med",
-                                TRUE ~ "med_high")) %>%
+just_beta %>% 
   group_by(beta_range) %>%
   mutate(consec = n()) %>%
   mutate(count = 1:n()) %>%
   ungroup() %>%
   mutate(length = sequence(rle(.$beta_range)$lengths)) %>% 
-  mutate(group = cumsum(c(TRUE, diff(length) <= 0))) # thanks perplexity that's what I wanted
+  mutate(group = cumsum(c(TRUE, diff(length) <= 0))) %>% 
   group_by(beta_range) %>%
   filter(beta_range == "medium", length >= 3) %>% .[1:5,]
 ```
 
 ```{r}
-just_beta %>% mutate(seqnames = "chr22") %>%
-  mutate(row_num = 1:nrow(.)) %>%
-  mutate(beta_range = case_when(beta >= 0 & beta <= 0.2 ~ "low", 
-                                beta >= 0.4 & beta <= 0.6 ~ "medium",
-                                beta >= 0.8 & beta <= 1 ~ "high",
-                                beta > 0.2 & beta < 0.4 ~ "low_med",
-                                TRUE ~ "med_high")) %>%
+just_beta %>% 
   group_by(beta_range) %>%
   mutate(consec = n()) %>%
   mutate(count = 1:n()) %>%
@@ -219,13 +208,7 @@ just_beta %>% mutate(seqnames = "chr22") %>%
 ```
 
 ```{r}
-just_beta %>% mutate(seqnames = "chr22") %>%
-  mutate(row_num = 1:nrow(.)) %>%
-  mutate(beta_range = case_when(beta >= 0 & beta <= 0.2 ~ "low", 
-                                beta >= 0.4 & beta <= 0.6 ~ "medium",
-                                beta >= 0.8 & beta <= 1 ~ "high",
-                                beta > 0.2 & beta < 0.4 ~ "low_med",
-                                TRUE ~ "med_high")) %>%
+just_beta %>% 
   group_by(beta_range) %>%
   mutate(consec = n()) %>%
   mutate(count = 1:n()) %>%
@@ -239,13 +222,7 @@ just_beta %>% mutate(seqnames = "chr22") %>%
 ```
 
 ```{r}
-just_beta %>% mutate(seqnames = "chr22") %>%
-  mutate(row_num = 1:nrow(.)) %>%
-  mutate(beta_range = case_when(beta >= 0 & beta <= 0.2 ~ "low", 
-                                beta >= 0.4 & beta <= 0.6 ~ "medium",
-                                beta >= 0.8 & beta <= 1 ~ "high",
-                                beta > 0.2 & beta < 0.4 ~ "low_med",
-                                TRUE ~ "med_high")) %>%
+just_beta %>% 
   group_by(beta_range) %>%
   mutate(consec = n()) %>%
   mutate(count = 1:n()) %>%
@@ -267,13 +244,7 @@ rrbs_plot(for_beta, for_beta %>% filter(start %in% just_beta[5763:5767,]$start) 
 
 
 ```{r}
-grouped_betas <- just_beta %>% mutate(seqnames = "chr22") %>%
-  mutate(row_num = 1:nrow(.)) %>%
-  mutate(beta_range = case_when(beta >= 0 & beta <= 0.2 ~ "low", 
-                                beta >= 0.4 & beta <= 0.6 ~ "medium",
-                                beta >= 0.8 & beta <= 1 ~ "high",
-                                beta > 0.2 & beta < 0.4 ~ "low_med",
-                                TRUE ~ "med_high")) %>%
+grouped_betas <- just_beta %>% 
   group_by(beta_range) %>%
   mutate(consec = n()) %>%
   mutate(count = 1:n()) %>%
@@ -282,7 +253,8 @@ grouped_betas <- just_beta %>% mutate(seqnames = "chr22") %>%
   mutate(group = cumsum(c(TRUE, diff(length) <= 0))) %>%
   group_by(group) %>%
   mutate(length = n(), av_coverage = mean(coverage), av_beta = mean(beta)) %>%
-  ungroup() %>% filter(beta_range == "medium", length > 2) %>% data.frame() %>% .[1:5,]
+  ungroup() %>% filter(beta_range == "medium", length > 2) %>% data.frame() 
+grouped_betas[1:10,]
 ```
 
 ```{r}
