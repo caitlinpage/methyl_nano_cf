@@ -1,0 +1,123 @@
+---
+title: "mp3_betaGroupsLowBeta"
+author: "caitlinpage"
+date: "2025-11-21"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+## Introduction
+
+```{r}
+library(data.table)
+library(plyranges)
+library(tidyr)
+library(stringr)
+library(dplyr)
+library(ggplot2)
+```
+
+## Data files
+```{r}
+cg_sites <- cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38[["chr22"]])), seqnames = "chr22") %>% 
+  mutate(pos = paste0(seqnames, "-", start)) %>%
+  relocate(pos, seqnames)
+cg_sites$index <- 1:nrow(cg_sites)
+```
+
+
+
+* rrbs cell line
+```{r}
+source("../code/processData.R")
+
+for_beta <- readRDS("/researchers/caitlin.page/cf_nano/r_output/rrbs_alpha_beta.rds")
+for_beta <- for_beta %>% filter(seqnames == "chr22")
+rrbs_for_beta_pat <- pat_for_wgbs(for_beta)
+```
+
+
+```{r}
+for_beta <- for_beta %>% group_by(start) %>% mutate(coverage = n()) %>% ungroup() %>% data.frame()
+just_beta <- for_beta %>% distinct(start, beta, coverage) %>% .[order(.$start),]
+```
+
+# just look at data when beta > 0, beta < 0.1
+
+```{r}
+just_beta <- just_beta %>% mutate(seqnames = "chr22") %>%
+  mutate(row_num = 1:nrow(.)) %>%
+  mutate(beta_low = ifelse(beta >= 0.9 & beta < 1, "low", "other"))
+just_beta[1:10,]
+```
+
+```{r}
+just_beta %>% 
+  group_by(beta_low) %>%
+  mutate(consec = n()) %>%
+  mutate(count = 1:n()) %>%
+  ungroup() %>%
+  mutate(length = sequence(rle(.$beta_low)$lengths)) %>%
+  group_by(beta_low) %>%
+  filter(beta_low == "low", length >= 3) %>% nrow()
+```
+
+```{r}
+grouped_betas <- just_beta %>% 
+  group_by(beta_low) %>%
+  mutate(consec = n()) %>%
+  mutate(count = 1:n()) %>%
+  ungroup() %>%
+  mutate(length = sequence(rle(.$beta_low)$lengths)) %>% 
+  mutate(group = cumsum(c(TRUE, diff(length) <= 0))) %>%
+  group_by(group) %>%
+  mutate(length = n(), av_coverage = mean(coverage), av_beta = mean(beta)) %>%
+  ungroup() %>% filter(beta_low == "low", length > 2) %>% data.frame() 
+grouped_betas[1:10,]
+```
+
+```{r}
+for_beta %>% mutate(beta_range_group_num = grouped_betas[match(.$start, grouped_betas$start), "group"],
+                    beta_range_group_length = grouped_betas[match(.$start, grouped_betas$start), "length"]) %>% 
+  filter(!is.na(beta_range_group_num)) %>% 
+  ggplot(aes(x = as.factor(beta_range_group_num), y = alpha)) +
+  geom_boxplot()
+
+for_beta %>% mutate(beta_range_group_num = grouped_betas[match(.$start, grouped_betas$start), "group"],
+                    beta_range_group_length = grouped_betas[match(.$start, grouped_betas$start), "length"]) %>% 
+  filter(!is.na(beta_range_group_num)) %>% 
+  ggplot(aes(colour = as.factor(beta_range_group_num), x = alpha)) +
+  geom_density()
+```
+
+```{r}
+poten_groups <- for_beta %>% mutate(beta_range_group_num = grouped_betas[match(.$start, grouped_betas$start), "group"],
+                    beta_range_group_length = grouped_betas[match(.$start, grouped_betas$start), "length"]) %>% 
+  filter(!is.na(beta_range_group_num)) %>% distinct(read_id, alpha, beta_range_group_num, beta_range_group_length) %>%
+  mutate(beta_range_group_num = as.factor(beta_range_group_num)) %>%
+  group_by(beta_range_group_num) %>%
+  summarise(bimodal_p = list(diptest::dip.test(alpha)$p.value)
+  ) %>%
+  unnest(cols = c(bimodal_p)) %>% filter(bimodal_p < 0.01) %>% .$beta_range_group_num
+```
+
+```{r}
+source("../code/processData.R")
+plot_list <- list()
+for (i in 1:length(poten_groups)) {
+  row_pos <- just_beta %>%
+  group_by(beta_low) %>%
+  mutate(consec = n()) %>%
+  mutate(count = 1:n()) %>%
+  ungroup() %>%
+  mutate(length = sequence(rle(.$beta_low)$lengths)) %>% 
+  mutate(group = cumsum(c(TRUE, diff(length) <= 0))) %>% filter(group == i)
+  min_row <- min(row_pos$row_num)
+  max_row <- max(row_pos$row_num)
+  plot_list[[i]] <- rrbs_plot(for_beta, for_beta %>% filter(start %in% just_beta[min_row:max_row,]$start) %>% .$read_id %>% unique(), count_instead = TRUE)
+}
+plot_list
+```
+
+
