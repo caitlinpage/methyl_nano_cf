@@ -48,7 +48,7 @@ just_beta <- for_beta %>% distinct(start, beta, coverage) %>% .[order(.$start),]
 ```{r}
 just_beta <- just_beta %>% mutate(seqnames = "chr22") %>%
   mutate(row_num = 1:nrow(.)) %>%
-  mutate(beta_low = ifelse(beta >= 0.9 & beta < 1, "low", "other"))
+  mutate(beta_low = ifelse(beta > 0 & beta < 0.1, "low", "other"))
 just_beta[1:10,]
 ```
 
