@@ -1,0 +1,1381 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="Caitlin Page" />
+
+<meta name="date" content="2025-11-20" />
+
+<title>mp2_betaGroups</title>
+
+<script src="site_libs/header-attrs-2.29/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/jqueryui-1.13.2/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<link href="site_libs/font-awesome-6.5.2/css/all.min.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet" />
+
+<link rel="icon" href="https://github.com/workflowr/workflowr-assets/raw/main/img/reproducible.png">
+<!-- Add a small amount of space between sections. -->
+<style type="text/css">
+div.section {
+  padding-top: 12px;
+}
+</style>
+
+
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">3_cf_nano</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Home</a>
+</li>
+<li>
+  <a href="about.html">About</a>
+</li>
+<li>
+  <a href="license.html">License</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li>
+  <a href="https://github.com/caitlinpage/methyl_nano_cf">
+    <span class="fab fa-github"></span>
+     
+    Source code
+  </a>
+</li>
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+
+
+<h1 class="title toc-ignore">mp2_betaGroups</h1>
+<h4 class="author">Caitlin Page</h4>
+<h4 class="date">2025-11-20</h4>
+
+</div>
+
+
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-report" data-toggle="collapse" data-target="#workflowr-report">
+<span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+workflowr <span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span>
+</button>
+</p>
+<div id="workflowr-report" class="collapse">
+<ul class="nav nav-tabs">
+<li class="active">
+<a data-toggle="tab" href="#summary">Summary</a>
+</li>
+<li>
+<a data-toggle="tab" href="#checks"> Checks <span
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span>
+</a>
+</li>
+<li>
+<a data-toggle="tab" href="#versions">Past versions</a>
+</li>
+</ul>
+<div class="tab-content">
+<div id="summary" class="tab-pane fade in active">
+<p>
+<strong>Last updated:</strong> 2025-11-21
+</p>
+<p>
+<strong>Checks:</strong> <span
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 7
+<span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> 0
+</p>
+<p>
+<strong>Knit directory:</strong> <code>methyl_nano_cf/analysis/</code>
+<span class="glyphicon glyphicon-question-sign" aria-hidden="true"
+title="This is the local directory in which the code in this file was executed.">
+</span>
+</p>
+<p>
+This reproducible <a href="https://rmarkdown.rstudio.com">R Markdown</a>
+analysis was created with <a
+  href="https://github.com/workflowr/workflowr">workflowr</a> (version
+1.7.1). The <em>Checks</em> tab describes the reproducibility checks
+that were applied when the results were created. The <em>Past
+versions</em> tab lists the development history.
+</p>
+<hr>
+</div>
+<div id="checks" class="tab-pane fade">
+<div id="workflowr-checks" class="panel-group">
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRMarkdownfilestronguptodate">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>R Markdown file:</strong> up-to-date
+</a>
+</p>
+</div>
+<div id="strongRMarkdownfilestronguptodate"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great! Since the R Markdown file has been committed to the Git
+repository, you know the exact version of the code that produced these
+results.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongEnvironmentstrongempty">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Environment:</strong> empty </a>
+</p>
+</div>
+<div id="strongEnvironmentstrongempty" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! The global environment was empty. Objects defined in the
+global environment can affect the analysis in your R Markdown file in
+unknown ways. For reproduciblity it’s best to always run the code in an
+empty environment.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSeedstrongcodesetseed20250606code">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Seed:</strong>
+<code>set.seed(20250606)</code> </a>
+</p>
+</div>
+<div id="strongSeedstrongcodesetseed20250606code"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>The command <code>set.seed(20250606)</code> was run prior to running
+the code in the R Markdown file. Setting a seed ensures that any results
+that rely on randomness, e.g. subsampling or permutations, are
+reproducible.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSessioninformationstrongrecorded">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Session information:</strong>
+recorded </a>
+</p>
+</div>
+<div id="strongSessioninformationstrongrecorded"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Recording the operating system, R version, and package
+versions is critical for reproducibility.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongCachestrongnone">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Cache:</strong> none </a>
+</p>
+</div>
+<div id="strongCachestrongnone" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Nice! There were no cached chunks for this analysis, so you can be
+confident that you successfully produced the results during this
+run.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongFilepathsstrongrelative">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>File paths:</strong> relative </a>
+</p>
+</div>
+<div id="strongFilepathsstrongrelative" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Using relative paths to the files within your workflowr
+project makes it easier to run your code on other machines.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpagemethylnanocftree4cc42d2db06c3ab1d419c9e73e05c29856ee89c4targetblank4cc42d2a">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Repository version:</strong>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/tree/4cc42d2db06c3ab1d419c9e73e05c29856ee89c4" target="_blank">4cc42d2</a>
+</a>
+</p>
+</div>
+<div
+id="strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpagemethylnanocftree4cc42d2db06c3ab1d419c9e73e05c29856ee89c4targetblank4cc42d2a"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>
+Great! You are using Git for version control. Tracking code development
+and connecting the code version to the results is critical for
+reproducibility.
+</p>
+<p>
+The results in this page were generated with repository version
+<a href="https://github.com/caitlinpage/methyl_nano_cf/tree/4cc42d2db06c3ab1d419c9e73e05c29856ee89c4" target="_blank">4cc42d2</a>.
+See the <em>Past versions</em> tab to see a history of the changes made
+to the R Markdown and HTML files.
+</p>
+<p>
+Note that you need to be careful to ensure that all relevant files for
+the analysis have been committed to Git prior to generating the results
+(you can use <code>wflow_publish</code> or
+<code>wflow_git_commit</code>). workflowr only checks the R Markdown
+file, but you know if there are other scripts or data files that it
+depends on. Below is the status of the Git repository when the results
+were generated:
+</p>
+<pre><code>
+Ignored files:
+    Ignored:    .Rproj.user/
+    Ignored:    analysis/figure/
+
+Untracked files:
+    Untracked:  renv.lock
+    Untracked:  renv/
+
+Unstaged changes:
+    Modified:   .Rprofile
+    Modified:   _workflowr.yml
+    Modified:   analysis/00_importantObjects.Rmd
+
+</code></pre>
+<p>
+Note that any generated files, e.g. HTML, png, CSS, etc., are not
+included in this status report because it is ok for generated content to
+have uncommitted changes.
+</p>
+</div>
+</div>
+</div>
+</div>
+<hr>
+</div>
+<div id="versions" class="tab-pane fade">
+<p>
+These are the previous versions of the repository in which changes were
+made to the R Markdown (<code>analysis/mp2_betaGroups.Rmd</code>) and
+HTML (<code>docs/mp2_betaGroups.html</code>) files. If you’ve configured
+a remote Git repository (see <code>?wflow_git_remote</code>), click on
+the hyperlinks in the table below to view the files as they were in that
+past version.
+</p>
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+File
+</th>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+<th>
+Message
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/4cc42d2db06c3ab1d419c9e73e05c29856ee89c4/analysis/mp2_betaGroups.Rmd" target="_blank">4cc42d2</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-11-21
+</td>
+<td>
+wflow_publish("mp2_betaGroups.Rmd")
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/67deca87ca21e55f9aae5ad91a1278ca3b25c797/analysis/mp2_betaGroups.Rmd" target="_blank">67deca8</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-11-20
+</td>
+<td>
+test git working again
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/3c79d9944a17ffe3b794fd27c10d911158816c48/analysis/mp2_betaGroups.Rmd" target="_blank">3c79d99</a>
+</td>
+<td>
+Caitlin Page
+</td>
+<td>
+2025-11-20
+</td>
+<td>
+file was working on on cluster before git crashed: it’s more organised
+form of mp1 just focussing on the beta groupings
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr>
+</div>
+</div>
+</div>
+<div id="introduction" class="section level2">
+<h2>Introduction</h2>
+<pre class="r"><code>library(data.table)
+library(plyranges)</code></pre>
+<pre><code>Loading required package: BiocGenerics</code></pre>
+<pre><code>
+Attaching package: &#39;BiocGenerics&#39;</code></pre>
+<pre><code>The following objects are masked from &#39;package:stats&#39;:
+
+    IQR, mad, sd, var, xtabs</code></pre>
+<pre><code>The following objects are masked from &#39;package:base&#39;:
+
+    anyDuplicated, aperm, append, as.data.frame, basename, cbind,
+    colnames, dirname, do.call, duplicated, eval, evalq, Filter, Find,
+    get, grep, grepl, intersect, is.unsorted, lapply, Map, mapply,
+    match, mget, order, paste, pmax, pmax.int, pmin, pmin.int,
+    Position, rank, rbind, Reduce, rownames, sapply, saveRDS, setdiff,
+    table, tapply, union, unique, unsplit, which.max, which.min</code></pre>
+<pre><code>Loading required package: IRanges</code></pre>
+<pre><code>Loading required package: S4Vectors</code></pre>
+<pre><code>Loading required package: stats4</code></pre>
+<pre><code>
+Attaching package: &#39;S4Vectors&#39;</code></pre>
+<pre><code>The following objects are masked from &#39;package:data.table&#39;:
+
+    first, second</code></pre>
+<pre><code>The following object is masked from &#39;package:utils&#39;:
+
+    findMatches</code></pre>
+<pre><code>The following objects are masked from &#39;package:base&#39;:
+
+    expand.grid, I, unname</code></pre>
+<pre><code>
+Attaching package: &#39;IRanges&#39;</code></pre>
+<pre><code>The following object is masked from &#39;package:data.table&#39;:
+
+    shift</code></pre>
+<pre><code>Loading required package: GenomicRanges</code></pre>
+<pre><code>Loading required package: GenomeInfoDb</code></pre>
+<pre><code>Warning: replacing previous import &#39;S4Arrays::makeNindexFromArrayViewport&#39; by
+&#39;DelayedArray::makeNindexFromArrayViewport&#39; when loading &#39;SummarizedExperiment&#39;</code></pre>
+<pre><code>
+Attaching package: &#39;plyranges&#39;</code></pre>
+<pre><code>The following object is masked from &#39;package:IRanges&#39;:
+
+    slice</code></pre>
+<pre><code>The following object is masked from &#39;package:data.table&#39;:
+
+    between</code></pre>
+<pre><code>The following object is masked from &#39;package:stats&#39;:
+
+    filter</code></pre>
+<pre class="r"><code>library(tidyr)</code></pre>
+<pre><code>
+Attaching package: &#39;tidyr&#39;</code></pre>
+<pre><code>The following object is masked from &#39;package:S4Vectors&#39;:
+
+    expand</code></pre>
+<pre class="r"><code>library(stringr)
+library(dplyr)</code></pre>
+<pre><code>
+Attaching package: &#39;dplyr&#39;</code></pre>
+<pre><code>The following objects are masked from &#39;package:plyranges&#39;:
+
+    between, n, n_distinct</code></pre>
+<pre><code>The following objects are masked from &#39;package:GenomicRanges&#39;:
+
+    intersect, setdiff, union</code></pre>
+<pre><code>The following object is masked from &#39;package:GenomeInfoDb&#39;:
+
+    intersect</code></pre>
+<pre><code>The following objects are masked from &#39;package:IRanges&#39;:
+
+    collapse, desc, intersect, setdiff, slice, union</code></pre>
+<pre><code>The following objects are masked from &#39;package:S4Vectors&#39;:
+
+    first, intersect, rename, setdiff, setequal, union</code></pre>
+<pre><code>The following objects are masked from &#39;package:BiocGenerics&#39;:
+
+    combine, intersect, setdiff, union</code></pre>
+<pre><code>The following objects are masked from &#39;package:data.table&#39;:
+
+    between, first, last</code></pre>
+<pre><code>The following objects are masked from &#39;package:stats&#39;:
+
+    filter, lag</code></pre>
+<pre><code>The following objects are masked from &#39;package:base&#39;:
+
+    intersect, setdiff, setequal, union</code></pre>
+<pre class="r"><code>library(ggplot2)</code></pre>
+</div>
+<div id="data-files" class="section level2">
+<h2>Data files</h2>
+<pre class="r"><code>cg_sites &lt;- cbind(data.frame(Biostrings::matchPattern(&quot;CG&quot;, BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38[[&quot;chr22&quot;]])), seqnames = &quot;chr22&quot;) %&gt;% 
+  mutate(pos = paste0(seqnames, &quot;-&quot;, start)) %&gt;%
+  relocate(pos, seqnames)</code></pre>
+<pre><code>Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored</code></pre>
+<pre class="r"><code>cg_sites$index &lt;- 1:nrow(cg_sites)</code></pre>
+<ul>
+<li>rrbs cell line</li>
+</ul>
+<pre class="r"><code>source(&quot;../code/processData.R&quot;)
+
+for_beta &lt;- readRDS(&quot;/researchers/caitlin.page/cf_nano/r_output/rrbs_alpha_beta.rds&quot;)
+for_beta &lt;- for_beta %&gt;% filter(seqnames == &quot;chr22&quot;)
+rrbs_for_beta_pat &lt;- pat_for_wgbs(for_beta)</code></pre>
+<pre><code>`summarise()` has grouped output by &#39;seqnames&#39;, &#39;start_pos&#39;, &#39;meth_pattern&#39;,
+&#39;alpha&#39;, &#39;end_pos&#39;. You can override using the `.groups` argument.</code></pre>
+<pre class="r"><code>for_beta &lt;- for_beta %&gt;% group_by(start) %&gt;% mutate(coverage = n()) %&gt;% ungroup() %&gt;% data.frame()
+just_beta &lt;- for_beta %&gt;% distinct(start, beta, coverage) %&gt;% .[order(.$start),]</code></pre>
+</div>
+<div id="analysis" class="section level2">
+<h2>Analysis</h2>
+<ul>
+<li>copied from mp1_methPattern.html</li>
+</ul>
+<pre class="r"><code>for_beta %&gt;% filter(beta == 0.5) %&gt;%
+  ggplot(aes(x = as.factor(beta), y = alpha)) +
+  geom_violin()</code></pre>
+<p><img src="figure/mp2_betaGroups.Rmd/unnamed-chunk-5-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>for_beta %&gt;%
+  ggplot(aes(x = beta)) +
+  geom_density()</code></pre>
+<p><img src="figure/mp2_betaGroups.Rmd/unnamed-chunk-5-2.png" width="672" style="display: block; margin: auto;" /></p>
+<ul>
+<li>group betas by range of methylation</li>
+<li>low, medium, high</li>
+<li>range will be inclusive for each</li>
+<li>let’s experiment with ranges</li>
+<li>low : 0 - 0.2</li>
+<li>medium : 0.4 - 0.6</li>
+<li>high : 0.8 - 1</li>
+</ul>
+<pre class="r"><code>just_beta %&gt;% mutate(seqnames = &quot;chr22&quot;) %&gt;%
+  mutate(row_num = 1:nrow(.)) %&gt;%
+  mutate(beta_range = case_when(beta &gt;= 0 &amp; beta &lt;= 0.2 ~ &quot;low&quot;, 
+                                beta &gt;= 0.4 &amp; beta &lt;= 0.6 ~ &quot;medium&quot;,
+                                beta &gt;= 0.8 &amp; beta &lt;= 1 ~ &quot;high&quot;,
+                                beta &gt; 0.2 &amp; beta &lt; 0.4 ~ &quot;low_med&quot;,
+                                TRUE ~ &quot;med_high&quot;)) %&gt;%
+  group_by(beta_range) %&gt;%
+  mutate(consec = n()) %&gt;%
+  mutate(count = 1:n()) %&gt;%
+  ungroup() %&gt;%
+  mutate(length = sequence(rle(.$beta_range)$lengths)) %&gt;%
+  group_by(beta_range) %&gt;%
+  summarise(max_length = max(length))</code></pre>
+<pre><code># A tibble: 5 × 2
+  beta_range max_length
+  &lt;chr&gt;           &lt;int&gt;
+1 high               42
+2 low               105
+3 low_med             9
+4 med_high            4
+5 medium              6</code></pre>
+<pre class="r"><code>just_beta %&gt;% mutate(seqnames = &quot;chr22&quot;) %&gt;%
+  mutate(row_num = 1:nrow(.)) %&gt;%
+  mutate(beta_range = case_when(beta &gt;= 0 &amp; beta &lt;= 0.2 ~ &quot;low&quot;, 
+                                beta &gt;= 0.4 &amp; beta &lt;= 0.6 ~ &quot;medium&quot;,
+                                beta &gt;= 0.8 &amp; beta &lt;= 1 ~ &quot;high&quot;,
+                                beta &gt; 0.2 &amp; beta &lt; 0.4 ~ &quot;low_med&quot;,
+                                TRUE ~ &quot;med_high&quot;)) %&gt;%
+  group_by(beta_range) %&gt;%
+  mutate(consec = n()) %&gt;%
+  mutate(count = 1:n()) %&gt;%
+  ungroup() %&gt;%
+  mutate(length = sequence(rle(.$beta_range)$lengths)) %&gt;%
+  group_by(beta_range) %&gt;%
+  filter(beta_range == &quot;medium&quot;, length == max(length))</code></pre>
+<pre><code># A tibble: 1 × 9
+# Groups:   beta_range [1]
+     start  beta coverage seqnames row_num beta_range consec count length
+     &lt;int&gt; &lt;dbl&gt;    &lt;int&gt; &lt;chr&gt;      &lt;int&gt; &lt;chr&gt;       &lt;int&gt; &lt;int&gt;  &lt;int&gt;
+1 11628479   0.4        5 chr22        133 medium       1440    24      6</code></pre>
+<pre class="r"><code>for_beta %&gt;% filter(start %in% just_beta[128:133,]$start) %&gt;% .$read_id %&gt;% unique()</code></pre>
+<pre><code>[1] &quot;HWI-EAS149_7:1:2:1564:1750:0:1:1&quot;      
+[2] &quot;HWI-EAS149_7:1:40:994:58:0:1:1&quot;        
+[3] &quot;HWI-EAS149_7:1:60:1308:934:0:1:0&quot;      
+[4] &quot;ILLUMINA-EAS45_3:1:107:1071:1835:0:1:0&quot;
+[5] &quot;ILLUMINA-EAS45_3:1:61:288:90:0:1:0&quot;    
+[6] &quot;ILLUMINA-EAS45_3:1:7:1185:1482:0:1:0&quot;  
+[7] &quot;ILLUMINA-EAS45_3:1:80:1680:1715:0:1:1&quot; </code></pre>
+<pre class="r"><code>source(&quot;../code/processData.R&quot;)
+rrbs_plot(for_beta, for_beta %&gt;% filter(start %in% just_beta[128:133,]$start) %&gt;% .$read_id %&gt;% unique())</code></pre>
+<p><img src="figure/mp2_betaGroups.Rmd/unnamed-chunk-9-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>string_same_beta &lt;- function(betas_only, range_type = &quot;medium&quot;) {
+  df &lt;- betas_only %&gt;% 
+   # mutate(seqnames = &quot;chr22&quot;) %&gt;% # will need seqnames later for scale
+    mutate(row_num = 1:nrow(.)) %&gt;%
+    mutate(beta_range = case_when(beta &gt;= 0 &amp; beta &lt;= 0.2 ~ &quot;low&quot;, 
+                                beta &gt;= 0.4 &amp; beta &lt;= 0.6 ~ &quot;medium&quot;,
+                                beta &gt;= 0.8 &amp; beta &lt;= 1 ~ &quot;high&quot;,
+                                beta &gt; 0.2 &amp; beta &lt; 0.4 ~ &quot;low_med&quot;,
+                                TRUE ~ &quot;med_high&quot;)) %&gt;%
+  mutate(length = sequence(rle(.$beta_range)$lengths)) %&gt;% # when I have all chroms this will need to change a bit
+  group_by(beta_range) %&gt;%
+  filter(beta_range == range_type, 
+         length == max(length))
+  num_cpgs &lt;- df$length
+  end_row &lt;- df$row_num
+  start_row &lt;- end_row - num_cpgs + 1
+  
+  c(betas_only[start_row,]$start, betas_only[end_row,]$start) # at some point this will need a chromosome
+}
+string_same_beta(just_beta)</code></pre>
+<pre><code>[1] 11628417 11628479</code></pre>
+<pre class="r"><code>for_beta %&gt;% filter(start &gt;= string_same_beta(just_beta)[1], start &lt;= string_same_beta(just_beta)[2]) %&gt;% .$read_id %&gt;% unique()</code></pre>
+<pre><code>[1] &quot;HWI-EAS149_7:1:2:1564:1750:0:1:1&quot;      
+[2] &quot;HWI-EAS149_7:1:40:994:58:0:1:1&quot;        
+[3] &quot;HWI-EAS149_7:1:60:1308:934:0:1:0&quot;      
+[4] &quot;ILLUMINA-EAS45_3:1:107:1071:1835:0:1:0&quot;
+[5] &quot;ILLUMINA-EAS45_3:1:61:288:90:0:1:0&quot;    
+[6] &quot;ILLUMINA-EAS45_3:1:7:1185:1482:0:1:0&quot;  
+[7] &quot;ILLUMINA-EAS45_3:1:80:1680:1715:0:1:1&quot; </code></pre>
+<ul>
+<li>ah my function searched for the longest pattern</li>
+<li>which has meant it didn’t care about coverage</li>
+<li>and I definitely care about coverage</li>
+</ul>
+<pre class="r"><code>just_beta &lt;- just_beta %&gt;% mutate(seqnames = &quot;chr22&quot;) %&gt;%
+  mutate(row_num = 1:nrow(.)) %&gt;%
+  mutate(beta_range = case_when(beta &gt;= 0 &amp; beta &lt;= 0.2 ~ &quot;low&quot;, 
+                                beta &gt;= 0.4 &amp; beta &lt;= 0.6 ~ &quot;medium&quot;,
+                                beta &gt;= 0.8 &amp; beta &lt;= 1 ~ &quot;high&quot;,
+                                beta &gt; 0.2 &amp; beta &lt; 0.4 ~ &quot;low_med&quot;,
+                                TRUE ~ &quot;med_high&quot;))
+just_beta[1:5,]</code></pre>
+<pre><code>        start      beta coverage seqnames row_num beta_range
+3708 10571812 0.5294118       34    chr22       1     medium
+3709 10571818 0.5000000       34    chr22       2     medium
+3710 10571820 0.5000000       34    chr22       3     medium
+3711 10571832 0.4411765       34    chr22       4     medium
+3712 10571835 0.5000000       34    chr22       5     medium</code></pre>
+<pre class="r"><code>just_beta %&gt;%
+  group_by(beta_range) %&gt;%
+  mutate(consec = n()) %&gt;%
+  mutate(count = 1:n()) %&gt;%
+  ungroup() %&gt;%
+  mutate(length = sequence(rle(.$beta_range)$lengths)) %&gt;% .[1:5,]</code></pre>
+<pre><code># A tibble: 5 × 9
+     start  beta coverage seqnames row_num beta_range consec count length
+     &lt;int&gt; &lt;dbl&gt;    &lt;int&gt; &lt;chr&gt;      &lt;int&gt; &lt;chr&gt;       &lt;int&gt; &lt;int&gt;  &lt;int&gt;
+1 10571812 0.529       34 chr22          1 medium       1440     1      1
+2 10571818 0.5         34 chr22          2 medium       1440     2      2
+3 10571820 0.5         34 chr22          3 medium       1440     3      3
+4 10571832 0.441       34 chr22          4 medium       1440     4      4
+5 10571835 0.5         34 chr22          5 medium       1440     5      5</code></pre>
+<pre class="r"><code>source(&quot;../code/processData.R&quot;)
+rrbs_plot(for_beta, for_beta %&gt;% filter(start %in% just_beta[1:6,]$start) %&gt;% .$read_id %&gt;% unique())</code></pre>
+<p><img src="figure/mp2_betaGroups.Rmd/unnamed-chunk-14-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>rrbs_plot(for_beta, for_beta %&gt;% filter(start %in% just_beta[1:7,]$start) %&gt;% .$read_id %&gt;% unique())</code></pre>
+<p><img src="figure/mp2_betaGroups.Rmd/unnamed-chunk-14-2.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>rrbs_plot(for_beta, for_beta %&gt;% filter(start %in% just_beta[1:6,]$start) %&gt;% .$read_id %&gt;% unique(), count_instead = TRUE)</code></pre>
+<p><img src="figure/mp2_betaGroups.Rmd/unnamed-chunk-14-3.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>just_beta %&gt;% 
+  group_by(beta_range) %&gt;%
+  mutate(consec = n()) %&gt;%
+  mutate(count = 1:n()) %&gt;%
+  ungroup() %&gt;%
+  mutate(length = sequence(rle(.$beta_range)$lengths)) %&gt;%
+  group_by(beta_range) %&gt;%
+  filter(beta_range == &quot;medium&quot;, length &gt;= 3) %&gt;% .[1:5,]</code></pre>
+<pre><code># A tibble: 5 × 9
+# Groups:   beta_range [1]
+     start  beta coverage seqnames row_num beta_range consec count length
+     &lt;int&gt; &lt;dbl&gt;    &lt;int&gt; &lt;chr&gt;      &lt;int&gt; &lt;chr&gt;       &lt;int&gt; &lt;int&gt;  &lt;int&gt;
+1 10571820 0.5         34 chr22          3 medium       1440     3      3
+2 10571832 0.441       34 chr22          4 medium       1440     4      4
+3 10571835 0.5         34 chr22          5 medium       1440     5      5
+4 11600345 0.5          2 chr22         90 medium       1440    13      3
+5 11604735 0.5          2 chr22         91 medium       1440    14      4</code></pre>
+<pre class="r"><code>just_beta %&gt;% 
+  group_by(beta_range) %&gt;%
+  mutate(consec = n()) %&gt;%
+  mutate(count = 1:n()) %&gt;%
+  ungroup() %&gt;%
+  mutate(length = sequence(rle(.$beta_range)$lengths)) %&gt;% 
+  mutate(group = cumsum(c(TRUE, diff(length) &lt;= 0))) %&gt;% 
+  group_by(beta_range) %&gt;%
+  filter(beta_range == &quot;medium&quot;, length &gt;= 3) %&gt;% .[1:5,]</code></pre>
+<pre><code># A tibble: 5 × 10
+# Groups:   beta_range [1]
+     start  beta coverage seqnames row_num beta_range consec count length group
+     &lt;int&gt; &lt;dbl&gt;    &lt;int&gt; &lt;chr&gt;      &lt;int&gt; &lt;chr&gt;       &lt;int&gt; &lt;int&gt;  &lt;int&gt; &lt;int&gt;
+1 10571820 0.5         34 chr22          3 medium       1440     3      3     1
+2 10571832 0.441       34 chr22          4 medium       1440     4      4     1
+3 10571835 0.5         34 chr22          5 medium       1440     5      5     1
+4 11600345 0.5          2 chr22         90 medium       1440    13      3    34
+5 11604735 0.5          2 chr22         91 medium       1440    14      4    34</code></pre>
+<pre class="r"><code>just_beta %&gt;% 
+  group_by(beta_range) %&gt;%
+  mutate(consec = n()) %&gt;%
+  mutate(count = 1:n()) %&gt;%
+  ungroup() %&gt;%
+  mutate(length = sequence(rle(.$beta_range)$lengths)) %&gt;% 
+  mutate(group = cumsum(c(TRUE, diff(length) &lt;= 0))) %&gt;%
+  group_by(group) %&gt;%
+  mutate(length = n(), av_coverage = mean(coverage), av_beta = mean(beta)) %&gt;%
+  ungroup() %&gt;%
+  distinct(group, beta_range, length, av_coverage, av_beta) %&gt;% .[1:5,]</code></pre>
+<pre><code># A tibble: 5 × 5
+  group beta_range length av_coverage av_beta
+  &lt;int&gt; &lt;chr&gt;       &lt;int&gt;       &lt;dbl&gt;   &lt;dbl&gt;
+1     1 medium          5       34      0.494
+2     2 low_med         1       33      0.364
+3     3 low             5        1      0    
+4     4 medium          1        2      0.5  
+5     5 low             6        1.67   0    </code></pre>
+<pre class="r"><code>just_beta %&gt;% 
+  group_by(beta_range) %&gt;%
+  mutate(consec = n()) %&gt;%
+  mutate(count = 1:n()) %&gt;%
+  ungroup() %&gt;%
+  mutate(length = sequence(rle(.$beta_range)$lengths)) %&gt;% 
+  mutate(group = cumsum(c(TRUE, diff(length) &lt;= 0))) %&gt;%
+  group_by(group) %&gt;%
+  mutate(length = n(), av_coverage = mean(coverage), av_beta = mean(beta)) %&gt;%
+  ungroup() %&gt;%
+  distinct(group, beta_range, length, av_coverage, av_beta) %&gt;% filter(beta_range == &quot;medium&quot;, length &gt; 2) %&gt;% .[order(.$length, decreasing = TRUE),] %&gt;% nrow()</code></pre>
+<pre><code>[1] 48</code></pre>
+<pre class="r"><code>just_beta %&gt;% 
+  group_by(beta_range) %&gt;%
+  mutate(consec = n()) %&gt;%
+  mutate(count = 1:n()) %&gt;%
+  ungroup() %&gt;%
+  mutate(length = sequence(rle(.$beta_range)$lengths)) %&gt;% 
+  mutate(group = cumsum(c(TRUE, diff(length) &lt;= 0))) %&gt;% filter(group == 1557)</code></pre>
+<pre><code># A tibble: 4 × 10
+     start  beta coverage seqnames row_num beta_range consec count length group
+     &lt;int&gt; &lt;dbl&gt;    &lt;int&gt; &lt;chr&gt;      &lt;int&gt; &lt;chr&gt;       &lt;int&gt; &lt;int&gt;  &lt;int&gt; &lt;int&gt;
+1 23145705 0.513      115 chr22       5763 medium       1440   236      1  1557
+2 23145710 0.5        114 chr22       5764 medium       1440   237      2  1557
+3 23145730 0.452      115 chr22       5765 medium       1440   238      3  1557
+4 23145732 0.461      115 chr22       5766 medium       1440   239      4  1557</code></pre>
+<pre class="r"><code>source(&quot;../code/processData.R&quot;)
+rrbs_plot(for_beta, for_beta %&gt;% filter(start %in% just_beta[5763:5767,]$start) %&gt;% .$read_id %&gt;% unique(), count_instead = TRUE)</code></pre>
+<p><img src="figure/mp2_betaGroups.Rmd/unnamed-chunk-20-1.png" width="672" style="display: block; margin: auto;" />
+* right I got stuck on how to make this work better * I feel like 3 cpgs
+is a good min * so maybe it’s pull out the regions with at least 3 cpgs
+and medium beta?? - as regions of interest * ooh maybe violin plot of
+alphas in that grouping????</p>
+<pre class="r"><code>grouped_betas &lt;- just_beta %&gt;% 
+  group_by(beta_range) %&gt;%
+  mutate(consec = n()) %&gt;%
+  mutate(count = 1:n()) %&gt;%
+  ungroup() %&gt;%
+  mutate(length = sequence(rle(.$beta_range)$lengths)) %&gt;% 
+  mutate(group = cumsum(c(TRUE, diff(length) &lt;= 0))) %&gt;%
+  group_by(group) %&gt;%
+  mutate(length = n(), av_coverage = mean(coverage), av_beta = mean(beta)) %&gt;%
+  ungroup() %&gt;% filter(beta_range == &quot;medium&quot;, length &gt; 2) %&gt;% data.frame() 
+grouped_betas[1:10,]</code></pre>
+<pre><code>      start      beta coverage seqnames row_num beta_range consec count length
+1  10571812 0.5294118       34    chr22       1     medium   1440     1      5
+2  10571818 0.5000000       34    chr22       2     medium   1440     2      5
+3  10571820 0.5000000       34    chr22       3     medium   1440     3      5
+4  10571832 0.4411765       34    chr22       4     medium   1440     4      5
+5  10571835 0.5000000       34    chr22       5     medium   1440     5      5
+6  11600333 0.5000000        2    chr22      88     medium   1440    11      4
+7  11600335 0.5000000        2    chr22      89     medium   1440    12      4
+8  11600345 0.5000000        2    chr22      90     medium   1440    13      4
+9  11604735 0.5000000        2    chr22      91     medium   1440    14      4
+10 11628417 0.5000000        2    chr22     128     medium   1440    19      6
+   group av_coverage   av_beta
+1      1   34.000000 0.4941176
+2      1   34.000000 0.4941176
+3      1   34.000000 0.4941176
+4      1   34.000000 0.4941176
+5      1   34.000000 0.4941176
+6     34    2.000000 0.5000000
+7     34    2.000000 0.5000000
+8     34    2.000000 0.5000000
+9     34    2.000000 0.5000000
+10    55    4.333333 0.4333333</code></pre>
+<pre class="r"><code>for_beta %&gt;% mutate(beta_range_group_num = grouped_betas[match(.$start, grouped_betas$start), &quot;group&quot;],
+                    beta_range_group_length = grouped_betas[match(.$start, grouped_betas$start), &quot;length&quot;]) %&gt;% 
+  filter(!is.na(beta_range_group_num)) %&gt;% 
+  ggplot(aes(x = as.factor(beta_range_group_num), y = alpha)) +
+  geom_boxplot()</code></pre>
+<p><img src="figure/mp2_betaGroups.Rmd/unnamed-chunk-22-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>for_beta %&gt;% mutate(beta_range_group_num = grouped_betas[match(.$start, grouped_betas$start), &quot;group&quot;],
+                    beta_range_group_length = grouped_betas[match(.$start, grouped_betas$start), &quot;length&quot;]) %&gt;% 
+  filter(!is.na(beta_range_group_num)) %&gt;% 
+  ggplot(aes(colour = as.factor(beta_range_group_num), x = alpha)) +
+  geom_density()</code></pre>
+<p><img src="figure/mp2_betaGroups.Rmd/unnamed-chunk-22-2.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>for_beta %&gt;% mutate(beta_range_group_num = grouped_betas[match(.$start, grouped_betas$start), &quot;group&quot;],
+                    beta_range_group_length = grouped_betas[match(.$start, grouped_betas$start), &quot;length&quot;]) %&gt;% 
+  filter(!is.na(beta_range_group_num)) %&gt;% distinct(read_id, alpha, beta_range_group_num, beta_range_group_length) %&gt;%
+  mutate(beta_range_group_num = as.factor(beta_range_group_num)) %&gt;%
+  group_by(beta_range_group_num) %&gt;%
+  summarise(bimodal_p = list(diptest::dip.test(alpha)$p.value)
+  ) %&gt;%
+  unnest(cols = c(bimodal_p)) %&gt;%
+  ggplot(aes(x = bimodal_p)) +
+  geom_density()</code></pre>
+<pre><code>Warning: There were 9 warnings in `summarise()`.
+The first warning was:
+ℹ In argument: `bimodal_p = list(diptest::dip.test(alpha)$p.value)`.
+ℹ In group 2: `beta_range_group_num = 34`.
+Caused by warning in `regularize.values()`:
+! collapsing to unique &#39;x&#39; values
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 8 remaining warnings.</code></pre>
+<p><img src="figure/mp2_betaGroups.Rmd/unnamed-chunk-23-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>poten_groups &lt;- for_beta %&gt;% mutate(beta_range_group_num = grouped_betas[match(.$start, grouped_betas$start), &quot;group&quot;],
+                    beta_range_group_length = grouped_betas[match(.$start, grouped_betas$start), &quot;length&quot;]) %&gt;% 
+  filter(!is.na(beta_range_group_num)) %&gt;% distinct(read_id, alpha, beta_range_group_num, beta_range_group_length) %&gt;%
+  mutate(beta_range_group_num = as.factor(beta_range_group_num)) %&gt;%
+  group_by(beta_range_group_num) %&gt;%
+  summarise(bimodal_p = list(diptest::dip.test(alpha)$p.value)
+  ) %&gt;%
+  unnest(cols = c(bimodal_p)) %&gt;% filter(bimodal_p &lt; 0.01) %&gt;% .$beta_range_group_num </code></pre>
+<pre><code>Warning: There were 9 warnings in `summarise()`.
+The first warning was:
+ℹ In argument: `bimodal_p = list(diptest::dip.test(alpha)$p.value)`.
+ℹ In group 2: `beta_range_group_num = 34`.
+Caused by warning in `regularize.values()`:
+! collapsing to unique &#39;x&#39; values
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 8 remaining warnings.</code></pre>
+<pre class="r"><code>source(&quot;../code/processData.R&quot;)
+plot_list &lt;- list()
+for (i in 1:length(poten_groups)) {
+  row_pos &lt;- just_beta %&gt;% mutate(seqnames = &quot;chr22&quot;) %&gt;%
+  mutate(row_num = 1:nrow(.)) %&gt;%
+  mutate(beta_range = case_when(beta &gt;= 0 &amp; beta &lt;= 0.2 ~ &quot;low&quot;, 
+                                beta &gt;= 0.4 &amp; beta &lt;= 0.6 ~ &quot;medium&quot;,
+                                beta &gt;= 0.8 &amp; beta &lt;= 1 ~ &quot;high&quot;,
+                                beta &gt; 0.2 &amp; beta &lt; 0.4 ~ &quot;low_med&quot;,
+                                TRUE ~ &quot;med_high&quot;)) %&gt;%
+  group_by(beta_range) %&gt;%
+  mutate(consec = n()) %&gt;%
+  mutate(count = 1:n()) %&gt;%
+  ungroup() %&gt;%
+  mutate(length = sequence(rle(.$beta_range)$lengths)) %&gt;% 
+  mutate(group = cumsum(c(TRUE, diff(length) &lt;= 0))) %&gt;% filter(group == i)
+  min_row &lt;- min(row_pos$row_num)
+  max_row &lt;- max(row_pos$row_num)
+  plot_list[[i]] &lt;- rrbs_plot(for_beta, for_beta %&gt;% filter(start %in% just_beta[min_row:max_row,]$start) %&gt;% .$read_id %&gt;% unique(), count_instead = TRUE)
+}
+plot_list</code></pre>
+<pre><code>[[1]]</code></pre>
+<p><img src="figure/mp2_betaGroups.Rmd/unnamed-chunk-25-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[2]]</code></pre>
+<p><img src="figure/mp2_betaGroups.Rmd/unnamed-chunk-25-2.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[3]]</code></pre>
+<p><img src="figure/mp2_betaGroups.Rmd/unnamed-chunk-25-3.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[4]]</code></pre>
+<p><img src="figure/mp2_betaGroups.Rmd/unnamed-chunk-25-4.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[5]]</code></pre>
+<p><img src="figure/mp2_betaGroups.Rmd/unnamed-chunk-25-5.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[6]]</code></pre>
+<p><img src="figure/mp2_betaGroups.Rmd/unnamed-chunk-25-6.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[7]]</code></pre>
+<p><img src="figure/mp2_betaGroups.Rmd/unnamed-chunk-25-7.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[8]]</code></pre>
+<p><img src="figure/mp2_betaGroups.Rmd/unnamed-chunk-25-8.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[9]]</code></pre>
+<p><img src="figure/mp2_betaGroups.Rmd/unnamed-chunk-25-9.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[10]]</code></pre>
+<p><img src="figure/mp2_betaGroups.Rmd/unnamed-chunk-25-10.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[11]]</code></pre>
+<p><img src="figure/mp2_betaGroups.Rmd/unnamed-chunk-25-11.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[12]]</code></pre>
+<p><img src="figure/mp2_betaGroups.Rmd/unnamed-chunk-25-12.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[13]]</code></pre>
+<p><img src="figure/mp2_betaGroups.Rmd/unnamed-chunk-25-13.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[14]]</code></pre>
+<p><img src="figure/mp2_betaGroups.Rmd/unnamed-chunk-25-14.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[15]]</code></pre>
+<p><img src="figure/mp2_betaGroups.Rmd/unnamed-chunk-25-15.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[16]]</code></pre>
+<p><img src="figure/mp2_betaGroups.Rmd/unnamed-chunk-25-16.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[17]]</code></pre>
+<p><img src="figure/mp2_betaGroups.Rmd/unnamed-chunk-25-17.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[18]]</code></pre>
+<p><img src="figure/mp2_betaGroups.Rmd/unnamed-chunk-25-18.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[19]]</code></pre>
+<p><img src="figure/mp2_betaGroups.Rmd/unnamed-chunk-25-19.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[20]]</code></pre>
+<p><img src="figure/mp2_betaGroups.Rmd/unnamed-chunk-25-20.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[21]]</code></pre>
+<p><img src="figure/mp2_betaGroups.Rmd/unnamed-chunk-25-21.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[22]]</code></pre>
+<p><img src="figure/mp2_betaGroups.Rmd/unnamed-chunk-25-22.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[23]]</code></pre>
+<p><img src="figure/mp2_betaGroups.Rmd/unnamed-chunk-25-23.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[24]]</code></pre>
+<p><img src="figure/mp2_betaGroups.Rmd/unnamed-chunk-25-24.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[25]]</code></pre>
+<p><img src="figure/mp2_betaGroups.Rmd/unnamed-chunk-25-25.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[26]]</code></pre>
+<p><img src="figure/mp2_betaGroups.Rmd/unnamed-chunk-25-26.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[27]]</code></pre>
+<p><img src="figure/mp2_betaGroups.Rmd/unnamed-chunk-25-27.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[28]]</code></pre>
+<p><img src="figure/mp2_betaGroups.Rmd/unnamed-chunk-25-28.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[29]]</code></pre>
+<p><img src="figure/mp2_betaGroups.Rmd/unnamed-chunk-25-29.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[30]]</code></pre>
+<p><img src="figure/mp2_betaGroups.Rmd/unnamed-chunk-25-30.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[31]]</code></pre>
+<p><img src="figure/mp2_betaGroups.Rmd/unnamed-chunk-25-31.png" width="672" style="display: block; margin: auto;" /></p>
+<p>abc</p>
+<br>
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-sessioninfo" data-toggle="collapse" data-target="#workflowr-sessioninfo" style="display: block;">
+<span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
+Session information
+</button>
+</p>
+<div id="workflowr-sessioninfo" class="collapse">
+<pre class="r"><code>sessionInfo()</code></pre>
+<pre><code>R version 4.4.1 (2024-06-14)
+Platform: x86_64-pc-linux-gnu
+Running under: Rocky Linux 9.6 (Blue Onyx)
+
+Matrix products: default
+BLAS/LAPACK: FlexiBLAS OPENBLAS-OPENMP;  LAPACK version 3.9.0
+
+locale:
+ [1] LC_CTYPE=en_AU.UTF-8       LC_NUMERIC=C              
+ [3] LC_TIME=en_AU.UTF-8        LC_COLLATE=en_AU.UTF-8    
+ [5] LC_MONETARY=en_AU.UTF-8    LC_MESSAGES=en_AU.UTF-8   
+ [7] LC_PAPER=en_AU.UTF-8       LC_NAME=C                 
+ [9] LC_ADDRESS=C               LC_TELEPHONE=C            
+[11] LC_MEASUREMENT=en_AU.UTF-8 LC_IDENTIFICATION=C       
+
+time zone: Australia/Melbourne
+tzcode source: system (glibc)
+
+attached base packages:
+[1] stats4    stats     graphics  grDevices utils     datasets  methods  
+[8] base     
+
+other attached packages:
+ [1] ggplot2_3.5.2        dplyr_1.1.4          stringr_1.5.1       
+ [4] tidyr_1.3.1          plyranges_1.26.0     GenomicRanges_1.58.0
+ [7] GenomeInfoDb_1.42.3  IRanges_2.40.1       S4Vectors_0.44.0    
+[10] BiocGenerics_0.52.0  data.table_1.17.8   
+
+loaded via a namespace (and not attached):
+ [1] BSgenome.Hsapiens.UCSC.hg38_1.4.5 SummarizedExperiment_1.36.0      
+ [3] gtable_0.3.6                      rjson_0.2.23                     
+ [5] xfun_0.52                         bslib_0.9.0                      
+ [7] Biobase_2.66.0                    lattice_0.22-6                   
+ [9] vctrs_0.6.5                       tools_4.4.1                      
+[11] bitops_1.0-9                      generics_0.1.4                   
+[13] curl_6.4.0                        parallel_4.4.1                   
+[15] tibble_3.3.0                      pkgconfig_2.0.3                  
+[17] Matrix_1.7-0                      BSgenome_1.74.0                  
+[19] RColorBrewer_1.1-3                lifecycle_1.0.4                  
+[21] GenomeInfoDbData_1.2.13           farver_2.1.2                     
+[23] compiler_4.4.1                    git2r_0.36.2                     
+[25] Rsamtools_2.22.0                  Biostrings_2.74.1                
+[27] codetools_0.2-20                  httpuv_1.6.16                    
+[29] htmltools_0.5.8.1                 sass_0.4.10                      
+[31] RCurl_1.98-1.17                   yaml_2.3.10                      
+[33] later_1.4.2                       pillar_1.11.0                    
+[35] crayon_1.5.3                      jquerylib_0.1.4                  
+[37] whisker_0.4.1                     diptest_0.77-2                   
+[39] BiocParallel_1.40.2               cachem_1.1.0                     
+[41] DelayedArray_0.32.0               abind_1.4-8                      
+[43] tidyselect_1.2.1                  digest_0.6.37                    
+[45] stringi_1.8.7                     purrr_1.1.0                      
+[47] restfulr_0.0.16                   labeling_0.4.3                   
+[49] rprojroot_2.1.0                   fastmap_1.2.0                    
+[51] grid_4.4.1                        cli_3.6.5                        
+[53] SparseArray_1.6.2                 magrittr_2.0.3                   
+[55] S4Arrays_1.6.0                    utf8_1.2.6                       
+[57] XML_3.99-0.18                     withr_3.0.2                      
+[59] scales_1.4.0                      UCSC.utils_1.2.0                 
+[61] promises_1.3.3                    rmarkdown_2.29                   
+[63] XVector_0.46.0                    httr_1.4.7                       
+[65] matrixStats_1.5.0                 workflowr_1.7.1                  
+[67] evaluate_1.0.4                    knitr_1.50                       
+[69] BiocIO_1.16.0                     rtracklayer_1.66.0               
+[71] rlang_1.1.6                       Rcpp_1.1.0                       
+[73] glue_1.8.0                        rstudioapi_0.17.1                
+[75] jsonlite_2.0.0                    R6_2.6.1                         
+[77] MatrixGenerics_1.18.1             GenomicAlignments_1.42.0         
+[79] fs_1.6.6                          zlibbioc_1.52.0                  </code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+
+<!-- Adjust MathJax settings so that all math formulae are shown using
+TeX fonts only; see
+https://docs.mathjax.org/en/latest/web/configuration.html. This will make
+the presentation more consistent at the cost of the webpage sometimes
+taking slightly longer to load. Note that this only works because the
+footer is added to webpages before the MathJax javascript. -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    "HTML-CSS": { availableFonts: ["TeX"] }
+  });
+</script>
+
+
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+
+<script>
+$(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
