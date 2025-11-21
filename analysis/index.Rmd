@@ -76,6 +76,12 @@ Welcome to my research website.
 [initial analysis (some copied from alphaAnalysis)](mp1_methPattern.html)
 
 [medium methylation](mp2_betaGroups.html)
+
+[high methylation](mp3_betaGroupsHighBeta.html)
+
+[low methylation](mp3_betaGroupsLowBeta.html)
+
+
 * files/analysis to do
 * genomic context: where are the patterns
 * pete thesis package mtuples
