@@ -1,0 +1,1173 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="Caitlin Page" />
+
+<meta name="date" content="2025-12-02" />
+
+<title>biologicalFeatures</title>
+
+<script src="site_libs/header-attrs-2.29/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/jqueryui-1.13.2/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<link href="site_libs/font-awesome-6.5.2/css/all.min.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet" />
+
+<link rel="icon" href="https://github.com/workflowr/workflowr-assets/raw/main/img/reproducible.png">
+<!-- Add a small amount of space between sections. -->
+<style type="text/css">
+div.section {
+  padding-top: 12px;
+}
+</style>
+
+
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">3_cf_nano</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Home</a>
+</li>
+<li>
+  <a href="about.html">About</a>
+</li>
+<li>
+  <a href="license.html">License</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li>
+  <a href="https://github.com/caitlinpage/methyl_nano_cf">
+    <span class="fab fa-github"></span>
+     
+    Source code
+  </a>
+</li>
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+
+
+<h1 class="title toc-ignore">biologicalFeatures</h1>
+<h4 class="author">Caitlin Page</h4>
+<h4 class="date">2025-12-02</h4>
+
+</div>
+
+
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-report" data-toggle="collapse" data-target="#workflowr-report">
+<span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+workflowr <span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span>
+</button>
+</p>
+<div id="workflowr-report" class="collapse">
+<ul class="nav nav-tabs">
+<li class="active">
+<a data-toggle="tab" href="#summary">Summary</a>
+</li>
+<li>
+<a data-toggle="tab" href="#checks"> Checks <span
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span>
+</a>
+</li>
+<li>
+<a data-toggle="tab" href="#versions">Past versions</a>
+</li>
+</ul>
+<div class="tab-content">
+<div id="summary" class="tab-pane fade in active">
+<p>
+<strong>Last updated:</strong> 2025-12-02
+</p>
+<p>
+<strong>Checks:</strong> <span
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 7
+<span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> 0
+</p>
+<p>
+<strong>Knit directory:</strong> <code>3_cf_nano/analysis/</code> <span
+class="glyphicon glyphicon-question-sign" aria-hidden="true"
+title="This is the local directory in which the code in this file was executed.">
+</span>
+</p>
+<p>
+This reproducible <a href="https://rmarkdown.rstudio.com">R Markdown</a>
+analysis was created with <a
+  href="https://github.com/workflowr/workflowr">workflowr</a> (version
+1.7.1). The <em>Checks</em> tab describes the reproducibility checks
+that were applied when the results were created. The <em>Past
+versions</em> tab lists the development history.
+</p>
+<hr>
+</div>
+<div id="checks" class="tab-pane fade">
+<div id="workflowr-checks" class="panel-group">
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRMarkdownfilestronguptodate">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>R Markdown file:</strong> up-to-date
+</a>
+</p>
+</div>
+<div id="strongRMarkdownfilestronguptodate"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great! Since the R Markdown file has been committed to the Git
+repository, you know the exact version of the code that produced these
+results.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongEnvironmentstrongempty">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Environment:</strong> empty </a>
+</p>
+</div>
+<div id="strongEnvironmentstrongempty" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! The global environment was empty. Objects defined in the
+global environment can affect the analysis in your R Markdown file in
+unknown ways. For reproduciblity it’s best to always run the code in an
+empty environment.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSeedstrongcodesetseed20250606code">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Seed:</strong>
+<code>set.seed(20250606)</code> </a>
+</p>
+</div>
+<div id="strongSeedstrongcodesetseed20250606code"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>The command <code>set.seed(20250606)</code> was run prior to running
+the code in the R Markdown file. Setting a seed ensures that any results
+that rely on randomness, e.g. subsampling or permutations, are
+reproducible.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSessioninformationstrongrecorded">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Session information:</strong>
+recorded </a>
+</p>
+</div>
+<div id="strongSessioninformationstrongrecorded"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Recording the operating system, R version, and package
+versions is critical for reproducibility.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongCachestrongnone">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Cache:</strong> none </a>
+</p>
+</div>
+<div id="strongCachestrongnone" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Nice! There were no cached chunks for this analysis, so you can be
+confident that you successfully produced the results during this
+run.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongFilepathsstrongrelative">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>File paths:</strong> relative </a>
+</p>
+</div>
+<div id="strongFilepathsstrongrelative" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Using relative paths to the files within your workflowr
+project makes it easier to run your code on other machines.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpage3cfnanotreeba1d686b954a1e70f6ff558d302c5f0ea66b3a2ctargetblankba1d686a">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Repository version:</strong>
+<a href="https://github.com/caitlinpage/3_cf_nano/tree/ba1d686b954a1e70f6ff558d302c5f0ea66b3a2c" target="_blank">ba1d686</a>
+</a>
+</p>
+</div>
+<div
+id="strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpage3cfnanotreeba1d686b954a1e70f6ff558d302c5f0ea66b3a2ctargetblankba1d686a"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>
+Great! You are using Git for version control. Tracking code development
+and connecting the code version to the results is critical for
+reproducibility.
+</p>
+<p>
+The results in this page were generated with repository version
+<a href="https://github.com/caitlinpage/3_cf_nano/tree/ba1d686b954a1e70f6ff558d302c5f0ea66b3a2c" target="_blank">ba1d686</a>.
+See the <em>Past versions</em> tab to see a history of the changes made
+to the R Markdown and HTML files.
+</p>
+<p>
+Note that you need to be careful to ensure that all relevant files for
+the analysis have been committed to Git prior to generating the results
+(you can use <code>wflow_publish</code> or
+<code>wflow_git_commit</code>). workflowr only checks the R Markdown
+file, but you know if there are other scripts or data files that it
+depends on. Below is the status of the Git repository when the results
+were generated:
+</p>
+<pre><code>
+Ignored files:
+    Ignored:    .DS_Store
+    Ignored:    .Rhistory
+    Ignored:    .Rproj.user/
+    Ignored:    code/Fragmentomics_GenomBiol-main/
+    Ignored:    code/dist_modkit_v0.5.0_5120ef7_candle/
+    Ignored:    code/dist_modkit_v0.5.0_5120ef7_tch/
+    Ignored:    code/modkit-0.5.0/
+    Ignored:    code/modkit_v0.5.0_5120ef7/
+    Ignored:    code/uses_biscuit/
+    Ignored:    data/cfnano_paper/
+    Ignored:    data/ncbi_dataset/
+    Ignored:    data/rrbs/
+    Ignored:    output/bedtools/
+    Ignored:    output/biscuit/
+    Ignored:    output/cluster_files/
+    Ignored:    output/html docs - versions/
+    Ignored:    output/modkit/
+    Ignored:    output/nanoplot/
+    Ignored:    output/research_sprint/
+    Ignored:    output/samtools/
+    Ignored:    output/schematics/
+    Ignored:    renv.lock
+    Ignored:    renv/
+
+Unstaged changes:
+    Modified:   .Rprofile
+    Modified:   .gitignore
+    Modified:   3_cf_nano.Rproj
+    Modified:   _workflowr.yml
+    Modified:   analysis/00_importantObjects.Rmd
+    Modified:   analysis/01a_bedFileCorrelation.Rmd
+
+</code></pre>
+<p>
+Note that any generated files, e.g. HTML, png, CSS, etc., are not
+included in this status report because it is ok for generated content to
+have uncommitted changes.
+</p>
+</div>
+</div>
+</div>
+</div>
+<hr>
+</div>
+<div id="versions" class="tab-pane fade">
+<p>
+These are the previous versions of the repository in which changes were
+made to the R Markdown (<code>analysis/biologicalFeatures.Rmd</code>)
+and HTML (<code>docs/biologicalFeatures.html</code>) files. If you’ve
+configured a remote Git repository (see <code>?wflow_git_remote</code>),
+click on the hyperlinks in the table below to view the files as they
+were in that past version.
+</p>
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+File
+</th>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+<th>
+Message
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/caitlinpage/3_cf_nano/blob/ba1d686b954a1e70f6ff558d302c5f0ea66b3a2c/analysis/biologicalFeatures.Rmd" target="_blank">ba1d686</a>
+</td>
+<td>
+Caitlin Page
+</td>
+<td>
+2025-12-02
+</td>
+<td>
+wflow_publish(c("index.Rmd", "IQRVisualise.Rmd",
+"biologicalFeatures.Rmd"))
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr>
+</div>
+</div>
+</div>
+<div id="packages" class="section level2">
+<h2>Packages</h2>
+<pre class="r"><code>library(BSgenome.Hsapiens.UCSC.hg38)</code></pre>
+<pre><code>Loading required package: GenomeInfoDb</code></pre>
+<pre><code>Loading required package: BiocGenerics</code></pre>
+<pre><code>
+Attaching package: &#39;BiocGenerics&#39;</code></pre>
+<pre><code>The following objects are masked from &#39;package:stats&#39;:
+
+    IQR, mad, sd, var, xtabs</code></pre>
+<pre><code>The following objects are masked from &#39;package:base&#39;:
+
+    anyDuplicated, aperm, append, as.data.frame, basename, cbind,
+    colnames, dirname, do.call, duplicated, eval, evalq, Filter, Find,
+    get, grep, grepl, intersect, is.unsorted, lapply, Map, mapply,
+    match, mget, order, paste, pmax, pmax.int, pmin, pmin.int,
+    Position, rank, rbind, Reduce, rownames, sapply, saveRDS, setdiff,
+    table, tapply, union, unique, unsplit, which.max, which.min</code></pre>
+<pre><code>Loading required package: S4Vectors</code></pre>
+<pre><code>Loading required package: stats4</code></pre>
+<pre><code>
+Attaching package: &#39;S4Vectors&#39;</code></pre>
+<pre><code>The following object is masked from &#39;package:utils&#39;:
+
+    findMatches</code></pre>
+<pre><code>The following objects are masked from &#39;package:base&#39;:
+
+    expand.grid, I, unname</code></pre>
+<pre><code>Loading required package: IRanges</code></pre>
+<pre><code>Loading required package: BSgenome</code></pre>
+<pre><code>Loading required package: GenomicRanges</code></pre>
+<pre><code>Loading required package: Biostrings</code></pre>
+<pre><code>Loading required package: XVector</code></pre>
+<pre><code>
+Attaching package: &#39;Biostrings&#39;</code></pre>
+<pre><code>The following object is masked from &#39;package:base&#39;:
+
+    strsplit</code></pre>
+<pre><code>Loading required package: BiocIO</code></pre>
+<pre><code>Loading required package: rtracklayer</code></pre>
+<pre><code>
+Attaching package: &#39;rtracklayer&#39;</code></pre>
+<pre><code>The following object is masked from &#39;package:BiocIO&#39;:
+
+    FileForFormat</code></pre>
+<pre class="r"><code>library(TxDb.Hsapiens.UCSC.hg38.knownGene)</code></pre>
+<pre><code>Loading required package: GenomicFeatures</code></pre>
+<pre><code>Loading required package: AnnotationDbi</code></pre>
+<pre><code>Loading required package: Biobase</code></pre>
+<pre><code>Welcome to Bioconductor
+
+    Vignettes contain introductory material; view with
+    &#39;browseVignettes()&#39;. To cite Bioconductor, see
+    &#39;citation(&quot;Biobase&quot;)&#39;, and for packages &#39;citation(&quot;pkgname&quot;)&#39;.</code></pre>
+<pre class="r"><code>library(data.table)</code></pre>
+<pre><code>
+Attaching package: &#39;data.table&#39;</code></pre>
+<pre><code>The following object is masked from &#39;package:GenomicRanges&#39;:
+
+    shift</code></pre>
+<pre><code>The following object is masked from &#39;package:IRanges&#39;:
+
+    shift</code></pre>
+<pre><code>The following objects are masked from &#39;package:S4Vectors&#39;:
+
+    first, second</code></pre>
+<pre class="r"><code>library(plyranges)</code></pre>
+<pre><code>
+Attaching package: &#39;plyranges&#39;</code></pre>
+<pre><code>The following object is masked from &#39;package:data.table&#39;:
+
+    between</code></pre>
+<pre><code>The following object is masked from &#39;package:AnnotationDbi&#39;:
+
+    select</code></pre>
+<pre><code>The following object is masked from &#39;package:XVector&#39;:
+
+    slice</code></pre>
+<pre><code>The following object is masked from &#39;package:IRanges&#39;:
+
+    slice</code></pre>
+<pre><code>The following object is masked from &#39;package:stats&#39;:
+
+    filter</code></pre>
+<pre class="r"><code>library(tidyr)</code></pre>
+<pre><code>
+Attaching package: &#39;tidyr&#39;</code></pre>
+<pre><code>The following object is masked from &#39;package:S4Vectors&#39;:
+
+    expand</code></pre>
+<pre class="r"><code>library(stringr)
+library(dplyr)</code></pre>
+<pre><code>
+Attaching package: &#39;dplyr&#39;</code></pre>
+<pre><code>The following objects are masked from &#39;package:plyranges&#39;:
+
+    between, n, n_distinct</code></pre>
+<pre><code>The following objects are masked from &#39;package:data.table&#39;:
+
+    between, first, last</code></pre>
+<pre><code>The following object is masked from &#39;package:AnnotationDbi&#39;:
+
+    select</code></pre>
+<pre><code>The following object is masked from &#39;package:Biobase&#39;:
+
+    combine</code></pre>
+<pre><code>The following objects are masked from &#39;package:Biostrings&#39;:
+
+    collapse, intersect, setdiff, setequal, union</code></pre>
+<pre><code>The following object is masked from &#39;package:XVector&#39;:
+
+    slice</code></pre>
+<pre><code>The following objects are masked from &#39;package:GenomicRanges&#39;:
+
+    intersect, setdiff, union</code></pre>
+<pre><code>The following object is masked from &#39;package:GenomeInfoDb&#39;:
+
+    intersect</code></pre>
+<pre><code>The following objects are masked from &#39;package:IRanges&#39;:
+
+    collapse, desc, intersect, setdiff, slice, union</code></pre>
+<pre><code>The following objects are masked from &#39;package:S4Vectors&#39;:
+
+    first, intersect, rename, setdiff, setequal, union</code></pre>
+<pre><code>The following objects are masked from &#39;package:BiocGenerics&#39;:
+
+    combine, intersect, setdiff, union</code></pre>
+<pre><code>The following objects are masked from &#39;package:stats&#39;:
+
+    filter, lag</code></pre>
+<pre><code>The following objects are masked from &#39;package:base&#39;:
+
+    intersect, setdiff, setequal, union</code></pre>
+<pre class="r"><code>library(ggplot2)</code></pre>
+</div>
+<div id="data-objects" class="section level2">
+<h2>Data Objects</h2>
+<pre class="r"><code>cg_sites &lt;- cbind(data.frame(Biostrings::matchPattern(&quot;CG&quot;, BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38[[&quot;chr22&quot;]])), seqnames = &quot;chr22&quot;) %&gt;% 
+  mutate(pos = paste0(seqnames, &quot;-&quot;, start)) %&gt;%
+  relocate(pos, seqnames)</code></pre>
+<pre><code>Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored</code></pre>
+<pre class="r"><code>cg_sites$index &lt;- 1:nrow(cg_sites)</code></pre>
+<pre class="r"><code>source(&quot;../code/processData.R&quot;)
+
+for_beta &lt;- readRDS(&quot;../output/cluster_files/rrbs_alpha_beta.rds&quot;)
+for_beta &lt;- for_beta %&gt;% filter(seqnames == &quot;chr22&quot;)
+rrbs_for_beta_pat &lt;- pat_for_wgbs(for_beta)</code></pre>
+<pre><code>`summarise()` has grouped output by &#39;seqnames&#39;, &#39;start_pos&#39;, &#39;meth_pattern&#39;,
+&#39;alpha&#39;, &#39;end_pos&#39;. You can override using the `.groups` argument.</code></pre>
+<pre class="r"><code>for_beta &lt;- for_beta %&gt;% group_by(start) %&gt;% mutate(coverage = n(), mean_alpha = mean(alpha)) %&gt;% ungroup() %&gt;% data.frame()
+just_beta &lt;- for_beta %&gt;% distinct(start, beta, coverage, mean_alpha) %&gt;% .[order(.$start),]</code></pre>
+<pre class="r"><code>txdb &lt;- TxDb.Hsapiens.UCSC.hg38.knownGene
+genes_txdb &lt;- genes(txdb)</code></pre>
+<pre><code>  2162 genes were dropped because they have exons located on both strands
+  of the same reference sequence or on more than one reference sequence,
+  so cannot be represented by a single genomic range.
+  Use &#39;single.strand.genes.only=FALSE&#39; to get all the genes in a
+  GRangesList object, or use suppressMessages() to suppress this message.</code></pre>
+<pre class="r"><code>promoters_txdb &lt;- promoters(txdb)</code></pre>
+<pre><code>Warning in valid.GenomicRanges.seqinfo(x, suggest.trim = TRUE): GRanges object contains 244 out-of-bound ranges located on sequences
+  chr1_GL383518v1_alt, chr1_KI270762v1_alt, chr2_GL383522v1_alt,
+  chr2_KI270774v1_alt, chr3_KI270777v1_alt, chr3_KI270781v1_alt,
+  chr4_GL000257v2_alt, chr4_KI270788v1_alt, chr5_GL339449v2_alt,
+  chr5_KI270795v1_alt, chr5_KI270898v1_alt, chr6_GL000250v2_alt,
+  chr6_GL000254v2_alt, chr6_KI270797v1_alt, chr6_KI270798v1_alt,
+  chr6_KI270801v1_alt, chr7_GL383534v2_alt, chr7_KI270803v1_alt,
+  chr7_KI270806v1_alt, chr7_KI270809v1_alt, chr8_KI270815v1_alt,
+  chr9_GL383540v1_alt, chr9_GL383541v1_alt, chr9_GL383542v1_alt,
+  chr9_KI270823v1_alt, chr10_GL383546v1_alt, chr11_KI270831v1_alt,
+  chr11_KI270902v1_alt, chr12_GL383551v1_alt, chr12_GL383553v2_alt,
+  chr12_KI270834v1_alt, chr13_KI270838v1_alt, chr14_KI270847v1_alt,
+  chr15_KI270848v1_alt, chr15_KI270850v1_alt, chr15_KI270851v1_alt,
+  chr15_KI270906v1_alt, chr16_GL383556v1_alt, chr16_GL383557v1_alt,
+  chr16_KI270854v1_alt, chr17_JH159146v1_alt, chr17_JH159147v1_alt,
+  chr17_KI270857v1_alt, chr17_KI270860v1_alt, chr17_KI270910v1_alt,
+  chr19_GL383575v2_alt, chr19_GL383576v1_alt, chr19_KI270866v1_alt,
+  chr19_KI270868v1_alt, chr19_KI270884v1_alt, chr19_KI270885v1_alt,
+  chr19_KI270889v1_alt, chr19_KI270890v1_alt, chr19_KI270891v1_alt,
+  chr19_KI270915v1_alt, chr19_KI270916v1_alt, chr19_KI270919v1_alt,
+  chr19_KI270922v1_alt, chr19_KI270923v1_alt, chr19_KI270929v1_alt,
+  chr19_KI270930v1_alt, chr19_KI270931v1_alt, chr19_KI270932v1_alt,
+  chr19_KI270933v1_alt, chr20_KI270869v1_alt, chr21_GL383581v2_alt,
+  chr21_KI270872v1_alt, chr22_KB663609v1_alt, chr22_KI270876v1_alt,
+  chr22_KI270879v1_alt, chrX_KI270880v1_alt, chrUn_KI270750v1,
+  chr1_MU273333v1_fix, chr4_ML143349v1_fix, chr5_KV575244v1_fix,
+  chr7_KZ208912v1_fix, chr10_MU273367v1_fix, chr11_KZ559108v1_fix,
+  chr11_MU273371v1_fix, chr15_ML143370v1_fix, chr16_ML143373v1_fix,
+  chr17_KV575245v1_fix, chr17_KV766196v1_fix, chr17_MU273381v1_fix,
+  chr17_MU273383v1_fix, chr19_MU273384v1_fix, chr20_MU273389v1_fix,
+  chrY_MU273398v1_fix, chr1_KQ458384v1_alt, chr2_KQ983256v1_alt,
+  chr4_KV766193v1_alt, chr17_KV766198v1_alt, chr19_KV575259v1_alt, and
+  chr19_MU273387v1_alt. Note that ranges located on a sequence whose
+  length is unknown (NA) or on a circular sequence are not considered
+  out-of-bound (use seqlengths() and isCircular() to get the lengths and
+  circularity flags of the underlying sequences). You can use trim() to
+  trim these ranges. See ?`trim,GenomicRanges-method` for more
+  information.</code></pre>
+<pre class="r"><code>genes_txdb &lt;- genes_txdb %&gt;% data.frame() %&gt;% filter(seqnames == &quot;chr22&quot;) %&gt;% as_granges()
+promoters_txdb &lt;- promoters_txdb %&gt;% data.frame() %&gt;% filter(seqnames == &quot;chr22&quot;) %&gt;% as_granges()</code></pre>
+<pre class="r"><code>just_beta &lt;- just_beta %&gt;% 
+  mutate(row_num = 1:nrow(.),
+         beta_range = case_when(beta &gt;= 0 &amp; beta &lt;= 0.2 ~ &quot;low&quot;, 
+                                beta &gt;= 0.4 &amp; beta &lt;= 0.6 ~ &quot;medium&quot;,
+                                beta &gt;= 0.8 &amp; beta &lt;= 1 ~ &quot;high&quot;,
+                                beta &gt; 0.2 &amp; beta &lt; 0.4 ~ &quot;low_med&quot;,
+                                TRUE ~ &quot;med_high&quot;))
+  
+
+pos_summary_stats &lt;- for_beta %&gt;% 
+  group_by(start, mean_alpha, beta) %&gt;% 
+  summarise(alpha_q1 = quantile(alpha, 0.25),
+            alpha_median = quantile(alpha, 0.5), 
+            alpha_q3 = quantile(alpha, 0.75),
+            alpha_iqr = IQR(alpha)) %&gt;%
+  ungroup()</code></pre>
+<pre><code>`summarise()` has grouped output by &#39;start&#39;, &#39;mean_alpha&#39;. You can override
+using the `.groups` argument.</code></pre>
+<pre class="r"><code>just_beta &lt;- cbind(just_beta, pos_summary_stats[,4:7])
+just_beta$seqnames &lt;- &quot;chr22&quot;
+just_beta$width &lt;- 1
+just_beta$position &lt;- paste0(just_beta$seqnames, &quot;-&quot;, just_beta$start)</code></pre>
+<pre class="r"><code>beta_overlap_genes &lt;- find_overlaps(genes_txdb, as_granges(just_beta)) %&gt;% data.frame()
+beta_overlap_prom &lt;- find_overlaps(promoters_txdb, as_granges(just_beta)) %&gt;% data.frame()</code></pre>
+<pre class="r"><code>just_beta %&gt;% mutate(pos_in_gene = ifelse(position %in% beta_overlap_genes$position, TRUE, FALSE)) %&gt;%
+  ggplot(aes(x = pos_in_gene, y = beta)) +
+  geom_boxplot()</code></pre>
+<p><img src="figure/biologicalFeatures.Rmd/unnamed-chunk-8-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>just_beta %&gt;% mutate(pos_in_prom = ifelse(position %in% beta_overlap_prom$position, TRUE, FALSE)) %&gt;%
+  ggplot(aes(x = pos_in_prom, y = beta)) +
+  geom_boxplot()</code></pre>
+<p><img src="figure/biologicalFeatures.Rmd/unnamed-chunk-8-2.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>just_beta &lt;- just_beta %&gt;% 
+  mutate(pos_in_gene = ifelse(position %in% beta_overlap_genes$position, TRUE, FALSE),
+         pos_in_prom = ifelse(position %in% beta_overlap_prom$position, TRUE, FALSE))</code></pre>
+</div>
+<div id="continue-with-promoter-plots" class="section level1">
+<h1>continue with promoter plots</h1>
+<pre class="r"><code>just_beta[1:10,]</code></pre>
+<pre><code>         start      beta coverage mean_alpha row_num beta_range alpha_q1
+3708  10571812 0.5294118       34  0.4705882       1     medium        0
+3709  10571818 0.5000000       34  0.4705882       2     medium        0
+3710  10571820 0.5000000       34  0.4705882       3     medium        0
+3711  10571832 0.4411765       34  0.4705882       4     medium        0
+3712  10571835 0.5000000       34  0.4705882       5     medium        0
+3713  10571837 0.3636364       33  0.4848485       6    low_med        0
+26720 10699497 0.0000000        1  0.0000000       7        low        0
+26721 10699502 0.0000000        1  0.0000000       8        low        0
+26722 10699516 0.0000000        1  0.0000000       9        low        0
+26723 10699519 0.0000000        1  0.0000000      10        low        0
+      alpha_median alpha_q3 alpha_iqr seqnames width       position pos_in_gene
+3708     0.4166667        1         1    chr22     1 chr22-10571812       FALSE
+3709     0.4166667        1         1    chr22     1 chr22-10571818       FALSE
+3710     0.4166667        1         1    chr22     1 chr22-10571820       FALSE
+3711     0.4166667        1         1    chr22     1 chr22-10571832       FALSE
+3712     0.4166667        1         1    chr22     1 chr22-10571835       FALSE
+3713     0.6666667        1         1    chr22     1 chr22-10571837       FALSE
+26720    0.0000000        0         0    chr22     1 chr22-10699497       FALSE
+26721    0.0000000        0         0    chr22     1 chr22-10699502       FALSE
+26722    0.0000000        0         0    chr22     1 chr22-10699516       FALSE
+26723    0.0000000        0         0    chr22     1 chr22-10699519       FALSE
+      pos_in_prom
+3708        FALSE
+3709        FALSE
+3710        FALSE
+3711        FALSE
+3712        FALSE
+3713        FALSE
+26720       FALSE
+26721       FALSE
+26722       FALSE
+26723       FALSE</code></pre>
+<pre class="r"><code>just_beta %&gt;%
+  ggplot(aes(x = beta, colour = pos_in_prom)) +
+  geom_density()</code></pre>
+<p><img src="figure/biologicalFeatures.Rmd/unnamed-chunk-11-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>just_beta %&gt;%
+  ggplot(aes(x =mean_alpha, colour = pos_in_prom)) +
+  geom_density()</code></pre>
+<p><img src="figure/biologicalFeatures.Rmd/unnamed-chunk-11-2.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>just_beta %&gt;%
+  ggplot(aes(x = alpha_iqr, colour = pos_in_prom)) +
+  geom_density()</code></pre>
+<p><img src="figure/biologicalFeatures.Rmd/unnamed-chunk-11-3.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>just_beta %&gt;%
+  ggplot(aes(x = pos_in_prom, y = mean_alpha)) +
+  geom_boxplot()</code></pre>
+<p><img src="figure/biologicalFeatures.Rmd/unnamed-chunk-12-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>just_beta %&gt;%
+  ggplot(aes(x = pos_in_prom, y = log2(alpha_iqr))) +
+  geom_boxplot()</code></pre>
+<pre><code>Warning: Removed 26421 rows containing non-finite outside the scale range
+(`stat_boxplot()`).</code></pre>
+<p><img src="figure/biologicalFeatures.Rmd/unnamed-chunk-13-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>just_beta %&gt;%
+  ggplot(aes(x = start, ymin = alpha_q1, ymax = alpha_q3, fill = pos_in_prom)) +
+  geom_ribbon()</code></pre>
+<p><img src="figure/biologicalFeatures.Rmd/unnamed-chunk-14-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>just_beta[1:1000,] %&gt;%
+  ggplot(aes(x = start, ymin = alpha_q1, ymax = alpha_q3, fill = pos_in_prom)) +
+  geom_ribbon()</code></pre>
+<p><img src="figure/biologicalFeatures.Rmd/unnamed-chunk-14-2.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>just_beta[1:1000,] %&gt;%
+  ggplot(aes(x = start, ymin = alpha_q1, ymax = alpha_q3, fill = pos_in_prom)) +
+  geom_ribbon() +
+  geom_point(aes(x = start, y = beta), shape = 4, size = 3) #betas</code></pre>
+<p><img src="figure/biologicalFeatures.Rmd/unnamed-chunk-14-3.png" width="672" style="display: block; margin: auto;" /></p>
+<ul>
+<li>meth level and pos in prom</li>
+<li>both categorical so chi-square</li>
+</ul>
+<pre class="r"><code>for_chi &lt;- just_beta %&gt;% group_by(beta_range, pos_in_prom) %&gt;%
+  summarise(count = n()) %&gt;% ungroup() %&gt;% group_by(beta_range) %&gt;%
+  mutate(pos_prom_false = ifelse(pos_in_prom == FALSE, count, lag(count)),
+         pos_prom_true = ifelse(pos_in_prom == TRUE, count, lead(count))) %&gt;% ungroup() </code></pre>
+<pre><code>`summarise()` has grouped output by &#39;beta_range&#39;. You can override using the
+`.groups` argument.</code></pre>
+<pre class="r"><code>for_chi &lt;- for_chi[,c(1,4,5)]
+for_chi &lt;- distinct(for_chi)
+rownames(for_chi) &lt;- for_chi$beta_range</code></pre>
+<pre><code>Warning: Setting row names on a tibble is deprecated.</code></pre>
+<pre class="r"><code>chisq.test(as.matrix(for_chi[,2:3]))</code></pre>
+<pre><code>
+    Pearson&#39;s Chi-squared test
+
+data:  as.matrix(for_chi[, 2:3])
+X-squared = 4305.1, df = 4, p-value &lt; 2.2e-16</code></pre>
+<br>
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-sessioninfo" data-toggle="collapse" data-target="#workflowr-sessioninfo" style="display: block;">
+<span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
+Session information
+</button>
+</p>
+<div id="workflowr-sessioninfo" class="collapse">
+<pre class="r"><code>sessionInfo()</code></pre>
+<pre><code>R version 4.4.2 (2024-10-31)
+Platform: aarch64-apple-darwin20
+Running under: macOS Sequoia 15.2
+
+Matrix products: default
+BLAS:   /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/lib/libRblas.0.dylib 
+LAPACK: /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.12.0
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+time zone: Australia/Melbourne
+tzcode source: internal
+
+attached base packages:
+[1] stats4    stats     graphics  grDevices utils     datasets  methods  
+[8] base     
+
+other attached packages:
+ [1] ggplot2_3.5.2                           
+ [2] dplyr_1.1.4                             
+ [3] stringr_1.5.1                           
+ [4] tidyr_1.3.1                             
+ [5] plyranges_1.26.0                        
+ [6] data.table_1.17.4                       
+ [7] TxDb.Hsapiens.UCSC.hg38.knownGene_3.20.0
+ [8] GenomicFeatures_1.58.0                  
+ [9] AnnotationDbi_1.68.0                    
+[10] Biobase_2.66.0                          
+[11] BSgenome.Hsapiens.UCSC.hg38_1.4.5       
+[12] BSgenome_1.74.0                         
+[13] rtracklayer_1.66.0                      
+[14] BiocIO_1.16.0                           
+[15] Biostrings_2.74.1                       
+[16] XVector_0.46.0                          
+[17] GenomicRanges_1.58.0                    
+[18] GenomeInfoDb_1.42.3                     
+[19] IRanges_2.40.1                          
+[20] S4Vectors_0.44.0                        
+[21] BiocGenerics_0.52.0                     
+
+loaded via a namespace (and not attached):
+ [1] tidyselect_1.2.1            farver_2.1.2               
+ [3] blob_1.2.4                  bitops_1.0-9               
+ [5] fastmap_1.2.0               RCurl_1.98-1.17            
+ [7] GenomicAlignments_1.42.0    promises_1.3.3             
+ [9] XML_3.99-0.18               digest_0.6.37              
+[11] lifecycle_1.0.4             KEGGREST_1.46.0            
+[13] RSQLite_2.4.0               magrittr_2.0.3             
+[15] compiler_4.4.2              rlang_1.1.6                
+[17] sass_0.4.10                 tools_4.4.2                
+[19] yaml_2.3.10                 knitr_1.50                 
+[21] labeling_0.4.3              S4Arrays_1.6.0             
+[23] bit_4.6.0                   curl_6.2.3                 
+[25] DelayedArray_0.32.0         RColorBrewer_1.1-3         
+[27] abind_1.4-8                 BiocParallel_1.40.2        
+[29] withr_3.0.2                 purrr_1.0.4                
+[31] workflowr_1.7.1             grid_4.4.2                 
+[33] git2r_0.36.2                scales_1.4.0               
+[35] SummarizedExperiment_1.36.0 cli_3.6.5                  
+[37] rmarkdown_2.29              crayon_1.5.3               
+[39] generics_0.1.4              rstudioapi_0.17.1          
+[41] httr_1.4.7                  rjson_0.2.23               
+[43] DBI_1.2.3                   cachem_1.1.0               
+[45] zlibbioc_1.52.0             parallel_4.4.2             
+[47] restfulr_0.0.15             matrixStats_1.5.0          
+[49] vctrs_0.6.5                 Matrix_1.7-1               
+[51] jsonlite_2.0.0              bit64_4.6.0-1              
+[53] jquerylib_0.1.4             glue_1.8.0                 
+[55] codetools_0.2-20            gtable_0.3.6               
+[57] stringi_1.8.7               later_1.4.2                
+[59] UCSC.utils_1.2.0            tibble_3.2.1               
+[61] pillar_1.10.2               htmltools_0.5.8.1          
+[63] GenomeInfoDbData_1.2.13     R6_2.6.1                   
+[65] rprojroot_2.0.4             evaluate_1.0.3             
+[67] lattice_0.22-6              png_0.1-8                  
+[69] Rsamtools_2.22.0            memoise_2.0.1              
+[71] httpuv_1.6.16               bslib_0.9.0                
+[73] Rcpp_1.0.14                 SparseArray_1.6.2          
+[75] whisker_0.4.1               xfun_0.52                  
+[77] fs_1.6.6                    MatrixGenerics_1.18.1      
+[79] pkgconfig_2.0.3            </code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+
+<!-- Adjust MathJax settings so that all math formulae are shown using
+TeX fonts only; see
+https://docs.mathjax.org/en/latest/web/configuration.html. This will make
+the presentation more consistent at the cost of the webpage sometimes
+taking slightly longer to load. Note that this only works because the
+footer is added to webpages before the MathJax javascript. -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    "HTML-CSS": { availableFonts: ["TeX"] }
+  });
+</script>
+
+
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+
+<script>
+$(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
