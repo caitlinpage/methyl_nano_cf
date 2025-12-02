@@ -1,0 +1,177 @@
+---
+title: "IQRVisualise"
+author: "Caitlin Page"
+date: "2025-12-02"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+## Packages
+
+```{r}
+library(BSgenome.Hsapiens.UCSC.hg38)
+library(data.table)
+library(plyranges)
+library(tidyr)
+library(stringr)
+library(dplyr)
+library(ggplot2)
+```
+
+## Data Objects
+```{r}
+cg_sites <- cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38[["chr22"]])), seqnames = "chr22") %>% 
+  mutate(pos = paste0(seqnames, "-", start)) %>%
+  relocate(pos, seqnames)
+cg_sites$index <- 1:nrow(cg_sites)
+```
+
+
+```{r}
+source("../code/processData.R")
+
+for_beta <- readRDS("../output/cluster_files/rrbs_alpha_beta.rds")
+for_beta <- for_beta %>% filter(seqnames == "chr22")
+rrbs_for_beta_pat <- pat_for_wgbs(for_beta)
+
+for_beta <- for_beta %>% group_by(start) %>% mutate(coverage = n()) %>% ungroup() %>% data.frame()
+just_beta <- for_beta %>% distinct(start, beta, coverage) %>% .[order(.$start),]
+
+```
+
+
+# Calculate spread of data
+
+
+```{r}
+for_beta %>% 
+  group_by(start) %>% 
+  summarise(alpha_iqr = IQR(alpha)) %>%
+  ggplot(aes(x = alpha_iqr)) +
+  geom_density()
+```
+
+```{r}
+for_beta <- for_beta %>% 
+  group_by(start) %>% 
+  mutate(mean_alpha = mean(alpha)) %>%
+  ungroup() %>% 
+  data.frame()
+```
+
+
+```{r}
+for_beta %>% 
+  group_by(start, mean_alpha) %>% 
+  summarise(alpha_iqr = IQR(alpha)) %>%
+  ggplot(aes(x = alpha_iqr, y = mean_alpha)) +
+  geom_point(alpha = 0.3)
+
+for_beta %>% 
+  group_by(start, beta) %>% 
+  summarise(alpha_iqr = IQR(alpha)) %>%
+  ggplot(aes(x = alpha_iqr, y = beta)) +
+  geom_point(alpha = 0.3)
+```
+
+
+```{r}
+pos_summary_stats <- for_beta %>% 
+  group_by(start, mean_alpha, beta) %>% 
+  summarise(alpha_q1 = quantile(alpha, 0.25),
+            alpha_median = quantile(alpha, 0.5), 
+            alpha_q3 = quantile(alpha, 0.75),
+            alpha_iqr = IQR(alpha)) %>%
+  ungroup()
+pos_summary_stats[1:10,]
+```
+```{r}
+just_beta[1:6,]
+```
+
+```{r}
+source("../code/processData.R")
+# medium meth region from mp1
+rrbs_plot(for_beta, for_beta %>% filter(start %in% just_beta[1:6,]$start) %>% .$read_id %>% unique()) +
+  geom_ribbon(data = pos_summary_stats[1:6,], 
+              aes(x = start, ymin = alpha_q1, ymax = alpha_q3),
+              alpha = 0.2, fill = "yellow") +
+  geom_line(data = pos_summary_stats[1:6,],
+            aes(x = start, y = alpha_q1), colour = "yellow") +
+  geom_line(data = pos_summary_stats[1:6,],
+            aes(x = start, y = alpha_q3), colour = "yellow")
+
+rrbs_plot(for_beta, for_beta %>% filter(start %in% just_beta[12:16,]$start) %>% .$read_id %>% unique()) +
+  geom_ribbon(data = pos_summary_stats[12:16,], 
+              aes(x = start, ymin = alpha_q1, ymax = alpha_q3),
+              alpha = 0.2, fill = "yellow") +
+  geom_line(data = pos_summary_stats[12:16,],
+            aes(x = start, y = alpha_q1), colour = "yellow") +
+  geom_line(data = pos_summary_stats[12:16,],
+            aes(x = start, y = alpha_q3), colour = "yellow")
+
+# high meth region from mp2
+#iqr is 0 here
+rrbs_plot(for_beta, for_beta %>% filter(start %in% just_beta[28:32,]$start) %>% .$read_id %>% unique()) +
+  geom_ribbon(data = pos_summary_stats[28:32,], 
+              aes(x = start, ymin = alpha_q1, ymax = alpha_q3),
+              alpha = 0.2, fill = "yellow") +
+  geom_line(data = pos_summary_stats[28:32,],
+            aes(x = start, y = alpha_q1), colour = "yellow") +
+  geom_line(data = pos_summary_stats[28:32,],
+            aes(x = start, y = alpha_q3), colour = "yellow")
+```
+
+
+```{r}
+pos_summary_stats %>%
+  ggplot(aes(x = start, ymin = alpha_q1, ymax = alpha_q3)) +
+  geom_ribbon()
+
+pos_summary_stats[1:1000,] %>%
+  ggplot(aes(x = start, ymin = alpha_q1, ymax = alpha_q3)) +
+  geom_ribbon()
+```
+
+```{r}
+cor.test(pos_summary_stats$beta, pos_summary_stats$alpha_iqr)
+cor.test(pos_summary_stats$mean_alpha, pos_summary_stats$alpha_iqr)
+cor.test(pos_summary_stats$beta, pos_summary_stats$mean_alpha)
+```
+
+# what is IQR when beta = 0.5 / beta is medium??
+
+```{r}
+just_beta <- just_beta %>% 
+  mutate(row_num = 1:nrow(.),
+         beta_range = case_when(beta >= 0 & beta <= 0.2 ~ "low", 
+                                beta >= 0.4 & beta <= 0.6 ~ "medium",
+                                beta >= 0.8 & beta <= 1 ~ "high",
+                                beta > 0.2 & beta < 0.4 ~ "low_med",
+                                TRUE ~ "med_high"))
+  
+
+pos_summary_stats <- for_beta %>% 
+  group_by(start, mean_alpha, beta) %>% 
+  summarise(alpha_q1 = quantile(alpha, 0.25),
+            alpha_median = quantile(alpha, 0.5), 
+            alpha_q3 = quantile(alpha, 0.75),
+            alpha_iqr = IQR(alpha)) %>%
+  ungroup()
+just_beta <- cbind(just_beta, pos_summary_stats[,4:7])
+```
+
+
+```{r}
+just_beta %>%
+  ggplot(aes(x = beta_range, y = alpha_iqr)) +
+  geom_boxplot()
+```
+
+```{r}
+just_beta %>%
+  ggplot(aes(x = alpha_iqr, colour = beta_range)) +
+  geom_density()
+```
+

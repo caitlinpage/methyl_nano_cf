@@ -43,10 +43,15 @@ Welcome to my research website.
 # how do I get beta values? - the problem
 
 [trying to plot alpha and beta together](plotAlphaAndBeta.html)
+
 * discovered a problem - expanded on in next 2
+
 [something weird happening with alpha and beta - mostly beta](checkAlphaAndBetaMatch.html)
+
 * most obvious example was chr22"18895995
+
 * my indiv reads: 2 reads: 1 meth, 1 unmeth - so beta should be 0.5
+
 * but in bedgraph file from paper: beta = 1
 
 * I think I overcomplicated this
@@ -60,9 +65,11 @@ Welcome to my research website.
 [how I'm getting the beta values](bedFileBetas.html)
 
 [How I'm going to join alpha and beta together](joinAlphaAndBeta.html)
+
 * this is going to be the fixed neat version
 
 ## want to do stuff about methylation patterns - like the pat file
+
 * but also about things like comethylation, epialleles, haplotypes
 * all those kinds of metrics
 
@@ -81,6 +88,13 @@ Welcome to my research website.
 
 [low methylation](mp3_betaGroupsLowBeta.html)
 
+
+
+[correlation of Alphas](correlationOfAlphas.html)
+
+[plot with IQR](IQRVisualise.html)
+
+[annotate to genes/promoters](biologicalFeatures.html)
 
 * files/analysis to do
 * genomic context: where are the patterns

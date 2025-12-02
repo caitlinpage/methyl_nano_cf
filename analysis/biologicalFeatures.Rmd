@@ -1,0 +1,166 @@
+---
+title: "biologicalFeatures"
+author: "Caitlin Page"
+date: "2025-12-02"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+## Packages
+
+```{r}
+library(BSgenome.Hsapiens.UCSC.hg38)
+library(TxDb.Hsapiens.UCSC.hg38.knownGene)
+library(data.table)
+library(plyranges)
+library(tidyr)
+library(stringr)
+library(dplyr)
+library(ggplot2)
+```
+
+## Data Objects
+```{r}
+cg_sites <- cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38[["chr22"]])), seqnames = "chr22") %>% 
+  mutate(pos = paste0(seqnames, "-", start)) %>%
+  relocate(pos, seqnames)
+cg_sites$index <- 1:nrow(cg_sites)
+```
+
+
+```{r}
+source("../code/processData.R")
+
+for_beta <- readRDS("../output/cluster_files/rrbs_alpha_beta.rds")
+for_beta <- for_beta %>% filter(seqnames == "chr22")
+rrbs_for_beta_pat <- pat_for_wgbs(for_beta)
+
+for_beta <- for_beta %>% group_by(start) %>% mutate(coverage = n(), mean_alpha = mean(alpha)) %>% ungroup() %>% data.frame()
+just_beta <- for_beta %>% distinct(start, beta, coverage, mean_alpha) %>% .[order(.$start),]
+
+```
+
+```{r}
+txdb <- TxDb.Hsapiens.UCSC.hg38.knownGene
+genes_txdb <- genes(txdb)
+promoters_txdb <- promoters(txdb)
+```
+```{r}
+genes_txdb <- genes_txdb %>% data.frame() %>% filter(seqnames == "chr22") %>% as_granges()
+promoters_txdb <- promoters_txdb %>% data.frame() %>% filter(seqnames == "chr22") %>% as_granges()
+```
+
+```{r}
+just_beta <- just_beta %>% 
+  mutate(row_num = 1:nrow(.),
+         beta_range = case_when(beta >= 0 & beta <= 0.2 ~ "low", 
+                                beta >= 0.4 & beta <= 0.6 ~ "medium",
+                                beta >= 0.8 & beta <= 1 ~ "high",
+                                beta > 0.2 & beta < 0.4 ~ "low_med",
+                                TRUE ~ "med_high"))
+  
+
+pos_summary_stats <- for_beta %>% 
+  group_by(start, mean_alpha, beta) %>% 
+  summarise(alpha_q1 = quantile(alpha, 0.25),
+            alpha_median = quantile(alpha, 0.5), 
+            alpha_q3 = quantile(alpha, 0.75),
+            alpha_iqr = IQR(alpha)) %>%
+  ungroup()
+just_beta <- cbind(just_beta, pos_summary_stats[,4:7])
+just_beta$seqnames <- "chr22"
+just_beta$width <- 1
+just_beta$position <- paste0(just_beta$seqnames, "-", just_beta$start)
+```
+
+```{r}
+beta_overlap_genes <- find_overlaps(genes_txdb, as_granges(just_beta)) %>% data.frame()
+beta_overlap_prom <- find_overlaps(promoters_txdb, as_granges(just_beta)) %>% data.frame()
+```
+
+```{r}
+just_beta %>% mutate(pos_in_gene = ifelse(position %in% beta_overlap_genes$position, TRUE, FALSE)) %>%
+  ggplot(aes(x = pos_in_gene, y = beta)) +
+  geom_boxplot()
+
+just_beta %>% mutate(pos_in_prom = ifelse(position %in% beta_overlap_prom$position, TRUE, FALSE)) %>%
+  ggplot(aes(x = pos_in_prom, y = beta)) +
+  geom_boxplot()
+```
+```{r}
+just_beta <- just_beta %>% 
+  mutate(pos_in_gene = ifelse(position %in% beta_overlap_genes$position, TRUE, FALSE),
+         pos_in_prom = ifelse(position %in% beta_overlap_prom$position, TRUE, FALSE))
+```
+
+
+# continue with promoter plots
+
+```{r}
+just_beta[1:10,]
+```
+
+```{r}
+just_beta %>%
+  ggplot(aes(x = beta, colour = pos_in_prom)) +
+  geom_density()
+
+just_beta %>%
+  ggplot(aes(x =mean_alpha, colour = pos_in_prom)) +
+  geom_density()
+
+just_beta %>%
+  ggplot(aes(x = alpha_iqr, colour = pos_in_prom)) +
+  geom_density()
+```
+
+
+```{r}
+just_beta %>%
+  ggplot(aes(x = pos_in_prom, y = mean_alpha)) +
+  geom_boxplot()
+```
+
+```{r}
+just_beta %>%
+  ggplot(aes(x = pos_in_prom, y = log2(alpha_iqr))) +
+  geom_boxplot()
+```
+
+
+```{r}
+just_beta %>%
+  ggplot(aes(x = start, ymin = alpha_q1, ymax = alpha_q3, fill = pos_in_prom)) +
+  geom_ribbon()
+
+
+just_beta[1:1000,] %>%
+  ggplot(aes(x = start, ymin = alpha_q1, ymax = alpha_q3, fill = pos_in_prom)) +
+  geom_ribbon()
+
+just_beta[1:1000,] %>%
+  ggplot(aes(x = start, ymin = alpha_q1, ymax = alpha_q3, fill = pos_in_prom)) +
+  geom_ribbon() +
+  geom_point(aes(x = start, y = beta), shape = 4, size = 3) #betas
+```
+
+* meth level and pos in prom
+* both categorical so chi-square
+```{r}
+for_chi <- just_beta %>% group_by(beta_range, pos_in_prom) %>%
+  summarise(count = n()) %>% ungroup() %>% group_by(beta_range) %>%
+  mutate(pos_prom_false = ifelse(pos_in_prom == FALSE, count, lag(count)),
+         pos_prom_true = ifelse(pos_in_prom == TRUE, count, lead(count))) %>% ungroup() 
+for_chi <- for_chi[,c(1,4,5)]
+for_chi <- distinct(for_chi)
+rownames(for_chi) <- for_chi$beta_range
+chisq.test(as.matrix(for_chi[,2:3]))
+```
+
+
+
+
+
+
+
