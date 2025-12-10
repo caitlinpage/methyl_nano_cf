@@ -85,6 +85,8 @@ Welcome to my research website.
 * start these files with prefix mp (for meth pattern)
 
 [initial analysis (some copied from alphaAnalysis)](mp1_methPattern.html)
+* developed function to identify region with similar beta values
+* region is then extracted and alpha values are plotted
 
 [medium methylation](mp2_betaGroups.html)
 
@@ -100,6 +102,8 @@ LEARNINGS:
 IMPLICATIONS:
 * ???? - maybe different cell types??
 
+[distance between cpgs and meth status]
+* Peter Hickey's thesis chapter 7
 
 [plot with IQR of alpha](IQRVisualise.html)
 GOAL:
@@ -111,9 +115,25 @@ LEARNINGS
 * IQR is metric for middle spread of data, might need more than that
 
 [annotate to genes/promoters](biologicalFeatures.html)
+GOAL:
+* what is alpha and beta in different biological features
 LEARNINGS:
 * Plotting IQR still looks bad haha
 * Distribution of beta much lower in sites overlapping promoters (rrbs)
+* Meth pattern does not consistently change at promoter boundary when read overlaps promoter and non promoter (rrbs)
+
+* just like promoters will have different methylation profile to intergenic regions
+* so will CpG islands to intergenic regions
+
+[annotate to CpG features](cpgFeatures.html)
+* conduct similar analysis to that in biologicalFeatures.html 
+
+#
+
+* idk what im doing
+
+[whole genome analysis of RRBS data](wholeGenomeRrbs.html)
+* can't do yet - full chromosomes on cluster, not local
 
 ## Ideas of files
 
