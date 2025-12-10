@@ -160,7 +160,6 @@ chisq.test(as.matrix(for_chi[,2:3]))
 
 
 ```{r}
-for_chi
 just_beta %>% group_by(beta_range, pos_in_prom) %>%
   summarise(count = n()) %>% ungroup() %>%
   ggplot(aes(x = beta_range, colour = pos_in_prom, y = count)) +
@@ -201,7 +200,7 @@ for_beta %>% mutate(position = paste0(seqnames, "-", start),
   mutate(prop_prom = n/sum(n)) %>%
   ungroup() %>%
   group_by(meth_pattern) %>%
-  mutate(prop_pattern = n/sum(n))
+  mutate(prop_pattern = n/sum(n)) %>% .[1:10,]
 ```
 
 ```{r}
@@ -265,13 +264,14 @@ for_beta %>% mutate(position = paste0(seqnames, "-", start),
   geom_violin()
 ```
 
-
 ```{r}
 for_beta %>% mutate(position = paste0(seqnames, "-", start),
                     read_in_prom = ifelse(position %in% beta_overlap_prom$position, TRUE, FALSE)) %>%
   filter(!read_id %in% reads_both) %>%
   distinct(read_id, alpha, meth_pattern, read_in_prom) %>%
-  filter(meth_pattern %in% top_patterns[1:10,]$meth_pattern) %>%
+  filter(meth_pattern %in% top_patterns[1:10,]$meth_pattern) %>% 
+  group_by(meth_pattern) %>%
+  mutate(pattern_count = n()) %>%
   ggplot(aes(fill = read_in_prom, x = meth_pattern, y = pattern_count)) +
   geom_bar(position = "fill", stat = "identity")
 ```
@@ -303,11 +303,6 @@ reads_both <- for_beta %>% mutate(position = paste0(seqnames, "-", start),
 length(reads_both)
 ```
 
-
-```{r}
-for_beta
-reads_both
-```
 
 ```{r}
 for_beta %>% mutate(position = paste0(seqnames, "-", start),
@@ -407,7 +402,7 @@ for_beta %>% mutate(position = paste0(seqnames, "-", start),
          prom_change = ifelse(pos_in_prom != lag(pos_in_prom), cpg_index_in_read, NA),
          change_same_time = ifelse(meth_change == prom_change, TRUE, FALSE),
          change_same_time = ifelse(is.na(change_same_time), FALSE, change_same_time)) %>%
-  ungroup()
+  ungroup() %>% .[1:10,]
 
 for_beta %>% mutate(position = paste0(seqnames, "-", start),
                     pos_in_prom = ifelse(position %in% beta_overlap_prom$position, TRUE, FALSE),
@@ -428,7 +423,7 @@ for_beta %>% mutate(position = paste0(seqnames, "-", start),
          change_same_time = ifelse(is.na(change_same_time), FALSE, change_same_time)) %>%
   ungroup() %>%
   group_by(read_id, pos_in_prom, meth_status) %>%
-  summarise(n=n())
+  summarise(n=n()) %>% .[1:10,]
 ```
 
 
@@ -466,7 +461,7 @@ for_beta %>% mutate(position = paste0(seqnames, "-", start),
          prom_change = ifelse(pos_in_prom != lag(pos_in_prom), cpg_index_in_read, NA),
          change_same_time = ifelse(meth_change == prom_change, TRUE, FALSE),
          change_same_time = ifelse(is.na(change_same_time), FALSE, change_same_time)) %>%
-  ungroup()
+  ungroup() %>% .[1:10,]
 ```
 * think I want to group by read id, pos_prom, and meth_status and just see how consistent they are within groups
 
