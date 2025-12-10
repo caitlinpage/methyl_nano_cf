@@ -61,6 +61,32 @@ annotations %>%
 ```
 
 ```{r}
-find_overlaps(as_granges(for_beta), as_granges(annotations)) %>% data.frame()
+find_overlaps(as_granges(for_beta), as_granges(annotations)) %>% data.frame() %>%
+  distinct(read_id, alpha, type) %>%
+  group_by(read_id) %>%
+  mutate(num_feat_read = n()) %>% 
+  filter(num_feat_read == 1) %>%
+  ggplot(aes(x = type, y = alpha, fill = type)) +
+  geom_boxplot() +
+  theme(legend.position = "none")
+
+find_overlaps(as_granges(for_beta), as_granges(annotations)) %>% data.frame() %>%
+  distinct(read_id, alpha, type) %>%
+  group_by(read_id) %>%
+  mutate(num_feat_read = n()) %>% 
+  filter(num_feat_read == 1) %>%
+  ggplot(aes(x = type, y = alpha, fill = type)) +
+  geom_violin() +
+  theme(legend.position = "none")
+```
+
+```{r}
+find_overlaps(as_granges(for_beta), as_granges(annotations)) %>% data.frame() %>%
+  distinct(read_id, alpha, type) %>%
+  group_by(read_id) %>%
+  mutate(num_feat_read = n()) %>% 
+  filter(num_feat_read == 1) %>%
+  ggplot(aes(x = alpha, colour = type)) +
+  geom_density() 
 ```
 
