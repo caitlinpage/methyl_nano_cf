@@ -61,4 +61,7 @@ for_beta <- for_beta %>% filter(seqnames == "chr22")
 rrbs_for_beta_pat <- pat_for_wgbs(for_beta)
 ```
 
+```{r}
+readRDS("../output/cluster_files/rrbs_alpha_beta.rds")
+```
 
