@@ -159,8 +159,415 @@ chisq.test(as.matrix(for_chi[,2:3]))
 ```
 
 
+```{r}
+for_chi
+just_beta %>% group_by(beta_range, pos_in_prom) %>%
+  summarise(count = n()) %>% ungroup() %>%
+  ggplot(aes(x = beta_range, colour = pos_in_prom, y = count)) +
+  geom_point() +
+  geom_line()
+```
 
 
 
+# what meth patterns are in promoters?
 
+```{r}
+reads_both <- for_beta %>% mutate(position = paste0(seqnames, "-", start),
+                    pos_in_prom = ifelse(position %in% beta_overlap_prom$position, TRUE, FALSE)) %>% 
+  group_by(read_id, pos_in_prom) %>%
+  summarise(n=n()) %>%
+  ungroup() %>%
+  group_by(read_id) %>%
+  mutate(count = 1:n()) %>%
+  filter(count>1) %>% .$read_id
+length(reads_both)
+```
+
+* 1207 reads that span promoters and non promoters
+```{r}
+for_beta$read_id %in% reads_both %>% summary()
+```
+
+```{r}
+for_beta %>% mutate(position = paste0(seqnames, "-", start),
+                    pos_in_prom = ifelse(position %in% beta_overlap_prom$position, TRUE, FALSE)) %>%
+  filter(!read_id %in% reads_both) %>%
+  distinct(read_id, alpha, meth_pattern, pos_in_prom) %>%
+  group_by(pos_in_prom, meth_pattern, alpha) %>%
+  summarise(n=n()) %>%
+  ungroup() %>%
+  group_by(pos_in_prom) %>%
+  mutate(prop_prom = n/sum(n)) %>%
+  ungroup() %>%
+  group_by(meth_pattern) %>%
+  mutate(prop_pattern = n/sum(n))
+```
+
+```{r}
+top_patterns <- for_beta %>% mutate(position = paste0(seqnames, "-", start),
+                    pos_in_prom = ifelse(position %in% beta_overlap_prom$position, TRUE, FALSE)) %>%
+  filter(!read_id %in% reads_both) %>%
+  distinct(read_id, alpha, meth_pattern, pos_in_prom, total) %>%
+  group_by(meth_pattern, total) %>%
+  summarise(pattern_count = n()) %>%
+  .[order(.$pattern_count, decreasing = TRUE),] %>%
+  ungroup() %>%
+  data.frame()
+top_patterns[1:10,]
+```
+
+* all cpgs in read have same status - in promoter or not - filtering out the both
+```{r}
+for_beta %>% mutate(position = paste0(seqnames, "-", start),
+                    read_in_prom = ifelse(position %in% beta_overlap_prom$position, TRUE, FALSE)) %>%
+  filter(!read_id %in% reads_both) %>%
+  distinct(read_id, alpha, meth_pattern, read_in_prom) %>%
+  ggplot(aes(x = alpha, colour = read_in_prom)) +
+  geom_density()
+
+for_beta %>% mutate(position = paste0(seqnames, "-", start),
+                    read_in_prom = ifelse(position %in% beta_overlap_prom$position, TRUE, FALSE)) %>%
+  filter(!read_id %in% reads_both) %>%
+  distinct(read_id, alpha, meth_pattern, read_in_prom) %>%
+  ggplot(aes(x = read_in_prom, y = alpha, fill = read_in_prom)) +
+  geom_boxplot()
+
+for_beta %>% mutate(position = paste0(seqnames, "-", start),
+                    read_in_prom = ifelse(position %in% beta_overlap_prom$position, TRUE, FALSE)) %>%
+  filter(!read_id %in% reads_both) %>%
+  distinct(read_id, alpha, meth_pattern, read_in_prom) %>%
+  ggplot(aes(x = read_in_prom, y = alpha, fill = read_in_prom)) +
+  geom_violin()
+```
+
+* min 3 cpgs on read
+```{r}
+for_beta %>% mutate(position = paste0(seqnames, "-", start),
+                    read_in_prom = ifelse(position %in% beta_overlap_prom$position, TRUE, FALSE)) %>%
+  filter(!read_id %in% reads_both, total > 2) %>%
+  distinct(read_id, alpha, meth_pattern, read_in_prom) %>%
+  ggplot(aes(x = alpha, colour = read_in_prom)) +
+  geom_density()
+
+for_beta %>% mutate(position = paste0(seqnames, "-", start),
+                    read_in_prom = ifelse(position %in% beta_overlap_prom$position, TRUE, FALSE)) %>%
+  filter(!read_id %in% reads_both, total > 2) %>%
+  distinct(read_id, alpha, meth_pattern, read_in_prom) %>%
+  ggplot(aes(x = read_in_prom, y = alpha, fill = read_in_prom)) +
+  geom_boxplot()
+
+for_beta %>% mutate(position = paste0(seqnames, "-", start),
+                    read_in_prom = ifelse(position %in% beta_overlap_prom$position, TRUE, FALSE)) %>%
+  filter(!read_id %in% reads_both, total > 2) %>%
+  distinct(read_id, alpha, meth_pattern, read_in_prom) %>%
+  ggplot(aes(x = read_in_prom, y = alpha, fill = read_in_prom)) +
+  geom_violin()
+```
+
+
+```{r}
+for_beta %>% mutate(position = paste0(seqnames, "-", start),
+                    read_in_prom = ifelse(position %in% beta_overlap_prom$position, TRUE, FALSE)) %>%
+  filter(!read_id %in% reads_both) %>%
+  distinct(read_id, alpha, meth_pattern, read_in_prom) %>%
+  filter(meth_pattern %in% top_patterns[1:10,]$meth_pattern) %>%
+  ggplot(aes(fill = read_in_prom, x = meth_pattern, y = pattern_count)) +
+  geom_bar(position = "fill", stat = "identity")
+```
+
+```{r}
+for_beta %>% mutate(position = paste0(seqnames, "-", start),
+                    read_in_prom = ifelse(position %in% beta_overlap_prom$position, TRUE, FALSE),
+                    pattern_count = top_patterns[match(.$meth_pattern, top_patterns$meth_pattern), "pattern_count"]) %>%
+  filter(!read_id %in% reads_both) %>%
+  distinct(read_id, alpha, meth_pattern, read_in_prom, total, pattern_count) %>%
+  filter(meth_pattern %in% filter(top_patterns, total > 2)[1:10,]$meth_pattern) %>%
+  ggplot(aes(fill = read_in_prom, x = meth_pattern, y = pattern_count)) +
+  geom_bar(position = "fill", stat = "identity")
+```
+
+
+## reads that are span promoter boundaries
+
+```{r}
+reads_both <- for_beta %>% mutate(position = paste0(seqnames, "-", start),
+                    pos_in_prom = ifelse(position %in% beta_overlap_prom$position, TRUE, FALSE)) %>% 
+  group_by(read_id, pos_in_prom) %>%
+  summarise(n=n()) %>%
+  ungroup() %>%
+  group_by(read_id) %>%
+  mutate(count = 1:n()) %>%
+  filter(count>1) %>% # if count >1 means T&F present = read_spans
+  .$read_id
+length(reads_both)
+```
+
+
+```{r}
+for_beta
+reads_both
+```
+
+```{r}
+for_beta %>% mutate(position = paste0(seqnames, "-", start),
+                    read_in_prom = ifelse(position %in% beta_overlap_prom$position, TRUE, FALSE),
+                    read_in_both = ifelse(read_id %in% reads_both, TRUE, FALSE),
+                    pattern_count = top_patterns[match(.$meth_pattern, top_patterns$meth_pattern), "pattern_count"]) %>%
+  filter(read_in_both == TRUE) %>%
+  group_by(read_id) %>%
+  mutate(cpg_index_in_read = 1:n()) %>%
+  ungroup() %>%
+  mutate(for_y = ifelse(read_in_prom == TRUE, 1, 2)) %>% .[1:20,] %>%
+  ggplot(aes(x = cpg_index_in_read, y = for_y, group = read_id, colour = read_id)) +
+  geom_line() +
+  theme(legend.position = "none")
+```
+* again, messy bad way to plot
+* and what I want to know is if it's when the methylation status changes
+
+```{r}
+for_beta %>% mutate(position = paste0(seqnames, "-", start),
+                    read_in_prom = ifelse(position %in% beta_overlap_prom$position, TRUE, FALSE),
+                    read_in_both = ifelse(read_id %in% reads_both, TRUE, FALSE),
+                    pattern_count = top_patterns[match(.$meth_pattern, top_patterns$meth_pattern), "pattern_count"]) %>%
+  distinct(read_id, alpha, meth_pattern, read_in_both) %>%
+  ggplot(aes(x = alpha, colour = read_in_both)) +
+  geom_density()
+
+for_beta %>% mutate(position = paste0(seqnames, "-", start),
+                    read_in_prom = ifelse(position %in% beta_overlap_prom$position, TRUE, FALSE),
+                    read_in_both = ifelse(read_id %in% reads_both, TRUE, FALSE),
+                    pattern_count = top_patterns[match(.$meth_pattern, top_patterns$meth_pattern), "pattern_count"]) %>%
+  distinct(read_id, alpha, meth_pattern, read_in_both) %>%
+  ggplot(aes(x = read_in_both, y = alpha, fill = read_in_both)) +
+  geom_boxplot()
+
+for_beta %>% mutate(position = paste0(seqnames, "-", start),
+                    read_in_prom = ifelse(position %in% beta_overlap_prom$position, TRUE, FALSE),
+                    read_in_both = ifelse(read_id %in% reads_both, TRUE, FALSE),
+                    pattern_count = top_patterns[match(.$meth_pattern, top_patterns$meth_pattern), "pattern_count"]) %>%
+  distinct(read_id, alpha, meth_pattern, read_in_both) %>%
+  ggplot(aes(x = read_in_both, y = alpha, fill = read_in_both)) +
+  geom_violin()
+```
+* kinda thought it would be the other way around - more spread in data where reads have both
+* maybe due to it being rrbs - data is biased to promoters already
+* would be interesting in nanopore and wgbs data
+* maybe it's because no filtering??
+
+* same plots, min 3 cpgs on read
+```{r}
+for_beta %>% mutate(position = paste0(seqnames, "-", start),
+                    read_in_prom = ifelse(position %in% beta_overlap_prom$position, TRUE, FALSE),
+                    read_in_both = ifelse(read_id %in% reads_both, TRUE, FALSE),
+                    pattern_count = top_patterns[match(.$meth_pattern, top_patterns$meth_pattern), "pattern_count"]) %>%
+  filter(total > 2) %>%
+  distinct(read_id, alpha, meth_pattern, read_in_both) %>%
+  ggplot(aes(x = alpha, colour = read_in_both)) +
+  geom_density()
+
+for_beta %>% mutate(position = paste0(seqnames, "-", start),
+                    read_in_prom = ifelse(position %in% beta_overlap_prom$position, TRUE, FALSE),
+                    read_in_both = ifelse(read_id %in% reads_both, TRUE, FALSE),
+                    pattern_count = top_patterns[match(.$meth_pattern, top_patterns$meth_pattern), "pattern_count"]) %>%
+  filter(total > 2) %>%
+  distinct(read_id, alpha, meth_pattern, read_in_both) %>%
+  ggplot(aes(x = read_in_both, y = alpha, fill = read_in_both)) +
+  geom_boxplot()
+
+for_beta %>% mutate(position = paste0(seqnames, "-", start),
+                    read_in_prom = ifelse(position %in% beta_overlap_prom$position, TRUE, FALSE),
+                    read_in_both = ifelse(read_id %in% reads_both, TRUE, FALSE),
+                    pattern_count = top_patterns[match(.$meth_pattern, top_patterns$meth_pattern), "pattern_count"]) %>%
+  filter(total > 2) %>%
+  distinct(read_id, alpha, meth_pattern, read_in_both) %>%
+  ggplot(aes(x = read_in_both, y = alpha, fill = read_in_both)) +
+  geom_violin()
+```
+* oh the reads that have 2 cpgs are removed changes it
+* and reads with 1 can't have both
+* interesting though that removing the alpha = 0.5 changes the boxplot so much
+
+```{r}
+for_beta %>% mutate(position = paste0(seqnames, "-", start),
+                    pos_in_prom = ifelse(position %in% beta_overlap_prom$position, TRUE, FALSE),
+                    read_in_both = ifelse(read_id %in% reads_both, TRUE, FALSE),
+                    pattern_count = top_patterns[match(.$meth_pattern, top_patterns$meth_pattern), "pattern_count"]) %>%
+  filter(read_in_both == TRUE) %>%
+  group_by(read_id) %>%
+  mutate(cpg_index_in_read = 1:n()) %>%
+  ungroup() %>%
+  group_by(read_id, pos_in_prom) %>%
+  mutate(group_count = 1:n()) %>%
+  ungroup() %>%
+  .[,c(1,7:10,4,5,18,19,21,22)] %>%
+  group_by(read_id) %>%
+  mutate(meth_change = ifelse(meth_status != lag(meth_status), cpg_index_in_read, NA),
+         prom_change = ifelse(pos_in_prom != lag(pos_in_prom), cpg_index_in_read, NA),
+         change_same_time = ifelse(meth_change == prom_change, TRUE, FALSE),
+         change_same_time = ifelse(is.na(change_same_time), FALSE, change_same_time)) %>%
+  ungroup()
+
+for_beta %>% mutate(position = paste0(seqnames, "-", start),
+                    pos_in_prom = ifelse(position %in% beta_overlap_prom$position, TRUE, FALSE),
+                    read_in_both = ifelse(read_id %in% reads_both, TRUE, FALSE),
+                    pattern_count = top_patterns[match(.$meth_pattern, top_patterns$meth_pattern), "pattern_count"]) %>%
+  filter(read_in_both == TRUE) %>%
+  group_by(read_id) %>%
+  mutate(cpg_index_in_read = 1:n()) %>%
+  ungroup() %>%
+  group_by(read_id, pos_in_prom) %>%
+  mutate(group_count = 1:n()) %>%
+  ungroup() %>%
+  .[,c(1,7:10,4,5,18,19,21,22)] %>%
+  group_by(read_id) %>%
+  mutate(meth_change = ifelse(meth_status != lag(meth_status), cpg_index_in_read, NA),
+         prom_change = ifelse(pos_in_prom != lag(pos_in_prom), cpg_index_in_read, NA),
+         change_same_time = ifelse(meth_change == prom_change, TRUE, FALSE),
+         change_same_time = ifelse(is.na(change_same_time), FALSE, change_same_time)) %>%
+  ungroup() %>%
+  group_by(read_id, pos_in_prom, meth_status) %>%
+  summarise(n=n())
+```
+
+
+* I think this is kinda what I want??
+* maybe this is a chi situation??
+
+```{r}
+for_beta %>% mutate(position = paste0(seqnames, "-", start),
+                    pos_in_prom = ifelse(position %in% beta_overlap_prom$position, TRUE, FALSE),
+                    read_in_both = ifelse(read_id %in% reads_both, TRUE, FALSE),
+                    pattern_count = top_patterns[match(.$meth_pattern, top_patterns$meth_pattern), "pattern_count"]) %>%
+  filter(read_in_both == TRUE) %>%
+  ggplot(aes(x = pos_in_prom, fill = meth_status)) +
+  geom_bar(position = "dodge")
+```
+* this hiwever is not
+* actually maybe it does say something
+* because with this it doesn't really look like there is a difference - but also this doesn't consider the pattern
+
+```{r}
+for_beta %>% mutate(position = paste0(seqnames, "-", start),
+                    pos_in_prom = ifelse(position %in% beta_overlap_prom$position, TRUE, FALSE),
+                    read_in_both = ifelse(read_id %in% reads_both, TRUE, FALSE),
+                    pattern_count = top_patterns[match(.$meth_pattern, top_patterns$meth_pattern), "pattern_count"]) %>%
+  filter(read_in_both == TRUE) %>%
+  group_by(read_id) %>%
+  mutate(cpg_index_in_read = 1:n()) %>%
+  ungroup() %>%
+  group_by(read_id, pos_in_prom) %>%
+  mutate(group_count = 1:n()) %>%
+  ungroup() %>%
+  .[,c(1,7:10,4,5,18,19,21,22)] %>%
+  group_by(read_id) %>%
+  mutate(meth_change = ifelse(meth_status != lag(meth_status), cpg_index_in_read, NA),
+         prom_change = ifelse(pos_in_prom != lag(pos_in_prom), cpg_index_in_read, NA),
+         change_same_time = ifelse(meth_change == prom_change, TRUE, FALSE),
+         change_same_time = ifelse(is.na(change_same_time), FALSE, change_same_time)) %>%
+  ungroup()
+```
+* think I want to group by read id, pos_prom, and meth_status and just see how consistent they are within groups
+
+
+```{r}
+for_beta %>% mutate(position = paste0(seqnames, "-", start),
+                    pos_in_prom = ifelse(position %in% beta_overlap_prom$position, TRUE, FALSE),
+                    read_in_both = ifelse(read_id %in% reads_both, TRUE, FALSE),
+                    pattern_count = top_patterns[match(.$meth_pattern, top_patterns$meth_pattern), "pattern_count"]) %>%
+  filter(read_in_both == TRUE) %>%
+  group_by(read_id) %>%
+  mutate(cpg_index_in_read = 1:n()) %>%
+  ungroup() %>%
+  group_by(read_id, pos_in_prom) %>%
+  mutate(group_count = 1:n()) %>%
+  ungroup() %>%
+  .[,c(1,7:10,4,5,18,19,21,22)] %>%
+  group_by(read_id) %>%
+  mutate(meth_change = ifelse(meth_status != lag(meth_status), cpg_index_in_read, NA),
+         prom_change = ifelse(pos_in_prom != lag(pos_in_prom), cpg_index_in_read, NA),
+         change_same_time = ifelse(meth_change == prom_change, TRUE, FALSE),
+         change_same_time = ifelse(is.na(change_same_time), FALSE, change_same_time)) %>%
+  ungroup() %>%
+  group_by(change_same_time) %>%
+  summarise(n=n())
+```
+
+* at least in this data: no the change is not connected to the overlap
+* how many reads does it happen/not happen in?
+
+```{r}
+for_beta %>% mutate(position = paste0(seqnames, "-", start),
+                    pos_in_prom = ifelse(position %in% beta_overlap_prom$position, TRUE, FALSE),
+                    read_in_both = ifelse(read_id %in% reads_both, TRUE, FALSE),
+                    pattern_count = top_patterns[match(.$meth_pattern, top_patterns$meth_pattern), "pattern_count"]) %>%
+  filter(read_in_both == TRUE) %>%
+  group_by(read_id) %>%
+  mutate(cpg_index_in_read = 1:n()) %>%
+  ungroup() %>%
+  group_by(read_id, pos_in_prom) %>%
+  mutate(group_count = 1:n()) %>%
+  ungroup() %>%
+  .[,c(1,7:10,4,5,18,19,21,22)] %>%
+  group_by(read_id) %>%
+  mutate(meth_change = ifelse(meth_status != lag(meth_status), cpg_index_in_read, NA),
+         prom_change = ifelse(pos_in_prom != lag(pos_in_prom), cpg_index_in_read, NA),
+         change_same_time = ifelse(meth_change == prom_change, TRUE, FALSE),
+         change_same_time = ifelse(is.na(change_same_time), FALSE, change_same_time)) %>%
+  ungroup() %>%
+  distinct(read_id, change_same_time) %>%
+  group_by(read_id) %>%
+  mutate(read_count = n()) %>%
+  ungroup() %>%
+  group_by(change_same_time) %>%
+  summarise(n=n())
+```
+* some of these reads double up
+* also these are not indicative of consistent changes
+* either way it doesn't work so should stop while I'm ahead
+
+```{r}
+for_beta %>% filter(read_id == "HWI-EAS149_7:1:101:1028:1119:0:1:0") %>% mutate(position = paste0(seqnames, "-", start),
+                    pos_in_prom = ifelse(position %in% beta_overlap_prom$position, TRUE, FALSE),
+                    read_in_both = ifelse(read_id %in% reads_both, TRUE, FALSE),
+                    pattern_count = top_patterns[match(.$meth_pattern, top_patterns$meth_pattern), "pattern_count"])
+```
+
+
+```{r}
+for_beta %>% mutate(position = paste0(seqnames, "-", start),
+                    pos_in_prom = ifelse(position %in% beta_overlap_prom$position, TRUE, FALSE),
+                    read_in_both = ifelse(read_id %in% reads_both, TRUE, FALSE),
+                    pattern_count = top_patterns[match(.$meth_pattern, top_patterns$meth_pattern), "pattern_count"]) %>%
+  filter(read_in_both == TRUE) %>%
+  group_by(read_id) %>%
+  mutate(cpg_index_in_read = 1:n()) %>%
+  ungroup() %>%
+  group_by(read_id, pos_in_prom) %>%
+  mutate(group_count = 1:n()) %>%
+  ungroup() %>%
+  .[,c(1,7:10,4,5,18,19,21,22)] %>%
+  group_by(read_id) %>%
+  mutate(meth_change = ifelse(meth_status != lag(meth_status), cpg_index_in_read, NA),
+         prom_change = ifelse(pos_in_prom != lag(pos_in_prom), cpg_index_in_read, NA)) %>%
+  ggplot(aes(x = meth_change, y = prom_change)) +
+  geom_count()
+```
+
+
+#######
+
+```{r}
+for_beta %>% filter(beta == 0.5, total >2) %>% distinct(read_id, alpha) %>%
+  ggplot(aes(x = alpha)) +
+  geom_density()
+```
+
+
+```{r}
+for_beta %>% distinct(read_id, total) %>%
+  ggplot(aes(x = total)) +
+  geom_bar()
+```
 
