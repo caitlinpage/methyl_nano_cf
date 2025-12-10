@@ -78,6 +78,10 @@ Welcome to my research website.
 * started this a bit in [analysis of alpha files](alphaAnalysis.html)
 * but new idea means new file (or groups of files)
 
+## GOAL: Group CpGs with similar methylation levels
+* If I can do this then I can see what the alphas are
+* A way to identify regions of interest in the data
+
 * start these files with prefix mp (for meth pattern)
 
 [initial analysis (some copied from alphaAnalysis)](mp1_methPattern.html)
@@ -91,10 +95,27 @@ Welcome to my research website.
 
 
 [correlation of Alphas](correlationOfAlphas.html)
+LEARNINGS:
+* alphas are not as correlated as expected
+IMPLICATIONS:
+* ???? - maybe different cell types??
 
-[plot with IQR](IQRVisualise.html)
+
+[plot with IQR of alpha](IQRVisualise.html)
+GOAL:
+* use IQR to identify regions where data is more spread and less spread
+* if more spread, expect more var in alphas, vice versa
+LEARNINGS
+* can now overlay IQR onto region plot
+* plotting just IQR is messy
+* IQR is metric for middle spread of data, might need more than that
 
 [annotate to genes/promoters](biologicalFeatures.html)
+LEARNINGS:
+* Plotting IQR still looks bad haha
+* Distribution of beta much lower in sites overlapping promoters (rrbs)
+
+## Ideas of files
 
 * files/analysis to do
 * genomic context: where are the patterns
