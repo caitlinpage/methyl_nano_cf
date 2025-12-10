@@ -113,7 +113,7 @@ rrbs_plot(for_beta, for_beta %>% filter(start %in% just_beta[12:16,]$start) %>% 
 
 # high meth region from mp2
 #iqr is 0 here
-rrbs_plot(for_beta, for_beta %>% filter(start %in% just_beta[28:32,]$start) %>% .$read_id %>% unique()) +
+rrbs_plot(for_beta, for_beta %>% filter(start %in% just_beta[28:32,]$start) %>% .$read_id %>% unique(), count_instead = TRUE) +
   geom_ribbon(data = pos_summary_stats[28:32,], 
               aes(x = start, ymin = alpha_q1, ymax = alpha_q3),
               alpha = 0.2, fill = "yellow") +
