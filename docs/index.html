@@ -310,7 +310,7 @@ class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span>
 <div class="tab-content">
 <div id="summary" class="tab-pane fade in active">
 <p>
-<strong>Last updated:</strong> 2025-12-02
+<strong>Last updated:</strong> 2025-12-10
 </p>
 <p>
 <strong>Checks:</strong> <span
@@ -357,15 +357,15 @@ results.</p>
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpage3cfnanotreeba1d686b954a1e70f6ff558d302c5f0ea66b3a2ctargetblankba1d686a">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpage3cfnanotreeebd255acb50eb8fb00997bf7618a1613919e4fa9targetblankebd255aa">
 <span class="glyphicon glyphicon-ok text-success"
 aria-hidden="true"></span> <strong>Repository version:</strong>
-<a href="https://github.com/caitlinpage/3_cf_nano/tree/ba1d686b954a1e70f6ff558d302c5f0ea66b3a2c" target="_blank">ba1d686</a>
+<a href="https://github.com/caitlinpage/3_cf_nano/tree/ebd255acb50eb8fb00997bf7618a1613919e4fa9" target="_blank">ebd255a</a>
 </a>
 </p>
 </div>
 <div
-id="strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpage3cfnanotreeba1d686b954a1e70f6ff558d302c5f0ea66b3a2ctargetblankba1d686a"
+id="strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpage3cfnanotreeebd255acb50eb8fb00997bf7618a1613919e4fa9targetblankebd255aa"
 class="panel-collapse collapse">
 <div class="panel-body">
 <p>
@@ -375,7 +375,7 @@ reproducibility.
 </p>
 <p>
 The results in this page were generated with repository version
-<a href="https://github.com/caitlinpage/3_cf_nano/tree/ba1d686b954a1e70f6ff558d302c5f0ea66b3a2c" target="_blank">ba1d686</a>.
+<a href="https://github.com/caitlinpage/3_cf_nano/tree/ebd255acb50eb8fb00997bf7618a1613919e4fa9" target="_blank">ebd255a</a>.
 See the <em>Past versions</em> tab to see a history of the changes made
 to the R Markdown and HTML files.
 </p>
@@ -419,7 +419,6 @@ Unstaged changes:
     Modified:   .gitignore
     Modified:   3_cf_nano.Rproj
     Modified:   _workflowr.yml
-    Modified:   analysis/00_importantObjects.Rmd
     Modified:   analysis/01a_bedFileCorrelation.Rmd
 
 </code></pre>
@@ -464,6 +463,57 @@ Message
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/caitlinpage/3_cf_nano/blob/ebd255acb50eb8fb00997bf7618a1613919e4fa9/analysis/index.Rmd" target="_blank">ebd255a</a>
+</td>
+<td>
+Caitlin Page
+</td>
+<td>
+2025-12-10
+</td>
+<td>
+wflow_publish(c("cpgFeatures.Rmd", "index.Rmd"))
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/caitlinpage/3_cf_nano/blob/f47962291b390d016c19433a3240cf939990415c/analysis/index.Rmd" target="_blank">f479622</a>
+</td>
+<td>
+Caitlin Page
+</td>
+<td>
+2025-12-10
+</td>
+<td>
+update
+</td>
+</tr>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/caitlinpage/3_cf_nano/d9bc075a2ec0808bcfd04f66b7348f5a61146144/docs/index.html" target="_blank">d9bc075</a>
+</td>
+<td>
+Caitlin Page
+</td>
+<td>
+2025-12-02
+</td>
+<td>
+Build site.
+</td>
+</tr>
 <tr>
 <td>
 Rmd
@@ -882,16 +932,56 @@ there are things that are different between conditions</p></li>
 <li><p>started this a bit in <a href="alphaAnalysis.html">analysis of
 alpha files</a></p></li>
 <li><p>but new idea means new file (or groups of files)</p></li>
+</ul>
+</div>
+<div id="goal-group-cpgs-with-similar-methylation-levels"
+class="section level2">
+<h2>GOAL: Group CpGs with similar methylation levels</h2>
+<ul>
+<li><p>If I can do this then I can see what the alphas are</p></li>
+<li><p>A way to identify regions of interest in the data</p></li>
 <li><p>start these files with prefix mp (for meth pattern)</p></li>
 </ul>
 <p><a href="mp1_methPattern.html">initial analysis (some copied from
-alphaAnalysis)</a></p>
+alphaAnalysis)</a> * developed function to identify region with similar
+beta values * region is then extracted and alpha values are plotted</p>
 <p><a href="mp2_betaGroups.html">medium methylation</a></p>
 <p><a href="mp3_betaGroupsHighBeta.html">high methylation</a></p>
 <p><a href="mp3_betaGroupsLowBeta.html">low methylation</a></p>
-<p><a href="correlationOfAlphas.html">correlation of Alphas</a></p>
-<p><a href="IQRVisualise.html">plot with IQR</a></p>
-<p><a href="biologicalFeatures.html">annotate to genes/promoters</a></p>
+<p><a href="correlationOfAlphas.html">correlation of Alphas</a>
+LEARNINGS: * alphas are not as correlated as expected IMPLICATIONS: *
+???? - maybe different cell types??</p>
+<p>[distance between cpgs and meth status] * Peter Hickey’s thesis
+chapter 7</p>
+<p><a href="IQRVisualise.html">plot with IQR of alpha</a> GOAL: * use
+IQR to identify regions where data is more spread and less spread * if
+more spread, expect more var in alphas, vice versa LEARNINGS * can now
+overlay IQR onto region plot * plotting just IQR is messy * IQR is
+metric for middle spread of data, might need more than that</p>
+<p><a href="biologicalFeatures.html">annotate to genes/promoters</a>
+GOAL: * what is alpha and beta in different biological features
+LEARNINGS: * Plotting IQR still looks bad haha * Distribution of beta
+much lower in sites overlapping promoters (rrbs) * Meth pattern does not
+consistently change at promoter boundary when read overlaps promoter and
+non promoter (rrbs)</p>
+<ul>
+<li>just like promoters will have different methylation profile to
+intergenic regions</li>
+<li>so will CpG islands to intergenic regions</li>
+</ul>
+<p><a href="cpgFeatures.html">annotate to CpG features</a> * conduct
+similar analysis to that in biologicalFeatures.html</p>
+</div>
+</div>
+<div id="section" class="section level1">
+<h1></h1>
+<ul>
+<li>idk what im doing</li>
+</ul>
+<p><a href="wholeGenomeRrbs.html">whole genome analysis of RRBS data</a>
+* can’t do yet - full chromosomes on cluster, not local</p>
+<div id="ideas-of-files" class="section level2">
+<h2>Ideas of files</h2>
 <ul>
 <li>files/analysis to do</li>
 <li>genomic context: where are the patterns</li>
