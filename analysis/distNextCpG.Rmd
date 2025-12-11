@@ -1,0 +1,42 @@
+---
+title: "distNextCpG"
+author: "Caitlin Page"
+date: "2025-12-11"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+## Packages
+
+```{r}
+library(annotatr)
+library(data.table)
+library(plyranges)
+library(tidyr)
+library(stringr)
+library(dplyr)
+library(ggplot2)
+```
+
+## Data Objects
+```{r}
+cg_sites <- cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38[["chr22"]])), seqnames = "chr22") %>% 
+  mutate(pos = paste0(seqnames, "-", start)) %>%
+  relocate(pos, seqnames)
+cg_sites$index <- 1:nrow(cg_sites)
+```
+
+
+```{r}
+source("../code/processData.R")
+
+for_beta <- readRDS("../output/cluster_files/rrbs_alpha_beta.rds")
+for_beta <- for_beta %>% filter(seqnames == "chr22")
+rrbs_for_beta_pat <- pat_for_wgbs(for_beta)
+
+for_beta <- for_beta %>% group_by(start) %>% mutate(coverage = n(), mean_alpha = mean(alpha)) %>% ungroup() %>% data.frame()
+just_beta <- for_beta %>% distinct(start, beta, coverage, mean_alpha) %>% .[order(.$start),]
+
+```
+
