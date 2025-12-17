@@ -206,6 +206,333 @@ df <- cbind.data.frame(split_vals)
 df <- lapply(df, as.double) %>% data.frame()
 
 # merge
-try <- cbind(try[1:35,], df[,c(2,1,4,3)])
+try <- cbind(try[1:35,1:2], df[,c(2,1,4,3)])
+try
+```
+
+```{r}
+try <- try %>% mutate(IPD = as.numeric(sub(".*_", "", dist)))
+try %>%
+  ggplot(aes(x = IPD, y = OR)) +
+  geom_point()
+```
+* this is basically one of Pete's plots
+* comethylation is strongest for smaller IPD's, steadies out at IPD = 20
+* this is consistent with Pete's work
+
+* this was for reads with only 2 cpgs
+
+
+* try for more
+
+* need to split the meth pattern into groups of 2
+```{r}
+chisq_table <- for_beta %>%
+  filter(total == 3) %>%
+  group_by(read_id) %>%
+  mutate(dist_to_next = lead(start) - start,
+         meth_pattern = paste0(meth_status, lead(meth_status))) %>%
+  ungroup() %>%
+  fill(dist_to_next, .direction = "down") %>%
+  distinct(read_id, meth_pattern, dist_to_next) %>%
+  group_by(dist_to_next, meth_pattern) %>%
+  summarise(count = n()) %>%
+  ungroup() %>%
+  mutate(cpg_1 = substr(meth_pattern, 1, 1),
+         cpg_2 = substr(meth_pattern, 2, 2)) %>% 
+  filter(!grepl("A", .$meth_pattern)) %>%
+  group_by(dist_to_next) %>%
+  reframe(tab = list(xtabs(count ~ cpg_1 + cpg_2, data = cur_data())))
+  
+chisq_table <- chisq_table$tab 
+names(chisq_table) <- for_beta %>%
+  filter(total == 3) %>%
+  group_by(read_id) %>%
+  mutate(dist_to_next = lead(start) - start,
+         meth_pattern = paste0(meth_status, lead(meth_status))) %>%
+  ungroup() %>%
+  fill(dist_to_next, .direction = "down") %>%
+  distinct(read_id, meth_pattern, dist_to_next) %>%
+  filter(!grepl("A", .$meth_pattern)) %>%
+  group_by(dist_to_next, meth_pattern) %>%
+  summarise(count = n()) %>% 
+  mutate(dist_to_next = paste0("dist_next_", dist_to_next)) %>%
+  .$dist_to_next %>% unique()
+chisq_table[1:2]
+chisq_table <- simplify2array(chisq_table)
+```
+```{r}
+capture.output(epiDisplay::mhor(mhtable = chisq_table, graph = FALSE)) %>% data.frame() %>% .[4:37,] %>% data.frame()
+```
+```{r}
+capture.output(epiDisplay::mhor(mhtable = chisq_table, graph = FALSE)) %>% data.frame() %>% .[4:39,] %>% data.frame()
+```
+```{r}
+try
+```
+
+```{r}
+try3 <- capture.output(epiDisplay::mhor(mhtable = chisq_table, graph = FALSE))
+
+try3 <- try3 %>% data.frame() %>% .[4:36,] %>% data.frame()
+colnames(try3) <- "all"
+
+
+# sep the words and the numbers
+try3 <- try3 %>% separate_wider_delim(cols = all, delim = " ", names = c("type", "dist", "numbers"), too_few = "align_start", too_many = "merge")
+
+# sep the numbers
+numeric_lines <- grep("-?\\d+\\.\\d{2,}.*-?\\d+\\.\\d{2,}.*-?\\d+\\.\\d{2,}", 
+                      try3, value = TRUE)
+# to maintain the p-val
+pattern <- "-?\\d+\\.\\d{2,}|[-+]?\\d+\\.?\\d*(?:[eE][-+]?\\d+)"
+
+vals <- regmatches(
+  numeric_lines,
+  gregexpr(pattern, numeric_lines))
+
+m <- do.call(rbind, vals)
+m <- as.vector(m)
+names(m) <- rep(c("OR", "lower_lim", "upper_lim", "p_value"), times = 33)
+split_vals <- split(m, names(m))
+df <- cbind.data.frame(split_vals)
+df <- lapply(df, as.double) %>% data.frame()
+
+# merge
+try3 <- cbind(try3[,1:2], df[,c(2,1,4,3)])
+try3 <- try3 %>% mutate(IPD = as.numeric(sub(".*_", "", dist)))
+try3
+```
+
+```{r}
+try3 %>%
+  ggplot(aes(x = IPD, y = OR)) +
+  geom_point()
+```
+* why is it so different when the read has 3 cpgs? - I'm doing it the same way
+
+
+
+```{r}
+mantel_haen_dist_next_cpg <- function(long_data, num_cpg_read) {
+  format_data <- long_data %>%
+      filter(total == num_cpg_read) %>%
+      group_by(read_id) %>%
+      mutate(dist_to_next = lead(start) - start,
+            meth_pattern = paste0(meth_status, lead(meth_status))) %>%
+      ungroup() %>%
+      fill(dist_to_next, .direction = "down") %>%
+      distinct(read_id, meth_pattern, dist_to_next) %>%
+      filter(!grepl("A", .$meth_pattern)) %>%
+      group_by(dist_to_next, meth_pattern) %>%
+      summarise(count = n()) %>%
+      ungroup()
+  
+  chisq_table <- format_data %>%
+      mutate(cpg_1 = substr(meth_pattern, 1, 1),
+             cpg_2 = substr(meth_pattern, 2, 2)) %>% 
+      group_by(dist_to_next) %>%
+      reframe(tab = list(xtabs(count ~ cpg_1 + cpg_2, data = cur_data())))
+  
+  chisq_table <- chisq_table$tab
+  
+  names(chisq_table) <- format_data %>%
+      mutate(dist_to_next = paste0("dist_next_", dist_to_next)) %>%
+      .$dist_to_next %>% 
+    unique()
+  distinct_rows <- format_data$dist_to_next %>% 
+    unique() %>%
+    length()
+  chisq_table <- simplify2array(chisq_table)
+  
+  # the testing
+  try <- capture.output(epiDisplay::mhor(mhtable = chisq_table, graph = FALSE))
+
+  try <- try %>% data.frame() %>% .[4:(distinct_rows + 4),] %>% data.frame()
+  colnames(try) <- "all"
+
+  try <- try %>% separate_wider_delim(cols = all, delim = " ", names = c("type", "dist", "numbers"), too_few = "align_start", too_many = "merge")
+
+  numeric_lines <- try$numbers
+  # get Inf and d separate
+  pattern <- "Inf|-Inf|[-+]?\\d+\\.?\\d*(?:[eE][-+]?\\d+)?"
+  vals <- regmatches(
+    numeric_lines,
+    gregexpr(pattern, numeric_lines))
+
+  m <- do.call(rbind, vals)
+  m <- as.vector(m)
+  names(m) <- rep(c("OR", "lower_lim", "upper_lim", "p_value"), times = (distinct_rows + 1))
+  split_vals <- split(m, names(m))
+  df <- cbind.data.frame(split_vals)
+  df <- lapply(df, as.double) %>% data.frame()
+
+  # merge
+  try <- cbind(try[,1:2], df[,c(2,1,4,3)])
+  try <- try %>% mutate(IPD = as.numeric(sub(".*_", "", dist)))
+  try
+}
+mantel_haen_dist_next_cpg(for_beta, 5)
+```
+```{r}
+for_beta %>% distinct(total)
+```
+
+```{r}
+a <- for_beta %>%
+      filter(total == 5) %>%
+      group_by(read_id) %>%
+      mutate(dist_to_next = lead(start) - start,
+            meth_pattern = paste0(meth_status, lead(meth_status))) %>%
+      ungroup() %>%
+      fill(dist_to_next, .direction = "down") %>%
+      distinct(read_id, meth_pattern, dist_to_next) %>%
+      filter(!grepl("A", .$meth_pattern)) %>%
+      group_by(dist_to_next, meth_pattern) %>%
+      summarise(count = n()) %>%
+      ungroup() %>% 
+      mutate(cpg_1 = substr(meth_pattern, 1, 1),
+             cpg_2 = substr(meth_pattern, 2, 2)) %>% 
+      group_by(dist_to_next) %>%
+      reframe(tab = list(xtabs(count ~ cpg_1 + cpg_2, data = cur_data())))
+a <- a$tab
+
+names(a) <- for_beta %>%
+      filter(total == 5) %>%
+      group_by(read_id) %>%
+      mutate(dist_to_next = lead(start) - start,
+            meth_pattern = paste0(meth_status, lead(meth_status))) %>%
+      ungroup() %>%
+      fill(dist_to_next, .direction = "down") %>%
+      distinct(read_id, meth_pattern, dist_to_next) %>%
+      filter(!grepl("A", .$meth_pattern)) %>%
+      group_by(dist_to_next, meth_pattern) %>%
+      summarise(count = n()) %>%
+      ungroup() %>% 
+      mutate(dist_to_next = paste0("dist_next_", dist_to_next)) %>%
+      .$dist_to_next %>% 
+    unique()
+
+distinct_rows <- for_beta %>%
+      filter(total == 5) %>%
+      group_by(read_id) %>%
+      mutate(dist_to_next = lead(start) - start,
+            meth_pattern = paste0(meth_status, lead(meth_status))) %>%
+      ungroup() %>%
+      fill(dist_to_next, .direction = "down") %>%
+      distinct(read_id, meth_pattern, dist_to_next) %>%
+      filter(!grepl("A", .$meth_pattern)) %>%
+      group_by(dist_to_next, meth_pattern) %>%
+      summarise(count = n()) %>%
+      ungroup() %>% .$dist_to_next %>% 
+    unique() %>%
+    length()
+chi_a <- simplify2array(a)
+```
+```{r}
+b <- for_beta %>%
+      filter(total == 5) %>%
+      group_by(read_id) %>%
+      mutate(dist_to_next = lead(start) - start,
+            meth_pattern = paste0(meth_status, lead(meth_status))) %>%
+      ungroup() %>%
+      fill(dist_to_next, .direction = "down") %>%
+      distinct(read_id, meth_pattern, dist_to_next) %>%
+      filter(!grepl("A", .$meth_pattern)) %>%
+      group_by(dist_to_next, meth_pattern) %>%
+      summarise(count = n()) %>%
+      ungroup() %>% 
+      mutate(cpg_1 = substr(meth_pattern, 1, 1),
+             cpg_2 = substr(meth_pattern, 2, 2))
+b
+```
+
+
+```{r}
+missing_mm <- b %>% group_by(dist_to_next) %>% filter(!any(grepl("MM", meth_pattern))) %>% distinct(dist_to_next) %>% ungroup() %>% .$dist_to_next
+length(missing_mm)
+for(i in 1:length(missing_mm)) {
+  b <- rbind(b, c(missing_mm[i], "MM", 0, "M", "M"))
+}
+
+missing_mu <- b %>% group_by(dist_to_next) %>% filter(!any(grepl("MU", meth_pattern))) %>% distinct(dist_to_next) %>% ungroup() %>% .$dist_to_next
+length(missing_mu)
+for(i in 1:length(missing_mu)) {
+  b <- rbind(b, c(missing_mu[i], "MU", 0, "M", "U"))
+}
+
+missing_um <- b %>% group_by(dist_to_next) %>% filter(!any(grepl("UM", meth_pattern))) %>% distinct(dist_to_next) %>% ungroup() %>% .$dist_to_next
+length(missing_um)
+for(i in 1:length(missing_um)) {
+  b <- rbind(b, c(missing_um[i], "UM", 0, "U", "M"))
+}
+missing_uu <- b %>% group_by(dist_to_next) %>% filter(!any(grepl("UU", meth_pattern))) %>% distinct(dist_to_next) %>% ungroup() %>% .$dist_to_next
+length(missing_uu)
+for(i in 1:length(missing_uu)) {
+  b <- rbind(b, c(missing_uu[i], "UU", 0, "U", "U"))
+}
+
+b$count <- as.integer(b$count)
+b$dist_to_next <- as.integer(b$dist_to_next)
+b
+b %>% group_by(dist_to_next) %>% mutate(check = n()) %>% ungroup() %>% filter(check < 4)
+```
+
+```{r}
+b_chi <- b %>% group_by(dist_to_next) %>% 
+      reframe(tab = list(xtabs(count ~ cpg_1 + cpg_2, data = cur_data())))
+b_chi$tab
+```
+
+```{r}
+rbind(b, c(26, "MA", 0, "M", "A"))
+```
+
+```{r}
+try <- capture.output(epiDisplay::mhor(mhtable = chi_a, graph = FALSE))
+
+  try <- try %>% data.frame() %>% .[4:(distinct_rows + 4),] %>% data.frame()
+  colnames(try) <- "all"
+
+  try <- try %>% separate_wider_delim(cols = all, delim = " ", names = c("type", "dist", "numbers"), too_few = "align_start", too_many = "merge")
+
+  numeric_lines <- grep("-?\\d+\\.\\d{2,}.*-?\\d+\\.\\d{2,}.*-?\\d+\\.\\d{2,}", 
+                      try, value = TRUE)
+  # to maintain the p-val
+  pattern <- "-?\\d+\\.\\d{2,}|[-+]?\\d+\\.?\\d*(?:[eE][-+]?\\d+)"
+
+  vals <- regmatches(
+    numeric_lines,
+    gregexpr(pattern, numeric_lines))
+
+  m <- do.call(rbind, vals)
+  m <- as.vector(m)
+```
+```{r}
+numeric_lines <- grep("Inf|\\d", try$numbers, value = TRUE)
+```
+```{r}
+try$numbers
+```
+```{r}
+pattern <- "Inf|-Inf|[-+]?\\d+\\.?\\d*(?:[eE][-+]?\\d+)?"
+
+vals <- regmatches(numeric_lines, gregexpr(pattern, numeric_lines))
+
+  m <- do.call(rbind, vals)
+  m <- as.vector(m)
+```
+
+
+```{r}
+names(m) <- rep(c("OR", "lower_lim", "upper_lim", "p_value"), times = (distinct_rows + 1))
+  split_vals <- split(m, names(m))
+  df <- cbind.data.frame(split_vals)
+  df <- lapply(df, as.double) %>% data.frame()
+
+  # merge
+  try <- cbind(try[,1:2], df[,c(2,1,4,3)])
+  try <- try %>% mutate(IPD = as.numeric(sub(".*_", "", dist)))
+  try
 ```
 
