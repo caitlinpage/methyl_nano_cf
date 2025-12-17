@@ -50,12 +50,6 @@ for_beta %>%
   geom_density()
 ```
 
-```{r}
-for_beta %>%
-  group_by(read_id) %>%
-  mutate(dist_to_next = lead(start) - start) %>%
-  ungroup()
-```
 
 # Pete Hickey: MethylationTuples
 * I couldn't download the package
@@ -76,22 +70,7 @@ X 2 n21 n22
 total
 and 1 and 2 are U and M
 
-```{r}
-?mantelhaen.test
-```
 
-```{r}
-array(c(0, 0, 6, 5,
-        3, 0, 3, 6,
-        6, 2, 0, 4,
-        5, 6, 1, 0,
-        2, 5, 0, 0),
-      dim = c(2, 2, 5),
-      dimnames = list(
-          Delay = c("None", "1.5h"),
-          Response = c("Cured", "Died"),
-          Penicillin.Level = c("1/8", "1/4", "1/2", "1", "4")))
-```
 * so it's a separate table for each distance
 * maybe should try it separately for different total number of cpgs on read
 * try for 2 cpgs on read
@@ -105,7 +84,7 @@ for_beta %>%
   fill(dist_to_next, .direction = "down") %>%
   distinct(read_id, meth_pattern, dist_to_next) %>%
   group_by(dist_to_next, meth_pattern) %>%
-  summarise(count = n())
+  summarise(count = n()) %>% .[1:5,]
 ```
 
 ```{r}
@@ -153,12 +132,11 @@ names(chisq_table) <- for_beta %>%
   summarise(count = n()) %>%
   mutate(dist_to_next = paste0("dist_next_", dist_to_next)) %>%
   .$dist_to_next %>% unique()
-chisq_table
+chisq_table[1:2]
 ```
 * do list and then convert to array I think
 ```{r}
 chisq_table <- simplify2array(chisq_table)
-chisq_table
 ```
 
 ```{r}
@@ -207,7 +185,7 @@ df <- lapply(df, as.double) %>% data.frame()
 
 # merge
 try <- cbind(try[1:35,1:2], df[,c(2,1,4,3)])
-try
+try[1:5,]
 ```
 
 ```{r}
@@ -261,15 +239,6 @@ names(chisq_table) <- for_beta %>%
 chisq_table[1:2]
 chisq_table <- simplify2array(chisq_table)
 ```
-```{r}
-capture.output(epiDisplay::mhor(mhtable = chisq_table, graph = FALSE)) %>% data.frame() %>% .[4:37,] %>% data.frame()
-```
-```{r}
-capture.output(epiDisplay::mhor(mhtable = chisq_table, graph = FALSE)) %>% data.frame() %>% .[4:39,] %>% data.frame()
-```
-```{r}
-try
-```
 
 ```{r}
 try3 <- capture.output(epiDisplay::mhor(mhtable = chisq_table, graph = FALSE))
@@ -301,7 +270,7 @@ df <- lapply(df, as.double) %>% data.frame()
 # merge
 try3 <- cbind(try3[,1:2], df[,c(2,1,4,3)])
 try3 <- try3 %>% mutate(IPD = as.numeric(sub(".*_", "", dist)))
-try3
+try3[1:5,]
 ```
 
 ```{r}
@@ -397,7 +366,7 @@ mantel_haen_dist_next_cpg <- function(long_data, num_cpg_read = NULL) {
   try <- try %>% mutate(IPD = as.numeric(sub(".*_", "", dist)))
   try
 }
-mantel_haen_dist_next_cpg(for_beta, 7)
+mantel_haen_dist_next_cpg(for_beta, 7) %>% .[1:5,]
 ```
 
 ```{r}
