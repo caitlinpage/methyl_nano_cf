@@ -180,49 +180,32 @@ epiDisplay::mhor(mhtable = chisq_table)
 
 ```{r}
 try <- capture.output(epiDisplay::mhor(mhtable = chisq_table, graph = FALSE))
-try %>% data.frame()
-```
 
-```{r}
 try <- try %>% data.frame() %>% .[4:39,] %>% data.frame()
 colnames(try) <- "all"
-try
-```
 
 
-```{r}
-
-try %>% separate_wider_delim(cols = all, delim = " ", names = c("type", "dist", "OR", "lower_lim", "upper_lim", "p_value"), too_few = "align_start", too_many = "merge")
-```
-* this is being a pain
-* it won't split properly
-* maybe ask ai again
-
-```{r}
+# sep the words and the numbers
 try <- try %>% separate_wider_delim(cols = all, delim = " ", names = c("type", "dist", "numbers"), too_few = "align_start", too_many = "merge")
-try
-```
 
-
-```{r}
+# sep the numbers
 numeric_lines <- grep("-?\\d+\\.\\d{2,}.*-?\\d+\\.\\d{2,}.*-?\\d+\\.\\d{2,}", 
                       try, value = TRUE)
+# to maintain the p-val
+pattern <- "-?\\d+\\.\\d{2,}|[-+]?\\d+\\.?\\d*(?:[eE][-+]?\\d+)"
 
 vals <- regmatches(
   numeric_lines,
-  gregexpr("-?\\d+\\.\\d{2,}", numeric_lines)
-)
+  gregexpr(pattern, numeric_lines))
 
 m <- do.call(rbind, vals)
 m <- as.vector(m)
 names(m) <- rep(c("OR", "lower_lim", "upper_lim", "p_value"), times = 35)
-
 split_vals <- split(m, names(m))
 df <- cbind.data.frame(split_vals)
+df <- lapply(df, as.double) %>% data.frame()
 
+# merge
 try <- cbind(try[1:35,], df[,c(2,1,4,3)])
 ```
-
-
-
 
