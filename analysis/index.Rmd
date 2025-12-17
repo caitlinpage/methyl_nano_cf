@@ -102,7 +102,7 @@ LEARNINGS:
 IMPLICATIONS:
 * ???? - maybe different cell types??
 
-[distance between cpgs and meth status]
+[distance between cpgs and meth status](distNextCpG.html)
 * Peter Hickey's thesis chapter 7
 
 [plot with IQR of alpha](IQRVisualise.html)
@@ -127,6 +127,13 @@ LEARNINGS:
 
 [annotate to CpG features](cpgFeatures.html)
 * conduct similar analysis to that in biologicalFeatures.html 
+
+
+## ANALYSIS INSPIRED BY PETE HICKEY
+
+[comethylation](distNextCpG.html)
+* distance between neighbouring cpgs and methylation status
+* mantel-haenszel odds ratio
 
 #
 
