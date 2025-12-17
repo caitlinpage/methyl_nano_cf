@@ -314,9 +314,12 @@ try3 %>%
 
 
 ```{r}
-mantel_haen_dist_next_cpg <- function(long_data, num_cpg_read) {
-  format_data <- long_data %>%
-      filter(total == num_cpg_read) %>%
+mantel_haen_dist_next_cpg <- function(long_data, num_cpg_read = NULL) {
+  if(!is.null(num_cpg_read)) {
+    format_data <- long_data %>%
+        filter(total == num_cpg_read) 
+  } else {format_data <- long_data}
+  format_data <- format_data %>%
       group_by(read_id) %>%
       mutate(dist_to_next = lead(start) - start,
             meth_pattern = paste0(meth_status, lead(meth_status))) %>%
@@ -397,5 +400,53 @@ mantel_haen_dist_next_cpg <- function(long_data, num_cpg_read) {
 mantel_haen_dist_next_cpg(for_beta, 7)
 ```
 
+```{r}
+cpgs_read <- for_beta %>% distinct(total) %>% .[order(.$total),]
+```
+```{r}
+mantel_haen_dist_next_cpg(for_beta, cpgs_read[2]) %>%
+    ggplot(aes(x = IPD, y = OR)) +
+    geom_point() +
+    labs(title = paste0("total cpgs on read = ", cpgs_read[2]))
+```
 
+```{r}
+plot_vec <- list()
+for(x in 2:length(cpgs_read)) {
+  plot <- mantel_haen_dist_next_cpg(for_beta, cpgs_read[x]) %>%
+    ggplot(aes(x = IPD, y = OR)) +
+    geom_point() +
+    labs(title = paste0("total cpgs on read = ", cpgs_read[x]))
+  plot_vec <- list(plot_vec, plot)
+}
+plot_vec
+```
+
+* the plot looks different for 2 and 3 now
+* I don't know why the values have changed
+
+* log the plots
+```{r}
+plot_vec <- list()
+for(x in 2:length(cpgs_read)) {
+  plot <- mantel_haen_dist_next_cpg(for_beta, cpgs_read[x]) %>%
+    ggplot(aes(x = IPD, y = log2(OR))) +
+    geom_point() +
+    labs(title = paste0("total cpgs on read = ", cpgs_read[x]))
+  plot_vec <- list(plot_vec, plot)
+}
+plot_vec
+```
+
+* I think Pete's plots are on the log axis but they are very different to mine
+* they're positive and small log numbers
+
+
+* all reads at once
+```{r}
+mantel_haen_dist_next_cpg(for_beta) %>%
+    ggplot(aes(x = IPD, y = OR)) +
+    geom_point() +
+    labs(title = paste0("all reads together"))
+```
 
