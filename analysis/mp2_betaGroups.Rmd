@@ -320,4 +320,76 @@ plot_list
 ```
 
 
-abc
+# abacbs
+```{r}
+just_beta %>%
+  ggplot(aes(x = beta)) +
+  geom_density(linewidth = 3, colour = "purple") +
+  theme_bw()
+```
+
+```{r}
+for_beta %>% distinct(read_id, alpha) %>%
+  ggplot(aes(x = alpha)) +
+  geom_density(linewidth = 3, colour = "magenta") +
+  theme_bw()
+```
+```{r}
+for_beta %>% distinct(read_id, alpha) %>%
+  ggplot(aes(x = alpha)) +
+  geom_density(linewidth = 3, colour = "magenta") +
+  geom_density(data = just_beta, aes(x = beta), linewidth = 3, colour = "purple") +
+  theme_bw() +
+  labs(x = "Alpha (pink), Beta (Purple)")
+```
+```{r}
+for_beta %>% filter(total >= 3) %>% distinct(read_id, alpha) %>%
+  ggplot(aes(x = alpha)) +
+  geom_density(linewidth = 3, colour = "magenta") +
+  geom_density(data = filter(just_beta, coverage >= 3), aes(x = beta), linewidth = 3, colour = "purple") +
+  theme_bw() +
+  labs(x = "Alpha (pink), Beta (Purple)")
+```
+```{r}
+for_beta %>% filter(beta == 0.5) %>%
+  ggplot(aes(x = as.factor(beta), y = alpha)) +
+  geom_violin(fill = "plum") +
+  theme_bw() +
+  labs(x = "beta = 0.5")
+```
+
+```{r}
+for_beta %>% filter(beta >= 0.4, beta <= 0.6) %>% mutate(medium = "medium") %>%
+  ggplot(aes(x = medium, y = alpha)) +
+  geom_violin(fill = "plum1") +
+  theme_bw() +
+  labs(x = "0.4 <= beta <= 0.6")
+```
+
+```{r}
+source("../code/processData.R")
+
+rrbs_plot(for_beta, for_beta %>% filter(start %in% just_beta[1:6,]$start) %>% .$read_id %>% unique(), count_instead = TRUE) +
+  theme_bw()
+```
+
+```{r}
+for_beta %>% filter(total > 2) %>% group_by(start) %>% mutate(mean_alpha = mean(alpha)) %>% distinct(start, beta, mean_alpha, coverage) %>% 
+  ggplot(aes(x = beta, y = mean_alpha)) +
+  geom_point(aes(size = coverage), alpha = 0.3) +
+  geom_abline(colour = "red", linetype = "dashed", linewidth = 1) +
+  theme_bw()
+```
+
+```{r}
+for_beta %>% filter(total > 2) %>% group_by(start) %>% mutate(mean_alpha = mean(alpha)) %>% distinct(start, beta, mean_alpha, coverage) %>%
+  ggplot(aes(x = beta, y = mean_alpha - beta)) +
+  geom_point(aes(size = coverage), alpha = 0.3) +
+  theme_bw()
+```
+
+
+```{r}
+colours()
+```
+
