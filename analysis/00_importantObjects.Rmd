@@ -42,6 +42,61 @@ cg_sites$index <- 1:nrow(cg_sites)
 
 # Nanopore processed file
 
+
+```{r}
+indiv_reads <- readRDS("/researchers/caitlin.page/cf_nano/r_output/indiv_reads.rds")
+bed_betas <- readRDS("/researchers/caitlin.page/cf_nano/r_output/bed_betas.rds")
+bed_betas$pos <- paste0(bed_betas$seqnames, "-", bed_betas$start)
+bed_betas_hu5.10 <- bed_betas %>% filter(sample == "hu5.10")
+```
+
+```{r}
+indiv_reads$ref_position <- indiv_reads$ref_position + 1 # convert to 1 based
+indiv_reads <- indiv_reads %>% mutate(ref_position = ifelse(ref_strand == "-", ref_position - 1, ref_position))
+indiv_reads$read_and_pos <- paste0(indiv_reads$read_id, ":", indiv_reads$ref_position)
+indiv_reads$start <- indiv_reads$ref_position
+indiv_reads$end <- indiv_reads$ref_position
+alpha_and_beta2 <- find_overlaps(as_granges(indiv_reads), as_granges(bed_betas_hu5.10)) %>% data.frame() %>% filter(call_prob > 0.66) %>%
+  group_by(read_id) %>% .[order(.$alignment_start),] %>% 
+  mutate(call_code = ifelse(call_code == "m", "M", "U")) %>%
+  mutate(meth_pattern = paste(call_code, collapse = "")) %>%
+  mutate(num_meth = str_count(meth_pattern, pattern = "M"),
+         total = str_length(meth_pattern),
+         alpha = num_meth/total) %>%
+  mutate(genom_positions = paste0(ref_position, collapse = ",")) %>%
+  ungroup()
+alpha_and_beta2 <- alpha_and_beta2 %>% data.frame()
+head(alpha_and_beta2)
+```
+
+```{r}
+saveRDS(alpha_and_beta2, "/researchers/caitlin.page/cf_nano/r_output/nano_alpha_beta.rds")
+```
+
+
+```{r}
+alpha_and_beta2_pat <- alpha_and_beta2 %>% 
+  mutate(start_pos = sapply(str_split(genom_positions, ","), head, 1),
+         end_pos = sapply(str_split(genom_positions, ","), tail, 1)) %>% 
+  filter(ref_position == start_pos) %>%
+  distinct(read_id, seqnames, start_pos, meth_pattern, alpha, end_pos, beta) %>% 
+  group_by(seqnames, start_pos, meth_pattern, alpha, end_pos, beta) %>% 
+  summarise(n=n()) %>%
+  ungroup()
+nrow(alpha_and_beta2_pat)
+alpha_and_beta2_pat %>% group_by(n) %>% summarise(n())
+
+alpha_and_beta2_pat <- alpha_and_beta2_pat %>%
+  mutate(start_pos = as.integer(start_pos),
+         end_pos = as.integer(end_pos))
+
+alpha_and_beta2_pat[1:10,]
+```
+```{r}
+saveRDS(alpha_and_beta2_pat, "/researchers/caitlin.page/cf_nano/r_output/nano_pat_alpha_beta.rds")
+```
+
+
 # WGBS data
 
 # RRBS processed file
@@ -59,6 +114,10 @@ bis <- fread("/researchers/caitlin.page/rrbs_encode_cell_line/CpG_OT_ENCFF000LYO
 for_beta <- process_wgbs(bis)
 for_beta <- for_beta %>% filter(seqnames == "chr22")
 rrbs_for_beta_pat <- pat_for_wgbs(for_beta)
+just_beta <- for_beta %>% distinct(start, beta) %>% .[order(.$start),]
+```
+```{r}
+saveRDS(for_beta, "/researchers/caitlin.page/cf_nano/r_output/rrbs_alpha_beta.rds")
 ```
 
 
