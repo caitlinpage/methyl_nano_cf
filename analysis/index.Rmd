@@ -43,10 +43,15 @@ Welcome to my research website.
 # how do I get beta values? - the problem
 
 [trying to plot alpha and beta together](plotAlphaAndBeta.html)
+
 * discovered a problem - expanded on in next 2
+
 [something weird happening with alpha and beta - mostly beta](checkAlphaAndBetaMatch.html)
+
 * most obvious example was chr22"18895995
+
 * my indiv reads: 2 reads: 1 meth, 1 unmeth - so beta should be 0.5
+
 * but in bedgraph file from paper: beta = 1
 
 * I think I overcomplicated this
@@ -60,9 +65,11 @@ Welcome to my research website.
 [how I'm getting the beta values](bedFileBetas.html)
 
 [How I'm going to join alpha and beta together](joinAlphaAndBeta.html)
+
 * this is going to be the fixed neat version
 
 ## want to do stuff about methylation patterns - like the pat file
+
 * but also about things like comethylation, epialleles, haplotypes
 * all those kinds of metrics
 
@@ -71,9 +78,15 @@ Welcome to my research website.
 * started this a bit in [analysis of alpha files](alphaAnalysis.html)
 * but new idea means new file (or groups of files)
 
+## GOAL: Group CpGs with similar methylation levels
+* If I can do this then I can see what the alphas are
+* A way to identify regions of interest in the data
+
 * start these files with prefix mp (for meth pattern)
 
 [initial analysis (some copied from alphaAnalysis)](mp1_methPattern.html)
+* developed function to identify region with similar beta values
+* region is then extracted and alpha values are plotted
 
 [medium methylation](mp2_betaGroups.html)
 
@@ -81,6 +94,55 @@ Welcome to my research website.
 
 [low methylation](mp3_betaGroupsLowBeta.html)
 
+
+
+[correlation of Alphas](correlationOfAlphas.html)
+LEARNINGS:
+* alphas are not as correlated as expected
+IMPLICATIONS:
+* ???? - maybe different cell types??
+
+[distance between cpgs and meth status](distNextCpG.html)
+* Peter Hickey's thesis chapter 7
+
+[plot with IQR of alpha](IQRVisualise.html)
+GOAL:
+* use IQR to identify regions where data is more spread and less spread
+* if more spread, expect more var in alphas, vice versa
+LEARNINGS
+* can now overlay IQR onto region plot
+* plotting just IQR is messy
+* IQR is metric for middle spread of data, might need more than that
+
+[annotate to genes/promoters](biologicalFeatures.html)
+GOAL:
+* what is alpha and beta in different biological features
+LEARNINGS:
+* Plotting IQR still looks bad haha
+* Distribution of beta much lower in sites overlapping promoters (rrbs)
+* Meth pattern does not consistently change at promoter boundary when read overlaps promoter and non promoter (rrbs)
+
+* just like promoters will have different methylation profile to intergenic regions
+* so will CpG islands to intergenic regions
+
+[annotate to CpG features](cpgFeatures.html)
+* conduct similar analysis to that in biologicalFeatures.html 
+
+
+## ANALYSIS INSPIRED BY PETE HICKEY
+
+[comethylation](distNextCpG.html)
+* distance between neighbouring cpgs and methylation status
+* mantel-haenszel odds ratio
+
+#
+
+* idk what im doing
+
+[whole genome analysis of RRBS data](wholeGenomeRrbs.html)
+* can't do yet - full chromosomes on cluster, not local
+
+## Ideas of files
 
 * files/analysis to do
 * genomic context: where are the patterns

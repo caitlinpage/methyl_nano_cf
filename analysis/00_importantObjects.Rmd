@@ -120,4 +120,7 @@ just_beta <- for_beta %>% distinct(start, beta) %>% .[order(.$start),]
 saveRDS(for_beta, "/researchers/caitlin.page/cf_nano/r_output/rrbs_alpha_beta.rds")
 ```
 
+```{r}
+readRDS("../output/cluster_files/rrbs_alpha_beta.rds")
+```
 

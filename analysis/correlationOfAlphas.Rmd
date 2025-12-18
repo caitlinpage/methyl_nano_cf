@@ -1,0 +1,432 @@
+---
+title: "correlationOfAlphas"
+author: "Caitlin Page"
+date: "2025-11-28"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+## Packages
+
+```{r}
+library(BSgenome.Hsapiens.UCSC.hg38)
+library(data.table)
+library(plyranges)
+library(tidyr)
+library(stringr)
+library(dplyr)
+library(ggplot2)
+```
+
+## Data Objects
+```{r}
+cg_sites <- cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38[["chr22"]])), seqnames = "chr22") %>% 
+  mutate(pos = paste0(seqnames, "-", start)) %>%
+  relocate(pos, seqnames)
+cg_sites$index <- 1:nrow(cg_sites)
+```
+
+
+```{r}
+source("../code/processData.R")
+
+for_beta <- readRDS("../output/cluster_files/rrbs_alpha_beta.rds")
+for_beta <- for_beta %>% filter(seqnames == "chr22")
+rrbs_for_beta_pat <- pat_for_wgbs(for_beta)
+
+for_beta <- for_beta %>% group_by(start) %>% mutate(coverage = n()) %>% ungroup() %>% data.frame()
+just_beta <- for_beta %>% distinct(start, beta, coverage) %>% .[order(.$start),]
+
+```
+
+```{r}
+for_beta %>% 
+  group_by(start) %>% 
+  mutate(mean_alpha = mean(alpha)) %>%
+  ungroup() %>% 
+  distinct(seqnames, start, mean_alpha, beta, coverage) %>%
+  ggplot(aes(x = beta, y = mean_alpha)) +
+  geom_count(alpha = 0.3) +
+  geom_abline(colour = "red", linetype = "dashed") +
+  labs(title = "Mean alpha and beta, size by geom_count")
+
+for_beta %>% 
+  group_by(start) %>% 
+  mutate(mean_alpha = mean(alpha)) %>%
+  ungroup() %>% 
+  distinct(seqnames, start, mean_alpha, beta, coverage) %>%
+  ggplot(aes(x = beta, y = mean_alpha, size = coverage)) +
+  geom_point(alpha = 0.3) +
+  geom_abline(colour = "red", linetype = "dashed") +
+  labs(title = "Mean alpha and beta, size by coverage at site")
+```
+```{r}
+for_beta <- for_beta %>% 
+  group_by(start) %>% 
+  mutate(mean_alpha = mean(alpha)) %>%
+  ungroup() %>% 
+  data.frame()
+```
+
+```{r}
+just_beta <- just_beta %>%
+  mutate(mean_alpha = for_beta[match(.$start, for_beta$start), "mean_alpha"])
+
+cor.test(just_beta$beta, just_beta$mean_alpha)
+```
+
+```{r}
+just_beta %>%
+  ggplot(aes(x = beta, y = mean_alpha - beta)) +
+  geom_count(alpha = 0.3)
+
+just_beta %>%
+  ggplot(aes(x = beta, y = mean_alpha - beta, size = coverage)) +
+  geom_point(alpha = 0.3)
+```
+
+```{r}
+for_beta %>% 
+  distinct(read_id, meth_pattern, alpha) %>%
+  ggplot(aes(x = alpha)) +
+  geom_density()
+```
+
+* I don't actually have the read positions I only have the cpg positions on the read
+
+```{r}
+for_beta %>% 
+  distinct(read_id, meth_pattern, alpha, total, read_start, read_end) %>%
+  filter(total > 2) %>%
+  mutate(read_length = read_end - read_start + 1) %>% 
+  group_by(read_length) %>%
+  summarise(n=n()) %>% .[order(.$n, decreasing = TRUE),] %>% .[1:10,]
+```
+
+# read length (dist last - first cpg & alpha)
+
+```{r}
+for_beta %>% 
+  distinct(read_id, meth_pattern, alpha, total, read_start, read_end) %>%
+  filter(total > 2) %>%
+  mutate(read_length = read_end - read_start + 1) %>%
+  ggplot(aes(x = as.factor(read_length), y = alpha)) +
+  geom_boxplot()
+
+for_beta %>% 
+  distinct(read_id, meth_pattern, alpha, total, read_start, read_end) %>%
+  filter(total > 2) %>%
+  mutate(read_length = read_end - read_start + 1) %>%
+  ggplot(aes(x = read_length, y = alpha)) +
+  geom_point(alpha = 0.3)
+
+```
+
+# read length (last - first cpg & total amount of cpgs)
+
+```{r}
+for_beta %>% 
+  distinct(read_id, meth_pattern, alpha, total, read_start, read_end) %>%
+  filter(total > 2) %>%
+  mutate(read_length = read_end - read_start + 1) %>%
+  group_by(read_length, total) %>%
+  summarise(n=n()) %>% .[1:10,]
+```
+
+```{r}
+for_beta %>% 
+  distinct(read_id, meth_pattern, alpha, total, read_start, read_end) %>%
+  filter(total > 2) %>%
+  mutate(read_length = read_end - read_start + 1) %>%
+  ggplot(aes(x = read_length, y = total)) +
+  geom_point(alpha = 0.3)
+
+for_beta %>% 
+  distinct(read_id, meth_pattern, alpha, total, read_start, read_end) %>%
+  filter(total > 2) %>%
+  mutate(read_length = read_end - read_start + 1) %>%
+  ggplot(aes(x = as.factor(read_length), y = total)) +
+  geom_boxplot()
+
+for_beta %>% 
+  distinct(read_id, meth_pattern, alpha, total, read_start, read_end) %>%
+  filter(total > 2) %>%
+  mutate(read_length = read_end - read_start + 1) %>%
+  ggplot(aes(x = as.factor(total), y = read_length)) +
+  geom_boxplot()
+```
+
+# total number of cpgs and alpha
+
+```{r}
+for_beta %>% 
+  distinct(read_id, meth_pattern, alpha, total, read_start, read_end) %>%
+  filter(total > 2) %>%
+  mutate(read_length = read_end - read_start + 1) %>%
+  group_by(total, alpha) %>%
+  summarise(n=n()) %>% .[1:10,]
+```
+
+
+```{r}
+for_beta %>% 
+  distinct(read_id, meth_pattern, alpha, total, read_start, read_end) %>%
+  filter(total > 2) %>%
+  mutate(read_length = read_end - read_start + 1) %>%
+  ggplot(aes(x = as.factor(total), y = alpha)) +
+  geom_boxplot()
+
+for_beta %>% 
+  distinct(read_id, meth_pattern, alpha, total, read_start, read_end) %>%
+  filter(total > 2) %>%
+  mutate(read_length = read_end - read_start + 1) %>%
+  ggplot(aes(x = total, y = alpha)) +
+  geom_point(alpha = 0.3)
+
+for_beta %>% 
+  distinct(read_id, meth_pattern, alpha, total, read_start, read_end) %>%
+  filter(total > 2) %>%
+  mutate(read_length = read_end - read_start + 1) %>%
+  ggplot(aes(x = alpha, colour = as.factor(total))) +
+  geom_density()
+```
+
+
+
+```{r}
+for_beta %>% 
+  distinct(read_id, meth_pattern, alpha, total, read_start, read_end) %>%
+  filter(total > 2) %>%
+  mutate(read_length = read_end - read_start + 1) %>%
+  group_by(meth_pattern, total, alpha) %>%
+  summarise(n=n()) %>% .[order(.$total),] %>%
+  ungroup() %>% group_by(total) %>% 
+  mutate(n_pat = n(), sum_pat = sum(n), prop = n/sum_pat) %>%
+  ggplot(aes(x = alpha, y = prop, colour = meth_pattern)) +
+  geom_point() +
+  facet_wrap(~as.factor(total)) +
+  theme(legend.position = "none")
+```
+* ok actually this is semi something (possibly better than below plots)
+* each colour is a different meth pattern
+* and prop is how often it shows up
+* it says that bulk of data is alpha = 0 (all same)
+* this should probably be bar charts but I can't be bothered
+
+```{r}
+for_beta %>% 
+  distinct(read_id, meth_pattern, alpha, total, read_start, read_end) %>%
+  filter(total > 2) %>%
+  mutate(read_length = read_end - read_start + 1) %>%
+  group_by(meth_pattern, total, alpha) %>%
+  summarise(n=n()) %>% .[order(.$total),] %>%
+  ungroup() %>% group_by(total) %>% 
+  mutate(n_pat = n(), sum_pat = sum(n), prop = n/sum_pat) %>%
+  filter(alpha != 0, alpha != 1) %>%
+  ggplot(aes(x = alpha, y = prop, colour = meth_pattern)) +
+  geom_point() +
+  facet_wrap(~as.factor(total)) +
+  theme(legend.position = "none")
+```
+
+```{r}
+for_beta %>% 
+  distinct(read_id, meth_pattern, alpha, total, read_start, read_end) %>%
+  filter(total > 2) %>%
+  mutate(read_length = read_end - read_start + 1) %>%
+  group_by(meth_pattern, total, alpha) %>%
+  summarise(n=n()) %>% .[order(.$total),] %>%
+  ungroup() %>% group_by(total) %>% 
+  mutate(n_pat = n(), sum_pat = sum(n), prop = n/sum_pat) %>%
+  filter(alpha != 0, alpha != 1, total == 3) %>%
+  ggplot(aes(x = alpha, y = prop, colour = meth_pattern)) +
+  geom_point() 
+```
+* the lowest prop here is the umu and mum
+* that's actually nice to see - following logic of cpgs sharing meth states
+
+
+###########
+
+* is any of the above interesting? I don't know
+* I want to know if there is something about the distance between cpgs on a read that impacts their relationship (same status)
+* because we know cpgs are spatially correlated
+* would this be useful to know?
+* maybe in context of identifying a window size to look along
+
+* can the relationship between cpg distance and methylation state be modelled??
+* like if after a certain distance - cpg was way less likely to have same methylation state - that's interesting
+
+* first step - distance to previous cpg on read, and is the meth state shared
+* work with only reads min 3 cpgs
+
+```{r}
+for_beta %>% filter(total > 2) %>%
+  group_by(read_id) %>%
+  mutate(gap_to_previous = start - lag(start),
+         meth_state_same_previous = ifelse(meth_status == lag(meth_status), TRUE, FALSE)) %>%
+  ungroup() %>%
+  filter(!is.na(gap_to_previous)) %>%
+  ggplot(aes(x = meth_state_same_previous, y = gap_to_previous)) +
+  geom_boxplot() 
+
+for_beta %>% filter(total > 2) %>%
+  group_by(read_id) %>%
+  mutate(gap_to_previous = start - lag(start),
+         meth_state_same_previous = ifelse(meth_status == lag(meth_status), TRUE, FALSE)) %>%
+  ungroup() %>%
+  filter(!is.na(gap_to_previous)) %>%
+  ggplot(aes(x = meth_state_same_previous, y = gap_to_previous)) +
+  geom_violin()
+  
+for_beta %>% filter(total > 2) %>%
+  group_by(read_id) %>%
+  mutate(gap_to_previous = start - lag(start),
+         meth_state_same_previous = ifelse(meth_status == lag(meth_status), TRUE, FALSE)) %>%
+  ungroup() %>%
+  filter(!is.na(gap_to_previous)) %>%
+  ggplot(aes(x = gap_to_previous, colour = meth_state_same_previous)) +
+  geom_density()
+```
+* so it is lower in true which is expected
+* but the shape of the distributions are similar
+* also the TRUE is a weird looking distribution
+```{r}
+for_beta %>% distinct(read_id, read_start, read_end) %>% mutate(read_length = read_end - read_start + 1) %>% .[order(.$read_length, decreasing = TRUE),] %>% .[1:10,]
+```
+* why are the reads 36 bp????
+* or is it a cpg thing and they don't actually start and end on cpg sites???
+
+
+* ooh could I plot like I did the tp in gst? - if same line is same, if changes it goes up a step?
+* just as a way to visualise the reads
+
+```{r}
+step_plot_alpha <- for_beta %>% filter(total > 2) %>%
+  group_by(read_id) %>%
+  mutate(gap_to_previous = start - lag(start),
+         meth_state_same_previous = ifelse(meth_status == lag(meth_status), TRUE, FALSE)) %>%
+  ungroup()
+```
+
+```{r}
+step_plot_alpha %>%
+  group_by(read_id) %>%
+  mutate(gap_to_previous = ifelse(is.na(gap_to_previous), 0, gap_to_previous), 
+         new_length = cumsum(gap_to_previous),
+         step_level = consecutive_id(meth_state_same_previous)) %>%
+  ungroup() %>%
+  ggplot(aes(x = new_length, y = step_level)) +
+  geom_line()
+```
+
+
+```{r}
+step_plot_alpha[1:500,] %>%
+  group_by(read_id) %>%
+  mutate(gap_to_previous = ifelse(is.na(gap_to_previous), 0, gap_to_previous), 
+         new_length = cumsum(gap_to_previous),
+         step_level = consecutive_id(meth_state_same_previous)) %>%
+  ggplot(aes(x = new_length, y = step_level, colour = read_id)) +
+  geom_line() +
+  theme(legend.position = "none")
+```
+
+what if similar but just with m and u at 1 and 0??
+
+```{r}
+step_plot_alpha[1:50,] %>%
+  group_by(read_id) %>%
+  mutate(gap_to_previous = ifelse(is.na(gap_to_previous), 0, gap_to_previous), 
+         new_length = cumsum(gap_to_previous),
+         step_meth = ifelse(meth_status == "M", 1, 0)) %>%
+  ggplot(aes(x = new_length, y = step_meth, colour = read_id)) +
+  geom_line() +
+  theme(legend.position = "none")
+```
+
+* yeah this is impossible to interpret
+* also I feel like this is a plot I made agesss ago
+
+```{r}
+step_plot_alpha %>% distinct(read_id) %>% nrow()
+```
+
+
+
+# maybe easier as beta?
+
+```{r}
+just_beta %>%
+  mutate(gap_previous_cpg = start - lag(start),
+         diff_previous_beta = beta - lag(beta)) %>%
+  filter(gap_previous_cpg < 10000) %>%
+  ggplot(aes(x = gap_previous_cpg, y = diff_previous_beta)) +
+  geom_point(alpha = 0.3)
+```
+* well this doesn't look like anything
+
+```{r}
+just_beta %>%
+  mutate(beta_range = case_when(beta < 0.3 ~ "low",
+                                beta > 0.7 ~ "high",
+                                TRUE ~ "medium"),
+          gap_previous_cpg = start - lag(start),
+         diff_previous_beta = ifelse(beta_range == lag(beta_range), TRUE, FALSE)) %>%
+  filter(gap_previous_cpg < 5000) %>%
+  ggplot(aes(x = diff_previous_beta, y = log2(gap_previous_cpg))) +
+  geom_boxplot()
+
+just_beta %>%
+  mutate(beta_range = case_when(beta < 0.3 ~ "low",
+                                beta > 0.7 ~ "high",
+                                TRUE ~ "medium"),
+          gap_previous_cpg = start - lag(start),
+         diff_previous_beta = ifelse(beta_range == lag(beta_range), TRUE, FALSE)) %>%
+  filter(gap_previous_cpg < 5000) %>%
+  ggplot(aes(x = log2(gap_previous_cpg), colour = diff_previous_beta)) +
+  geom_density()
+```
+
+```{r}
+# just gap < 500
+just_beta %>%
+  mutate(beta_range = case_when(beta < 0.3 ~ "low",
+                                beta > 0.7 ~ "high",
+                                TRUE ~ "medium"),
+          gap_previous_cpg = start - lag(start),
+         diff_previous_beta = ifelse(beta_range == lag(beta_range), TRUE, FALSE)) %>%
+  filter(gap_previous_cpg < 500) %>%
+  ggplot(aes(x = diff_previous_beta, y = log2(gap_previous_cpg))) +
+  geom_boxplot()
+
+just_beta %>%
+  mutate(beta_range = case_when(beta < 0.3 ~ "low",
+                                beta > 0.7 ~ "high",
+                                TRUE ~ "medium"),
+          gap_previous_cpg = start - lag(start),
+         diff_previous_beta = ifelse(beta_range == lag(beta_range), TRUE, FALSE)) %>%
+  filter(gap_previous_cpg < 500) %>%
+  ggplot(aes(x = log2(gap_previous_cpg), colour = diff_previous_beta)) +
+  geom_density()
+```
+
+```{r}
+ just_beta %>%
+  mutate(beta_range = case_when(beta < 0.3 ~ "low",
+                                beta > 0.7 ~ "high",
+                                TRUE ~ "medium"),
+          gap_previous_cpg = start - lag(start),
+         diff_previous_beta = ifelse(beta_range == lag(beta_range), TRUE, FALSE)) %>%
+#  filter(gap_previous_cpg < 500) %>%
+  mutate(gap_previous_cpg = ifelse(is.na(gap_previous_cpg), 0, gap_previous_cpg), 
+         new_length = cumsum(gap_previous_cpg),
+         step_level = consecutive_id(diff_previous_beta)) %>%
+  ggplot(aes(x = new_length, y = step_level)) +
+  geom_line()
+```
+
+
+
+
