@@ -30,8 +30,8 @@ cg_sites$index <- 1:nrow(cg_sites)
 
 ```{r}
 source("../code/processData.R")
-
-for_beta <- readRDS("../output/cluster_files/rrbs_alpha_beta.rds")
+for_beta <- readRDS("/researchers/caitlin.page/cf_nano/r_output/rrbs_alpha_beta.rds")
+#for_beta <- readRDS("../output/cluster_files/rrbs_alpha_beta.rds")
 for_beta <- for_beta %>% filter(seqnames == "chr22")
 rrbs_for_beta_pat <- pat_for_wgbs(for_beta)
 
@@ -52,6 +52,8 @@ for_beta %>%
 
 
 # Pete Hickey: MethylationTuples
+Thesis Chapter 7: Co-methylation
+
 * I couldn't download the package
 * but the math is Mantel-Haenszel odds ratio estimator
 * in a 2 by 2 chi square table for neighbouring cpgs
@@ -366,7 +368,7 @@ mantel_haen_dist_next_cpg <- function(long_data, num_cpg_read = NULL) {
   try <- try %>% mutate(IPD = as.numeric(sub(".*_", "", dist)))
   try
 }
-mantel_haen_dist_next_cpg(for_beta, 7) %>% .[1:5,]
+#mantel_haen_dist_next_cpg(for_beta, 7) %>% .[1:5,]
 ```
 
 ```{r}
@@ -410,6 +412,19 @@ plot_vec
 * I think Pete's plots are on the log axis but they are very different to mine
 * they're positive and small log numbers
 
+* maybe log10 instead of log2?
+```{r}
+plot_vec <- list()
+for(x in 2:length(cpgs_read)) {
+  plot <- mantel_haen_dist_next_cpg(for_beta, cpgs_read[x]) %>%
+    ggplot(aes(x = IPD, y = log(OR))) +
+    geom_point() +
+    labs(title = paste0("total cpgs on read = ", cpgs_read[x]))
+  plot_vec <- list(plot_vec, plot)
+}
+plot_vec
+```
+
 
 * all reads at once
 ```{r}
@@ -418,4 +433,156 @@ mantel_haen_dist_next_cpg(for_beta) %>%
     geom_point() +
     labs(title = paste0("all reads together"))
 ```
+
+* log the odds ratio
+```{r}
+mantel_haen_dist_next_cpg(for_beta) %>%
+    ggplot(aes(x = IPD, y = log(OR))) +
+    geom_point() +
+    labs(title = paste0("all reads together"))
+```
+
+# why do they look weird?
+
+```{r}
+try_2 <- mantel_haen_dist_next_cpg(for_beta, 2)
+```
+
+
+```{r}
+try_2[25:35,]
+
+try_2 %>% 
+  ggplot(aes(x = OR)) +
+  geom_density()
+
+try_2 %>% 
+  ggplot(aes(x = OR)) +
+  geom_density()
+```
+
+```{r}
+log(1.520e-114)
+log(1.520e-114 + 5)
+```
+* needs a constant to offset the effect of logging
+
+```{r}
+try_2 %>%
+  ggplot(aes(x = IPD, y = OR)) +
+  geom_point()
+
+try_2 %>%
+  ggplot(aes(x = IPD, y = log(OR))) +
+  geom_point() +
+  labs(title = "Log(OR)")
+
+try_2 %>%
+  ggplot(aes(x = IPD, y = log(OR + 5))) +
+  geom_point() +
+  labs(title = "Log(OR + 5)")
+```
+
+* looks way better now
+
+```{r}
+plot_vec <- list()
+for(x in 2:length(cpgs_read)) {
+  plot <- mantel_haen_dist_next_cpg(for_beta, cpgs_read[x]) %>%
+    ggplot(aes(x = IPD, y = log(OR + 5))) +
+    geom_point() +
+    labs(title = paste0("log(OR+5), total cpgs on read = ", cpgs_read[x]))
+  plot_vec <- list(plot_vec, plot)
+}
+plot_vec
+```
+* this looks better
+
+* Pete found relationship was different when cpgs in islands vs not
+
+# Split by in CGI or not
+
+```{r}
+annots <- c("hg38_cpgs")
+
+annotations <- annotatr::build_annotations(genome = 'hg38', annotations = annots)
+seqs <- annotations %>% data.frame() %>% distinct(seqnames) %>% .[1:22,]
+annotations <- annotations %>% data.frame() %>% filter(seqnames %in% seqs)
+```
+
+```{r}
+for_beta <- find_overlaps(as_granges(for_beta), as_granges(annotations)) %>% data.frame() %>%
+  mutate(cgi = ifelse(type == "hg38_cpg_islands", "island", "not_island"))
+```
+
+```{r}
+mantel_haen_dist_next_cpg(filter(for_beta, cgi == "island"), 2)
+```
+```{r}
+try_2 %>%
+  ggplot(aes(x = IPD, y = OR, fill = "red")) +
+  geom_point() +
+  geom_smooth()
+```
+```{r}
+cpgs_read <- for_beta %>% distinct(total) %>% .[order(.$total),]
+#for_beta %>% group_by(cgi) %>% distinct(total)
+```
+* there's a problem here about it cutting off cpgs from reads that border a cpg island, that's why the read length changed
+* but I don't want to fix it right now
+`x in 2:length(cpgs_read)`
+```{r}
+plot_vec <- list()
+for(x in 2:8) {
+  plot <- rbind(mantel_haen_dist_next_cpg(filter(for_beta, cgi == "island"), cpgs_read[x]) %>% mutate(cgi = "island"),
+                mantel_haen_dist_next_cpg(filter(for_beta, cgi == "not_island"), cpgs_read[x]) %>% mutate(cgi = "not_island")) 
+  plot <- plot %>%
+    ggplot(aes(x = IPD, y = log(OR + 5), colour = cgi)) +
+    geom_point() +
+    labs(title = paste0("log(OR+5), total cpgs on read = ", cpgs_read[x]))
+  plot_vec <- list(plot_vec, plot)
+}
+plot_vec
+```
+
+```{r}
+plot_vec <- list()
+for(x in 2:8) {
+  plot <- rbind(mantel_haen_dist_next_cpg(filter(for_beta, cgi == "island"), cpgs_read[x]) %>% mutate(cgi = "island"),
+                mantel_haen_dist_next_cpg(filter(for_beta, cgi == "not_island"), cpgs_read[x]) %>% mutate(cgi = "not_island")) 
+  plot <- plot %>%
+    ggplot(aes(x = IPD, y = log(OR + 5), colour = cgi)) +
+    geom_point() +
+    geom_smooth(aes(fill = cgi)) +
+    labs(title = paste0("log(OR+5), total cpgs on read = ", cpgs_read[x]))
+  plot_vec <- list(plot_vec, plot)
+}
+plot_vec
+```
+
+
+```{r}
+rbind(mantel_haen_dist_next_cpg(filter(for_beta, cgi == "island")) %>% mutate(cgi = "island"),
+                mantel_haen_dist_next_cpg(filter(for_beta, cgi == "not_island")) %>% mutate(cgi = "not_island")) %>%
+    ggplot(aes(x = IPD, y = log(OR + 5), colour = cgi)) +
+    geom_point() +
+    geom_smooth(aes(fill = cgi)) +
+    labs(title = paste0("all reads together"))
+```
+
+* when odds ratio is high, comethylation is strong
+* when odds ratio is low, comethylation is weak
+* so as expected, when distance between cpgs increases, comethylation is weaker
+
+with cgu - results are similar
+* this is consistent with Pete
+* was unexpected for him
+* but this is in the case of NIL = 0 (no skipping cpgs)
+
+# where to take this next?
+* would be good to do for NIL > 0 
+** will require some adjusting of the function - specifying which `lead()` to use
+* repeat for all chromosomes
+* repeat on nanopore data
+* maybe overlay gene features?
 
