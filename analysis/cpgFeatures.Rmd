@@ -89,4 +89,147 @@ find_overlaps(as_granges(for_beta), as_granges(annotations)) %>% data.frame() %>
   ggplot(aes(x = alpha, colour = type)) +
   geom_density() 
 ```
+* as expected, cpg islands have more reads with alpha = 0
+
+* repeat the plots but for beta
+
+```{r}
+find_overlaps(as_granges(just_beta), as_granges(annotations)) %>% data.frame() %>%
+  ggplot(aes(x = type, y = beta, fill = type)) +
+  geom_boxplot() +
+  theme(legend.position = "none")
+
+find_overlaps(as_granges(just_beta), as_granges(annotations)) %>% data.frame() %>%
+  ggplot(aes(x = type, y = beta, fill = type)) +
+  geom_violin() +
+  theme(legend.position = "none")
+
+find_overlaps(as_granges(just_beta), as_granges(annotations)) %>% data.frame() %>%
+  ggplot(aes(x = beta, colour = type)) +
+  geom_density() 
+```
+* as expected, same thing occurs with beta values
+
+* CpG islands are associated with transcription, so are demethylated (alpha/beta = 0), while intergenic regions are typically methylated
+
+```{r}
+find_overlaps(as_granges(for_beta), as_granges(annotations)) %>% data.frame() %>%
+  distinct(read_id, total, alpha, meth_pattern, type) %>%
+  filter(total > 2) %>%
+  group_by(meth_pattern) %>%
+  mutate(pattern_count = n()) %>%
+  .[order(.$pattern_count, decreasing = TRUE),] %>% 
+  ungroup() %>%
+  group_by(type, meth_pattern, pattern_count) %>%
+  summarise(n=n()) %>%
+  .[order(.$pattern_count, decreasing = TRUE),] %>%
+  .[1:34,] %>%
+  ggplot(aes(x = meth_pattern, fill = type, y = n)) +
+  geom_bar(position = "fill", stat = "identity")
+```
+
+* number of cpgs in read and cpg feature (but filtered to at least 3 cpg in read)
+```{r}
+find_overlaps(as_granges(for_beta), as_granges(annotations)) %>% data.frame() %>%
+  distinct(read_id, total, alpha, meth_pattern, type) %>%
+  filter(total > 2) %>%
+  ggplot(aes(x = type, fill = type, y = total)) +
+  geom_boxplot() +
+  theme(legend.position = "none")
+
+find_overlaps(as_granges(for_beta), as_granges(annotations)) %>% data.frame() %>%
+  distinct(read_id, total, alpha, meth_pattern, type) %>%
+  filter(total > 2) %>%
+  ggplot(aes(x = type, fill = type, y = total)) +
+  geom_violin() +
+  theme(legend.position = "none")
+
+find_overlaps(as_granges(for_beta), as_granges(annotations)) %>% data.frame() %>%
+  distinct(read_id, total, alpha, meth_pattern, type) %>%
+  filter(total > 2) %>%
+  ggplot(aes(x = total, colour = type)) +
+  geom_density()
+```
+* without filtering
+```{r}
+find_overlaps(as_granges(for_beta), as_granges(annotations)) %>% data.frame() %>%
+  distinct(read_id, total, alpha, meth_pattern, type) %>%
+  ggplot(aes(x = type, fill = type, y = total)) +
+  geom_boxplot() +
+  theme(legend.position = "none")
+
+find_overlaps(as_granges(for_beta), as_granges(annotations)) %>% data.frame() %>%
+  distinct(read_id, total, alpha, meth_pattern, type) %>%
+  ggplot(aes(x = type, fill = type, y = total)) +
+  geom_violin() +
+  theme(legend.position = "none")
+
+find_overlaps(as_granges(for_beta), as_granges(annotations)) %>% data.frame() %>%
+  distinct(read_id, total, alpha, meth_pattern, type) %>%
+  ggplot(aes(x = total, colour = type)) +
+  geom_density()
+```
+* shape does change a bit
+
+* where are the short reads?
+
+```{r}
+find_overlaps(as_granges(for_beta), as_granges(annotations)) %>% data.frame() %>%
+  distinct(read_id, total, alpha, meth_pattern, type) %>%
+  filter(total <= 2) %>%
+  group_by(type) %>%
+  summarise(n=n()) %>%
+  ungroup() %>%
+  mutate(prop = n/sum(n))
+
+find_overlaps(as_granges(for_beta), as_granges(annotations)) %>% data.frame() %>%
+  distinct(read_id, total, alpha, meth_pattern, type) %>%
+  filter(total <= 2) %>%
+  ggplot(aes(x = type, fill = type)) +
+  geom_bar() +
+  theme(legend.position = "none")
+```
+* most of short reads are in inter
+* but what are they as prop of all data?
+
+```{r}
+find_overlaps(as_granges(for_beta), as_granges(annotations)) %>% data.frame() %>%
+  distinct(read_id, total, alpha, meth_pattern, type) %>%
+  mutate(less_3_cpg = ifelse(total <= 2, TRUE, FALSE)) %>%
+  ggplot(aes(x = type, fill = less_3_cpg)) +
+  geom_bar()
+
+find_overlaps(as_granges(for_beta), as_granges(annotations)) %>% data.frame() %>%
+  distinct(read_id, total, alpha, meth_pattern, type) %>%
+  mutate(less_3_cpg = ifelse(total <= 2, TRUE, FALSE)) %>%
+  ggplot(aes(x = type, fill = less_3_cpg)) +
+  geom_bar(position = "fill") 
+```
+* makes sense that reads in cpg islands have more cpgs in them - as islands have more cpgs in short distance
+* and intergenic - the cpgs are more spread out
+
+```{r}
+top_patterns <- for_beta %>% mutate(position = paste0(seqnames, "-", start),
+                    pos_in_prom = ifelse(position %in% beta_overlap_prom$position, TRUE, FALSE)) %>%
+  filter(!read_id %in% reads_both) %>%
+  distinct(read_id, alpha, meth_pattern, pos_in_prom, total) %>%
+  group_by(meth_pattern, total) %>%
+  summarise(pattern_count = n()) %>%
+  .[order(.$pattern_count, decreasing = TRUE),] %>%
+  ungroup() %>%
+  data.frame()
+top_patterns[1:10,]
+```
+
+* back to alpha and meth patterns - specifically for cpg islands
+
+```{r}
+find_overlaps(as_granges(for_beta), as_granges(annotations)) %>% data.frame() %>%
+  distinct(read_id, total, alpha, meth_pattern, type) %>%
+  group_by(type, alpha) %>%
+  summarise(n=n()) %>%
+  ungroup() %>%
+  group_by(type) %>%
+  mutate(prop = n/sum(n))
+```
 
