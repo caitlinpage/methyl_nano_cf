@@ -27,3 +27,10 @@ editor_options:
 * WGBS is a lot bigger than nanopore
 * and this was still on chr22
 * solution: data.table for everything - no more dplyr and mutate
+
+
+# 23/1/2026
+# merge conflict
+* run git config pull.rebase false
+* then was able to pull 
+* and then push
