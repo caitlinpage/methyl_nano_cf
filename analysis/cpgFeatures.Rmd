@@ -180,7 +180,7 @@ find_overlaps(as_granges(for_beta), as_granges(annotations)) %>% data.frame() %>
   group_by(type) %>%
   summarise(n=n()) %>%
   ungroup() %>%
-  mutate(prop = n/sum(n))
+  mutate(prop = n/sum(n)) %>% .[1:10,]
 
 find_overlaps(as_granges(for_beta), as_granges(annotations)) %>% data.frame() %>%
   distinct(read_id, total, alpha, meth_pattern, type) %>%
@@ -230,6 +230,6 @@ find_overlaps(as_granges(for_beta), as_granges(annotations)) %>% data.frame() %>
   summarise(n=n()) %>%
   ungroup() %>%
   group_by(type) %>%
-  mutate(prop = n/sum(n))
+  mutate(prop = n/sum(n)) %>% .[1:10,]
 ```
 
