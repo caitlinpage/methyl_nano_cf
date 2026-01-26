@@ -135,7 +135,7 @@ LEARNINGS:
 * distance between neighbouring cpgs and methylation status
 * mantel-haenszel odds ratio
 
-[comethylation step 2](distAlphaByDistance.Rmd)
+[comethylation step 2](distAlphaByDistance.html)
 * if 2 cpgs, distance should be smaller when alpha 0,1 
 * larger distance when alpha 0.5
 * cpg density
