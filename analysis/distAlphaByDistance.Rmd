@@ -226,8 +226,9 @@ alpha_distance <- for_beta %>%
       ungroup() %>%
       fill(dist_to_next, .direction = "down") %>%
       distinct(read_id, cgi, meth_pattern, dist_to_next, alpha, total) %>%
-      filter(!grepl("A", .$meth_pattern)) %>%
-  .[1:10,]
+      filter(!grepl("A", .$meth_pattern)) 
+
+alpha_distance[1:10,]
 ```
 
 ```{r}
@@ -237,5 +238,20 @@ alpha_distance %>%
   geom_boxplot()
 ```
 
+```{r}
+alpha_distance %>%
+  filter(total == 2) %>%
+  ggplot(aes(x = as.factor(alpha), y = dist_to_next, fill = cgi)) +
+  geom_violin()
+```
+
+
+```{r}
+alpha_distance %>%
+  filter(total == 2) %>%
+  ggplot(aes(fill = as.factor(alpha), x = dist_to_next)) +
+  geom_density(alpha = 0.3) +
+  facet_wrap(~ cgi)
+```
 
 
