@@ -833,6 +833,12 @@ cometh_all
   try <- try %>% mutate(IPD = as.numeric(sub(".*_", "", dist)))
   try
 ```
+
+```{r}
+format_data
+```
+
+ab
 ```{r}
 numeric_lines <- try$numbers
   # get Inf and d separate
@@ -866,6 +872,61 @@ try %>%
   ggplot(aes(x = IPD, y = log(OR))) +
   geom_point()
 ```
+
+```{r}
+rbind(mutate(try, source = "All_reads"), mutate(try_2, source = "reads_2cpgs")) %>% data.frame() %>%
+  ggplot(aes(x = IPD, y = log(OR + 5), colour = source)) +
+  geom_point()
+
+```
+
+* this is interesting
+```{r}
+rbind(mutate(try, source = "All_reads"), mutate(try_2, source = "reads_2cpgs")) %>% data.frame() %>% .[order(.$IPD),]
+```
+
+```{r}
+try
+```
+```{r}
+for_beta_all_mantel <- for_beta_all %>%
+  filter(total > 1) %>%
+  group_by(read_id) %>%
+      mutate(dist_to_next = lead(start) - start,
+            meth_and_next = paste0(meth_status, lead(meth_status))) %>%
+      ungroup() %>%
+  mutate(OR = try[match(.$dist_to_next, try$IPD), "OR"]) %>% filter(!grepl("A", .$meth_and_next))
+```
+
+```{r}
+for_beta_all_mantel %>%
+  filter(alpha == 0) %>% group_by(dist_to_next, meth_and_next, OR) %>% summarise(n=n())
+  ggplot(aes(x = dist_to_next, y = log(OR + 5))) +
+  geom_point()
+
+for_beta_all_mantel %>%
+  filter(alpha == 0.5) %>% group_by(dist_to_next, meth_and_next, OR) %>% summarise(n=n())
+  ggplot(aes(x = dist_to_next, y = log(OR + 5))) +
+  geom_point()
+
+for_beta_all_mantel %>%
+  filter(alpha == 1) %>%
+  ggplot(aes(x = dist_to_next, y = log(OR + 5))) +
+  geom_point()
+```
+* can't figure out how to plot this
+```{r}
+for_beta_all_mantel %>%
+  filter(alpha == 0.5) %>% group_by(dist_to_next, OR, meth_and_next) %>% summarise(n=n()) %>%
+  ggplot(aes(x = dist_to_next, y = OR, colour = meth_and_next, size = n)) +
+  geom_jitter()
+```
+* ok so it stays the same between patterns
+```{r}
+1+1
+```
+
+########
 * new idea: distribution of alpha by distance - distance and alphas to relate to this idea
 * density of cpgs on read
 * find where it failed
