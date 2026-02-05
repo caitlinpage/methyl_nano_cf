@@ -254,4 +254,126 @@ alpha_distance %>%
   facet_wrap(~ cgi)
 ```
 
+# low, medium, and high
+* split the mantel-haensz calculation by the alpha on the read
+* Low: 0-0.2 
+* Medium: 0.4-0.6
+* High: 0.8-1
+* Inclusive for all of these
+
+```{r}
+alpha_distance %>%
+  filter(alpha == 0 | alpha == 0.5 | alpha == 1) %>%
+  ggplot(aes(x = as.factor(alpha), y = dist_to_next, fill = cgi)) +
+  geom_boxplot()
+
+alpha_distance %>%
+  mutate(alpha_level = case_when(alpha <= 0.2 ~ "Low",
+                                 alpha > 0.2 & alpha < 0.4 ~ "Low-med",
+                                 alpha >= 0.4 & alpha <= 0.6 ~ "Medium",
+                                 alpha > 0.6 & alpha < 0.8 ~ "Med-high",
+                                 alpha >= 0.8 ~ "High", TRUE ~ "Other"),
+         alpha_level = factor(alpha_level, levels = c("Low", "Low-med", "Medium", "Med-high", "High"))) %>%
+  ggplot(aes(x = alpha_level, y = dist_to_next, fill = cgi)) +
+  geom_boxplot()
+```
+* according to perplexity
+* if OR > 1 - positive assoc, OR < 1 negative assoc ~ 1 little/no assoc
+
+```{r}
+mantel_low <- mantel_haen_dist_next_cpg(filter(for_beta_all, alpha <= 0.2))
+mantel_med <- mantel_haen_dist_next_cpg(filter(for_beta_all, alpha >= 0.4 , alpha <= 0.6))
+mantel_high <- mantel_haen_dist_next_cpg(filter(for_beta_all, alpha >= 0.8))
+```
+
+```{r}
+cbind(mutate(mantel_low, OR_low = OR) %>% .[,c(2,7:8)], OR_med = mantel_med$OR, OR_high = mantel_high$OR) %>%
+  ggplot(aes(x = OR_low, y = OR_high)) +
+  geom_point(alpha = 0.4)
+
+cbind(mutate(mantel_low, OR_low = OR) %>% .[,c(2,7:8)], OR_med = mantel_med$OR, OR_high = mantel_high$OR) %>%
+  ggplot(aes(x = OR_low, y = OR_med)) +
+  geom_point(alpha = 0.4)
+
+cbind(mutate(mantel_low, OR_low = OR) %>% .[,c(2,7:8)], OR_med = mantel_med$OR, OR_high = mantel_high$OR) %>%
+  ggplot(aes(x = OR_med, y = OR_high)) +
+  geom_point(alpha = 0.4)
+```
+```{r}
+cbind(mutate(mantel_low, OR_low = OR) %>% .[,c(2,7:8)], OR_med = mantel_med$OR, OR_high = mantel_high$OR) %>%
+  ggplot(aes(x = OR_low, y = OR_high, colour = dist)) +
+  geom_point(alpha = 0.4) +
+  geom_hline(yintercept = 1, linetype = "dashed") +
+  geom_vline(xintercept = 1, linetype = "dashed") +
+  scale_x_continuous(limits = c(0,7.5)) +
+  scale_y_continuous(limits = c(0,7.5))
+
+cbind(mutate(mantel_low, OR_low = OR) %>% .[,c(2,7:8)], OR_med = mantel_med$OR, OR_high = mantel_high$OR) %>%
+  ggplot(aes(x = OR_low, y = OR_med, colour = dist)) +
+  geom_point(alpha = 0.4) +
+  geom_hline(yintercept = 1, linetype = "dashed") +
+  geom_vline(xintercept = 1, linetype = "dashed") +
+  scale_x_continuous(limits = c(0,7.5)) +
+  scale_y_continuous(limits = c(0,7.5))
+
+cbind(mutate(mantel_low, OR_low = OR) %>% .[,c(2,7:8)], OR_med = mantel_med$OR, OR_high = mantel_high$OR) %>%
+  ggplot(aes(x = OR_med, y = OR_high, colour = dist)) +
+  geom_point(alpha = 0.4) +
+  geom_hline(yintercept = 1, linetype = "dashed") +
+  geom_vline(xintercept = 1, linetype = "dashed") +
+  scale_x_continuous(limits = c(0,7.5)) +
+  scale_y_continuous(limits = c(0,7.5))
+```
+* overall this is telling us there's not a lot of positive associations
+* not sure if the ones close to 0 count as negative associations
+
+```{r}
+try
+try %>%
+  ggplot(aes(x = OR)) +
+  geom_density()
+
+try %>%
+  ggplot(aes(x = OR)) +
+  geom_histogram(bins = 50)
+```
+```{r}
+try %>% 
+  mutate(less_than_one = ifelse(OR < 1, TRUE, FALSE))
+```
+
+```{r}
+try %>% 
+  mutate(less_than_one = ifelse(OR < 1, TRUE, FALSE)) %>%
+  ggplot(aes(x = IPD, y = OR, colour = less_than_one)) +
+  geom_point()
+```
+
+```{r}
+mantel_low %>% 
+  mutate(less_than_one = ifelse(OR < 1, TRUE, FALSE)) %>%
+  ggplot(aes(x = IPD, y = OR, colour = less_than_one)) +
+  geom_point()
+
+mantel_med %>% 
+  mutate(less_than_one = ifelse(OR < 1, TRUE, FALSE)) %>%
+  ggplot(aes(x = IPD, y = OR, colour = less_than_one)) +
+  geom_point()
+
+mantel_high %>% 
+  mutate(less_than_one = ifelse(OR < 1, TRUE, FALSE)) %>%
+  ggplot(aes(x = IPD, y = OR, colour = less_than_one)) +
+  geom_point()
+```
+* yeah didn't work splitting it by alpha
+
+```{r}
+for_beta_all_mantel <- for_beta_all %>%
+  filter(total > 1) %>%
+  group_by(read_id) %>%
+      mutate(dist_to_next = lead(start) - start,
+            meth_and_next = paste0(meth_status, lead(meth_status))) %>%
+      ungroup() %>%
+  mutate(OR = try[match(.$dist_to_next, try$IPD), "OR"]) %>% filter(!grepl("A", .$meth_and_next))
+```
 
