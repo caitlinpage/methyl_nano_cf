@@ -102,8 +102,7 @@ LEARNINGS:
 IMPLICATIONS:
 * ???? - maybe different cell types??
 
-[distance between cpgs and meth status](distNextCpG.html)
-* Peter Hickey's thesis chapter 7
+
 
 [plot with IQR of alpha](IQRVisualise.html)
 GOAL:
@@ -139,6 +138,13 @@ LEARNINGS:
 * if 2 cpgs, distance should be smaller when alpha 0,1 
 * larger distance when alpha 0.5
 * cpg density
+* this does occur
+
+[TBD: mantel-haensz with NIL > 0](comethNILGrZero.html)
+* in Pete's work - OR was high in Islands
+
+[TBD: apply to all chrom](comethAllReads.html)
+
 
 #
 
