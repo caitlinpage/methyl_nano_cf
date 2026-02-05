@@ -145,6 +145,12 @@ LEARNINGS:
 
 [TBD: apply to all chrom](comethAllReads.html)
 
+** wanted a way to model and predict if next cpg will share methylation state
+[logistic regression](comethLogRegress.html)
+* maybe logistic regression could work
+* binary form - if next cpg is same or different
+* don't think it really worked
+* and data is also not really in the right form
 
 #
 
