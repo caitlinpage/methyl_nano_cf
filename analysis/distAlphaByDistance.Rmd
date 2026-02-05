@@ -36,9 +36,9 @@ cg_sites$index <- 1:nrow(cg_sites)
 
 ```{r}
 source("../code/processData.R")
-for_beta <- readRDS("/researchers/caitlin.page/cf_nano/r_output/rrbs_alpha_beta.rds")
+for_beta_all <- readRDS("/researchers/caitlin.page/cf_nano/r_output/rrbs_alpha_beta.rds")
 #for_beta <- readRDS("../output/cluster_files/rrbs_alpha_beta.rds")
-for_beta <- for_beta %>% filter(seqnames == "chr22")
+for_beta <- for_beta_all %>% filter(seqnames == "chr22")
 rrbs_for_beta_pat <- pat_for_wgbs(for_beta)
 
 for_beta <- for_beta %>% group_by(start) %>% mutate(coverage = n(), mean_alpha = mean(alpha)) %>% ungroup() %>% data.frame()
@@ -139,6 +139,7 @@ mantel_haen_dist_next_cpg <- function(long_data, num_cpg_read = NULL) {
 
 ```{r}
 try_2 <- mantel_haen_dist_next_cpg(for_beta, 2)
+try <- mantel_haen_dist_next_cpg(for_beta)
 ```
 
 # density of cpgs on read
@@ -277,6 +278,25 @@ alpha_distance %>%
   ggplot(aes(x = alpha_level, y = dist_to_next, fill = cgi)) +
   geom_boxplot()
 ```
+
+```{r}
+alpha_distance %>%
+  filter(alpha == 0 | alpha == 0.5 | alpha == 1) %>%
+  ggplot(aes(x = as.factor(alpha), y = dist_to_next)) +
+  geom_boxplot()
+
+alpha_distance %>%
+  mutate(alpha_level = case_when(alpha <= 0.2 ~ "Low",
+                                 alpha > 0.2 & alpha < 0.4 ~ "Low-med",
+                                 alpha >= 0.4 & alpha <= 0.6 ~ "Medium",
+                                 alpha > 0.6 & alpha < 0.8 ~ "Med-high",
+                                 alpha >= 0.8 ~ "High", TRUE ~ "Other"),
+         alpha_level = factor(alpha_level, levels = c("Low", "Low-med", "Medium", "Med-high", "High"))) %>%
+  ggplot(aes(x = alpha_level, y = dist_to_next)) +
+  geom_boxplot()
+```
+
+
 * according to perplexity
 * if OR > 1 - positive assoc, OR < 1 negative assoc ~ 1 little/no assoc
 
@@ -328,7 +348,7 @@ cbind(mutate(mantel_low, OR_low = OR) %>% .[,c(2,7:8)], OR_med = mantel_med$OR, 
 * not sure if the ones close to 0 count as negative associations
 
 ```{r}
-try
+try[1:5,]
 try %>%
   ggplot(aes(x = OR)) +
   geom_density()
@@ -339,7 +359,7 @@ try %>%
 ```
 ```{r}
 try %>% 
-  mutate(less_than_one = ifelse(OR < 1, TRUE, FALSE))
+  mutate(less_than_one = ifelse(OR < 1, TRUE, FALSE)) %>% .[order(.$IPD, decreasing = TRUE),] %>% .[1:6,]
 ```
 
 ```{r}
@@ -367,13 +387,35 @@ mantel_high %>%
 ```
 * yeah didn't work splitting it by alpha
 
+## Conclusion
+** reminder: all analysis has been done on chr22, not representative of whole genome
+
+
+* Assumption: 
+Distribution of alpha by distance: 2 cpgs close to each other should be 1 or 0, 2 cpgs far away should be 0.5 
+
+This does occur
+It's more visible when not in a CpG island, but still occurs in other
+
 ```{r}
-for_beta_all_mantel <- for_beta_all %>%
-  filter(total > 1) %>%
-  group_by(read_id) %>%
-      mutate(dist_to_next = lead(start) - start,
-            meth_and_next = paste0(meth_status, lead(meth_status))) %>%
-      ungroup() %>%
-  mutate(OR = try[match(.$dist_to_next, try$IPD), "OR"]) %>% filter(!grepl("A", .$meth_and_next))
+alpha_distance %>%
+  filter(alpha == 0 | alpha == 0.5 | alpha == 1) %>%
+  ggplot(aes(x = as.factor(alpha), y = dist_to_next, fill = cgi)) +
+  geom_boxplot()
 ```
+
+
+* Find CpG density on read
+
+density = num_cpgs on read / length of read * 100
+
+* bulk of reads under 25, then spikes at 100
+```{r}
+for_beta %>% distinct(read_id, total, read_start, read_end) %>%
+  mutate(width = read_end - read_start + 1,
+         cpg_density = (total/width)*100) %>%
+  ggplot(aes(x = cpg_density)) +
+  geom_density()
+```
+
 
