@@ -30,9 +30,9 @@ cg_sites$index <- 1:nrow(cg_sites)
 
 ```{r}
 source("../code/processData.R")
-for_beta <- readRDS("/researchers/caitlin.page/cf_nano/r_output/rrbs_alpha_beta.rds")
+for_beta_all <- readRDS("/researchers/caitlin.page/cf_nano/r_output/rrbs_alpha_beta.rds")
 #for_beta <- readRDS("../output/cluster_files/rrbs_alpha_beta.rds")
-for_beta <- for_beta %>% filter(seqnames == "chr22")
+for_beta <- for_beta_all %>% filter(seqnames == "chr22")
 rrbs_for_beta_pat <- pat_for_wgbs(for_beta)
 
 for_beta <- for_beta %>% group_by(start) %>% mutate(coverage = n(), mean_alpha = mean(alpha)) %>% ungroup() %>% data.frame()
@@ -900,12 +900,12 @@ for_beta_all_mantel <- for_beta_all %>%
 
 ```{r}
 for_beta_all_mantel %>%
-  filter(alpha == 0) %>% group_by(dist_to_next, meth_and_next, OR) %>% summarise(n=n())
+  filter(alpha == 0) %>% group_by(dist_to_next, meth_and_next, OR) %>% summarise(n=n()) %>%
   ggplot(aes(x = dist_to_next, y = log(OR + 5))) +
   geom_point()
 
 for_beta_all_mantel %>%
-  filter(alpha == 0.5) %>% group_by(dist_to_next, meth_and_next, OR) %>% summarise(n=n())
+  filter(alpha == 0.5) %>% group_by(dist_to_next, meth_and_next, OR) %>% summarise(n=n()) %>%
   ggplot(aes(x = dist_to_next, y = log(OR + 5))) +
   geom_point()
 
@@ -923,8 +923,76 @@ for_beta_all_mantel %>%
 ```
 * ok so it stays the same between patterns
 ```{r}
+distinct(for_beta_all_mantel, total) %>% .[order(.$total),]
+distinct(for_beta_all, total)
+```
+
+
+```{r}
+nam <- c()
+for(i in 2:4) {
+  nam <- c(nam, paste0(i, " cpgs on read"))
+}
+nam
+```
+
+```{r}
+plots <- list()
+for(i in 2:3) {
+  plot <- for_beta_all_mantel %>% 
+    filter(total == i) %>%
+    ggplot(aes(x = OR, colour = read_id)) +
+    geom_density() +
+    theme(legend.position = "none") +
+    labs(title = paste0(i, " cpgs on read"))
+  plots <- list(plots, plot)
+}
+plots
+```
+
+
+
+```{r}
+for_beta_all_mantel %>% filter(total == 4) %>%
+  ggplot(aes(x = OR, colour = read_id)) +
+  geom_density() +
+  theme(legend.position = "none") +
+  labs(title = "4 cpgs on read")
+```
+
+
+
+```{r}
+read_ids <- for_beta_all_mantel %>% distinct(read_id) %>% mutate(simple_id = paste0("read_", 1:n())) %>% data.frame()
+for_beta_all_mantel <- for_beta_all_mantel %>%
+  mutate(simple_id = read_ids[match(.$read_id, read_ids$read_id), "simple_id"])
+```
+
+```{r}
+for_beta_all_mantel %>% distinct(simple_id, total) %>% group_by(total) %>% summarise(n())
+```
+
+```{r}
+for_beta_all_mantel %>%
+  ggplot(aes(x = OR, colour = simple_id)) +
+  geom_density() +
+  facet_wrap(~ total) +
+  theme(legend.position = "none")
+```
+
+```{r}
 1+1
 ```
+
+########
+* in thinking about if mm - what about the next one
+* that's a tree diagram
+* and in that case - you multiply the probability each time
+* probability of m * m * m
+* I don't know if there's a statistic associated with this concept
+* because it's about either linking indep or dependent events
+* and in this it's tricky because it's kinda both
+* it's kinda dependent - but how dependent depends on a lot of things
 
 ########
 * new idea: distribution of alpha by distance - distance and alphas to relate to this idea
