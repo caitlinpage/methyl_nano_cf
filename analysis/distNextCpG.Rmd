@@ -516,7 +516,7 @@ for_beta <- find_overlaps(as_granges(for_beta), as_granges(annotations)) %>% dat
 ```
 
 ```{r}
-mantel_haen_dist_next_cpg(filter(for_beta, cgi == "island"), 2)
+mantel_haen_dist_next_cpg(filter(for_beta, cgi == "island"), 2)[1:5,]
 ```
 ```{r}
 try_2 %>%
@@ -586,157 +586,9 @@ with cgu - results are similar
 * repeat on nanopore data
 * maybe overlay gene features?
 
+[NIL > 0](comethNILGrZero.html)
 
-# modify fn to work for NIL > 0
 
-```{r}
-for_beta %>%
-      group_by(read_id) %>%
-      mutate(dist_to_next = lead(start) - start,
-            meth_pattern = paste0(meth_status, lead(meth_status)))
-```
-```{r}
-nil_great <- for_beta[1:50,] %>%
-  group_by(read_id) %>%
-  group_modify(\(d, key) {
-    D <- abs(outer(d$start, d$start, "-"))
-    d$dist_to_group <- apply(D, 1, as.numeric)
-    d
-  }) %>%
-  ungroup()
-```
-```{r}
-nil_great <- for_beta[1:50,] %>%
-  group_by(read_id) %>%
-  mutate(dist_group = list(abs(start - start[cur_row()])))
-cur_
-```
-
-```{r}
-nil_great <- for_beta[1:50,] %>% mutate(read_pos = paste0(read_id, ":", start)) %>%
-  group_by(read_id) %>%
-  mutate(pos_in_read = 1:n()) %>%
-  slice(rep(1:n(), n())) %>%
-  group_by(read_id) %>%
-  mutate(dist = abs(start - first(start))) %>%
-  filter(row_number() > 1) %>%
-  ungroup() %>%
-  filter(read_id == "HWI-EAS149_7:1:100:1003:1410:0:1:1")
-nil_great[,c(1:2,7:8,23:25)] %>% .[order(.$pos_in_read),]
-```
-```{r}
-39994607 - 39994598
-```
-
-* this is not what I wanted this is not what I planned
-* therefore I will leave it alone for now and return to it later
-
-```{r}
-for_beta[1:6,c(1:2,7:8)] %>%
-  mutate(dist = paste0(lead(start) - start, ",", lead(start, 2) - start, ",", lead(start, 3) - start, ",", lead(start, 4) - start, ",", lead(start, 5) - start))
-```
-```{r}
-39994632 - 39994598
-39994626 - 39994607
-```
-* ok that worked as the manual way
-* even though its messy
-* but then to automate it
-
-```{r}
-lead(1:5, 2)
-```
-
-```{r}
-?lead
-```
-
-```{r}
-mantel_haen_dist_next_cpg <- function(long_data, num_cpg_read = NULL) {
-  if(!is.null(num_cpg_read)) {
-    format_data <- long_data %>%
-        filter(total == num_cpg_read) 
-  } else {format_data <- long_data}
-  
-  format_data <- format_data %>%
-      group_by(read_id) %>%
-      mutate(dist_to_next = lead(start) - start,
-            meth_pattern = paste0(meth_status, lead(meth_status))) %>%
-      ungroup() %>%
-      fill(dist_to_next, .direction = "down") %>%
-      distinct(read_id, meth_pattern, dist_to_next) %>%
-      filter(!grepl("A", .$meth_pattern)) %>%
-      group_by(dist_to_next, meth_pattern) %>%
-      summarise(count = n()) %>%
-      ungroup()
-  
-  chisq_table <- format_data %>%
-      mutate(cpg_1 = substr(meth_pattern, 1, 1),
-             cpg_2 = substr(meth_pattern, 2, 2)) 
-  # check for missing patterns (it screws up the chi test) and replace with 0
-  missing_mm <- chisq_table %>% group_by(dist_to_next) %>% filter(!any(grepl("MM", meth_pattern))) %>% distinct(dist_to_next) %>% ungroup() %>% .$dist_to_next
-  for(i in 1:length(missing_mm)) {
-    chisq_table <- rbind(chisq_table, c(missing_mm[i], "MM", 0, "M", "M"))
-  }
-  missing_mu <- chisq_table %>% group_by(dist_to_next) %>% filter(!any(grepl("MU", meth_pattern))) %>% distinct(dist_to_next) %>% ungroup() %>% .$dist_to_next
-  for(i in 1:length(missing_mu)) {
-    chisq_table <- rbind(chisq_table, c(missing_mu[i], "MU", 0, "M", "U"))
-  }
-  missing_um <- chisq_table %>% group_by(dist_to_next) %>% filter(!any(grepl("UM", meth_pattern))) %>% distinct(dist_to_next) %>% ungroup() %>% .$dist_to_next
-  for(i in 1:length(missing_um)) {
-    chisq_table <- rbind(chisq_table, c(missing_um[i], "UM", 0, "U", "M"))
-  }
-  missing_uu <- chisq_table %>% group_by(dist_to_next) %>% filter(!any(grepl("UU", meth_pattern))) %>% distinct(dist_to_next) %>% ungroup() %>% .$dist_to_next
-  for(i in 1:length(missing_uu)) {
-    chisq_table <- rbind(chisq_table, c(missing_uu[i], "UU", 0, "U", "U"))
-  }
-
-  chisq_table$count <- as.integer(chisq_table$count)
-  chisq_table$dist_to_next <- as.integer(chisq_table$dist_to_next)
-  chisq_table <- chisq_table %>% filter(!is.na(dist_to_next))
-  
-  chisq_table <- chisq_table %>% 
-      group_by(dist_to_next) %>%
-      reframe(tab = list(xtabs(count ~ cpg_1 + cpg_2, data = cur_data())))
-  chisq_table <- chisq_table$tab
-  
-  names(chisq_table) <- format_data %>%
-      mutate(dist_to_next = paste0("dist_next_", dist_to_next)) %>%
-      .$dist_to_next %>% 
-    unique()
-  distinct_rows <- format_data$dist_to_next %>% 
-    unique() %>%
-    length()
-  chisq_table <- simplify2array(chisq_table)
-  
-  # the testing
-  try <- capture.output(epiDisplay::mhor(mhtable = chisq_table, graph = FALSE))
-
-  try <- try %>% data.frame() %>% .[4:(distinct_rows + 4),] %>% data.frame()
-  colnames(try) <- "all"
-
-  try <- try %>% separate_wider_delim(cols = all, delim = " ", names = c("type", "dist", "numbers"), too_few = "align_start", too_many = "merge")
-
-  numeric_lines <- try$numbers
-  # get Inf and d separate
-  pattern <- "Inf|-Inf|[-+]?\\d+\\.?\\d*(?:[eE][-+]?\\d+)?"
-  vals <- regmatches(
-    numeric_lines,
-    gregexpr(pattern, numeric_lines))
-
-  m <- do.call(rbind, vals)
-  m <- as.vector(m)
-  names(m) <- rep(c("OR", "lower_lim", "upper_lim", "p_value"), times = (distinct_rows + 1))
-  split_vals <- split(m, names(m))
-  df <- cbind.data.frame(split_vals)
-  df <- lapply(df, as.double) %>% data.frame()
-
-  # merge
-  try <- cbind(try[,1:2], df[,c(2,1,4,3)])
-  try <- try %>% mutate(IPD = as.numeric(sub(".*_", "", dist)))
-  try
-}
-```
 
 ```{r}
 nrow(for_beta_all)
@@ -747,8 +599,8 @@ nrow(for_beta_all)
 ```
 
 ```{r}
-cometh_all <- mantel_haen_dist_next_cpg(for_beta_all)
-cometh_all
+#cometh_all <- mantel_haen_dist_next_cpg(for_beta_all)
+#cometh_all
 ```
 * it failed :(
 * just run the steps
@@ -831,37 +683,14 @@ cometh_all
   # merge
   try <- cbind(try[,1:2], df[,c(2,1,4,3)])
   try <- try %>% mutate(IPD = as.numeric(sub(".*_", "", dist)))
-  try
+  try[1:5,]
 ```
 
 ```{r}
-format_data
+format_data[1:5,]
 ```
 
-ab
-```{r}
-numeric_lines <- try$numbers
-  # get Inf and d separate
-  pattern <- "Inf|-Inf|[-+]?\\d+\\.?\\d*(?:[eE][-+]?\\d+)?"
-  vals <- regmatches(
-    numeric_lines,
-    gregexpr(pattern, numeric_lines))
 
-  m <- do.call(rbind, vals)
-  m <- as.vector(m)
-  names(m) <- c(rep(c("OR"), times = (distinct_rows)),
-                rep(c("lower_lim"), times = (distinct_rows)),
-                rep(c("upper_lim"), times = (distinct_rows)),
-                rep(c("p_value"), times = (distinct_rows)))
-  split_vals <- split(m, names(m))
-  df <- cbind.data.frame(split_vals)
-  df <- lapply(df, as.double) %>% data.frame()
-
-  # merge
-  try <- cbind(try[1:34,1:2], df[,c(2,1,4,3)])
-  try <- try %>% mutate(IPD = as.numeric(sub(".*_", "", dist)))
-  try
-```
 * so possible other data I screwed up because it split the groups separately!!
 ```{r}
 try %>%
@@ -882,12 +711,9 @@ rbind(mutate(try, source = "All_reads"), mutate(try_2, source = "reads_2cpgs")) 
 
 * this is interesting
 ```{r}
-rbind(mutate(try, source = "All_reads"), mutate(try_2, source = "reads_2cpgs")) %>% data.frame() %>% .[order(.$IPD),]
+rbind(mutate(try, source = "All_reads"), mutate(try_2, source = "reads_2cpgs")) %>% data.frame() %>% .[order(.$IPD),] %>% .[1:6,]
 ```
 
-```{r}
-try
-```
 ```{r}
 for_beta_all_mantel <- for_beta_all %>%
   filter(total > 1) %>%
@@ -896,6 +722,7 @@ for_beta_all_mantel <- for_beta_all %>%
             meth_and_next = paste0(meth_status, lead(meth_status))) %>%
       ungroup() %>%
   mutate(OR = try[match(.$dist_to_next, try$IPD), "OR"]) %>% filter(!grepl("A", .$meth_and_next))
+for_beta_all_mantel[1:5,]
 ```
 
 ```{r}
@@ -922,33 +749,6 @@ for_beta_all_mantel %>%
   geom_jitter()
 ```
 * ok so it stays the same between patterns
-```{r}
-distinct(for_beta_all_mantel, total) %>% .[order(.$total),]
-distinct(for_beta_all, total)
-```
-
-
-```{r}
-nam <- c()
-for(i in 2:4) {
-  nam <- c(nam, paste0(i, " cpgs on read"))
-}
-nam
-```
-
-```{r}
-plots <- list()
-for(i in 2:3) {
-  plot <- for_beta_all_mantel %>% 
-    filter(total == i) %>%
-    ggplot(aes(x = OR, colour = read_id)) +
-    geom_density() +
-    theme(legend.position = "none") +
-    labs(title = paste0(i, " cpgs on read"))
-  plots <- list(plots, plot)
-}
-plots
-```
 
 
 
@@ -980,9 +780,7 @@ for_beta_all_mantel %>%
   theme(legend.position = "none")
 ```
 
-```{r}
-1+1
-```
+
 
 ########
 * in thinking about if mm - what about the next one
