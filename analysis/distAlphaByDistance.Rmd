@@ -387,7 +387,8 @@ mantel_high %>%
 ```
 * yeah didn't work splitting it by alpha
 
-## Conclusion
+# Conclusion
+
 ** reminder: all analysis has been done on chr22, not representative of whole genome
 
 
@@ -418,4 +419,141 @@ for_beta %>% distinct(read_id, total, read_start, read_end) %>%
   geom_density()
 ```
 
+
+# cf data
+
+```{r}
+nano_alpha_and_beta <- readRDS("/researchers/caitlin.page/cf_nano/r_output/nano_alpha_beta.rds")
+nano_alpha_and_beta %>% distinct(chrom)
+```
+* still just chrom 22 but still let's make the same plots
+```{r}
+for_beta
+```
+
+```{r}
+head(nano_alpha_and_beta)
+nano_alpha_and_beta <- nano_alpha_and_beta %>% 
+  group_by(read_id) %>%
+  mutate(read_first_cpg = min(start), read_last_cpg = max(start)) %>%
+  ungroup()
+nano_alpha_and_beta$meth_status <- nano_alpha_and_beta$call_code
+```
+
+## density on read
+```{r}
+nano_alpha_and_beta %>% distinct(read_id, total, read_first_cpg, read_last_cpg) %>%
+  mutate(width = read_last_cpg - read_first_cpg + 1,
+         cpg_density = (total/width)*100) %>%
+  ggplot(aes(x = cpg_density)) +
+  geom_density()
+```
+* similar to the rrbs data
+
+## distribution of alpha by distance
+
+```{r}
+alpha_distance_nano <- nano_alpha_and_beta %>%
+      group_by(read_id) %>%
+      mutate(meth_status = call_code,
+            dist_to_next = lead(start) - start,
+            meth_pattern = paste0(meth_status, lead(meth_status))) %>%
+      ungroup() %>%
+      fill(dist_to_next, .direction = "down") %>%
+      distinct(read_id, meth_pattern, dist_to_next, alpha, total) %>%
+      filter(!grepl("A", .$meth_pattern))
+nrow(alpha_distance_nano)
+alpha_distance_nano[1:10,]
+```
+
+* 2 cpgs close to each other 1 or 0, far away = 0.5
+* so filter to total = 2
+* alpha is the factor because only 3 options
+
+```{r}
+alpha_distance_nano %>%
+  filter(total == 2) %>%
+  ggplot(aes(x = as.factor(alpha), y = dist_to_next)) +
+  geom_boxplot()
+
+alpha_distance_nano %>%
+  filter(total == 2) %>%
+  ggplot(aes(x = as.factor(alpha), y = dist_to_next)) +
+  geom_violin()
+```
+```{r}
+alpha_distance_nano %>%
+  filter(alpha == 0 | alpha == 0.5 | alpha == 1) %>%
+  ggplot(aes(x = as.factor(alpha), y = dist_to_next)) +
+  geom_boxplot()
+
+alpha_distance_nano %>%
+  filter(alpha == 0 | alpha == 0.5 | alpha == 1) %>%
+  ggplot(aes(x = as.factor(alpha), y = dist_to_next)) +
+  geom_violin()
+```
+
+* with cgi
+
+```{r}
+nano_alpha_and_beta <- find_overlaps(as_granges(nano_alpha_and_beta), as_granges(annotations)) %>% data.frame() %>%
+  mutate(cgi = ifelse(type.y == "hg38_cpg_islands", "island", "not_island"))
+
+alpha_distance_nano <- nano_alpha_and_beta %>%
+      group_by(cgi, read_id) %>%
+      mutate(dist_to_next = lead(start) - start,
+            meth_pattern = paste0(meth_status, lead(meth_status))) %>%
+      ungroup() %>%
+      fill(dist_to_next, .direction = "down") %>%
+      distinct(read_id, cgi, meth_pattern, dist_to_next, alpha, total) %>%
+      filter(!grepl("A", .$meth_pattern)) 
+
+alpha_distance_nano[1:10,]
+```
+
+
+```{r}
+alpha_distance_nano %>%
+  filter(alpha == 0 | alpha == 0.5 | alpha == 1) %>%
+  ggplot(aes(x = as.factor(alpha), y = dist_to_next, fill = cgi)) +
+  geom_boxplot()
+
+alpha_distance_nano %>%
+  filter(alpha == 0 | alpha == 0.5 | alpha == 1) %>%
+  ggplot(aes(x = as.factor(alpha), y = dist_to_next, fill = cgi)) +
+  geom_violin()
+```
+```{r}
+alpha_distance_nano %>%
+  filter(alpha == 0 | alpha == 0.5 | alpha == 1) %>%
+  ggplot(aes(x = as.factor(alpha), y = log2(dist_to_next), fill = cgi)) +
+  geom_boxplot()
+
+alpha_distance_nano %>%
+  filter(alpha == 0 | alpha == 0.5 | alpha == 1) %>%
+  ggplot(aes(x = as.factor(alpha), y = log2(dist_to_next), fill = cgi)) +
+  geom_violin()
+```
+
+```{r}
+alpha_distance_nano %>%
+  mutate(alpha_level = case_when(alpha <= 0.2 ~ "Low",
+                                 alpha > 0.2 & alpha < 0.4 ~ "Low-med",
+                                 alpha >= 0.4 & alpha <= 0.6 ~ "Medium",
+                                 alpha > 0.6 & alpha < 0.8 ~ "Med-high",
+                                 alpha >= 0.8 ~ "High", TRUE ~ "Other"),
+         alpha_level = factor(alpha_level, levels = c("Low", "Low-med", "Medium", "Med-high", "High"))) %>%
+  ggplot(aes(x = alpha_level, y = dist_to_next, fill = cgi)) +
+  geom_boxplot()
+
+alpha_distance_nano %>%
+  mutate(alpha_level = case_when(alpha <= 0.2 ~ "Low",
+                                 alpha > 0.2 & alpha < 0.4 ~ "Low-med",
+                                 alpha >= 0.4 & alpha <= 0.6 ~ "Medium",
+                                 alpha > 0.6 & alpha < 0.8 ~ "Med-high",
+                                 alpha >= 0.8 ~ "High", TRUE ~ "Other"),
+         alpha_level = factor(alpha_level, levels = c("Low", "Low-med", "Medium", "Med-high", "High"))) %>%
+  ggplot(aes(x = alpha_level, y = log2(dist_to_next), fill = cgi)) +
+  geom_boxplot()
+```
 
