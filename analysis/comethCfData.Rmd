@@ -1,0 +1,166 @@
+---
+title: "comethCfData"
+author: "caitlinpage"
+date: "2026-02-06"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+## Introduction
+
+```{r}
+library(annotatr)
+library(data.table)
+library(plyranges)
+library(tidyr)
+library(stringr)
+library(dplyr)
+library(ggplot2)
+```
+
+## Data Objects
+```{r}
+cg_sites <- cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38[["chr22"]])), seqnames = "chr22") %>% 
+  mutate(pos = paste0(seqnames, "-", start)) %>%
+  relocate(pos, seqnames)
+cg_sites$index <- 1:nrow(cg_sites)
+```
+
+
+```{r}
+source("../code/processData.R")
+for_beta_all <- readRDS("/researchers/caitlin.page/cf_nano/r_output/rrbs_alpha_beta.rds")
+#for_beta <- readRDS("../output/cluster_files/rrbs_alpha_beta.rds")
+for_beta <- for_beta_all %>% filter(seqnames == "chr22")
+rrbs_for_beta_pat <- pat_for_wgbs(for_beta)
+
+for_beta <- for_beta %>% group_by(start) %>% mutate(coverage = n(), mean_alpha = mean(alpha)) %>% ungroup() %>% data.frame()
+just_beta <- for_beta %>% distinct(start, beta, coverage, mean_alpha) %>% .[order(.$start),]
+
+```
+
+```{r}
+nano_alpha_and_beta <- readRDS("/researchers/caitlin.page/cf_nano/r_output/nano_alpha_beta.rds")
+nano_alpha_and_beta %>% distinct(chrom)
+nano_alpha_and_beta <- nano_alpha_and_beta %>% 
+  group_by(read_id) %>%
+  mutate(read_first_cpg = min(start), read_last_cpg = max(start)) %>%
+  ungroup()
+nano_alpha_and_beta$meth_status <- nano_alpha_and_beta$call_code
+nano_alpha_and_beta[1:10,]
+```
+
+
+```{r}
+mantel_haen_dist_next_cpg <- function(long_data, num_cpg_read = NULL) {
+  old <- options(max.print = 10000)  # or .Machine$integer.max
+on.exit(options(old), add = TRUE)
+  if(!is.null(num_cpg_read)) {
+    format_data <- long_data %>%
+        filter(total == num_cpg_read) 
+  } else {format_data <- long_data}
+  format_data <- format_data %>%
+      group_by(read_id) %>%
+      mutate(dist_to_next = lead(start) - start,
+            meth_pattern = paste0(meth_status, lead(meth_status))) %>%
+      ungroup() %>%
+      fill(dist_to_next, .direction = "down") %>%
+      distinct(read_id, meth_pattern, dist_to_next) %>%
+      filter(!grepl("A", .$meth_pattern)) %>%
+      group_by(dist_to_next, meth_pattern) %>%
+      summarise(count = n()) %>%
+      ungroup()
+  
+  chisq_table <- format_data %>%
+      mutate(cpg_1 = substr(meth_pattern, 1, 1),
+             cpg_2 = substr(meth_pattern, 2, 2)) 
+  # check for missing patterns (it screws up the chi test) and replace with 0
+  missing_mm <- chisq_table %>% group_by(dist_to_next) %>% filter(!any(grepl("MM", meth_pattern))) %>% distinct(dist_to_next) %>% ungroup() %>% .$dist_to_next
+  for(i in 1:length(missing_mm)) {
+    chisq_table <- rbind(chisq_table, c(missing_mm[i], "MM", 0, "M", "M"))
+  }
+  missing_mu <- chisq_table %>% group_by(dist_to_next) %>% filter(!any(grepl("MU", meth_pattern))) %>% distinct(dist_to_next) %>% ungroup() %>% .$dist_to_next
+  for(i in 1:length(missing_mu)) {
+    chisq_table <- rbind(chisq_table, c(missing_mu[i], "MU", 0, "M", "U"))
+  }
+  missing_um <- chisq_table %>% group_by(dist_to_next) %>% filter(!any(grepl("UM", meth_pattern))) %>% distinct(dist_to_next) %>% ungroup() %>% .$dist_to_next
+  for(i in 1:length(missing_um)) {
+    chisq_table <- rbind(chisq_table, c(missing_um[i], "UM", 0, "U", "M"))
+  }
+  missing_uu <- chisq_table %>% group_by(dist_to_next) %>% filter(!any(grepl("UU", meth_pattern))) %>% distinct(dist_to_next) %>% ungroup() %>% .$dist_to_next
+  for(i in 1:length(missing_uu)) {
+    chisq_table <- rbind(chisq_table, c(missing_uu[i], "UU", 0, "U", "U"))
+  }
+
+  chisq_table$count <- as.integer(chisq_table$count)
+  chisq_table$dist_to_next <- as.integer(chisq_table$dist_to_next)
+  chisq_table <- chisq_table %>% filter(!is.na(dist_to_next))
+  
+  chisq_table <- chisq_table %>% 
+      group_by(dist_to_next) %>%
+      reframe(tab = list(xtabs(count ~ cpg_1 + cpg_2, data = cur_data())))
+  chisq_table <- chisq_table$tab
+  
+  names(chisq_table) <- format_data %>%
+      mutate(dist_to_next = paste0("dist_next_", dist_to_next)) %>%
+      .$dist_to_next %>% 
+    unique()
+  distinct_rows <- format_data$dist_to_next %>% 
+    unique() %>%
+    length()
+  chisq_table <- simplify2array(chisq_table)
+  
+  # the testing
+  try <- capture.output({res <- epiDisplay::mhor(mhtable = chisq_table, graph = FALSE) 
+  print(res)})
+
+  try <- try %>% data.frame() %>% .[4:(distinct_rows + 4),] %>% data.frame()
+  colnames(try) <- "all"
+
+  try <- try %>% separate_wider_delim(cols = all, delim = " ", names = c("type", "dist", "numbers"), too_few = "align_start", too_many = "merge")
+
+  numeric_lines <- try$numbers
+  # get Inf and d separate
+  pattern <- "Inf|-Inf|[-+]?\\d+\\.?\\d*(?:[eE][-+]?\\d+)?"
+  vals <- regmatches(
+    numeric_lines,
+    gregexpr(pattern, numeric_lines))
+
+  m <- do.call(rbind, vals)
+  m <- as.vector(m)
+  names(m) <- rep(c("OR", "lower_lim", "upper_lim", "p_value"), times = (distinct_rows + 1))
+  split_vals <- split(m, names(m))
+  df <- cbind.data.frame(split_vals)
+  df <- lapply(df, as.double) %>% data.frame()
+
+  # merge
+  try <- cbind(try[,1:2], df[,c(2,1,4,3)])
+  try <- try %>% mutate(IPD = as.numeric(sub(".*_", "", dist)))
+  try
+}
+```
+
+```{r}
+nano_mantel <- try
+nano_mantel <- mantel_haen_dist_next_cpg(nano_alpha_and_beta)
+```
+
+
+```{r}
+nano_mantel %>%
+  ggplot(aes(x = IPD, y = OR)) +
+  geom_point()
+
+nano_mantel %>%
+  ggplot(aes(x = IPD, y = OR)) +
+  geom_point() +
+  scale_x_continuous(limits = c(0,550))
+```
+```{r}
+nano_mantel %>%
+  ggplot(aes(x = IPD, y = log(OR + 2))) +
+  geom_point()
+```
+
+
