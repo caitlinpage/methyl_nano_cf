@@ -390,7 +390,7 @@ class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span>
 <div class="tab-content">
 <div id="summary" class="tab-pane fade in active">
 <p>
-<strong>Last updated:</strong> 2026-02-05
+<strong>Last updated:</strong> 2026-02-09
 </p>
 <p>
 <strong>Checks:</strong> <span
@@ -521,15 +521,15 @@ project makes it easier to run your code on other machines.</p>
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpagemethylnanocftree13074e835636bf2d488ae6243c9ba7add3075e2dtargetblank13074e8a">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpagemethylnanocftreee804d6c3b282583530c929c6f63fd3e192ab880atargetblanke804d6ca">
 <span class="glyphicon glyphicon-ok text-success"
 aria-hidden="true"></span> <strong>Repository version:</strong>
-<a href="https://github.com/caitlinpage/methyl_nano_cf/tree/13074e835636bf2d488ae6243c9ba7add3075e2d" target="_blank">13074e8</a>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/tree/e804d6c3b282583530c929c6f63fd3e192ab880a" target="_blank">e804d6c</a>
 </a>
 </p>
 </div>
 <div
-id="strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpagemethylnanocftree13074e835636bf2d488ae6243c9ba7add3075e2dtargetblank13074e8a"
+id="strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpagemethylnanocftreee804d6c3b282583530c929c6f63fd3e192ab880atargetblanke804d6ca"
 class="panel-collapse collapse">
 <div class="panel-body">
 <p>
@@ -539,7 +539,7 @@ reproducibility.
 </p>
 <p>
 The results in this page were generated with repository version
-<a href="https://github.com/caitlinpage/methyl_nano_cf/tree/13074e835636bf2d488ae6243c9ba7add3075e2d" target="_blank">13074e8</a>.
+<a href="https://github.com/caitlinpage/methyl_nano_cf/tree/e804d6c3b282583530c929c6f63fd3e192ab880a" target="_blank">e804d6c</a>.
 See the <em>Past versions</em> tab to see a history of the changes made
 to the R Markdown and HTML files.
 </p>
@@ -555,7 +555,6 @@ were generated:
 <pre><code>
 Ignored files:
     Ignored:    .Rproj.user/
-    Ignored:    analysis/figure/
 
 Untracked files:
     Untracked:  renv.lock
@@ -564,8 +563,7 @@ Untracked files:
 Unstaged changes:
     Modified:   .Rprofile
     Modified:   _workflowr.yml
-    Modified:   analysis/distAlphaByDistance.Rmd
-    Modified:   analysis/index.Rmd
+    Modified:   analysis/joinAlphaAndBeta.Rmd
 
 </code></pre>
 <p>
@@ -610,6 +608,23 @@ Message
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/caitlinpage/methyl_nano_cf/ad2fda8129d8c251b115556562a5621c0dbb32ca/docs/comethLogRegress.html" target="_blank">ad2fda8</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-02-05
+</td>
+<td>
+Build site.
+</td>
+</tr>
 <tr>
 <td>
 Rmd
@@ -866,10 +881,49 @@ for_beta_log[,c(&quot;dist_to_next&quot;, &quot;meth_and_next&quot;, &quot;patte
 <pre class="r"><code>for_beta_log[1:1000,] %&gt;%
   ggplot(aes(x = dist_to_next, y = pattern_value)) +
   geom_count()</code></pre>
-<p><img src="figure/comethLogRegress.Rmd/unnamed-chunk-6-1.png" width="672" style="display: block; margin: auto;" />
-* example looked better - 0s on left and 1s on right * so regression
-worked * geom_count kinda shows it looks a bit better - at least for
-0</p>
+<p><img src="figure/comethLogRegress.Rmd/unnamed-chunk-6-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-6-1">
+Past versions of unnamed-chunk-6-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-6-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/ad2fda8129d8c251b115556562a5621c0dbb32ca/docs/figure/comethLogRegress.Rmd/unnamed-chunk-6-1.png" target="_blank">ad2fda8</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-02-05
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<ul>
+<li>example looked better - 0s on left and 1s on right</li>
+<li>so regression worked</li>
+<li>geom_count kinda shows it looks a bit better - at least for 0</li>
+</ul>
 <pre class="r"><code>nrow(for_beta_log)</code></pre>
 <pre><code>[1] 476921</code></pre>
 <ul>
@@ -908,9 +962,49 @@ fit</p></li>
 <pre class="r"><code>for_beta_log %&gt;%
   ggplot(aes(x = dist_to_next, y = pattern_value)) +
   geom_count()</code></pre>
-<p><img src="figure/comethLogRegress.Rmd/unnamed-chunk-10-1.png" width="672" style="display: block; margin: auto;" />
-* plot looks about the same * interesting there’s a clear aspect of
-distance for not same, but less clear for same</p>
+<p><img src="figure/comethLogRegress.Rmd/unnamed-chunk-10-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-10-1">
+Past versions of unnamed-chunk-10-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-10-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/ad2fda8129d8c251b115556562a5621c0dbb32ca/docs/figure/comethLogRegress.Rmd/unnamed-chunk-10-1.png" target="_blank">ad2fda8</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-02-05
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<ul>
+<li>plot looks about the same</li>
+<li>interesting there’s a clear aspect of distance for not same, but
+less clear for same</li>
+</ul>
 <pre class="r"><code>model &lt;- glm(pattern_value ~ dist_to_next, data = for_beta_log, family = &quot;binomial&quot;)
 
 summary(model)</code></pre>
@@ -979,11 +1073,52 @@ for_beta_log[,c(&quot;cgi&quot;, &quot;dist_to_next&quot;, &quot;meth_and_next&q
   ggplot(aes(x = dist_to_next, y = pattern_value, colour = cgi)) +
   geom_count() +
   facet_wrap(~cgi)</code></pre>
-<p><img src="figure/comethLogRegress.Rmd/unnamed-chunk-14-1.png" width="672" style="display: block; margin: auto;" />
-* now we can see that it’s really in the island that this distance thing
-with not same happens * huh wait this has been saying that more commonly
-different in the close together * was expecting the other way * also I
-think this overall means it won’t work very well</p>
+<p><img src="figure/comethLogRegress.Rmd/unnamed-chunk-14-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-14-1">
+Past versions of unnamed-chunk-14-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-14-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/ad2fda8129d8c251b115556562a5621c0dbb32ca/docs/figure/comethLogRegress.Rmd/unnamed-chunk-14-1.png" target="_blank">ad2fda8</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-02-05
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<ul>
+<li>now we can see that it’s really in the island that this distance
+thing with not same happens</li>
+<li>huh wait this has been saying that more commonly different in the
+close together</li>
+<li>was expecting the other way</li>
+<li>also I think this overall means it won’t work very well</li>
+</ul>
 <pre class="r"><code>model &lt;- glm(pattern_value ~ ., data = for_beta_log[,c(&quot;cgi&quot;, &quot;dist_to_next&quot;, &quot;pattern_value&quot;)], family = &quot;binomial&quot;)
 
 summary(model)</code></pre>
@@ -1114,10 +1249,47 @@ pr &lt;- prediction(p, test$pattern_value)
 prf &lt;- performance(pr, measure = &quot;tpr&quot;, x.measure = &quot;fpr&quot;)
 plot(prf)</code></pre>
 <p><img src="figure/comethLogRegress.Rmd/unnamed-chunk-20-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-20-1">
+Past versions of unnamed-chunk-20-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-20-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/ad2fda8129d8c251b115556562a5621c0dbb32ca/docs/figure/comethLogRegress.Rmd/unnamed-chunk-20-1.png" target="_blank">ad2fda8</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-02-05
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>auc &lt;- performance(pr, measure = &quot;auc&quot;)
 auc &lt;- auc@y.values[[1]]
 auc</code></pre>
-<pre><code>[1] 0.8290892</code></pre>
+<pre><code>[1] 0.8290888</code></pre>
 </div>
 <div id="dist-and-cgi" class="section level2">
 <h2>dist and cgi</h2>
@@ -1163,10 +1335,47 @@ pr &lt;- prediction(p, test$pattern_value)
 prf &lt;- performance(pr, measure = &quot;tpr&quot;, x.measure = &quot;fpr&quot;)
 plot(prf)</code></pre>
 <p><img src="figure/comethLogRegress.Rmd/unnamed-chunk-22-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-22-1">
+Past versions of unnamed-chunk-22-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-22-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/ad2fda8129d8c251b115556562a5621c0dbb32ca/docs/figure/comethLogRegress.Rmd/unnamed-chunk-22-1.png" target="_blank">ad2fda8</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-02-05
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>auc &lt;- performance(pr, measure = &quot;auc&quot;)
 auc &lt;- auc@y.values[[1]]
 auc</code></pre>
-<pre><code>[1] 0.894709</code></pre>
+<pre><code>[1] 0.8947085</code></pre>
 </div>
 <div id="dist-cgi-meth_and_next" class="section level2">
 <h2>dist, cgi, meth_and_next</h2>
@@ -1201,6 +1410,43 @@ pr &lt;- prediction(p, test$pattern_value)
 prf &lt;- performance(pr, measure = &quot;tpr&quot;, x.measure = &quot;fpr&quot;)
 plot(prf)</code></pre>
 <p><img src="figure/comethLogRegress.Rmd/unnamed-chunk-23-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-23-1">
+Past versions of unnamed-chunk-23-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-23-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/ad2fda8129d8c251b115556562a5621c0dbb32ca/docs/figure/comethLogRegress.Rmd/unnamed-chunk-23-1.png" target="_blank">ad2fda8</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-02-05
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>auc &lt;- performance(pr, measure = &quot;auc&quot;)
 auc &lt;- auc@y.values[[1]]
 auc</code></pre>
