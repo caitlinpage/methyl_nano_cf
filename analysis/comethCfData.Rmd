@@ -146,6 +146,9 @@ nano_mantel <- try
 nano_mantel <- mantel_haen_dist_next_cpg(nano_alpha_and_beta)
 ```
 
+```{r}
+nano_alpha_and_beta
+```
 
 ```{r}
 nano_mantel %>%
