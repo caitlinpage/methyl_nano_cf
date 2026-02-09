@@ -427,9 +427,6 @@ nano_alpha_and_beta <- readRDS("/researchers/caitlin.page/cf_nano/r_output/nano_
 nano_alpha_and_beta %>% distinct(chrom)
 ```
 * still just chrom 22 but still let's make the same plots
-```{r}
-for_beta
-```
 
 ```{r}
 head(nano_alpha_and_beta)
