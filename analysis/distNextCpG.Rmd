@@ -796,3 +796,5 @@ for_beta_all_mantel %>%
 * new idea: distribution of alpha by distance - distance and alphas to relate to this idea
 * density of cpgs on read
 * find where it failed
+
+This file is too big so see here for [Cell free nanopore analysis](comethCfData.html)
