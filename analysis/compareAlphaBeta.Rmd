@@ -1,0 +1,409 @@
+---
+title: "compareAlphaBeta"
+author: "caitlinpage"
+date: "2026-02-11"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+## packages
+
+
+```{r}
+library(annotatr)
+library(data.table)
+library(plyranges)
+library(tidyr)
+library(stringr)
+library(dplyr)
+library(ggplot2)
+```
+
+## Data Objects
+```{r}
+cg_sites <- cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38[["chr22"]])), seqnames = "chr22") %>% 
+  mutate(pos = paste0(seqnames, "-", start)) %>%
+  relocate(pos, seqnames)
+cg_sites$index <- 1:nrow(cg_sites)
+```
+
+
+```{r}
+source("../code/processData.R")
+for_beta_all <- readRDS("/researchers/caitlin.page/cf_nano/r_output/rrbs_alpha_beta.rds")
+#for_beta <- readRDS("../output/cluster_files/rrbs_alpha_beta.rds")
+for_beta <- for_beta_all %>% filter(seqnames == "chr22")
+rrbs_for_beta_pat <- pat_for_wgbs(for_beta)
+
+for_beta <- for_beta %>% group_by(start) %>% mutate(coverage = n(), mean_alpha = mean(alpha)) %>% ungroup() %>% data.frame()
+just_beta <- for_beta %>% distinct(start, beta, coverage, mean_alpha) %>% .[order(.$start),]
+
+```
+
+
+```{r}
+annots <- c("hg38_cpgs")
+
+annotations <- annotatr::build_annotations(genome = 'hg38', annotations = annots)
+seqs <- annotations %>% data.frame() %>% distinct(seqnames) %>% .[1:22,]
+annotations <- annotations %>% data.frame() %>% filter(seqnames %in% seqs)
+```
+
+```{r}
+for_beta <- find_overlaps(as_granges(for_beta), as_granges(annotations)) %>% data.frame() %>%
+  mutate(cgi = ifelse(type == "hg38_cpg_islands", "island", "not_island"))
+```
+
+To plot alpha and beta together, we can make alpha a position based metric
+Take the mean of alphas at a CpG site, and then can compare to beta
+
+```{r}
+for_beta %>%
+  group_by(start) %>%
+  mutate(mean_alpha = mean(alpha)) %>%
+  ungroup() %>%
+  distinct(seqnames, start, mean_alpha, beta) %>%
+  ggplot(aes(x = beta, y = mean_alpha)) +
+  geom_point(alpha = 0.4) +
+  geom_abline(colour = "red", linetype = "dashed") +
+  theme_bw()
+```
+
+```{r}
+for_beta %>%
+  group_by(start) %>%
+  mutate(mean_alpha = mean(alpha)) %>%
+  ungroup() %>%
+  distinct(seqnames, start, mean_alpha, beta) %>%
+  ggplot(aes(x = beta, y = mean_alpha)) +
+  geom_count(alpha = 0.4) +
+  geom_abline(colour = "red", linetype = "dashed") +
+  theme_bw()
+```
+
+# what proportion are the CpGs that have mean_alpha = beta ?
+
+```{r}
+c(n_reads = for_beta %>%
+  group_by(start) %>%
+  mutate(mean_alpha = mean(alpha)) %>%
+  ungroup() %>%
+  filter(mean_alpha == beta) %>% 
+  distinct(read_id) %>% nrow(),
+  prop_reads = for_beta %>%
+  group_by(start) %>%
+  mutate(mean_alpha = mean(alpha)) %>%
+  ungroup() %>%
+  filter(mean_alpha == beta) %>% 
+  distinct(read_id) %>% nrow()/nrow(distinct(for_beta, read_id))*100)
+```
+
+* chr22 has 204,769 reads
+* 67,336 reads represent mean_alpha = beta
+* 33% of reads
+
+```{r}
+c(n_cpgs = for_beta %>%
+  group_by(start) %>%
+  mutate(mean_alpha = mean(alpha)) %>%
+  ungroup() %>%
+  filter(mean_alpha == beta) %>% 
+  distinct(start) %>% nrow(),
+  prop = for_beta %>%
+  group_by(start) %>%
+  mutate(mean_alpha = mean(alpha)) %>%
+  ungroup() %>%
+  filter(mean_alpha == beta) %>% 
+  distinct(start) %>% nrow()/nrow(distinct(for_beta, start))*100)
+```
+* chr22 has 32,611 CpGs on the reads
+* 17,029 CpGs have mean_alpha = beta
+* 52% of CpGs
+
+## Thoughts
+
+* Didn't expect so much of the data to be the same
+* From the original plot it looked like more of the data was different
+* Did I do filtering differently??
+* Not sure which version of things I should trust
+
+
+# Where are the CpGs that have mean_alpha = beta
+
+QUESTIONS
+
+* What does it mean to have mean_alpha = beta?
+Beta is the proportion of methylated reads at a site
+Mean_alpha is the average of the proportion of methylated reads at a site
+Mean_alpha would be the same for a region that is covered by the same reads
+While beta could differ at those sites (though the coverage would remain the same)
+
+** case when mean_alpha = beta = 0
+All reads at a sequence of positions are fully unmethylated
+
+** case when mean_alpha = beta = 1
+All reads at a sequence of positions are fully methylated
+
+Given this,
+would expect that mean_alpha = beta = 1 would occur at uninteresting areas of the genome
+and mean_alpha = beta = 0 would occur at active promoter regions
+
+```{r}
+compare_mean_alpha_beta <- for_beta %>%
+  group_by(seqnames, start, cgi, beta) %>%
+  summarise(mean_alpha = mean(alpha)) %>%
+  ungroup() %>% 
+  mutate(same_alpha_beta = ifelse(mean_alpha == beta, TRUE, FALSE)) %>%
+  .[order(.$start),] %>%
+  mutate(pos_id = 1:n(),
+         alpha_change = lead(mean_alpha) != mean_alpha,
+         when_alpha_change = ifelse(alpha_change == TRUE, row_number(), NA)) %>%
+  fill(when_alpha_change, .direction = "up") %>%
+  group_by(when_alpha_change) %>%
+  mutate(length_group = n()) %>%
+  ungroup() %>% data.frame()
+compare_mean_alpha_beta[1:10,]
+```
+
+```{r}
+compare_mean_alpha_beta %>%
+  distinct(same_alpha_beta, when_alpha_change, length_group) %>%
+  ggplot(aes(x = length_group, colour = same_alpha_beta)) +
+  geom_density() +
+  theme_bw()
+
+compare_mean_alpha_beta %>%
+  distinct(same_alpha_beta, when_alpha_change, length_group) %>%
+  ggplot(aes(x = log2(length_group), colour = same_alpha_beta)) +
+  geom_density() +
+  theme_bw()
+```
+* similar for both
+
+* Q: what is mean_alpha and beta at longest string?
+```{r}
+compare_mean_alpha_beta %>% filter(length_group == max(length_group)) %>%
+  group_by(cgi, beta, mean_alpha, length_group) %>%
+  summarise(cpg_start = min(start), cpg_end = max(start))
+```
+* good that it is in island
+* oops the group is via mean_alpha staying the same, so betas can be different 
+* 1 0.3, 1 0.25, 1 0.5
+* so 38 0s
+
+
+```{r}
+compare_mean_alpha_beta %>%
+  distinct(cgi, same_alpha_beta, when_alpha_change, length_group) %>%
+  ggplot(aes(x = log2(length_group), colour = same_alpha_beta)) +
+  geom_density() +
+  theme_bw() +
+  facet_wrap(~ cgi)
+```
+
+```{r}
+compare_mean_alpha_beta %>%
+  distinct(cgi, same_alpha_beta, when_alpha_change, length_group) %>%
+  ggplot(aes(x = cgi, y = log2(length_group), fill = same_alpha_beta)) +
+  geom_boxplot() +
+  theme_bw()
+
+compare_mean_alpha_beta %>%
+  distinct(cgi, same_alpha_beta, when_alpha_change, length_group) %>%
+  ggplot(aes(x = cgi, y = log2(length_group), fill = same_alpha_beta)) +
+  geom_violin() +
+  theme_bw()
+```
+* Yes long strings of mean_alpha staying the same happens in islands and when mean_alpha = beta
+
+```{r}
+compare_mean_alpha_beta %>%
+  filter(same_alpha_beta == TRUE) %>%
+  ggplot(aes(x = beta)) +
+  geom_density()
+```
+
+```{r}
+compare_mean_alpha_beta %>%
+  filter(same_alpha_beta == TRUE)
+```
+
+```{r}
+compare_mean_alpha_beta %>%
+  ggplot(aes(x = length_group, y = mean_alpha)) +
+  geom_point(alpha = 0.4)
+
+compare_mean_alpha_beta %>%
+  ggplot(aes(x = length_group, y = beta)) +
+  geom_point(alpha = 0.4)
+```
+```{r}
+compare_mean_alpha_beta %>%
+  distinct(when_alpha_change, length_group) %>%
+  group_by(length_group) %>%
+  summarise(n())
+```
+
+
+```{r}
+compare_mean_alpha_beta %>%
+  filter(beta == 0) %>%
+  ggplot(aes(x = mean_alpha)) +
+  geom_density()
+
+compare_mean_alpha_beta %>%
+  filter(beta == 1) %>%
+  ggplot(aes(x = mean_alpha)) +
+  geom_density()
+
+compare_mean_alpha_beta %>%
+  filter(beta == 0.5) %>%
+  ggplot(aes(x = mean_alpha)) +
+  geom_density()
+```
+
+```{r}
+compare_mean_alpha_beta %>%
+  filter(mean_alpha == 0) %>%
+  ggplot(aes(x = beta)) +
+  geom_density()
+
+compare_mean_alpha_beta %>%
+  filter(mean_alpha == 1) %>%
+  ggplot(aes(x = beta)) +
+  geom_density()
+
+compare_mean_alpha_beta %>%
+  filter(mean_alpha == 0.5) %>%
+  ggplot(aes(x = beta)) +
+  geom_density()
+```
+```{r}
+compare_mean_alpha_beta %>%
+  filter(beta == 0 | beta == 0.5 | beta == 1) %>%
+  ggplot(aes(x = mean_alpha, colour = as.factor(beta))) +
+  geom_density()
+```
+
+
+```{r}
+compare_mean_alpha_beta %>%
+  filter(same_alpha_beta == TRUE) %>%
+  mutate(pos_change = lead(pos_id) != pos_id + 1,
+         pos_change = ifelse(pos_change == TRUE, row_number(), NA)) %>%
+  fill(pos_change, .direction = "up") %>%
+  group_by(pos_change) %>%
+  mutate(length_both_same = n()) %>%
+  distinct(cgi, beta, mean_alpha, pos_change, length_both_same) %>%
+  ggplot(aes(x = cgi, y = beta, colour = cgi)) +
+  geom_violin()
+```
+
+```{r}
+compare_mean_alpha_beta %>%
+  filter(same_alpha_beta == TRUE) %>%
+  mutate(pos_change = lead(pos_id) != pos_id + 1,
+         pos_change = ifelse(pos_change == TRUE, row_number(), NA)) %>%
+  fill(pos_change, .direction = "up") %>%
+  group_by(pos_change) %>%
+  mutate(length_both_same = n()) %>%
+  distinct(cgi, beta, mean_alpha, pos_change, length_both_same) %>%
+  ggplot(aes(x = beta, fill = cgi)) +
+  geom_histogram() +
+  facet_wrap(~cgi)
+```
+
+```{r}
+compare_mean_alpha_beta %>%
+  filter(same_alpha_beta == TRUE) %>%
+  mutate(pos_change = lead(pos_id) != pos_id + 1,
+         pos_change = ifelse(pos_change == TRUE, row_number(), NA)) %>%
+  fill(pos_change, .direction = "up") %>%
+  group_by(pos_change) %>%
+  mutate(length_both_same = n()) %>%
+  ungroup() %>%
+  filter(cgi == "island") %>%
+  distinct(mean_alpha) 
+```
+
+
+```{r}
+compare_mean_alpha_beta_same <- compare_mean_alpha_beta %>%
+  filter(same_alpha_beta == TRUE) %>%
+  mutate(pos_change = lead(pos_id) != pos_id + 1,
+         pos_change = ifelse(pos_change == TRUE, row_number(), NA)) %>%
+  fill(pos_change, .direction = "up") %>%
+  group_by(pos_change) %>%
+  mutate(length_both_same = n()) %>%
+  ungroup()
+compare_mean_alpha_beta_same[1:10,]
+```
+
+```{r}
+compare_mean_alpha_beta %>%
+  distinct(cgi, same_alpha_beta, when_alpha_change, length_group) %>%
+  ggplot(aes(x = cgi, y = log2(length_group), fill = same_alpha_beta)) +
+  geom_boxplot() +
+  theme_bw()
+```
+
+```{r}
+compare_mean_alpha_beta_same %>%
+  distinct(cgi, same_alpha_beta, pos_change, length_both_same) %>%
+  ggplot(aes(x = cgi, y = length_both_same)) +
+  geom_boxplot() 
+compare_mean_alpha_beta_same %>%
+  distinct(cgi, same_alpha_beta, pos_change, length_both_same) %>%
+  ggplot(aes(x = cgi, y = log2(length_both_same))) +
+  geom_boxplot() 
+```
+
+```{r}
+compare_mean_alpha_beta_same %>%
+  filter(beta == 0 | beta == 0.5 | beta == 1) %>%
+  distinct(cgi, beta, same_alpha_beta, pos_change, length_both_same) %>%
+  ggplot(aes(x = as.factor(beta), y = log2(length_both_same), fill = cgi)) +
+  geom_boxplot() 
+```
+
+
+```{r}
+for_beta %>%
+  group_by(start) %>%
+  mutate(mean_alpha = mean(alpha)) %>%
+  ungroup() %>%
+  mutate(same_alpha_beta = ifelse(mean_alpha == beta, TRUE, FALSE)) %>%
+  distinct(start, mean_alpha, beta, cgi, same_alpha_beta) %>%
+  group_by(cgi, same_alpha_beta) %>%
+  summarise(n())
+```
+
+
+```{r}
+for_beta %>%
+  group_by(start) %>%
+  mutate(mean_alpha = mean(alpha)) %>%
+  ungroup() %>%
+  mutate(same_alpha_beta = ifelse(mean_alpha == beta, TRUE, FALSE),
+         same_alpha_beta_0 = ifelse(mean_alpha == beta & beta == 0, TRUE, FALSE),
+         same_alpha_beta_1 = ifelse(mean_alpha == beta & beta == 1, TRUE, FALSE)) %>%
+  distinct(start, cgi, same_alpha_beta_0, same_alpha_beta_1) %>%
+  group_by(cgi, same_alpha_beta_0) %>%
+  summarise(n())
+```
+
+
+```{r}
+for_beta %>%
+  group_by(start) %>%
+  mutate(mean_alpha = mean(alpha)) %>%
+  ungroup() %>%
+  mutate(same_alpha_beta = ifelse(mean_alpha == beta, TRUE, FALSE),
+         same_alpha_beta_0 = ifelse(mean_alpha == beta & beta == 0, TRUE, FALSE),
+         same_alpha_beta_1 = ifelse(mean_alpha == beta & beta == 1, TRUE, FALSE)) %>%
+  distinct(start, cgi, same_alpha_beta_0, same_alpha_beta_1) %>%
+  reshape2::melt(id = "cgi") %>%
+  ggplot(aes(x = variable, fill = cgi))
+```
+
