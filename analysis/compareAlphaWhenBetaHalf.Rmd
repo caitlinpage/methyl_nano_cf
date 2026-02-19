@@ -422,9 +422,6 @@ for_beta %>%
   theme_bw()
 ```
 
-```{r}
-?glm
-```
 
 
 ```{r}
@@ -446,7 +443,7 @@ for_beta %>%
 for_beta[20000:50000,] %>% 
   group_by(start) %>%
   summarise(n=n()) %>%
-  .[order(.$n, decreasing = TRUE),]
+  .[order(.$n, decreasing = TRUE),] %>% .[1:10,]
 ```
 
 ```{r}
