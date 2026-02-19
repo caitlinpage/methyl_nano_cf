@@ -1,0 +1,54 @@
+---
+title: "bioFeaturesGenesOfInterest"
+author: "caitlinpage"
+date: "2026-02-19"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+```{r}
+library(annotatr)
+library(data.table)
+library(plyranges)
+library(tidyr)
+library(stringr)
+library(dplyr)
+library(ggplot2)
+library(TxDb.Hsapiens.UCSC.hg19.knownGene)
+```
+
+## Data Objects
+```{r}
+cg_sites <- cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38[["chr22"]])), seqnames = "chr22") %>% 
+  mutate(pos = paste0(seqnames, "-", start)) %>%
+  relocate(pos, seqnames)
+cg_sites$index <- 1:nrow(cg_sites)
+```
+
+```{r}
+genes_hg19 <- genes(TxDb.Hsapiens.UCSC.hg19.knownGene)
+```
+
+
+```{r}
+source("../code/processData.R")
+for_beta_all <- readRDS("/researchers/caitlin.page/cf_nano/r_output/rrbs_alpha_beta.rds")
+#for_beta <- readRDS("../output/cluster_files/rrbs_alpha_beta.rds")
+for_beta <- for_beta_all %>% filter(seqnames == "chr22")
+rrbs_for_beta_pat <- pat_for_wgbs(for_beta)
+
+for_beta <- for_beta %>% group_by(start) %>% mutate(coverage = n(), mean_alpha = mean(alpha)) %>% ungroup() %>% data.frame()
+just_beta <- for_beta %>% distinct(start, beta, coverage, mean_alpha) %>% .[order(.$start),]
+
+```
+```{r}
+genes_hg19 %>% data.frame() %>% filter(gene_id == "3536")
+genes_hg19 %>% data.frame() %>% filter(seqnames == "chr22") %>% mutate(gene_id = as.integer(gene_id)) %>% .[order(.$gene_id),]
+```
+*success, 3543 is igll1 which is a b cell gene
+```{r}
+for_beta_genes %>% filter(symbol.y == "IGLL1")
+for_beta_genes %>% filter(gene_id.y == "3536")
+```
+*its boring though, 1 read with 2 cpgs, unmethylated
