@@ -1,0 +1,489 @@
+---
+title: "alphaProportions"
+author: "caitlinpage"
+date: "2026-02-19"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+```{r}
+library(annotatr)
+library(data.table)
+library(plyranges)
+library(tidyr)
+library(stringr)
+library(dplyr)
+library(ggplot2)
+```
+
+## Data Objects
+```{r}
+cg_sites <- cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38[["chr22"]])), seqnames = "chr22") %>% 
+  mutate(pos = paste0(seqnames, "-", start)) %>%
+  relocate(pos, seqnames)
+cg_sites$index <- 1:nrow(cg_sites)
+```
+
+
+```{r}
+source("../code/processData.R")
+for_beta_all <- readRDS("/researchers/caitlin.page/cf_nano/r_output/rrbs_alpha_beta.rds")
+#for_beta <- readRDS("../output/cluster_files/rrbs_alpha_beta.rds")
+for_beta <- for_beta_all %>% filter(seqnames == "chr22")
+rrbs_for_beta_pat <- pat_for_wgbs(for_beta)
+
+for_beta <- for_beta %>% group_by(start) %>% mutate(coverage = n(), mean_alpha = mean(alpha)) %>% ungroup() %>% data.frame()
+just_beta <- for_beta %>% distinct(start, beta, coverage, mean_alpha) %>% .[order(.$start),]
+
+```
+
+
+```{r}
+annots <- c("hg38_cpgs")
+
+annotations <- annotatr::build_annotations(genome = 'hg38', annotations = annots)
+seqs <- annotations %>% data.frame() %>% distinct(seqnames) %>% .[1:22,]
+annotations <- annotations %>% data.frame() %>% filter(seqnames %in% seqs)
+```
+
+```{r}
+for_beta <- find_overlaps(as_granges(for_beta), as_granges(annotations)) %>% data.frame() %>%
+  mutate(cgi = ifelse(type == "hg38_cpg_islands", "island", "not_island"))
+```
+
+```{r}
+annots <- c("hg38_basicgenes", "hg38_genes_intergenic")
+
+annotations <- annotatr::build_annotations(genome = 'hg38', annotations = annots)
+seqs <- annotations %>% data.frame() %>% distinct(seqnames) %>% .[1:22,]
+annotations <- annotations %>% data.frame() %>% filter(seqnames %in% seqs)
+annotations %>% group_by(type) %>% summarise(n=n())
+```
+
+```{r}
+for_beta_genes <- find_overlaps(as_granges(for_beta), as_granges(annotations)) %>% data.frame()
+for_beta_genes[1:10,]
+```
+
+######
+
+# Alpha proportions in CpG features
+
+```{r}
+for_beta %>% distinct(read_id, alpha, cgi) %>%
+  mutate(alpha_group = case_when(alpha < 0.3 ~ "a < 0.3",
+                                alpha > 0.7 ~ "a > 0.7",
+                                TRUE ~ " 0.3 < a < 0.7")) %>%
+  ggplot(aes(x = cgi, fill = alpha_group)) +
+  geom_bar(position = "fill")
+```
+
+```{r}
+for_beta %>% distinct(read_id, alpha, cgi) %>%
+  mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                alpha > 0.8 ~ "a > 0.8",
+                                alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                TRUE ~ "0.6 <= a <= 0.8")) %>%
+  ggplot(aes(x = cgi, fill = alpha_group)) +
+  geom_bar(position = "fill")
+```
+
+```{r}
+for_beta %>% distinct(read_id, alpha, type) %>%
+  mutate(alpha_group = case_when(alpha < 0.3 ~ "a < 0.3",
+                                alpha > 0.7 ~ "a > 0.7",
+                                TRUE ~ " 0.3 < a < 0.7")) %>%
+  ggplot(aes(x = type, fill = alpha_group)) +
+  geom_bar(position = "fill")
+```
+
+```{r}
+for_beta %>% distinct(read_id, alpha, type) %>%
+  mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                alpha > 0.8 ~ "a > 0.8",
+                                alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                TRUE ~ "0.6 <= a <= 0.8")) %>%
+  ggplot(aes(x = type, fill = alpha_group)) +
+  geom_bar(position = "fill")
+```
+
+```{r}
+for_beta %>% distinct(read_id, alpha, type) %>%
+  mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                alpha > 0.8 ~ "a > 0.8",
+                                alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                TRUE ~ "0.6 <= a <= 0.8")) %>%
+  ggplot(aes(fill = type, x = alpha_group)) +
+  geom_bar(position = "fill")
+```
+
+
+# alpha proportions in gene features
+
+```{r}
+for_beta_genes %>% distinct(read_id, alpha, type.y) %>%
+  mutate(alpha_group = case_when(alpha < 0.3 ~ "a < 0.3",
+                                alpha > 0.7 ~ "a > 0.7",
+                                TRUE ~ " 0.3 < a < 0.7")) %>%
+  ggplot(aes(x = type.y, fill = alpha_group)) +
+  geom_bar(position = "fill") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+
+
+```{r}
+for_beta_genes %>% distinct(read_id, alpha, type.y) %>%
+  mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                alpha > 0.8 ~ "a > 0.8",
+                                alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                TRUE ~ "0.6 <= a <= 0.8")) %>%
+  ggplot(aes(x = type.y, fill = alpha_group)) +
+  geom_bar(position = "fill") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+
+```{r}
+for_beta_genes %>% distinct(read_id, alpha, type.y) %>%
+  mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                alpha > 0.8 ~ "a > 0.8",
+                                alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                TRUE ~ "0.6 <= a <= 0.8")) %>%
+  ggplot(aes(fill = type.y, x = alpha_group)) +
+  geom_bar(position = "fill") 
+```
+
+# repeat all these for beta
+```{r}
+for_beta %>% distinct(start, beta, type) %>%
+  mutate(beta_group = case_when(beta < 0.2 ~ "b < 0.2",
+                                beta > 0.8 ~ "b > 0.8",
+                                beta >= 0.2 & beta <= 0.4 ~ "0.2 <= b <= 0.4",
+                                beta > 0.4 & beta < 0.6 ~ "0.4 < b < 0.6",
+                                TRUE ~ "0.6 <= b <= 0.8")) %>%
+  ggplot(aes(x = type, fill = beta_group)) +
+  geom_bar(position = "fill")
+```
+* looks similar which is expected because they are related
+
+```{r}
+for_beta_genes %>% distinct(start, beta, type.y) %>%
+  mutate(beta_group = case_when(beta < 0.2 ~ "b < 0.2",
+                                beta > 0.8 ~ "b > 0.8",
+                                beta >= 0.2 & beta <= 0.4 ~ "0.2 <= b <= 0.4",
+                                beta > 0.4 & beta < 0.6 ~ "0.4 < b < 0.6",
+                                TRUE ~ "0.6 <= b <= 0.8")) %>%
+  ggplot(aes(x = type.y, fill = beta_group)) +
+  geom_bar(position = "fill") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+# alpha proportions when beta = 0.5
+
+* will be a bit iffy because alpha is a group of positions
+* but just for this, reads that overlap a position of beta = 0.5 and ones that don't
+```{r}
+for_beta %>%
+  group_by(read_id) %>%
+  mutate(read_has_beta0.5 = ifelse(any(beta == 0.5), TRUE, FALSE)) %>%
+  ungroup() %>%
+  distinct(read_id, alpha, read_has_beta0.5) %>%
+  mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                alpha > 0.8 ~ "a > 0.8",
+                                alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                TRUE ~ "0.6 <= a <= 0.8")) %>%
+  ggplot(aes(x = read_has_beta0.5, fill = alpha_group)) +
+  geom_bar(position = "fill")
+```
+
+```{r}
+for_beta %>%
+  group_by(read_id) %>%
+  mutate(read_has_beta0.5 = ifelse(any(beta > 0.4) & any(beta < 0.6), TRUE, FALSE)) %>%
+  ungroup() %>%
+  distinct(read_id, alpha, read_has_beta0.5) %>%
+  mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                alpha > 0.8 ~ "a > 0.8",
+                                alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                TRUE ~ "0.6 <= a <= 0.8")) %>%
+  ggplot(aes(x = read_has_beta0.5, fill = alpha_group)) +
+  geom_bar(position = "fill") +
+  labs(x = "read_has_0.4 < beta < 0.6")
+```
+
+# math proportions for alpha and beta
+
+```{r}
+rbind(for_beta %>% distinct(read_id, alpha, type) %>%
+  mutate(group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                alpha > 0.8 ~ "a > 0.8",
+                                alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                TRUE ~ "0.6 <= a <= 0.8")) %>%
+  .[,3:4] %>%
+  mutate(data = "alpha"),
+  for_beta %>% distinct(start, beta, type) %>%
+  mutate(group = case_when(beta < 0.2 ~ "a < 0.2",
+                                beta > 0.8 ~ "a > 0.8",
+                                beta >= 0.2 & beta <= 0.4 ~ "0.2 <= a <= 0.4",
+                                beta > 0.4 & beta < 0.6 ~ "0.4 < a < 0.6",
+                                TRUE ~ "0.6 <= a <= 0.8")) %>%
+  .[,3:4] %>%
+  mutate(data = "beta")) %>%
+  ggplot(aes(x = data, fill = group)) +
+  geom_bar(position = "fill") +
+  facet_wrap(~ type)
+```
+
+```{r}
+rbind(for_beta %>% distinct(read_id, alpha, type) %>%
+  mutate(group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                alpha > 0.8 ~ "a > 0.8",
+                                alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                TRUE ~ "0.6 <= a <= 0.8")) %>%
+  group_by(type, group) %>%
+  summarise(n_group = n()) %>%
+  ungroup() %>%
+  group_by(type) %>%
+  mutate(prop = n_group/sum(n_group)) %>%
+  mutate(data = "alpha"),
+  for_beta %>% distinct(start, beta, type) %>%
+  mutate(group = case_when(beta < 0.2 ~ "a < 0.2",
+                                beta > 0.8 ~ "a > 0.8",
+                                beta >= 0.2 & beta <= 0.4 ~ "0.2 <= a <= 0.4",
+                                beta > 0.4 & beta < 0.6 ~ "0.4 < a < 0.6",
+                                TRUE ~ "0.6 <= a <= 0.8")) %>%
+  group_by(type, group) %>%
+  summarise(n_group = n()) %>%
+  ungroup() %>%
+  group_by(type) %>%
+  mutate(prop = n_group/sum(n_group)) %>%
+  mutate(data = "beta")) %>%
+  ggplot(aes(x = group, y = prop, colour = data)) +
+  geom_point(size = 2) +
+  facet_wrap(~type) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+
+# find genes with mean beta = 0.5
+
+```{r}
+for_beta_genes[,c(1:16,20:21,24:26)] %>% distinct() %>%
+  filter(!is.na(symbol.y)) %>%
+  distinct(seqnames, start, beta, gene_id.y, symbol.y) %>%
+  group_by(gene_id.y) %>%
+  mutate(mean_beta = mean(beta), n_cgs= n()) %>% 
+  ungroup() %>% distinct(gene_id.y, symbol.y, mean_beta, n_cgs) %>%
+  ggplot(aes(x = n_cgs, y = mean_beta)) +
+  geom_point()
+```
+
+```{r}
+for_beta_genes[,c(1:16,20:21,24:26)] %>% distinct() %>%
+  filter(!is.na(symbol.y)) %>%
+  distinct(seqnames, start, beta, gene_id.y, symbol.y) %>%
+  group_by(gene_id.y) %>%
+  mutate(mean_beta = mean(beta), n_cgs = n()) %>% 
+  ungroup() %>% distinct(gene_id.y, symbol.y, mean_beta, n_cgs) %>%
+  ggplot(aes(x = mean_beta)) +
+  geom_density()
+
+for_beta_genes[,c(1:16,20:21,24:26)] %>% distinct() %>%
+  filter(!is.na(symbol.y)) %>%
+  distinct(seqnames, start, beta, gene_id.y, symbol.y) %>%
+  group_by(gene_id.y) %>%
+  mutate(mean_beta = mean(beta), n_cgs = n()) %>% 
+  ungroup() %>% distinct(gene_id.y, symbol.y, mean_beta, n_cgs) %>%
+  ggplot(aes(x = mean_beta)) +
+  geom_histogram()
+```
+
+```{r}
+for_beta_genes[,c(1:16,20:21,24:26)] %>% distinct() %>%
+  filter(!is.na(symbol.y)) %>%
+  distinct(seqnames, start, beta, gene_id.y, symbol.y) %>%
+  group_by(gene_id.y) %>%
+  mutate(mean_beta = mean(beta), n_cgs = n()) %>% 
+  ungroup() %>% distinct(gene_id.y, symbol.y, mean_beta, n_cgs) %>%
+  ggplot(aes(x = n_cgs)) +
+  geom_density()
+
+for_beta_genes[,c(1:16,20:21,24:26)] %>% distinct() %>%
+  filter(!is.na(symbol.y)) %>%
+  distinct(seqnames, start, beta, gene_id.y, symbol.y) %>%
+  group_by(gene_id.y) %>%
+  mutate(mean_beta = mean(beta), n_cgs = n()) %>% 
+  ungroup() %>% distinct(gene_id.y, symbol.y, mean_beta, n_cgs) %>%
+  ggplot(aes(x = n_cgs)) +
+  geom_histogram()
+```
+
+```{r}
+for_beta_genes[,c(1:16,20:21,24:26)] %>% distinct() %>%
+  filter(!is.na(symbol.y)) %>%
+  distinct(seqnames, start, beta, gene_id.y, symbol.y) %>%
+  group_by(gene_id.y) %>%
+  mutate(mean_beta = mean(beta), n_cgs= n()) %>% 
+  ungroup() %>% distinct(gene_id.y, symbol.y, mean_beta, n_cgs) %>%
+  filter(mean_beta > 0.4 & mean_beta < 0.6) %>% .[order(.$mean_beta),] %>% nrow()
+
+for_beta_genes[,c(1:16,20:21,24:26)] %>% distinct() %>%
+  filter(!is.na(symbol.y)) %>%
+  distinct(seqnames, start, beta, gene_id.y, symbol.y) %>%
+  group_by(gene_id.y) %>%
+  mutate(mean_beta = mean(beta), n_cgs= n()) %>% 
+  ungroup() %>% distinct(gene_id.y, symbol.y, mean_beta, n_cgs) %>%
+  filter(mean_beta == 0.5) 
+```
+
+* 127 genes
+* 8 with mean = 0.5
+
+* SLC5A1 has most cpgs = 18
+
+```{r}
+for_beta_genes[,c(1:16,20:21,24:26)] %>% distinct() %>%
+  filter(symbol.y == "SLC5A1") 
+```
+
+```{r}
+test_reads <- for_beta_genes[,c(1:16,20:21,24:26)] %>% distinct() %>%
+  filter(symbol.y == "SLC5A1") %>% distinct(read_id) %>% .$read_id
+
+rrbs_plot(for_beta, read_ids = test_reads)
+```
+```{r}
+for_beta_genes[,c(1:16,20:21,24:26)] %>% distinct() %>%
+  filter(symbol.y == "SLC5A1") %>%
+  distinct(symbol.y, read_id, alpha) %>%
+  ggplot(aes(x = symbol.y, fill = as.factor(alpha))) +
+  geom_bar(position = "fill")
+```
+
+* try and contrast to a gene with a high mean beta
+
+```{r}
+for_beta_genes[,c(1:16,20:21,24:26)] %>% distinct() %>%
+  filter(!is.na(symbol.y)) %>%
+  distinct(seqnames, start, beta, gene_id.y, symbol.y) %>%
+  group_by(gene_id.y) %>%
+  mutate(mean_beta = mean(beta), n_cgs= n()) %>% 
+  ungroup() %>% distinct(gene_id.y, symbol.y, mean_beta, n_cgs) %>% 
+  .[order(.$mean_beta, decreasing = TRUE),] %>% filter(mean_beta < 1) %>% .[1:10,]
+```
+
+* MIR1249 , mean 0.97, n_cg = 24
+
+```{r}
+test_reads <- for_beta_genes[,c(1:16,20:21,24:26)] %>% distinct() %>%
+  filter(symbol.y == "MIR1249") %>% distinct(read_id) %>% .$read_id
+
+rrbs_plot(for_beta, read_ids = test_reads)
+```
+
+```{r}
+for_beta_genes[,c(1:16,20:21,24:26)] %>% distinct() %>%
+  filter(symbol.y == "MIR1249") %>%
+  distinct(symbol.y, read_id, alpha) %>%
+  ggplot(aes(x = symbol.y, fill = as.factor(alpha))) +
+  geom_bar(position = "fill")
+```
+
+* and a low
+
+```{r}
+for_beta_genes[,c(1:16,20:21,24:26)] %>% distinct() %>%
+  filter(!is.na(symbol.y)) %>%
+  distinct(seqnames, start, beta, gene_id.y, symbol.y) %>%
+  group_by(gene_id.y) %>%
+  mutate(mean_beta = mean(beta), n_cgs= n()) %>% 
+  ungroup() %>% distinct(gene_id.y, symbol.y, mean_beta, n_cgs) %>% 
+  .[order(.$mean_beta),] %>% filter(mean_beta > 0) %>% .[1:10,]
+```
+
+* RNU12 , mean 0.0018, n_cg = 28
+
+```{r}
+test_reads <- for_beta_genes[,c(1:16,20:21,24:26)] %>% distinct() %>%
+  filter(symbol.y == "RNU12") %>% distinct(read_id) %>% .$read_id
+
+rrbs_plot(for_beta, read_ids = test_reads)
+
+for_beta_genes[,c(1:16,20:21,24:26)] %>% distinct() %>%
+  filter(symbol.y == "RNU12") %>%
+  distinct(symbol.y, read_id, alpha) %>%
+  ggplot(aes(x = symbol.y, fill = as.factor(alpha))) +
+  geom_bar(position = "fill")
+```
+
+
+# plot all the mean = 0.5
+* see if it stays like that pattern
+
+```{r}
+for_beta_genes[,c(1:16,20:21,24:26)] %>% distinct() %>%
+  filter(!is.na(symbol.y)) %>%
+  distinct(seqnames, start, beta, gene_id.y, symbol.y) %>%
+  group_by(gene_id.y) %>%
+  mutate(mean_beta = mean(beta), n_cgs= n()) %>% 
+  ungroup() %>% distinct(gene_id.y, symbol.y, mean_beta, n_cgs) %>%
+  filter(mean_beta == 0.5)
+```
+
+
+```{r}
+gene_ids <- for_beta_genes[,c(1:16,20:21,24:26)] %>% distinct() %>%
+  filter(!is.na(symbol.y)) %>%
+  distinct(seqnames, start, beta, gene_id.y, symbol.y) %>%
+  group_by(gene_id.y) %>%
+  mutate(mean_beta = mean(beta), n_cgs= n()) %>% 
+  ungroup() %>% distinct(gene_id.y, symbol.y, mean_beta, n_cgs) %>%
+  filter(mean_beta == 0.5) %>% .$symbol.y
+
+plot_vec <- c()
+for(i in 1:8) {
+  test_reads <- for_beta_genes[,c(1:16,20:21,24:26)] %>% distinct() %>%
+  filter(symbol.y == gene_ids[i]) %>% distinct(read_id) %>% .$read_id
+
+  prop <- for_beta_genes[,c(1:16,20:21,24:26)] %>% distinct() %>%
+    filter(symbol.y == gene_ids[i]) %>%
+    distinct(symbol.y, read_id, alpha) %>%
+    ggplot(aes(x = symbol.y, fill = as.factor(alpha))) +
+    geom_bar(position = "fill") +
+    labs(title = paste0(gene_ids[i], " mean beta = 0.5"))
+  
+  reads <- rrbs_plot(for_beta, read_ids = test_reads)
+  
+  plot_vec <- list(plot_vec, prop, reads)
+}
+plot_vec
+```
+
+* we do see a couple of differences nice
+
+# differential transcript usage
+* apply it to alpha/meth pattern
+
+* realistically we care about methylation in a genomic context
+
+* so overlap reads to gene promoters
+* DTU is change in relative abundance of transcripts from same gene between experimental conditions
+
+
+[2025 benchmark paper](https://academic.oup.com/nargab/article/7/3/lqaf117/8251390#531509445)
+* edgeR is listed as one of the top performers
+
+[edgeR documentation](https://bioconductor.org/packages/release/bioc/vignettes/edgeR/inst/doc/edgeRUsersGuide.pdf)
+* Section 2.20 for description (page 30)
+* Section 4.6 for example (page 90)
