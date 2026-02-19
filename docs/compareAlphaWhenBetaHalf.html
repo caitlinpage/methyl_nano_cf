@@ -1,0 +1,1435 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="caitlinpage" />
+
+<meta name="date" content="2026-02-18" />
+
+<title>compareAlphaWhenBetaHalf</title>
+
+<script src="site_libs/header-attrs-2.29/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/jqueryui-1.13.2/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<link href="site_libs/font-awesome-6.5.2/css/all.min.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet" />
+
+<link rel="icon" href="https://github.com/workflowr/workflowr-assets/raw/main/img/reproducible.png">
+<!-- Add a small amount of space between sections. -->
+<style type="text/css">
+div.section {
+  padding-top: 12px;
+}
+</style>
+
+
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">3_cf_nano</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Home</a>
+</li>
+<li>
+  <a href="about.html">About</a>
+</li>
+<li>
+  <a href="license.html">License</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li>
+  <a href="https://github.com/caitlinpage/methyl_nano_cf">
+    <span class="fab fa-github"></span>
+     
+    Source code
+  </a>
+</li>
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+
+
+<h1 class="title toc-ignore">compareAlphaWhenBetaHalf</h1>
+<h4 class="author">caitlinpage</h4>
+<h4 class="date">2026-02-18</h4>
+
+</div>
+
+
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-report" data-toggle="collapse" data-target="#workflowr-report">
+<span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+workflowr <span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span>
+</button>
+</p>
+<div id="workflowr-report" class="collapse">
+<ul class="nav nav-tabs">
+<li class="active">
+<a data-toggle="tab" href="#summary">Summary</a>
+</li>
+<li>
+<a data-toggle="tab" href="#checks"> Checks <span
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span>
+</a>
+</li>
+<li>
+<a data-toggle="tab" href="#versions">Past versions</a>
+</li>
+</ul>
+<div class="tab-content">
+<div id="summary" class="tab-pane fade in active">
+<p>
+<strong>Last updated:</strong> 2026-02-20
+</p>
+<p>
+<strong>Checks:</strong> <span
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 7
+<span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> 0
+</p>
+<p>
+<strong>Knit directory:</strong> <code>methyl_nano_cf/analysis/</code>
+<span class="glyphicon glyphicon-question-sign" aria-hidden="true"
+title="This is the local directory in which the code in this file was executed.">
+</span>
+</p>
+<p>
+This reproducible <a href="https://rmarkdown.rstudio.com">R Markdown</a>
+analysis was created with <a
+  href="https://github.com/workflowr/workflowr">workflowr</a> (version
+1.7.1). The <em>Checks</em> tab describes the reproducibility checks
+that were applied when the results were created. The <em>Past
+versions</em> tab lists the development history.
+</p>
+<hr>
+</div>
+<div id="checks" class="tab-pane fade">
+<div id="workflowr-checks" class="panel-group">
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRMarkdownfilestronguptodate">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>R Markdown file:</strong> up-to-date
+</a>
+</p>
+</div>
+<div id="strongRMarkdownfilestronguptodate"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great! Since the R Markdown file has been committed to the Git
+repository, you know the exact version of the code that produced these
+results.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongEnvironmentstrongempty">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Environment:</strong> empty </a>
+</p>
+</div>
+<div id="strongEnvironmentstrongempty" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! The global environment was empty. Objects defined in the
+global environment can affect the analysis in your R Markdown file in
+unknown ways. For reproduciblity it’s best to always run the code in an
+empty environment.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSeedstrongcodesetseed20250606code">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Seed:</strong>
+<code>set.seed(20250606)</code> </a>
+</p>
+</div>
+<div id="strongSeedstrongcodesetseed20250606code"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>The command <code>set.seed(20250606)</code> was run prior to running
+the code in the R Markdown file. Setting a seed ensures that any results
+that rely on randomness, e.g. subsampling or permutations, are
+reproducible.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSessioninformationstrongrecorded">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Session information:</strong>
+recorded </a>
+</p>
+</div>
+<div id="strongSessioninformationstrongrecorded"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Recording the operating system, R version, and package
+versions is critical for reproducibility.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongCachestrongnone">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Cache:</strong> none </a>
+</p>
+</div>
+<div id="strongCachestrongnone" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Nice! There were no cached chunks for this analysis, so you can be
+confident that you successfully produced the results during this
+run.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongFilepathsstrongrelative">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>File paths:</strong> relative </a>
+</p>
+</div>
+<div id="strongFilepathsstrongrelative" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Using relative paths to the files within your workflowr
+project makes it easier to run your code on other machines.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpagemethylnanocftreec735b790f81b68a1269c5d3023983cfcf154d8d3targetblankc735b79a">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Repository version:</strong>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/tree/c735b790f81b68a1269c5d3023983cfcf154d8d3" target="_blank">c735b79</a>
+</a>
+</p>
+</div>
+<div
+id="strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpagemethylnanocftreec735b790f81b68a1269c5d3023983cfcf154d8d3targetblankc735b79a"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>
+Great! You are using Git for version control. Tracking code development
+and connecting the code version to the results is critical for
+reproducibility.
+</p>
+<p>
+The results in this page were generated with repository version
+<a href="https://github.com/caitlinpage/methyl_nano_cf/tree/c735b790f81b68a1269c5d3023983cfcf154d8d3" target="_blank">c735b79</a>.
+See the <em>Past versions</em> tab to see a history of the changes made
+to the R Markdown and HTML files.
+</p>
+<p>
+Note that you need to be careful to ensure that all relevant files for
+the analysis have been committed to Git prior to generating the results
+(you can use <code>wflow_publish</code> or
+<code>wflow_git_commit</code>). workflowr only checks the R Markdown
+file, but you know if there are other scripts or data files that it
+depends on. Below is the status of the Git repository when the results
+were generated:
+</p>
+<pre><code>
+Ignored files:
+    Ignored:    .Rproj.user/
+
+Untracked files:
+    Untracked:  analysis/differentialAlphaUsage.Rmd
+    Untracked:  renv.lock
+    Untracked:  renv/
+
+Unstaged changes:
+    Modified:   .Rprofile
+    Modified:   _workflowr.yml
+    Modified:   analysis/index.Rmd
+
+</code></pre>
+<p>
+Note that any generated files, e.g. HTML, png, CSS, etc., are not
+included in this status report because it is ok for generated content to
+have uncommitted changes.
+</p>
+</div>
+</div>
+</div>
+</div>
+<hr>
+</div>
+<div id="versions" class="tab-pane fade">
+<p>
+These are the previous versions of the repository in which changes were
+made to the R Markdown
+(<code>analysis/compareAlphaWhenBetaHalf.Rmd</code>) and HTML
+(<code>docs/compareAlphaWhenBetaHalf.html</code>) files. If you’ve
+configured a remote Git repository (see <code>?wflow_git_remote</code>),
+click on the hyperlinks in the table below to view the files as they
+were in that past version.
+</p>
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+File
+</th>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+<th>
+Message
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/c735b790f81b68a1269c5d3023983cfcf154d8d3/analysis/compareAlphaWhenBetaHalf.Rmd" target="_blank">c735b79</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-02-20
+</td>
+<td>
+wflow_publish("compareAlphaWhenBetaHalf.Rmd")
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/4110db133eb11473236d1985783a058eeaf61228/analysis/compareAlphaWhenBetaHalf.Rmd" target="_blank">4110db1</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-02-20
+</td>
+<td>
+plots
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr>
+</div>
+</div>
+</div>
+<div id="packages" class="section level2">
+<h2>packages</h2>
+<pre class="r"><code>library(annotatr)</code></pre>
+<pre><code>Warning: replacing previous import &#39;S4Arrays::makeNindexFromArrayViewport&#39; by
+&#39;DelayedArray::makeNindexFromArrayViewport&#39; when loading &#39;SummarizedExperiment&#39;</code></pre>
+<pre class="r"><code>library(data.table)
+library(plyranges)</code></pre>
+<pre><code>Loading required package: BiocGenerics</code></pre>
+<pre><code>
+Attaching package: &#39;BiocGenerics&#39;</code></pre>
+<pre><code>The following objects are masked from &#39;package:stats&#39;:
+
+    IQR, mad, sd, var, xtabs</code></pre>
+<pre><code>The following objects are masked from &#39;package:base&#39;:
+
+    anyDuplicated, aperm, append, as.data.frame, basename, cbind,
+    colnames, dirname, do.call, duplicated, eval, evalq, Filter, Find,
+    get, grep, grepl, intersect, is.unsorted, lapply, Map, mapply,
+    match, mget, order, paste, pmax, pmax.int, pmin, pmin.int,
+    Position, rank, rbind, Reduce, rownames, sapply, saveRDS, setdiff,
+    table, tapply, union, unique, unsplit, which.max, which.min</code></pre>
+<pre><code>Loading required package: IRanges</code></pre>
+<pre><code>Loading required package: S4Vectors</code></pre>
+<pre><code>Loading required package: stats4</code></pre>
+<pre><code>
+Attaching package: &#39;S4Vectors&#39;</code></pre>
+<pre><code>The following objects are masked from &#39;package:data.table&#39;:
+
+    first, second</code></pre>
+<pre><code>The following object is masked from &#39;package:utils&#39;:
+
+    findMatches</code></pre>
+<pre><code>The following objects are masked from &#39;package:base&#39;:
+
+    expand.grid, I, unname</code></pre>
+<pre><code>
+Attaching package: &#39;IRanges&#39;</code></pre>
+<pre><code>The following object is masked from &#39;package:data.table&#39;:
+
+    shift</code></pre>
+<pre><code>Loading required package: GenomicRanges</code></pre>
+<pre><code>Loading required package: GenomeInfoDb</code></pre>
+<pre><code>
+Attaching package: &#39;plyranges&#39;</code></pre>
+<pre><code>The following object is masked from &#39;package:IRanges&#39;:
+
+    slice</code></pre>
+<pre><code>The following object is masked from &#39;package:data.table&#39;:
+
+    between</code></pre>
+<pre><code>The following object is masked from &#39;package:stats&#39;:
+
+    filter</code></pre>
+<pre class="r"><code>library(tidyr)</code></pre>
+<pre><code>
+Attaching package: &#39;tidyr&#39;</code></pre>
+<pre><code>The following object is masked from &#39;package:S4Vectors&#39;:
+
+    expand</code></pre>
+<pre class="r"><code>library(stringr)
+library(dplyr)</code></pre>
+<pre><code>
+Attaching package: &#39;dplyr&#39;</code></pre>
+<pre><code>The following objects are masked from &#39;package:plyranges&#39;:
+
+    between, n, n_distinct</code></pre>
+<pre><code>The following objects are masked from &#39;package:GenomicRanges&#39;:
+
+    intersect, setdiff, union</code></pre>
+<pre><code>The following object is masked from &#39;package:GenomeInfoDb&#39;:
+
+    intersect</code></pre>
+<pre><code>The following objects are masked from &#39;package:IRanges&#39;:
+
+    collapse, desc, intersect, setdiff, slice, union</code></pre>
+<pre><code>The following objects are masked from &#39;package:S4Vectors&#39;:
+
+    first, intersect, rename, setdiff, setequal, union</code></pre>
+<pre><code>The following objects are masked from &#39;package:BiocGenerics&#39;:
+
+    combine, intersect, setdiff, union</code></pre>
+<pre><code>The following objects are masked from &#39;package:data.table&#39;:
+
+    between, first, last</code></pre>
+<pre><code>The following objects are masked from &#39;package:stats&#39;:
+
+    filter, lag</code></pre>
+<pre><code>The following objects are masked from &#39;package:base&#39;:
+
+    intersect, setdiff, setequal, union</code></pre>
+<pre class="r"><code>library(ggplot2)</code></pre>
+</div>
+<div id="data-objects" class="section level2">
+<h2>Data Objects</h2>
+<pre class="r"><code>cg_sites &lt;- cbind(data.frame(Biostrings::matchPattern(&quot;CG&quot;, BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38[[&quot;chr22&quot;]])), seqnames = &quot;chr22&quot;) %&gt;% 
+  mutate(pos = paste0(seqnames, &quot;-&quot;, start)) %&gt;%
+  relocate(pos, seqnames)</code></pre>
+<pre><code>Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored</code></pre>
+<pre class="r"><code>cg_sites$index &lt;- 1:nrow(cg_sites)</code></pre>
+<pre class="r"><code>source(&quot;../code/processData.R&quot;)
+for_beta_all &lt;- readRDS(&quot;/researchers/caitlin.page/cf_nano/r_output/rrbs_alpha_beta.rds&quot;)
+#for_beta &lt;- readRDS(&quot;../output/cluster_files/rrbs_alpha_beta.rds&quot;)
+for_beta &lt;- for_beta_all %&gt;% filter(seqnames == &quot;chr22&quot;)
+rrbs_for_beta_pat &lt;- pat_for_wgbs(for_beta)</code></pre>
+<pre><code>`summarise()` has grouped output by &#39;seqnames&#39;, &#39;start_pos&#39;, &#39;meth_pattern&#39;,
+&#39;alpha&#39;, &#39;end_pos&#39;. You can override using the `.groups` argument.</code></pre>
+<pre class="r"><code>for_beta &lt;- for_beta %&gt;% group_by(start) %&gt;% mutate(coverage = n(), mean_alpha = mean(alpha)) %&gt;% ungroup() %&gt;% data.frame()
+just_beta &lt;- for_beta %&gt;% distinct(start, beta, coverage, mean_alpha) %&gt;% .[order(.$start),]</code></pre>
+<pre class="r"><code>annots &lt;- c(&quot;hg38_cpgs&quot;)
+
+annotations &lt;- annotatr::build_annotations(genome = &#39;hg38&#39;, annotations = annots)</code></pre>
+<pre><code>Building CpG islands...</code></pre>
+<pre><code>Building CpG shores...</code></pre>
+<pre><code>Building CpG shelves...</code></pre>
+<pre><code>Building inter-CpG-islands...</code></pre>
+<pre class="r"><code>seqs &lt;- annotations %&gt;% data.frame() %&gt;% distinct(seqnames) %&gt;% .[1:22,]
+annotations &lt;- annotations %&gt;% data.frame() %&gt;% filter(seqnames %in% seqs)</code></pre>
+<pre class="r"><code>for_beta &lt;- find_overlaps(as_granges(for_beta), as_granges(annotations)) %&gt;% data.frame() %&gt;%
+  mutate(cgi = ifelse(type == &quot;hg38_cpg_islands&quot;, &quot;island&quot;, &quot;not_island&quot;))</code></pre>
+<p>To plot alpha and beta together, we can make alpha a position based
+metric Take the mean of alphas at a CpG site, and then can compare to
+beta</p>
+<pre class="r"><code>for_beta %&gt;%
+  group_by(start) %&gt;%
+  mutate(mean_alpha = mean(alpha), colour_0.5 = ifelse(beta == 0.5, &quot;blue&quot;, &quot;black&quot;)) %&gt;%
+  ungroup() %&gt;%
+  distinct(seqnames, start, mean_alpha, beta, colour_0.5) %&gt;%
+  ggplot(aes(x = beta, y = mean_alpha, colour = colour_0.5)) +
+  geom_point(alpha = 0.4) +
+  scale_colour_manual(values = c(&quot;black&quot;, &quot;blue&quot;)) +
+  geom_abline(colour = &quot;red&quot;, linetype = &quot;dashed&quot;) +
+  theme_bw()</code></pre>
+<p><img src="figure/compareAlphaWhenBetaHalf.Rmd/unnamed-chunk-6-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>for_beta %&gt;%
+  group_by(start) %&gt;%
+  mutate(mean_alpha = mean(alpha), colour_0.5 = ifelse(beta == 0.5, &quot;blue&quot;, &quot;black&quot;)) %&gt;%
+  ungroup() %&gt;%
+  distinct(seqnames, start, mean_alpha, beta, colour_0.5) %&gt;%
+  ggplot(aes(x = beta, y = mean_alpha, colour = colour_0.5)) +
+  geom_count(alpha = 0.4) +
+  scale_colour_manual(values = c(&quot;black&quot;, &quot;blue&quot;)) +
+  geom_abline(colour = &quot;red&quot;, linetype = &quot;dashed&quot;) +
+  theme_bw()</code></pre>
+<p><img src="figure/compareAlphaWhenBetaHalf.Rmd/unnamed-chunk-7-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>for_beta %&gt;%
+  filter(beta == 0.5) %&gt;%
+  distinct(seqnames, read_id, alpha, beta) %&gt;%
+  ggplot(aes(x = alpha)) +
+  geom_density()</code></pre>
+<p><img src="figure/compareAlphaWhenBetaHalf.Rmd/unnamed-chunk-8-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>for_beta %&gt;%
+  group_by(start) %&gt;%
+  mutate(mean_alpha = mean(alpha)) %&gt;%
+  ungroup() %&gt;%
+  filter(beta == 0.5) %&gt;%
+  distinct(seqnames, start, mean_alpha, beta) %&gt;%
+  ggplot(aes(x = mean_alpha)) +
+  geom_density()</code></pre>
+<p><img src="figure/compareAlphaWhenBetaHalf.Rmd/unnamed-chunk-8-2.png" width="672" style="display: block; margin: auto;" /></p>
+</div>
+<div id="coverage-of-data" class="section level2">
+<h2>Coverage of data</h2>
+<ul>
+<li>density plot of start sites</li>
+<li>will show how many reads cover each position</li>
+</ul>
+<pre class="r"><code>for_beta %&gt;%
+  ggplot(aes(x = start)) +
+  geom_density()</code></pre>
+<p><img src="figure/compareAlphaWhenBetaHalf.Rmd/unnamed-chunk-9-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>for_beta %&gt;%
+  ggplot(aes(x = start)) +
+  geom_histogram(bins = 500)</code></pre>
+<p><img src="figure/compareAlphaWhenBetaHalf.Rmd/unnamed-chunk-9-2.png" width="672" style="display: block; margin: auto;" /></p>
+<ul>
+<li>want to know where the beta = 0.5 is happening</li>
+<li>so let’s see where it happens in this context</li>
+</ul>
+<pre class="r"><code>for_beta %&gt;%
+  filter(beta == 0.5) %&gt;%
+  ggplot() +
+  geom_vline(aes(xintercept = start), colour = &quot;red&quot;, linetype = &quot;dashed&quot;) +
+  geom_density(data = for_beta, aes(x = start)) </code></pre>
+<p><img src="figure/compareAlphaWhenBetaHalf.Rmd/unnamed-chunk-10-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>for_beta %&gt;%
+  filter(beta != 0.5) %&gt;%
+  ggplot() +
+  geom_vline(aes(xintercept = start), colour = &quot;blue&quot;, linetype = &quot;dashed&quot;) +
+  geom_density(data = for_beta, aes(x = start)) </code></pre>
+<p><img src="figure/compareAlphaWhenBetaHalf.Rmd/unnamed-chunk-10-2.png" width="672" style="display: block; margin: auto;" />
+* could be the empty section is a region with no cpgs * because this
+also kind of tells me that * but also overlaying this didn’t really tell
+me anything * maybe cgi annotation / gene annotation will</p>
+<pre class="r"><code>for_beta %&gt;%
+  mutate(beta_0.5 = ifelse(beta == 0.5, TRUE, FALSE)) %&gt;%
+  distinct(start, beta, cgi, beta_0.5) %&gt;%
+  ggplot(aes(x = beta_0.5, fill = cgi)) +
+  geom_bar()</code></pre>
+<p><img src="figure/compareAlphaWhenBetaHalf.Rmd/unnamed-chunk-11-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>for_beta %&gt;%
+  mutate(beta_0.5 = ifelse(beta == 0.5, TRUE, FALSE)) %&gt;%
+  distinct(start, beta, cgi, beta_0.5) %&gt;%
+  ggplot(aes(x = beta_0.5, fill = cgi)) +
+  geom_bar(position = &quot;fill&quot;)</code></pre>
+<p><img src="figure/compareAlphaWhenBetaHalf.Rmd/unnamed-chunk-11-2.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>annots &lt;- c(&quot;hg38_basicgenes&quot;, &quot;hg38_genes_intergenic&quot;)
+
+annotations &lt;- annotatr::build_annotations(genome = &#39;hg38&#39;, annotations = annots)</code></pre>
+<pre><code>Loading required package: GenomicFeatures</code></pre>
+<pre><code>Loading required package: AnnotationDbi</code></pre>
+<pre><code>Loading required package: Biobase</code></pre>
+<pre><code>Welcome to Bioconductor
+
+    Vignettes contain introductory material; view with
+    &#39;browseVignettes()&#39;. To cite Bioconductor, see
+    &#39;citation(&quot;Biobase&quot;)&#39;, and for packages &#39;citation(&quot;pkgname&quot;)&#39;.</code></pre>
+<pre><code>
+Attaching package: &#39;AnnotationDbi&#39;</code></pre>
+<pre><code>The following object is masked from &#39;package:dplyr&#39;:
+
+    select</code></pre>
+<pre><code>The following object is masked from &#39;package:plyranges&#39;:
+
+    select</code></pre>
+<pre><code></code></pre>
+<pre><code>&#39;select()&#39; returned 1:1 mapping between keys and columns</code></pre>
+<pre><code>Building promoters...</code></pre>
+<pre><code>Building 1to5kb upstream of TSS...</code></pre>
+<pre><code>Building intergenic...</code></pre>
+<pre><code>Building 5UTRs...</code></pre>
+<pre><code>Building 3UTRs...</code></pre>
+<pre><code>Building exons...</code></pre>
+<pre><code>Building introns...</code></pre>
+<pre class="r"><code>seqs &lt;- annotations %&gt;% data.frame() %&gt;% distinct(seqnames) %&gt;% .[1:22,]
+annotations &lt;- annotations %&gt;% data.frame() %&gt;% filter(seqnames %in% seqs)
+annotations %&gt;% group_by(type) %&gt;% summarise(n=n())</code></pre>
+<pre><code># A tibble: 7 × 2
+  type                        n
+  &lt;chr&gt;                   &lt;int&gt;
+1 hg38_genes_1to5kb      244912
+2 hg38_genes_3UTRs       204002
+3 hg38_genes_5UTRs       168322
+4 hg38_genes_exons      1606422
+5 hg38_genes_intergenic   21513
+6 hg38_genes_introns    1361510
+7 hg38_genes_promoters   244912</code></pre>
+<pre class="r"><code>for_beta_genes &lt;- find_overlaps(as_granges(for_beta), as_granges(annotations)) %&gt;% data.frame()
+for_beta_genes[1:10,]</code></pre>
+<pre><code>   seqnames    start      end width strand                            read_id
+1     chr22 39994598 39994598     1      + HWI-EAS149_7:1:100:1003:1410:0:1:1
+2     chr22 39994598 39994598     1      + HWI-EAS149_7:1:100:1003:1410:0:1:1
+3     chr22 39994607 39994607     1      - HWI-EAS149_7:1:100:1003:1410:0:1:1
+4     chr22 39994607 39994607     1      - HWI-EAS149_7:1:100:1003:1410:0:1:1
+5     chr22 39994611 39994611     1      - HWI-EAS149_7:1:100:1003:1410:0:1:1
+6     chr22 39994611 39994611     1      - HWI-EAS149_7:1:100:1003:1410:0:1:1
+7     chr22 39994613 39994613     1      - HWI-EAS149_7:1:100:1003:1410:0:1:1
+8     chr22 39994613 39994613     1      - HWI-EAS149_7:1:100:1003:1410:0:1:1
+9     chr22 39994626 39994626     1      + HWI-EAS149_7:1:100:1003:1410:0:1:1
+10    chr22 39994626 39994626     1      + HWI-EAS149_7:1:100:1003:1410:0:1:1
+   meth_status meth_pattern num_meth total     alpha
+1            M       MUUUMU        2     6 0.3333333
+2            M       MUUUMU        2     6 0.3333333
+3            U       MUUUMU        2     6 0.3333333
+4            U       MUUUMU        2     6 0.3333333
+5            U       MUUUMU        2     6 0.3333333
+6            U       MUUUMU        2     6 0.3333333
+7            U       MUUUMU        2     6 0.3333333
+8            U       MUUUMU        2     6 0.3333333
+9            M       MUUUMU        2     6 0.3333333
+10           M       MUUUMU        2     6 0.3333333
+                                         genom_positions read_start read_end
+1  39994598,39994607,39994611,39994613,39994626,39994632   39994598 39994632
+2  39994598,39994607,39994611,39994613,39994626,39994632   39994598 39994632
+3  39994598,39994607,39994611,39994613,39994626,39994632   39994598 39994632
+4  39994598,39994607,39994611,39994613,39994626,39994632   39994598 39994632
+5  39994598,39994607,39994611,39994613,39994626,39994632   39994598 39994632
+6  39994598,39994607,39994611,39994613,39994626,39994632   39994598 39994632
+7  39994598,39994607,39994611,39994613,39994626,39994632   39994598 39994632
+8  39994598,39994607,39994611,39994613,39994626,39994632   39994598 39994632
+9  39994598,39994607,39994611,39994613,39994626,39994632   39994598 39994632
+10 39994598,39994607,39994611,39994613,39994626,39994632   39994598 39994632
+        beta coverage mean_alpha         id.x tx_id.x gene_id.x symbol.x
+1  0.7826087       23  0.6144928 island:26571      NA        NA       NA
+2  0.7826087       23  0.6144928 island:26571      NA        NA       NA
+3  0.6363636       22  0.6060606 island:26571      NA        NA       NA
+4  0.6363636       22  0.6060606 island:26571      NA        NA       NA
+5  0.7391304       23  0.6144928 island:26571      NA        NA       NA
+6  0.7391304       23  0.6144928 island:26571      NA        NA       NA
+7  0.8260870       23  0.6144928 island:26571      NA        NA       NA
+8  0.8260870       23  0.6144928 island:26571      NA        NA       NA
+9  0.3913043       23  0.6144928 island:26571      NA        NA       NA
+10 0.3913043       23  0.6144928 island:26571      NA        NA       NA
+             type.x    cgi            id.y            tx_id.y gene_id.y
+1  hg38_cpg_islands island promoter:241632 ENST00000333407.11    113828
+2  hg38_cpg_islands island promoter:241633  ENST00000488874.1    113828
+3  hg38_cpg_islands island promoter:241632 ENST00000333407.11    113828
+4  hg38_cpg_islands island promoter:241633  ENST00000488874.1    113828
+5  hg38_cpg_islands island promoter:241632 ENST00000333407.11    113828
+6  hg38_cpg_islands island promoter:241633  ENST00000488874.1    113828
+7  hg38_cpg_islands island promoter:241632 ENST00000333407.11    113828
+8  hg38_cpg_islands island promoter:241633  ENST00000488874.1    113828
+9  hg38_cpg_islands island promoter:241632 ENST00000333407.11    113828
+10 hg38_cpg_islands island promoter:241633  ENST00000488874.1    113828
+   symbol.y               type.y
+1    FAM83F hg38_genes_promoters
+2    FAM83F hg38_genes_promoters
+3    FAM83F hg38_genes_promoters
+4    FAM83F hg38_genes_promoters
+5    FAM83F hg38_genes_promoters
+6    FAM83F hg38_genes_promoters
+7    FAM83F hg38_genes_promoters
+8    FAM83F hg38_genes_promoters
+9    FAM83F hg38_genes_promoters
+10   FAM83F hg38_genes_promoters</code></pre>
+<pre class="r"><code>for_beta_genes %&gt;%
+  mutate(beta_0.5 = ifelse(beta == 0.5, TRUE, FALSE)) %&gt;%
+  distinct(start, beta, type.y, beta_0.5) %&gt;%
+  ggplot(aes(x = beta_0.5, fill = type.y)) +
+  geom_bar()</code></pre>
+<p><img src="figure/compareAlphaWhenBetaHalf.Rmd/unnamed-chunk-14-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>for_beta_genes %&gt;%
+  mutate(beta_0.5 = ifelse(beta == 0.5, TRUE, FALSE)) %&gt;%
+  distinct(start, beta, type.y, beta_0.5) %&gt;%
+  ggplot(aes(x = beta_0.5, fill = type.y)) +
+  geom_bar(position = &quot;fill&quot;)</code></pre>
+<p><img src="figure/compareAlphaWhenBetaHalf.Rmd/unnamed-chunk-14-2.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>for_beta_genes %&gt;%
+  mutate(beta_0 = ifelse(beta == 0, TRUE, FALSE)) %&gt;%
+  distinct(start, beta, type.y, beta_0) %&gt;%
+  ggplot(aes(x = beta_0, fill = type.y)) +
+  geom_bar(position = &quot;fill&quot;)</code></pre>
+<p><img src="figure/compareAlphaWhenBetaHalf.Rmd/unnamed-chunk-15-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>for_beta_genes %&gt;%
+  mutate(beta_1 = ifelse(beta == 1, TRUE, FALSE)) %&gt;%
+  distinct(start, beta, type.y, beta_1) %&gt;%
+  ggplot(aes(x = beta_1, fill = type.y)) +
+  geom_bar(position = &quot;fill&quot;)</code></pre>
+<p><img src="figure/compareAlphaWhenBetaHalf.Rmd/unnamed-chunk-15-2.png" width="672" style="display: block; margin: auto;" />
+* beta 0.5 has similar spread to beta 1 of a large amount of the
+positions are in the introns * basically intron to promoter is the group
+that changes the most * or at least that’s likely the more interesting
+change</p>
+<ul>
+<li>ok do boxplots of the mean alphas for this</li>
+</ul>
+<pre class="r"><code>for_beta_genes %&gt;%
+  group_by(start) %&gt;%
+  mutate(mean_alpha = mean(alpha), beta_0.5 = ifelse(beta == 0.5, TRUE, FALSE)) %&gt;%
+  ungroup() %&gt;%
+  distinct(start, beta, mean_alpha, type.y, beta_0.5) %&gt;%
+  ggplot(aes(x = beta_0.5, y = mean_alpha, fill = type.y)) +
+  geom_boxplot()</code></pre>
+<p><img src="figure/compareAlphaWhenBetaHalf.Rmd/unnamed-chunk-16-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>for_beta_genes %&gt;%
+  group_by(start) %&gt;%
+  mutate(mean_alpha = mean(alpha), beta_0.5 = ifelse(beta == 0.5, TRUE, FALSE)) %&gt;%
+  ungroup() %&gt;%
+  distinct(start, beta, mean_alpha, type.y, beta_0.5) %&gt;%
+  ggplot(aes(fill = beta_0.5, y = mean_alpha, x = type.y)) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))</code></pre>
+<p><img src="figure/compareAlphaWhenBetaHalf.Rmd/unnamed-chunk-16-2.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>for_beta_genes %&gt;%
+  group_by(start) %&gt;%
+  mutate(mean_alpha = mean(alpha), beta_0 = ifelse(beta == 0, TRUE, FALSE)) %&gt;%
+  ungroup() %&gt;%
+  distinct(start, beta, mean_alpha, type.y, beta_0) %&gt;%
+  ggplot(aes(x = beta_0, y = mean_alpha, fill = type.y)) +
+  geom_boxplot()</code></pre>
+<p><img src="figure/compareAlphaWhenBetaHalf.Rmd/unnamed-chunk-17-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>for_beta_genes %&gt;%
+  group_by(start) %&gt;%
+  mutate(mean_alpha = mean(alpha), beta_0 = ifelse(beta == 0, TRUE, FALSE)) %&gt;%
+  ungroup() %&gt;%
+  distinct(start, beta, mean_alpha, type.y, beta_0) %&gt;%
+  ggplot(aes(fill = beta_0, y = mean_alpha, x = type.y)) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))</code></pre>
+<p><img src="figure/compareAlphaWhenBetaHalf.Rmd/unnamed-chunk-17-2.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>for_beta_genes %&gt;%
+  group_by(start) %&gt;%
+  mutate(mean_alpha = mean(alpha), beta_1 = ifelse(beta == 1, TRUE, FALSE)) %&gt;%
+  ungroup() %&gt;%
+  distinct(start, beta, mean_alpha, type.y, beta_1) %&gt;%
+  ggplot(aes(x = beta_1, y = mean_alpha, fill = type.y)) +
+  geom_boxplot()</code></pre>
+<p><img src="figure/compareAlphaWhenBetaHalf.Rmd/unnamed-chunk-18-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>for_beta_genes %&gt;%
+  group_by(start) %&gt;%
+  mutate(mean_alpha = mean(alpha), beta_1 = ifelse(beta == 1, TRUE, FALSE)) %&gt;%
+  ungroup() %&gt;%
+  distinct(start, beta, mean_alpha, type.y, beta_1) %&gt;%
+  ggplot(aes(fill = beta_1, y = mean_alpha, x = type.y)) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))</code></pre>
+<p><img src="figure/compareAlphaWhenBetaHalf.Rmd/unnamed-chunk-18-2.png" width="672" style="display: block; margin: auto;" />
+* this is stuff that just makes sense - if beta is 0 or 1, mean_alpha
+would have to be close to it * well actually it should BE it * if it’s
+not then it’s because something has gone wrong filtering wise etc</p>
+<ul>
+<li>honestly still not sure what I’m looking at/for</li>
+<li>just throwing stuff and hoping something sticks</li>
+</ul>
+</div>
+<div id="mean-vs-median-alpha" class="section level2">
+<h2>mean vs median alpha</h2>
+<pre class="r"><code>for_beta %&gt;%
+  group_by(start) %&gt;%
+  mutate(mean_alpha = mean(alpha), colour_0.5 = ifelse(beta == 0.5, &quot;blue&quot;, &quot;black&quot;)) %&gt;%
+  ungroup() %&gt;%
+  distinct(seqnames, start, mean_alpha, beta, colour_0.5) %&gt;%
+  ggplot(aes(x = beta, y = mean_alpha, colour = colour_0.5)) +
+  geom_point(alpha = 0.4) +
+  scale_colour_manual(values = c(&quot;black&quot;, &quot;blue&quot;)) +
+  geom_abline(colour = &quot;red&quot;, linetype = &quot;dashed&quot;) +
+  theme_bw()</code></pre>
+<p><img src="figure/compareAlphaWhenBetaHalf.Rmd/unnamed-chunk-19-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>for_beta %&gt;%
+  group_by(start) %&gt;%
+  mutate(median_alpha = median(alpha), colour_0.5 = ifelse(beta == 0.5, &quot;blue&quot;, &quot;black&quot;)) %&gt;%
+  ungroup() %&gt;%
+  distinct(seqnames, start, median_alpha, beta, colour_0.5) %&gt;%
+  ggplot(aes(x = beta, y = median_alpha, colour = colour_0.5)) +
+  geom_point(alpha = 0.4) +
+  scale_colour_manual(values = c(&quot;black&quot;, &quot;blue&quot;)) +
+  geom_abline(colour = &quot;red&quot;, linetype = &quot;dashed&quot;) +
+  theme_bw()</code></pre>
+<p><img src="figure/compareAlphaWhenBetaHalf.Rmd/unnamed-chunk-19-2.png" width="672" style="display: block; margin: auto;" /></p>
+<ul>
+<li>interesting</li>
+<li>it becomes a lot less continuous</li>
+<li>also it is way less correlated with beta</li>
+<li>makes sense, it’s the middle number</li>
+</ul>
+<pre class="r"><code>for_beta %&gt;%
+  group_by(start) %&gt;%
+  mutate(mean_alpha = mean(alpha), median_alpha = median(alpha)) %&gt;%
+  ungroup() %&gt;%
+  distinct(seqnames, start, mean_alpha, beta, median_alpha) %&gt;%
+  ggplot(aes(x = median_alpha, y = mean_alpha)) +
+  geom_point(alpha = 0.4) +
+  geom_abline(colour = &quot;red&quot;, linetype = &quot;dashed&quot;) +
+  theme_bw()</code></pre>
+<p><img src="figure/compareAlphaWhenBetaHalf.Rmd/unnamed-chunk-20-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>for_beta %&gt;%
+  distinct(read_id, alpha) %&gt;%
+  ggplot(aes(x = alpha)) +
+  geom_density()</code></pre>
+<p><img src="figure/compareAlphaWhenBetaHalf.Rmd/unnamed-chunk-21-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>for_beta %&gt;%
+  group_by(start) %&gt;%
+  mutate(mean_alpha = mean(alpha), median_alpha = median(alpha)) %&gt;%
+  ungroup() %&gt;%
+  distinct(start, mean_alpha, beta, median_alpha) %&gt;%
+  reshape2::melt(id = &quot;start&quot;) %&gt;%
+  ggplot(aes(x = value, colour = variable)) +
+  geom_density()</code></pre>
+<p><img src="figure/compareAlphaWhenBetaHalf.Rmd/unnamed-chunk-21-2.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>for_beta %&gt;%
+  group_by(start) %&gt;%
+  mutate(mean_alpha = mean(alpha), median_alpha = median(alpha)) %&gt;%
+  ungroup() %&gt;%
+  distinct(start, mean_alpha, beta, median_alpha) %&gt;%
+  reshape2::melt(id = &quot;start&quot;) %&gt;%
+  ggplot(aes(x = variable, y = value, fill = variable)) +
+  geom_boxplot() +
+  theme(legend.position = &quot;none&quot;)</code></pre>
+<p><img src="figure/compareAlphaWhenBetaHalf.Rmd/unnamed-chunk-21-3.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>for_beta %&gt;%
+  group_by(start) %&gt;%
+  mutate(iqr_alpha = IQR(alpha), colour_0.5 = ifelse(beta == 0.5, &quot;blue&quot;, &quot;black&quot;)) %&gt;%
+  ungroup() %&gt;%
+  distinct(seqnames, start, iqr_alpha, beta, colour_0.5) %&gt;%
+  ggplot(aes(x = beta, y = iqr_alpha, colour = colour_0.5)) +
+  geom_point(alpha = 0.4) +
+  scale_colour_manual(values = c(&quot;black&quot;, &quot;blue&quot;)) +
+  geom_abline(colour = &quot;red&quot;, linetype = &quot;dashed&quot;) +
+  theme_bw()</code></pre>
+<p><img src="figure/compareAlphaWhenBetaHalf.Rmd/unnamed-chunk-22-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>for_beta %&gt;%
+  group_by(start) %&gt;%
+  mutate(mean_alpha = mean(alpha), iqr_alpha = IQR(alpha)) %&gt;%
+  ungroup() %&gt;%
+  distinct(seqnames, start, mean_alpha, iqr_alpha, beta) %&gt;%
+  ggplot(aes(x = iqr_alpha, y = mean_alpha)) +
+  geom_point(alpha = 0.4) +
+  geom_abline(colour = &quot;red&quot;, linetype = &quot;dashed&quot;) +
+  theme_bw()</code></pre>
+<p><img src="figure/compareAlphaWhenBetaHalf.Rmd/unnamed-chunk-22-2.png" width="672" style="display: block; margin: auto;" />
+* ok iqr is also bad * at least I know that now</p>
+<pre class="r"><code>for_beta %&gt;%
+  group_by(start) %&gt;%
+  mutate(mean_alpha = mean(alpha), median_alpha = median(alpha), iqr_alpha = IQR(alpha)) %&gt;%
+  ungroup() %&gt;%
+  distinct(start, mean_alpha, beta, median_alpha, iqr_alpha) %&gt;%
+  reshape2::melt(id = &quot;start&quot;) %&gt;%
+  ggplot(aes(x = value, colour = variable)) +
+  geom_density()</code></pre>
+<p><img src="figure/compareAlphaWhenBetaHalf.Rmd/unnamed-chunk-23-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>for_beta %&gt;%
+  group_by(start) %&gt;%
+  mutate(mean_alpha = mean(alpha), median_alpha = median(alpha), iqr_alpha = IQR(alpha)) %&gt;%
+  ungroup() %&gt;%
+  distinct(start, mean_alpha, beta, median_alpha, iqr_alpha) %&gt;%
+  reshape2::melt(id = &quot;start&quot;) %&gt;%
+  ggplot(aes(x = variable, y = value, fill = variable)) +
+  geom_boxplot() +
+  theme(legend.position = &quot;none&quot;)</code></pre>
+<p><img src="figure/compareAlphaWhenBetaHalf.Rmd/unnamed-chunk-23-2.png" width="672" style="display: block; margin: auto;" /></p>
+</div>
+<div id="where-does-beta-0.5-happen-relative-to-other-betas"
+class="section level1">
+<h1>where does beta =0.5 happen relative to other betas?</h1>
+<pre class="r"><code>for_beta %&gt;%
+  distinct(start, beta) %&gt;%
+  .[order(.$start),] %&gt;%
+  mutate(cg_index = 1:n()) %&gt;%
+  filter(beta == 0.5) %&gt;%
+  mutate(IPD = lead(start) - start, 
+         index_dist = lead(cg_index) - cg_index) %&gt;%
+  ggplot(aes(x = index_dist)) +
+  geom_density()</code></pre>
+<pre><code>Warning: Removed 1 row containing non-finite outside the scale range
+(`stat_density()`).</code></pre>
+<p><img src="figure/compareAlphaWhenBetaHalf.Rmd/unnamed-chunk-24-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>for_beta %&gt;%
+  distinct(start, beta) %&gt;%
+  .[order(.$start),] %&gt;%
+  mutate(cg_index = 1:n()) %&gt;%
+  filter(beta == 0.5) %&gt;%
+  mutate(IPD = lead(start) - start, 
+         index_dist = lead(cg_index) - cg_index) %&gt;%
+  ggplot(aes(x = IPD)) +
+  geom_density()</code></pre>
+<pre><code>Warning: Removed 1 row containing non-finite outside the scale range
+(`stat_density()`).</code></pre>
+<p><img src="figure/compareAlphaWhenBetaHalf.Rmd/unnamed-chunk-24-2.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>for_beta %&gt;%
+  group_by(start) %&gt;%
+  mutate(mean_alpha = mean(alpha)) %&gt;%
+  ungroup() %&gt;%
+  distinct(seqnames, start, mean_alpha, alpha) %&gt;%
+  ggplot(aes(x = alpha, y = mean_alpha)) +
+  geom_point(alpha = 0.4) +
+  geom_abline(colour = &quot;red&quot;, linetype = &quot;dashed&quot;) +
+  theme_bw()</code></pre>
+<p><img src="figure/compareAlphaWhenBetaHalf.Rmd/unnamed-chunk-25-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>for_beta %&gt;%
+  group_by(start) %&gt;%
+  mutate(mean_alpha = mean(alpha), colour_0.5 = ifelse(beta == 0.5, &quot;blue&quot;, &quot;black&quot;)) %&gt;%
+  ungroup() %&gt;%
+  distinct(seqnames, start, mean_alpha, beta, colour_0.5) %&gt;%
+  ggplot(aes(x = beta, y = mean_alpha, colour = colour_0.5)) +
+  geom_point(alpha = 0.4) +
+  scale_colour_manual(values = c(&quot;black&quot;, &quot;blue&quot;)) +
+  geom_abline(colour = &quot;red&quot;, linetype = &quot;dashed&quot;) +
+  theme_bw()</code></pre>
+<p><img src="figure/compareAlphaWhenBetaHalf.Rmd/unnamed-chunk-26-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>for_beta[20000:50000,] %&gt;% 
+  group_by(start) %&gt;%
+  summarise(n=n()) %&gt;%
+  .[order(.$n, decreasing = TRUE),] %&gt;% .[1:10,]</code></pre>
+<pre><code># A tibble: 10 × 2
+      start     n
+      &lt;int&gt; &lt;int&gt;
+ 1 12693682    27
+ 2 12693688    27
+ 3 12693698    27
+ 4 12693714    27
+ 5 42770221    18
+ 6 42770226    18
+ 7 42770255    18
+ 8 45284795    18
+ 9 45284806    18
+10 45284819    18</code></pre>
+<pre class="r"><code>for_beta %&gt;%
+  mutate(beta_0.5 = ifelse(beta == 0.5, TRUE, FALSE)) %&gt;%
+  distinct(seqnames, read_id, alpha, beta) %&gt;%
+  ggplot(aes(x = alpha)) +
+  geom_density()</code></pre>
+<p><img src="figure/compareAlphaWhenBetaHalf.Rmd/unnamed-chunk-28-1.png" width="672" style="display: block; margin: auto;" /></p>
+<br>
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-sessioninfo" data-toggle="collapse" data-target="#workflowr-sessioninfo" style="display: block;">
+<span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
+Session information
+</button>
+</p>
+<div id="workflowr-sessioninfo" class="collapse">
+<pre class="r"><code>sessionInfo()</code></pre>
+<pre><code>R version 4.4.1 (2024-06-14)
+Platform: x86_64-pc-linux-gnu
+Running under: Rocky Linux 9.6 (Blue Onyx)
+
+Matrix products: default
+BLAS/LAPACK: FlexiBLAS OPENBLAS-OPENMP;  LAPACK version 3.9.0
+
+locale:
+ [1] LC_CTYPE=en_AU.UTF-8       LC_NUMERIC=C              
+ [3] LC_TIME=en_AU.UTF-8        LC_COLLATE=en_AU.UTF-8    
+ [5] LC_MONETARY=en_AU.UTF-8    LC_MESSAGES=en_AU.UTF-8   
+ [7] LC_PAPER=en_AU.UTF-8       LC_NAME=C                 
+ [9] LC_ADDRESS=C               LC_TELEPHONE=C            
+[11] LC_MEASUREMENT=en_AU.UTF-8 LC_IDENTIFICATION=C       
+
+time zone: Australia/Melbourne
+tzcode source: system (glibc)
+
+attached base packages:
+[1] stats4    stats     graphics  grDevices utils     datasets  methods  
+[8] base     
+
+other attached packages:
+ [1] org.Hs.eg.db_3.20.0                     
+ [2] TxDb.Hsapiens.UCSC.hg38.knownGene_3.20.0
+ [3] GenomicFeatures_1.58.0                  
+ [4] AnnotationDbi_1.68.0                    
+ [5] Biobase_2.66.0                          
+ [6] ggplot2_3.5.2                           
+ [7] dplyr_1.1.4                             
+ [8] stringr_1.5.1                           
+ [9] tidyr_1.3.1                             
+[10] plyranges_1.26.0                        
+[11] GenomicRanges_1.58.0                    
+[12] GenomeInfoDb_1.42.3                     
+[13] IRanges_2.40.1                          
+[14] S4Vectors_0.44.0                        
+[15] BiocGenerics_0.52.0                     
+[16] data.table_1.17.8                       
+[17] annotatr_1.32.0                         
+
+loaded via a namespace (and not attached):
+  [1] DBI_1.2.3                         bitops_1.0-9                     
+  [3] rlang_1.1.6                       magrittr_2.0.3                   
+  [5] git2r_0.36.2                      matrixStats_1.5.0                
+  [7] compiler_4.4.1                    RSQLite_2.4.2                    
+  [9] png_0.1-8                         vctrs_0.6.5                      
+ [11] reshape2_1.4.4                    pkgconfig_2.0.3                  
+ [13] crayon_1.5.3                      fastmap_1.2.0                    
+ [15] dbplyr_2.5.0                      XVector_0.46.0                   
+ [17] labeling_0.4.3                    utf8_1.2.6                       
+ [19] Rsamtools_2.22.0                  promises_1.3.3                   
+ [21] rmarkdown_2.29                    tzdb_0.5.0                       
+ [23] UCSC.utils_1.2.0                  purrr_1.1.0                      
+ [25] bit_4.6.0                         BSgenome.Hsapiens.UCSC.hg38_1.4.5
+ [27] xfun_0.52                         zlibbioc_1.52.0                  
+ [29] cachem_1.1.0                      jsonlite_2.0.0                   
+ [31] blob_1.2.4                        later_1.4.2                      
+ [33] DelayedArray_0.32.0               BiocParallel_1.40.2              
+ [35] parallel_4.4.1                    R6_2.6.1                         
+ [37] bslib_0.9.0                       stringi_1.8.7                    
+ [39] RColorBrewer_1.1-3                rtracklayer_1.66.0               
+ [41] jquerylib_0.1.4                   Rcpp_1.1.0                       
+ [43] SummarizedExperiment_1.36.0       knitr_1.50                       
+ [45] readr_2.1.5                       httpuv_1.6.16                    
+ [47] Matrix_1.7-0                      tidyselect_1.2.1                 
+ [49] rstudioapi_0.17.1                 abind_1.4-8                      
+ [51] yaml_2.3.10                       codetools_0.2-20                 
+ [53] curl_6.4.0                        lattice_0.22-6                   
+ [55] tibble_3.3.0                      regioneR_1.38.0                  
+ [57] plyr_1.8.9                        withr_3.0.2                      
+ [59] KEGGREST_1.46.0                   evaluate_1.0.4                   
+ [61] BiocFileCache_2.14.0              Biostrings_2.74.1                
+ [63] pillar_1.11.0                     BiocManager_1.30.26              
+ [65] filelock_1.0.3                    MatrixGenerics_1.18.1            
+ [67] whisker_0.4.1                     generics_0.1.4                   
+ [69] vroom_1.6.5                       rprojroot_2.1.0                  
+ [71] RCurl_1.98-1.17                   BiocVersion_3.20.0               
+ [73] hms_1.1.3                         scales_1.4.0                     
+ [75] glue_1.8.0                        tools_4.4.1                      
+ [77] AnnotationHub_3.14.0              BiocIO_1.16.0                    
+ [79] BSgenome_1.74.0                   GenomicAlignments_1.42.0         
+ [81] fs_1.6.6                          XML_3.99-0.18                    
+ [83] grid_4.4.1                        GenomeInfoDbData_1.2.13          
+ [85] restfulr_0.0.16                   cli_3.6.5                        
+ [87] rappdirs_0.3.3                    workflowr_1.7.1                  
+ [89] S4Arrays_1.6.0                    gtable_0.3.6                     
+ [91] sass_0.4.10                       digest_0.6.37                    
+ [93] SparseArray_1.6.2                 rjson_0.2.23                     
+ [95] farver_2.1.2                      memoise_2.0.1                    
+ [97] htmltools_0.5.8.1                 lifecycle_1.0.4                  
+ [99] httr_1.4.7                        bit64_4.6.0-1                    </code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+
+<!-- Adjust MathJax settings so that all math formulae are shown using
+TeX fonts only; see
+https://docs.mathjax.org/en/latest/web/configuration.html. This will make
+the presentation more consistent at the cost of the webpage sometimes
+taking slightly longer to load. Note that this only works because the
+footer is added to webpages before the MathJax javascript. -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    "HTML-CSS": { availableFonts: ["TeX"] }
+  });
+</script>
+
+
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+
+<script>
+$(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
