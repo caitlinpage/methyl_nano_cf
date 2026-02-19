@@ -931,6 +931,7 @@ alpha_and_beta2_pat %>% .[order(.$start_pos),]
 
 
 # Instructions on making PAT format
+
 ```{r}
 alpha_and_beta2
 ```
