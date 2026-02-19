@@ -61,11 +61,12 @@ Take the mean of alphas at a CpG site, and then can compare to beta
 ```{r}
 for_beta %>%
   group_by(start) %>%
-  mutate(mean_alpha = mean(alpha)) %>%
+  mutate(mean_alpha = mean(alpha), colour_same = ifelse(mean_alpha == beta, "blue", "black")) %>%
   ungroup() %>%
-  distinct(seqnames, start, mean_alpha, beta) %>%
-  ggplot(aes(x = beta, y = mean_alpha)) +
+  distinct(seqnames, start, mean_alpha, beta, colour_same) %>%
+  ggplot(aes(x = beta, y = mean_alpha, colour = colour_same)) +
   geom_point(alpha = 0.4) +
+  scale_colour_manual(values = c("black", "blue")) +
   geom_abline(colour = "red", linetype = "dashed") +
   theme_bw()
 ```
@@ -73,11 +74,12 @@ for_beta %>%
 ```{r}
 for_beta %>%
   group_by(start) %>%
-  mutate(mean_alpha = mean(alpha)) %>%
+  mutate(mean_alpha = mean(alpha), colour_same = ifelse(mean_alpha == beta, "blue", "black")) %>%
   ungroup() %>%
-  distinct(seqnames, start, mean_alpha, beta) %>%
-  ggplot(aes(x = beta, y = mean_alpha)) +
+  distinct(seqnames, start, mean_alpha, beta, colour_same) %>%
+  ggplot(aes(x = beta, y = mean_alpha, colour = colour_same)) +
   geom_count(alpha = 0.4) +
+  scale_colour_manual(values = c("black", "blue")) +
   geom_abline(colour = "red", linetype = "dashed") +
   theme_bw()
 ```
@@ -405,5 +407,91 @@ for_beta %>%
   distinct(start, cgi, same_alpha_beta_0, same_alpha_beta_1) %>%
   reshape2::melt(id = "cgi") %>%
   ggplot(aes(x = variable, fill = cgi))
+```
+
+## look at gene features
+
+```{r}
+annots <- c("hg38_basicgenes", "hg38_genes_intergenic")
+
+annotations <- annotatr::build_annotations(genome = 'hg38', annotations = annots)
+seqs <- annotations %>% data.frame() %>% distinct(seqnames) %>% .[1:22,]
+annotations <- annotations %>% data.frame() %>% filter(seqnames %in% seqs)
+annotations %>% group_by(type) %>% summarise(n=n())
+```
+
+```{r}
+for_beta_genes <- find_overlaps(as_granges(for_beta), as_granges(annotations)) %>% data.frame()
+for_beta_genes[1:10,]
+```
+
+```{r}
+for_beta_genes %>%
+  group_by(start) %>%
+  mutate(mean_alpha = mean(alpha)) %>%
+  ungroup() %>%
+  mutate(beta_alpha_same = ifelse(beta == mean_alpha, TRUE, FALSE)) %>%
+  distinct(start, beta, mean_alpha, type.y, beta_alpha_same) %>%
+  ggplot(aes(x = beta_alpha_same, fill = type.y)) +
+  geom_bar()
+
+for_beta_genes %>%
+  group_by(start) %>%
+  mutate(mean_alpha = mean(alpha)) %>%
+  ungroup() %>%
+  mutate(beta_alpha_same = ifelse(beta == mean_alpha, TRUE, FALSE)) %>%
+  distinct(start, beta, mean_alpha, type.y, beta_alpha_same) %>% 
+  ggplot(aes(x = beta_alpha_same, fill = type.y)) +
+  geom_bar(position = "fill")
+```
+
+* this is wrong because there are double ups 
+* multiple types per row
+```{r}
+for_beta_genes %>%
+  group_by(start) %>%
+  mutate(mean_alpha = mean(alpha)) %>%
+  ungroup() %>%
+  mutate(beta_alpha_same = ifelse(beta == mean_alpha, TRUE, FALSE)) %>%
+  distinct(start, beta, mean_alpha, type.y, beta_alpha_same) %>% .[990:1000,]
+```
+
+```{r}
+for_beta_genes %>%
+  group_by(start) %>%
+  mutate(mean_alpha = mean(alpha)) %>%
+  ungroup() %>%
+  mutate(beta_alpha_same = ifelse(beta == mean_alpha, TRUE, FALSE)) %>%
+  distinct(start, beta, mean_alpha, type.y, beta_alpha_same) %>% group_by(start) %>% mutate(n = 1:n()) %>% ungroup() %>% filter(n == 1) %>%
+  ggplot(aes(x = beta_alpha_same, fill = type.y)) +
+  geom_bar()
+
+for_beta_genes %>%
+  group_by(start) %>%
+  mutate(mean_alpha = mean(alpha)) %>%
+  ungroup() %>%
+  mutate(beta_alpha_same = ifelse(beta == mean_alpha, TRUE, FALSE)) %>%
+  distinct(start, beta, mean_alpha, type.y, beta_alpha_same) %>% group_by(start) %>% mutate(n = 1:n()) %>% ungroup() %>% filter(n == 1) %>%
+  ggplot(aes(x = beta_alpha_same, fill = type.y)) +
+  geom_bar(position = "fill")
+```
+
+```{r}
+for_beta_genes %>%
+  group_by(start) %>%
+  mutate(mean_alpha = mean(alpha), beta_alpha_same = ifelse(beta == mean_alpha, TRUE, FALSE)) %>%
+  ungroup() %>%
+  distinct(start, beta, mean_alpha, type.y, beta_alpha_same) %>%
+  ggplot(aes(x = beta_alpha_same, y = mean_alpha, fill = type.y)) +
+  geom_boxplot()
+
+for_beta_genes %>%
+  group_by(start) %>%
+  mutate(mean_alpha = mean(alpha), beta_alpha_same = ifelse(beta == mean_alpha, TRUE, FALSE)) %>%
+  ungroup() %>%
+  distinct(start, beta, mean_alpha, type.y, beta_alpha_same) %>%
+  ggplot(aes(fill = beta_alpha_same, y = mean_alpha, x = type.y)) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
