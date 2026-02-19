@@ -11,7 +11,7 @@ editor_options:
 
 ```{r}
 library(BSgenome.Hsapiens.UCSC.hg38)
-library(TxDb.Hsapiens.UCSC.hg38.knownGene)
+library(TxDb.Hsapiens.UCSC.hg19.knownGene)
 library(data.table)
 library(plyranges)
 library(tidyr)
@@ -22,25 +22,86 @@ library(ggplot2)
 
 ## Data Objects
 ```{r}
-cg_sites <- cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38[["chr22"]])), seqnames = "chr22") %>% 
+cg_sites <- cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38))) %>% 
   mutate(pos = paste0(seqnames, "-", start)) %>%
   relocate(pos, seqnames)
 cg_sites$index <- 1:nrow(cg_sites)
 ```
 
+```{r}
+genes_hg19 <- genes(TxDb.Hsapiens.UCSC.hg19.knownGene)
+```
+
 
 ```{r}
-source("../code/processData.R")
+files <- list.files("/researchers/caitlin.page/rrbs_encode_cell_line/")
+files[grep("CpG", files)]
+```
 
-for_beta <- readRDS("../output/cluster_files/rrbs_alpha_beta.rds")
-rrbs_for_beta_pat <- pat_for_wgbs(for_beta)
 
+```{r}
+source("../processData.R")
 
-for_beta <- for_beta %>% group_by(start) %>% mutate(coverage = n(), mean_alpha = mean(alpha)) %>% ungroup() %>% data.frame()
-just_beta <- for_beta %>% distinct(start, beta, coverage, mean_alpha) %>% .[order(.$start),]
-
+bis <- fread("/researchers/caitlin.page/rrbs_encode_cell_line/CpG_OT_ENCFF000LYO_bismark_bt2.txt")
+rrbs_alpha_beta <- process_wgbs(bis)
+rrbs_alpha_beta_pat <- pat_for_wgbs(rrbs_alpha_beta)
+just_rrbs_beta <- rrbs_alpha_beta %>% distinct(seqnames, start, beta) %>% .[order(.$start),]
 ```
 ```{r}
-for_beta %>% distinct(seqnames)
+seqnames(BSgenome.Hsapiens.UCSC.hg38)[1:25]
+```
+
+```{r}
+nrow(rrbs_alpha_beta)
+```
+
+
+```{r}
+rrbs_alpha_beta <- rrbs_alpha_beta %>% filter(seqnames %in% seqnames(BSgenome.Hsapiens.UCSC.hg38)[1:25])
+```
+
+
+# most important plot: mean alpha and beta
+
+```{r}
+rrbs_alpha_beta %>%
+  group_by(seqnames, start, beta) %>%
+  summarise(mean_alpha = mean(alpha)) %>%
+  ggplot(aes(x = beta, y = mean_alpha)) +
+  geom_point(alpha = 0.4) +
+  geom_abline(colour = "red", linetype = "dashed") +
+  theme_bw()
+```
+
+```{r}
+rrbs_alpha_beta %>%
+  group_by(seqnames, start, beta) %>%
+  summarise(mean_alpha = mean(alpha)) %>%
+  ggplot(aes(x = beta, y = mean_alpha)) +
+  geom_count(alpha = 0.4) +
+  geom_abline(colour = "red", linetype = "dashed") +
+  theme_bw()
+```
+
+```{r}
+rrbs_alpha_beta %>%
+  group_by(seqnames, start, beta) %>%
+  summarise(mean_alpha = mean(alpha)) %>%
+  ggplot(aes(x = beta, y = mean_alpha)) +
+  geom_point(alpha = 0.4) +
+  geom_abline(colour = "red", linetype = "dashed") +
+  theme_bw() +
+  facet_wrap(~ seqnames)
+```
+
+```{r}
+rrbs_alpha_beta %>%
+  filter(seqnames == "chr1") %>%
+  group_by(seqnames, start, beta) %>%
+  summarise(mean_alpha = mean(alpha)) %>%
+  ggplot(aes(x = beta, y = mean_alpha)) +
+  geom_point(alpha = 0.4) +
+  geom_abline(colour = "red", linetype = "dashed") +
+  theme_bw()
 ```
 
