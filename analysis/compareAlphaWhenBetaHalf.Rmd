@@ -1,0 +1,459 @@
+---
+title: "compareAlphaWhenBetaHalf"
+author: "caitlinpage"
+date: "2026-02-18"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+
+## packages
+
+
+```{r}
+library(annotatr)
+library(data.table)
+library(plyranges)
+library(tidyr)
+library(stringr)
+library(dplyr)
+library(ggplot2)
+```
+
+## Data Objects
+```{r}
+cg_sites <- cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38[["chr22"]])), seqnames = "chr22") %>% 
+  mutate(pos = paste0(seqnames, "-", start)) %>%
+  relocate(pos, seqnames)
+cg_sites$index <- 1:nrow(cg_sites)
+```
+
+
+```{r}
+source("../code/processData.R")
+for_beta_all <- readRDS("/researchers/caitlin.page/cf_nano/r_output/rrbs_alpha_beta.rds")
+#for_beta <- readRDS("../output/cluster_files/rrbs_alpha_beta.rds")
+for_beta <- for_beta_all %>% filter(seqnames == "chr22")
+rrbs_for_beta_pat <- pat_for_wgbs(for_beta)
+
+for_beta <- for_beta %>% group_by(start) %>% mutate(coverage = n(), mean_alpha = mean(alpha)) %>% ungroup() %>% data.frame()
+just_beta <- for_beta %>% distinct(start, beta, coverage, mean_alpha) %>% .[order(.$start),]
+
+```
+
+
+```{r}
+annots <- c("hg38_cpgs")
+
+annotations <- annotatr::build_annotations(genome = 'hg38', annotations = annots)
+seqs <- annotations %>% data.frame() %>% distinct(seqnames) %>% .[1:22,]
+annotations <- annotations %>% data.frame() %>% filter(seqnames %in% seqs)
+```
+
+```{r}
+for_beta <- find_overlaps(as_granges(for_beta), as_granges(annotations)) %>% data.frame() %>%
+  mutate(cgi = ifelse(type == "hg38_cpg_islands", "island", "not_island"))
+```
+
+To plot alpha and beta together, we can make alpha a position based metric
+Take the mean of alphas at a CpG site, and then can compare to beta
+
+```{r}
+for_beta %>%
+  group_by(start) %>%
+  mutate(mean_alpha = mean(alpha), colour_0.5 = ifelse(beta == 0.5, "blue", "black")) %>%
+  ungroup() %>%
+  distinct(seqnames, start, mean_alpha, beta, colour_0.5) %>%
+  ggplot(aes(x = beta, y = mean_alpha, colour = colour_0.5)) +
+  geom_point(alpha = 0.4) +
+  scale_colour_manual(values = c("black", "blue")) +
+  geom_abline(colour = "red", linetype = "dashed") +
+  theme_bw()
+```
+
+```{r}
+for_beta %>%
+  group_by(start) %>%
+  mutate(mean_alpha = mean(alpha), colour_0.5 = ifelse(beta == 0.5, "blue", "black")) %>%
+  ungroup() %>%
+  distinct(seqnames, start, mean_alpha, beta, colour_0.5) %>%
+  ggplot(aes(x = beta, y = mean_alpha, colour = colour_0.5)) +
+  geom_count(alpha = 0.4) +
+  scale_colour_manual(values = c("black", "blue")) +
+  geom_abline(colour = "red", linetype = "dashed") +
+  theme_bw()
+```
+
+
+```{r}
+for_beta %>%
+  filter(beta == 0.5) %>%
+  distinct(seqnames, read_id, alpha, beta) %>%
+  ggplot(aes(x = alpha)) +
+  geom_density()
+
+for_beta %>%
+  group_by(start) %>%
+  mutate(mean_alpha = mean(alpha)) %>%
+  ungroup() %>%
+  filter(beta == 0.5) %>%
+  distinct(seqnames, start, mean_alpha, beta) %>%
+  ggplot(aes(x = mean_alpha)) +
+  geom_density()
+```
+
+## Coverage of data
+
+* density plot of start sites
+* will show how many reads cover each position
+
+```{r}
+for_beta %>%
+  ggplot(aes(x = start)) +
+  geom_density()
+
+for_beta %>%
+  ggplot(aes(x = start)) +
+  geom_histogram(bins = 500)
+```
+
+* want to know where the beta = 0.5 is happening
+* so let's see where it happens in this context
+
+```{r}
+for_beta %>%
+  filter(beta == 0.5) %>%
+  ggplot() +
+  geom_vline(aes(xintercept = start), colour = "red", linetype = "dashed") +
+  geom_density(data = for_beta, aes(x = start)) 
+
+for_beta %>%
+  filter(beta != 0.5) %>%
+  ggplot() +
+  geom_vline(aes(xintercept = start), colour = "blue", linetype = "dashed") +
+  geom_density(data = for_beta, aes(x = start)) 
+```
+* could be the empty section is a region with no cpgs
+* because this also kind of tells me that
+* but also overlaying this didn't really tell me anything
+* maybe cgi annotation / gene annotation will
+
+```{r}
+for_beta %>%
+  mutate(beta_0.5 = ifelse(beta == 0.5, TRUE, FALSE)) %>%
+  distinct(start, beta, cgi, beta_0.5) %>%
+  ggplot(aes(x = beta_0.5, fill = cgi)) +
+  geom_bar()
+
+for_beta %>%
+  mutate(beta_0.5 = ifelse(beta == 0.5, TRUE, FALSE)) %>%
+  distinct(start, beta, cgi, beta_0.5) %>%
+  ggplot(aes(x = beta_0.5, fill = cgi)) +
+  geom_bar(position = "fill")
+```
+
+```{r}
+annots <- c("hg38_basicgenes", "hg38_genes_intergenic")
+
+annotations <- annotatr::build_annotations(genome = 'hg38', annotations = annots)
+seqs <- annotations %>% data.frame() %>% distinct(seqnames) %>% .[1:22,]
+annotations <- annotations %>% data.frame() %>% filter(seqnames %in% seqs)
+annotations %>% group_by(type) %>% summarise(n=n())
+```
+
+```{r}
+for_beta_genes <- find_overlaps(as_granges(for_beta), as_granges(annotations)) %>% data.frame()
+for_beta_genes[1:10,]
+```
+
+
+```{r}
+for_beta_genes %>%
+  mutate(beta_0.5 = ifelse(beta == 0.5, TRUE, FALSE)) %>%
+  distinct(start, beta, type.y, beta_0.5) %>%
+  ggplot(aes(x = beta_0.5, fill = type.y)) +
+  geom_bar()
+
+for_beta_genes %>%
+  mutate(beta_0.5 = ifelse(beta == 0.5, TRUE, FALSE)) %>%
+  distinct(start, beta, type.y, beta_0.5) %>%
+  ggplot(aes(x = beta_0.5, fill = type.y)) +
+  geom_bar(position = "fill")
+```
+
+```{r}
+for_beta_genes %>%
+  mutate(beta_0 = ifelse(beta == 0, TRUE, FALSE)) %>%
+  distinct(start, beta, type.y, beta_0) %>%
+  ggplot(aes(x = beta_0, fill = type.y)) +
+  geom_bar(position = "fill")
+
+for_beta_genes %>%
+  mutate(beta_1 = ifelse(beta == 1, TRUE, FALSE)) %>%
+  distinct(start, beta, type.y, beta_1) %>%
+  ggplot(aes(x = beta_1, fill = type.y)) +
+  geom_bar(position = "fill")
+```
+* beta 0.5 has similar spread to beta 1 of a large amount of the positions are in the introns
+* basically intron to promoter is the group that changes the most
+* or at least that's likely the more interesting change
+
+
+* ok do boxplots of the mean alphas for this
+
+```{r}
+for_beta_genes %>%
+  group_by(start) %>%
+  mutate(mean_alpha = mean(alpha), beta_0.5 = ifelse(beta == 0.5, TRUE, FALSE)) %>%
+  ungroup() %>%
+  distinct(start, beta, mean_alpha, type.y, beta_0.5) %>%
+  ggplot(aes(x = beta_0.5, y = mean_alpha, fill = type.y)) +
+  geom_boxplot()
+
+for_beta_genes %>%
+  group_by(start) %>%
+  mutate(mean_alpha = mean(alpha), beta_0.5 = ifelse(beta == 0.5, TRUE, FALSE)) %>%
+  ungroup() %>%
+  distinct(start, beta, mean_alpha, type.y, beta_0.5) %>%
+  ggplot(aes(fill = beta_0.5, y = mean_alpha, x = type.y)) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+for_beta_genes %>%
+  group_by(start) %>%
+  mutate(mean_alpha = mean(alpha), beta_0 = ifelse(beta == 0, TRUE, FALSE)) %>%
+  ungroup() %>%
+  distinct(start, beta, mean_alpha, type.y, beta_0) %>%
+  ggplot(aes(x = beta_0, y = mean_alpha, fill = type.y)) +
+  geom_boxplot()
+
+for_beta_genes %>%
+  group_by(start) %>%
+  mutate(mean_alpha = mean(alpha), beta_0 = ifelse(beta == 0, TRUE, FALSE)) %>%
+  ungroup() %>%
+  distinct(start, beta, mean_alpha, type.y, beta_0) %>%
+  ggplot(aes(fill = beta_0, y = mean_alpha, x = type.y)) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+
+```{r}
+for_beta_genes %>%
+  group_by(start) %>%
+  mutate(mean_alpha = mean(alpha), beta_1 = ifelse(beta == 1, TRUE, FALSE)) %>%
+  ungroup() %>%
+  distinct(start, beta, mean_alpha, type.y, beta_1) %>%
+  ggplot(aes(x = beta_1, y = mean_alpha, fill = type.y)) +
+  geom_boxplot()
+
+for_beta_genes %>%
+  group_by(start) %>%
+  mutate(mean_alpha = mean(alpha), beta_1 = ifelse(beta == 1, TRUE, FALSE)) %>%
+  ungroup() %>%
+  distinct(start, beta, mean_alpha, type.y, beta_1) %>%
+  ggplot(aes(fill = beta_1, y = mean_alpha, x = type.y)) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+* this is stuff that just makes sense - if beta is 0 or 1, mean_alpha would have to be close to it
+* well actually it should BE it
+* if it's not then it's because something has gone wrong filtering wise etc
+
+* honestly still not sure what I'm looking at/for
+* just throwing stuff and hoping something sticks
+
+
+## mean vs median alpha
+
+```{r}
+for_beta %>%
+  group_by(start) %>%
+  mutate(mean_alpha = mean(alpha), colour_0.5 = ifelse(beta == 0.5, "blue", "black")) %>%
+  ungroup() %>%
+  distinct(seqnames, start, mean_alpha, beta, colour_0.5) %>%
+  ggplot(aes(x = beta, y = mean_alpha, colour = colour_0.5)) +
+  geom_point(alpha = 0.4) +
+  scale_colour_manual(values = c("black", "blue")) +
+  geom_abline(colour = "red", linetype = "dashed") +
+  theme_bw()
+
+
+for_beta %>%
+  group_by(start) %>%
+  mutate(median_alpha = median(alpha), colour_0.5 = ifelse(beta == 0.5, "blue", "black")) %>%
+  ungroup() %>%
+  distinct(seqnames, start, median_alpha, beta, colour_0.5) %>%
+  ggplot(aes(x = beta, y = median_alpha, colour = colour_0.5)) +
+  geom_point(alpha = 0.4) +
+  scale_colour_manual(values = c("black", "blue")) +
+  geom_abline(colour = "red", linetype = "dashed") +
+  theme_bw()
+```
+
+* interesting
+* it becomes a lot less continuous
+* also it is way less correlated with beta
+* makes sense, it's the middle number
+
+```{r}
+for_beta %>%
+  group_by(start) %>%
+  mutate(mean_alpha = mean(alpha), median_alpha = median(alpha)) %>%
+  ungroup() %>%
+  distinct(seqnames, start, mean_alpha, beta, median_alpha) %>%
+  ggplot(aes(x = median_alpha, y = mean_alpha)) +
+  geom_point(alpha = 0.4) +
+  geom_abline(colour = "red", linetype = "dashed") +
+  theme_bw()
+```
+
+```{r}
+for_beta %>%
+  distinct(read_id, alpha) %>%
+  ggplot(aes(x = alpha)) +
+  geom_density()
+
+for_beta %>%
+  group_by(start) %>%
+  mutate(mean_alpha = mean(alpha), median_alpha = median(alpha)) %>%
+  ungroup() %>%
+  distinct(start, mean_alpha, beta, median_alpha) %>%
+  reshape2::melt(id = "start") %>%
+  ggplot(aes(x = value, colour = variable)) +
+  geom_density()
+
+for_beta %>%
+  group_by(start) %>%
+  mutate(mean_alpha = mean(alpha), median_alpha = median(alpha)) %>%
+  ungroup() %>%
+  distinct(start, mean_alpha, beta, median_alpha) %>%
+  reshape2::melt(id = "start") %>%
+  ggplot(aes(x = variable, y = value, fill = variable)) +
+  geom_boxplot() +
+  theme(legend.position = "none")
+```
+
+```{r}
+for_beta %>%
+  group_by(start) %>%
+  mutate(iqr_alpha = IQR(alpha), colour_0.5 = ifelse(beta == 0.5, "blue", "black")) %>%
+  ungroup() %>%
+  distinct(seqnames, start, iqr_alpha, beta, colour_0.5) %>%
+  ggplot(aes(x = beta, y = iqr_alpha, colour = colour_0.5)) +
+  geom_point(alpha = 0.4) +
+  scale_colour_manual(values = c("black", "blue")) +
+  geom_abline(colour = "red", linetype = "dashed") +
+  theme_bw()
+
+for_beta %>%
+  group_by(start) %>%
+  mutate(mean_alpha = mean(alpha), iqr_alpha = IQR(alpha)) %>%
+  ungroup() %>%
+  distinct(seqnames, start, mean_alpha, iqr_alpha, beta) %>%
+  ggplot(aes(x = iqr_alpha, y = mean_alpha)) +
+  geom_point(alpha = 0.4) +
+  geom_abline(colour = "red", linetype = "dashed") +
+  theme_bw()
+```
+* ok iqr is also bad
+* at least I know that now
+
+```{r}
+for_beta %>%
+  group_by(start) %>%
+  mutate(mean_alpha = mean(alpha), median_alpha = median(alpha), iqr_alpha = IQR(alpha)) %>%
+  ungroup() %>%
+  distinct(start, mean_alpha, beta, median_alpha, iqr_alpha) %>%
+  reshape2::melt(id = "start") %>%
+  ggplot(aes(x = value, colour = variable)) +
+  geom_density()
+
+for_beta %>%
+  group_by(start) %>%
+  mutate(mean_alpha = mean(alpha), median_alpha = median(alpha), iqr_alpha = IQR(alpha)) %>%
+  ungroup() %>%
+  distinct(start, mean_alpha, beta, median_alpha, iqr_alpha) %>%
+  reshape2::melt(id = "start") %>%
+  ggplot(aes(x = variable, y = value, fill = variable)) +
+  geom_boxplot() +
+  theme(legend.position = "none")
+```
+
+
+# where does beta =0.5 happen relative to other betas?
+
+```{r}
+for_beta %>%
+  distinct(start, beta) %>%
+  .[order(.$start),] %>%
+  mutate(cg_index = 1:n()) %>%
+  filter(beta == 0.5) %>%
+  mutate(IPD = lead(start) - start, 
+         index_dist = lead(cg_index) - cg_index) %>%
+  ggplot(aes(x = index_dist)) +
+  geom_density()
+
+for_beta %>%
+  distinct(start, beta) %>%
+  .[order(.$start),] %>%
+  mutate(cg_index = 1:n()) %>%
+  filter(beta == 0.5) %>%
+  mutate(IPD = lead(start) - start, 
+         index_dist = lead(cg_index) - cg_index) %>%
+  ggplot(aes(x = IPD)) +
+  geom_density()
+```
+
+
+
+```{r}
+for_beta %>%
+  group_by(start) %>%
+  mutate(mean_alpha = mean(alpha)) %>%
+  ungroup() %>%
+  distinct(seqnames, start, mean_alpha, alpha) %>%
+  ggplot(aes(x = alpha, y = mean_alpha)) +
+  geom_point(alpha = 0.4) +
+  geom_abline(colour = "red", linetype = "dashed") +
+  theme_bw()
+```
+
+```{r}
+?glm
+```
+
+
+```{r}
+for_beta %>%
+  group_by(start) %>%
+  mutate(mean_alpha = mean(alpha), colour_0.5 = ifelse(beta == 0.5, "blue", "black")) %>%
+  ungroup() %>%
+  distinct(seqnames, start, mean_alpha, beta, colour_0.5) %>%
+  ggplot(aes(x = beta, y = mean_alpha, colour = colour_0.5)) +
+  geom_point(alpha = 0.4) +
+  scale_colour_manual(values = c("black", "blue")) +
+  geom_abline(colour = "red", linetype = "dashed") +
+  theme_bw()
+```
+
+
+
+```{r}
+for_beta[20000:50000,] %>% 
+  group_by(start) %>%
+  summarise(n=n()) %>%
+  .[order(.$n, decreasing = TRUE),]
+```
+
+```{r}
+for_beta %>%
+  mutate(beta_0.5 = ifelse(beta == 0.5, TRUE, FALSE)) %>%
+  distinct(seqnames, read_id, alpha, beta) %>%
+  ggplot(aes(x = alpha)) +
+  geom_density()
+```
+
