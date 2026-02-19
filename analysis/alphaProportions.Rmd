@@ -277,9 +277,12 @@ rbind(for_beta %>% distinct(read_id, alpha, type) %>%
 
 
 # find genes with mean beta = 0.5
+```{r}
+for_beta_genes
+```
 
 ```{r}
-for_beta_genes[,c(1:16,20:21,24:26)] %>% distinct() %>%
+for_beta_genes[,c(1:16,22:23,26:28)] %>% distinct() %>%
   filter(!is.na(symbol.y)) %>%
   distinct(seqnames, start, beta, gene_id.y, symbol.y) %>%
   group_by(gene_id.y) %>%
@@ -290,7 +293,7 @@ for_beta_genes[,c(1:16,20:21,24:26)] %>% distinct() %>%
 ```
 
 ```{r}
-for_beta_genes[,c(1:16,20:21,24:26)] %>% distinct() %>%
+for_beta_genes[,c(1:16,22:23,26:28)] %>% distinct() %>%
   filter(!is.na(symbol.y)) %>%
   distinct(seqnames, start, beta, gene_id.y, symbol.y) %>%
   group_by(gene_id.y) %>%
@@ -299,7 +302,7 @@ for_beta_genes[,c(1:16,20:21,24:26)] %>% distinct() %>%
   ggplot(aes(x = mean_beta)) +
   geom_density()
 
-for_beta_genes[,c(1:16,20:21,24:26)] %>% distinct() %>%
+for_beta_genes[,c(1:16,22:23,26:28)] %>% distinct() %>%
   filter(!is.na(symbol.y)) %>%
   distinct(seqnames, start, beta, gene_id.y, symbol.y) %>%
   group_by(gene_id.y) %>%
@@ -310,7 +313,7 @@ for_beta_genes[,c(1:16,20:21,24:26)] %>% distinct() %>%
 ```
 
 ```{r}
-for_beta_genes[,c(1:16,20:21,24:26)] %>% distinct() %>%
+for_beta_genes[,c(1:16,22:23,26:28)] %>% distinct() %>%
   filter(!is.na(symbol.y)) %>%
   distinct(seqnames, start, beta, gene_id.y, symbol.y) %>%
   group_by(gene_id.y) %>%
@@ -319,7 +322,7 @@ for_beta_genes[,c(1:16,20:21,24:26)] %>% distinct() %>%
   ggplot(aes(x = n_cgs)) +
   geom_density()
 
-for_beta_genes[,c(1:16,20:21,24:26)] %>% distinct() %>%
+for_beta_genes[,c(1:16,22:23,26:28)] %>% distinct() %>%
   filter(!is.na(symbol.y)) %>%
   distinct(seqnames, start, beta, gene_id.y, symbol.y) %>%
   group_by(gene_id.y) %>%
@@ -330,7 +333,7 @@ for_beta_genes[,c(1:16,20:21,24:26)] %>% distinct() %>%
 ```
 
 ```{r}
-for_beta_genes[,c(1:16,20:21,24:26)] %>% distinct() %>%
+for_beta_genes[,c(1:16,22:23,26:28)] %>% distinct() %>%
   filter(!is.na(symbol.y)) %>%
   distinct(seqnames, start, beta, gene_id.y, symbol.y) %>%
   group_by(gene_id.y) %>%
@@ -338,7 +341,7 @@ for_beta_genes[,c(1:16,20:21,24:26)] %>% distinct() %>%
   ungroup() %>% distinct(gene_id.y, symbol.y, mean_beta, n_cgs) %>%
   filter(mean_beta > 0.4 & mean_beta < 0.6) %>% .[order(.$mean_beta),] %>% nrow()
 
-for_beta_genes[,c(1:16,20:21,24:26)] %>% distinct() %>%
+for_beta_genes[,c(1:16,22:23,26:28)] %>% distinct() %>%
   filter(!is.na(symbol.y)) %>%
   distinct(seqnames, start, beta, gene_id.y, symbol.y) %>%
   group_by(gene_id.y) %>%
@@ -353,18 +356,19 @@ for_beta_genes[,c(1:16,20:21,24:26)] %>% distinct() %>%
 * SLC5A1 has most cpgs = 18
 
 ```{r}
-for_beta_genes[,c(1:16,20:21,24:26)] %>% distinct() %>%
-  filter(symbol.y == "SLC5A1") 
+for_beta_genes[,c(1:16,22:23,26:28)] %>% distinct() %>%
+  filter(symbol.y == "SLC5A1") %>% distinct(read_id, meth_pattern)
 ```
 
 ```{r}
-test_reads <- for_beta_genes[,c(1:16,20:21,24:26)] %>% distinct() %>%
+source("../code/processData.R")
+test_reads <- for_beta_genes[,c(1:16,22:23,26:28)] %>% distinct() %>%
   filter(symbol.y == "SLC5A1") %>% distinct(read_id) %>% .$read_id
 
 rrbs_plot(for_beta, read_ids = test_reads)
 ```
 ```{r}
-for_beta_genes[,c(1:16,20:21,24:26)] %>% distinct() %>%
+for_beta_genes[,c(1:16,22:23,26:28)] %>% distinct() %>%
   filter(symbol.y == "SLC5A1") %>%
   distinct(symbol.y, read_id, alpha) %>%
   ggplot(aes(x = symbol.y, fill = as.factor(alpha))) +
@@ -374,7 +378,7 @@ for_beta_genes[,c(1:16,20:21,24:26)] %>% distinct() %>%
 * try and contrast to a gene with a high mean beta
 
 ```{r}
-for_beta_genes[,c(1:16,20:21,24:26)] %>% distinct() %>%
+for_beta_genes[,c(1:16,22:23,26:28)] %>% distinct() %>%
   filter(!is.na(symbol.y)) %>%
   distinct(seqnames, start, beta, gene_id.y, symbol.y) %>%
   group_by(gene_id.y) %>%
@@ -386,14 +390,15 @@ for_beta_genes[,c(1:16,20:21,24:26)] %>% distinct() %>%
 * MIR1249 , mean 0.97, n_cg = 24
 
 ```{r}
-test_reads <- for_beta_genes[,c(1:16,20:21,24:26)] %>% distinct() %>%
+source("../code/processData.R")
+test_reads <- for_beta_genes[,c(1:16,22:23,26:28)] %>% distinct() %>%
   filter(symbol.y == "MIR1249") %>% distinct(read_id) %>% .$read_id
 
 rrbs_plot(for_beta, read_ids = test_reads)
 ```
 
 ```{r}
-for_beta_genes[,c(1:16,20:21,24:26)] %>% distinct() %>%
+for_beta_genes[,c(1:16,22:23,26:28)] %>% distinct() %>%
   filter(symbol.y == "MIR1249") %>%
   distinct(symbol.y, read_id, alpha) %>%
   ggplot(aes(x = symbol.y, fill = as.factor(alpha))) +
@@ -403,7 +408,7 @@ for_beta_genes[,c(1:16,20:21,24:26)] %>% distinct() %>%
 * and a low
 
 ```{r}
-for_beta_genes[,c(1:16,20:21,24:26)] %>% distinct() %>%
+for_beta_genes[,c(1:16,22:23,26:28)] %>% distinct() %>%
   filter(!is.na(symbol.y)) %>%
   distinct(seqnames, start, beta, gene_id.y, symbol.y) %>%
   group_by(gene_id.y) %>%
@@ -415,12 +420,13 @@ for_beta_genes[,c(1:16,20:21,24:26)] %>% distinct() %>%
 * RNU12 , mean 0.0018, n_cg = 28
 
 ```{r}
-test_reads <- for_beta_genes[,c(1:16,20:21,24:26)] %>% distinct() %>%
+source("../code/processData.R")
+test_reads <- for_beta_genes[,c(1:16,22:23,26:28)] %>% distinct() %>%
   filter(symbol.y == "RNU12") %>% distinct(read_id) %>% .$read_id
 
 rrbs_plot(for_beta, read_ids = test_reads)
 
-for_beta_genes[,c(1:16,20:21,24:26)] %>% distinct() %>%
+for_beta_genes[,c(1:16,22:23,26:28)] %>% distinct() %>%
   filter(symbol.y == "RNU12") %>%
   distinct(symbol.y, read_id, alpha) %>%
   ggplot(aes(x = symbol.y, fill = as.factor(alpha))) +
@@ -432,7 +438,7 @@ for_beta_genes[,c(1:16,20:21,24:26)] %>% distinct() %>%
 * see if it stays like that pattern
 
 ```{r}
-for_beta_genes[,c(1:16,20:21,24:26)] %>% distinct() %>%
+for_beta_genes[,c(1:16,22:23,26:28)] %>% distinct() %>%
   filter(!is.na(symbol.y)) %>%
   distinct(seqnames, start, beta, gene_id.y, symbol.y) %>%
   group_by(gene_id.y) %>%
@@ -443,7 +449,8 @@ for_beta_genes[,c(1:16,20:21,24:26)] %>% distinct() %>%
 
 
 ```{r}
-gene_ids <- for_beta_genes[,c(1:16,20:21,24:26)] %>% distinct() %>%
+source("../code/processData.R")
+gene_ids <- for_beta_genes[,c(1:16,22:23,26:28)] %>% distinct() %>%
   filter(!is.na(symbol.y)) %>%
   distinct(seqnames, start, beta, gene_id.y, symbol.y) %>%
   group_by(gene_id.y) %>%
@@ -453,10 +460,10 @@ gene_ids <- for_beta_genes[,c(1:16,20:21,24:26)] %>% distinct() %>%
 
 plot_vec <- c()
 for(i in 1:8) {
-  test_reads <- for_beta_genes[,c(1:16,20:21,24:26)] %>% distinct() %>%
+  test_reads <- for_beta_genes[,c(1:16,22:23,26:28)] %>% distinct() %>%
   filter(symbol.y == gene_ids[i]) %>% distinct(read_id) %>% .$read_id
 
-  prop <- for_beta_genes[,c(1:16,20:21,24:26)] %>% distinct() %>%
+  prop <- for_beta_genes[,c(1:16,22:23,26:28)] %>% distinct() %>%
     filter(symbol.y == gene_ids[i]) %>%
     distinct(symbol.y, read_id, alpha) %>%
     ggplot(aes(x = symbol.y, fill = as.factor(alpha))) +
