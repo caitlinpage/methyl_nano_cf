@@ -61,6 +61,15 @@ bc10 and bc11 have the highest tumour fraction
 
 * processed fastq with bismark
 
+** USING THIS ONE
+ENCFF000LYO
+** OOH ITS HG19
+
+2a. [K562 cell line](https://www.encodeproject.org/experiments/ENCSR000DFK/)
+* hg19
+* erythroleukaemia cell line
+* patient with CML - chronic myeloid leukaemia 
+* bcr-abl1 positive
 
 ## WGBS
 3. BSseq pancreatic cancer
