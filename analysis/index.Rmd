@@ -152,12 +152,22 @@ LEARNINGS:
 * don't think it really worked
 * and data is also not really in the right form
 
-#
+## focus on when beta = 0.5
+[beta = 0.5](compareAlphaWhenBetaHalf.html)
+
+## Analysis inspired by Michael
+
+* Michael was talking about his differential transcript usage stuff
+* all about proportions
+* and recommended I compare proportions of alpha
+
+[proportions of alpha and beta](alphaProportions.html)
+
 
 * idk what im doing
 
 [whole genome analysis of RRBS data](wholeGenomeRrbs.html)
-* can't do yet - full chromosomes on cluster, not local
+* basic plot looks the same as with chr22 - this is good
 
 ## Ideas of files
 
