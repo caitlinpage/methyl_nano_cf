@@ -1,0 +1,424 @@
+---
+title: "differentialAlphaUsage"
+author: "caitlinpage"
+date: "2026-02-20"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+```{r}
+library(annotatr)
+library(data.table)
+library(plyranges)
+library(tidyr)
+library(stringr)
+library(dplyr)
+library(ggplot2)
+library(edgeR)
+```
+
+
+## Data Objects
+```{r}
+cg_sites <- cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38[["chr22"]])), seqnames = "chr22") %>% 
+  mutate(pos = paste0(seqnames, "-", start)) %>%
+  relocate(pos, seqnames)
+cg_sites$index <- 1:nrow(cg_sites)
+```
+
+* GM1268 cell line
+```{r}
+source("../code/processData.R")
+for_beta_all <- readRDS("/researchers/caitlin.page/cf_nano/r_output/rrbs_alpha_beta.rds")
+#for_beta <- readRDS("../output/cluster_files/rrbs_alpha_beta.rds")
+for_beta <- for_beta_all %>% filter(seqnames == "chr22")
+rrbs_for_beta_pat <- pat_for_wgbs(for_beta)
+
+for_beta <- for_beta %>% group_by(start) %>% mutate(coverage = n(), mean_alpha = mean(alpha)) %>% ungroup() %>% data.frame()
+just_beta <- for_beta %>% distinct(start, beta, coverage, mean_alpha) %>% .[order(.$start),]
+
+```
+
+
+```{r}
+annots <- c("hg38_cpgs")
+
+annotations <- annotatr::build_annotations(genome = 'hg38', annotations = annots)
+seqs <- annotations %>% data.frame() %>% distinct(seqnames) %>% .[1:22,]
+annotations <- annotations %>% data.frame() %>% filter(seqnames %in% seqs)
+```
+
+```{r}
+for_beta <- find_overlaps(as_granges(for_beta), as_granges(annotations)) %>% data.frame() %>%
+  mutate(cgi = ifelse(type == "hg38_cpg_islands", "island", "not_island"))
+```
+
+```{r}
+annots <- c("hg38_basicgenes", "hg38_genes_intergenic")
+
+annotations <- annotatr::build_annotations(genome = 'hg38', annotations = annots)
+seqs <- annotations %>% data.frame() %>% distinct(seqnames) %>% .[1:22,]
+annotations <- annotations %>% data.frame() %>% filter(seqnames %in% seqs)
+annotations %>% group_by(type) %>% summarise(n=n())
+```
+
+```{r}
+for_beta_genes <- find_overlaps(as_granges(for_beta), as_granges(annotations)) %>% data.frame()
+for_beta_genes[1:10,]
+```
+
+* REP 2 GM1268 cell line
+```{r}
+source("../code/processData.R")
+gm12878_2 <- readRDS("/researchers/caitlin.page/cf_nano/r_output/rrbs_alpha_beta_rep2.rds")
+#for_beta <- readRDS("../output/cluster_files/rrbs_alpha_beta.rds")
+gm12878_2_chr22 <- gm12878_2 %>% filter(seqnames == "chr22")
+
+gm12878_2_chr22 <- gm12878_2_chr22 %>% group_by(start) %>% mutate(coverage = n(), mean_alpha = mean(alpha)) %>% ungroup() %>% data.frame()
+
+```
+
+
+```{r}
+annots <- c("hg38_cpgs")
+
+annotations <- annotatr::build_annotations(genome = 'hg38', annotations = annots)
+seqs <- annotations %>% data.frame() %>% distinct(seqnames) %>% .[1:22,]
+annotations <- annotations %>% data.frame() %>% filter(seqnames %in% seqs)
+
+gm12878_2_chr22 <- find_overlaps(as_granges(gm12878_2_chr22), as_granges(annotations)) %>% data.frame() %>%
+  mutate(cgi = ifelse(type == "hg38_cpg_islands", "island", "not_island"))
+
+annots <- c("hg38_basicgenes", "hg38_genes_intergenic")
+
+annotations <- annotatr::build_annotations(genome = 'hg38', annotations = annots)
+seqs <- annotations %>% data.frame() %>% distinct(seqnames) %>% .[1:22,]
+annotations <- annotations %>% data.frame() %>% filter(seqnames %in% seqs)
+annotations %>% group_by(type) %>% summarise(n=n())
+
+gm12878_2_chr22_genes <- find_overlaps(as_granges(gm12878_2_chr22), as_granges(annotations)) %>% data.frame()
+```
+
+* K562 cml cell line
+```{r}
+source("../code/processData.R")
+k562 <- readRDS("/researchers/caitlin.page/cf_nano/r_output/k562_rep1.rds")
+k562 <- k562 %>% as_granges() %>% data.frame()
+k562_chr22 <- k562 %>% filter(seqnames == "chr22")
+
+k562_chr22 <- k562_chr22 %>% group_by(start) %>% mutate(coverage = n(), mean_alpha = mean(alpha)) %>% ungroup() %>% data.frame()
+```
+
+
+```{r}
+annots <- c("hg38_cpgs")
+
+annotations <- annotatr::build_annotations(genome = 'hg38', annotations = annots)
+seqs <- annotations %>% data.frame() %>% distinct(seqnames) %>% .[1:22,]
+annotations <- annotations %>% data.frame() %>% filter(seqnames %in% seqs)
+```
+
+```{r}
+k562_chr22 <- find_overlaps(as_granges(k562_chr22), as_granges(annotations)) %>% data.frame() %>%
+  mutate(cgi = ifelse(type == "hg38_cpg_islands", "island", "not_island"))
+```
+
+```{r}
+annots <- c("hg38_basicgenes", "hg38_genes_intergenic")
+
+annotations <- annotatr::build_annotations(genome = 'hg38', annotations = annots)
+seqs <- annotations %>% data.frame() %>% distinct(seqnames) %>% .[1:22,]
+annotations <- annotations %>% data.frame() %>% filter(seqnames %in% seqs)
+annotations %>% group_by(type) %>% summarise(n=n())
+```
+
+```{r}
+k562_chr22_genes <- find_overlaps(as_granges(k562_chr22), as_granges(annotations)) %>% data.frame()
+k562_chr22_genes[1:10,]
+```
+
+* REP 2 K562
+```{r}
+source("../code/processData.R")
+k562_2 <- readRDS("/researchers/caitlin.page/cf_nano/r_output/k562_rep2.rds")
+```
+
+
+```{r}
+k562_2 <- k562_2 %>% as_granges() %>% data.frame()
+k562_2_chr22 <- k562_2 %>% filter(seqnames == "chr22")
+
+k562_2_chr22 <- k562_2_chr22 %>% group_by(start) %>% mutate(coverage = n(), mean_alpha = mean(alpha)) %>% ungroup() %>% data.frame()
+
+annots <- c("hg38_cpgs")
+
+annotations <- annotatr::build_annotations(genome = 'hg38', annotations = annots)
+seqs <- annotations %>% data.frame() %>% distinct(seqnames) %>% .[1:22,]
+annotations <- annotations %>% data.frame() %>% filter(seqnames %in% seqs)
+
+k562_2_chr22 <- find_overlaps(as_granges(k562_2_chr22), as_granges(annotations)) %>% data.frame() %>%
+  mutate(cgi = ifelse(type == "hg38_cpg_islands", "island", "not_island"))
+
+annots <- c("hg38_basicgenes", "hg38_genes_intergenic")
+
+annotations <- annotatr::build_annotations(genome = 'hg38', annotations = annots)
+seqs <- annotations %>% data.frame() %>% distinct(seqnames) %>% .[1:22,]
+annotations <- annotations %>% data.frame() %>% filter(seqnames %in% seqs)
+
+
+k562_2_chr22_genes <- find_overlaps(as_granges(k562_2_chr22), as_granges(annotations)) %>% data.frame()
+k562_2_chr22_genes[1:10,]
+```
+
+# plot check
+
+```{r}
+for_beta %>%
+  mutate(colour_0.5 = ifelse(beta == 0.5, "blue", "black")) %>%
+  distinct(seqnames, start, mean_alpha, beta, colour_0.5) %>%
+  ggplot(aes(x = beta, y = mean_alpha, colour = colour_0.5)) +
+  geom_point(alpha = 0.4) +
+  scale_colour_manual(values = c("black", "blue")) +
+  geom_abline(colour = "red", linetype = "dashed") +
+  theme_bw()
+```
+
+```{r}
+k562_chr22 %>%
+  mutate(colour_0.5 = ifelse(beta == 0.5, "blue", "black")) %>%
+  distinct(seqnames, start, mean_alpha, beta, colour_0.5) %>%
+  ggplot(aes(x = beta, y = mean_alpha, colour = colour_0.5)) +
+  geom_point(alpha = 0.4) +
+  scale_colour_manual(values = c("black", "blue")) +
+  geom_abline(colour = "red", linetype = "dashed") +
+  theme_bw()
+```
+
+
+# differential transcript usage
+* apply it to alpha/meth pattern
+
+* realistically we care about methylation in a genomic context
+
+* so overlap reads to gene promoters
+* DTU is change in relative abundance of transcripts from same gene between experimental conditions
+
+
+```{r}
+for_beta_genes %>% distinct(read_id, alpha, type.y) %>%
+  mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                alpha > 0.8 ~ "a > 0.8",
+                                alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                TRUE ~ "0.6 <= a <= 0.8")) %>%
+  ggplot(aes(fill = type.y, x = alpha_group)) +
+  geom_bar(position = "fill") 
+```
+* k562
+```{r}
+k562_chr22_genes %>% distinct(read_id, alpha, type.y) %>%
+  mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                alpha > 0.8 ~ "a > 0.8",
+                                alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                TRUE ~ "0.6 <= a <= 0.8")) %>%
+  ggplot(aes(fill = type.y, x = alpha_group)) +
+  geom_bar(position = "fill") 
+```
+
+
+```{r}
+for_beta_genes %>% distinct(start, beta, type.y) %>%
+  mutate(beta_group = case_when(beta < 0.2 ~ "b < 0.2",
+                                beta > 0.8 ~ "b > 0.8",
+                                beta >= 0.2 & beta <= 0.4 ~ "0.2 <= b <= 0.4",
+                                beta > 0.4 & beta < 0.6 ~ "0.4 < b < 0.6",
+                                TRUE ~ "0.6 <= b <= 0.8")) %>%
+  ggplot(aes(x = type.y, fill = beta_group)) +
+  geom_bar(position = "fill") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+* k562
+
+```{r}
+k562_chr22_genes %>% distinct(start, beta, type.y) %>%
+  mutate(beta_group = case_when(beta < 0.2 ~ "b < 0.2",
+                                beta > 0.8 ~ "b > 0.8",
+                                beta >= 0.2 & beta <= 0.4 ~ "0.2 <= b <= 0.4",
+                                beta > 0.4 & beta < 0.6 ~ "0.4 < b < 0.6",
+                                TRUE ~ "0.6 <= b <= 0.8")) %>%
+  ggplot(aes(x = type.y, fill = beta_group)) +
+  geom_bar(position = "fill") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+
+[2025 benchmark paper](https://academic.oup.com/nargab/article/7/3/lqaf117/8251390#531509445)
+* edgeR is listed as one of the top performers
+
+[edgeR documentation](https://bioconductor.org/packages/release/bioc/vignettes/edgeR/inst/doc/edgeRUsersGuide.pdf)
+* Section 2.20 for description (page 30)
+* Section 4.6 for example (page 90)
+
+```{r}
+dtu_for_beta <- for_beta_genes %>% distinct(read_id, alpha, gene_id.y, symbol.y) %>%
+  mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                alpha > 0.8 ~ "a > 0.8",
+                                alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                TRUE ~ "0.6 <= a <= 0.8"))
+dtu_beta_2 <- gm12878_2_chr22_genes %>% distinct(read_id, alpha, gene_id.y, symbol.y) %>%
+  mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                alpha > 0.8 ~ "a > 0.8",
+                                alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                TRUE ~ "0.6 <= a <= 0.8"))
+
+dtu_k562 <- k562_chr22_genes %>% distinct(read_id, alpha, gene_id.y, symbol.y) %>%
+  mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                alpha > 0.8 ~ "a > 0.8",
+                                alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                TRUE ~ "0.6 <= a <= 0.8"))
+
+dtu_k562_2 <- k562_2_chr22_genes %>% distinct(read_id, alpha, gene_id.y, symbol.y) %>%
+  mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                alpha > 0.8 ~ "a > 0.8",
+                                alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                TRUE ~ "0.6 <= a <= 0.8"))
+```
+
+* ok to fudge this I need the counts of the "transcripts"
+
+```{r}
+trans_count_beta <- dtu_for_beta %>% 
+  mutate(transcript = paste0(symbol.y, "_", alpha_group)) %>%
+  group_by(transcript) %>%
+  summarise(transcript_count = n()) %>% data.frame()
+
+trans_count_beta2 <- dtu_beta_2 %>% 
+  mutate(transcript = paste0(symbol.y, "_", alpha_group)) %>%
+  group_by(transcript) %>%
+  summarise(transcript_count = n()) %>% data.frame()
+
+trans_count_k <- dtu_k562 %>% 
+  mutate(transcript = paste0(symbol.y, "_", alpha_group)) %>%
+  group_by(transcript) %>%
+  summarise(transcript_count = n()) %>% data.frame()
+
+trans_count_k_2 <- dtu_k562_2 %>% 
+  mutate(transcript = paste0(symbol.y, "_", alpha_group)) %>%
+  group_by(transcript) %>%
+  summarise(transcript_count = n()) %>% data.frame()
+```
+
+```{r}
+edger_counts <- c(dtu_for_beta %>% 
+  mutate(transcript = paste0(symbol.y, "_", alpha_group)) %>% .$transcript,
+  dtu_k562 %>% 
+  mutate(transcript = paste0(symbol.y, "_", alpha_group)) %>% .$transcript,
+  dtu_beta_2 %>% 
+  mutate(transcript = paste0(symbol.y, "_", alpha_group)) %>% .$transcript,
+  dtu_k562_2 %>% 
+  mutate(transcript = paste0(symbol.y, "_", alpha_group)) %>% .$transcript) %>% data.frame() %>% distinct()
+names(edger_counts) <- "transcript"
+edger_counts <- edger_counts %>% mutate(Sample1_gm = trans_count_beta[match(.$transcript, trans_count_beta$transcript), "transcript_count"],
+                                        Sample2_gm = trans_count_beta2[match(.$transcript, trans_count_beta2$transcript), "transcript_count"],
+                        Sample3_k = trans_count_k[match(.$transcript, trans_count_k$transcript), "transcript_count"],
+                        Sample4_k = trans_count_k_2[match(.$transcript, trans_count_k_2$transcript), "transcript_count"])
+edger_counts[is.na(edger_counts)] <- 0
+edger_counts$gene_id <- sub("_.*", "", edger_counts$transcript)
+edger_counts <- edger_counts %>% filter(!gene_id == "NA") 
+rownames(edger_counts) <- edger_counts$transcript
+```
+
+```{r}
+y <- DGEList(as.matrix(edger_counts[,2:5]), group = c(1,1,2,2), genes = edger_counts[,c("gene_id", "transcript")])
+y
+```
+
+* it won't like that I don't have replicates
+* but oh well
+
+* main steps
+- dge list
+- design
+- fit
+- test
+- top
+
+```{r}
+design <- model.matrix(~ c(1,1,2,2), data = y$samples)
+```
+
+```{r}
+fit <- glmQLFit(y, design, robust=TRUE)
+fit
+```
+```{r}
+colnames(fit$genes)
+mean(table(fit$genes$gene_id))
+```
+
+```{r}
+ds <- diffSpliceDGE(fit, coef = 2, geneid = "gene_id", exonid = "transcript")
+```
+```{r}
+ds
+```
+```{r}
+ts.gene.simes <- topSpliceDGE(ds,number = Inf)
+ts.gene.simes
+```
+
+```{r}
+ts.gene.gene <- topSpliceDGE(ds, test = "gene", number = Inf)
+ts.gene.gene
+```
+
+```{r}
+#exon not recc but doing it anyway
+ts.gene.exon <- topSpliceDGE(ds, test = "exon", number = Inf)
+ts.gene.exon
+```
+
+
+
+Ranks genes or exons by evidence for differential splicing. The exon-level tests test for differences between each exon and all the exons for the same gene. The gene-level tests test for any differences in exon usage between experimental conditions.
+
+The Simes method processes the exon-level p-values to give an overall call of differential splicing for each gene. It returns the minimum Simes-adjusted p-values for each gene.
+
+The gene-level tests are likely to be powerful for genes in which several exons are differentially splices. The Simes p-values is likely to be more powerful when only a minority of the exons for a gene are differentially spliced. The exon-level tests are not recommended for formal error rate control.
+
+
+* don't know how to interpret
+
+ targets <- read.delim("targets.txt", header=TRUE)
+ quant.dirs <- dirname(list.files(".", "quant.sf",recursive=TRUE, full.names=TRUE))
+catch <- catchSalmon(paths = quant.dirs)
+divided.counts <- catch$counts/catch$annotation$Overdispersion
+samples <- targets[match(colnames(divided.counts),targets$GSM),]
+y <- DGEList(counts = divided.counts,samples = samples,group = samples$Group,genes = catch$annotation)
+require(AnnotationHub)
+ah <- AnnotationHub()
+edb <- ah[['AH78783']]
+edb.info <- select(edb,keys(edb),c("TXIDVERSION","TXBIOTYPE","SYMBOL"))
+edb.info <- edb.info[match(rownames(y),edb.info$TXIDVERSION),]
+keep <- filterByExpr(y)
+table(keep)
+y <- y[keep, , keep.lib.sizes=FALSE]
+plotMDS(y,col = c(1:2)[y$samples$group],labels = y$samples$Sample,xlim = c(-4,4))
+design <- model.matrix(~ group, data = y$samples)
+* DTU TIME
+fit <- glmQLFit(y, design, robust=TRUE)
+ds <- diffSplice(fit,coef = 2,geneid = 'SYMBOL',exonid = 'TXIDVERSION')
+ts.gene.f <- topSplice(ds,number = Inf)
+ts.gene.simes <- topSplice(ds,test = 'simes',number = Inf) # gene level
+* expression prop - for dte not dtu
+TPM <- tpm(fit, fit$genes$EffectiveLength, fit$genes$Overdispersion)
+TPMProp <- tpmProp(TPM, y$genes$SYMBOL)
+g <- which(fit$genes$SYMBOL=="HLA-A")
+TPM[g,
