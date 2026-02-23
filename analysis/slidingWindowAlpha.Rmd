@@ -95,7 +95,7 @@ for_beta_window <- find_overlaps(windows, as_granges(mutate(for_beta, cpg_pos = 
          window_unmeth = str_count(window_pattern, pattern = "U"),
          window_alpha = window_meth/window_total) %>%
   ungroup()
-for_beta_window %>% distinct(index, read_id, alpha, window_alpha, meth_pattern, window_pattern)
+for_beta_window %>% distinct(index, read_id, alpha, window_alpha, meth_pattern, window_pattern) %>% .[1:10,]
 ```
 
 # how many windows do reads fit into?
@@ -105,7 +105,8 @@ for_beta_window %>% distinct(index, read_id, alpha, window_alpha, meth_pattern, 
   group_by(read_id) %>%
   summarise(n_window = n()) %>%
   ggplot(aes(x = n_window)) +
-  geom_histogram()
+  geom_histogram() +
+  theme_bw()
 ```
 * this reflects CpG density? - I think?
 
@@ -114,7 +115,8 @@ for_beta_window %>% distinct(index, read_id, alpha, window_alpha, meth_pattern, 
   group_by(read_id, total) %>%
   summarise(n_window = n()) %>%
   ggplot(aes(x = total, y = n_window)) +
-  geom_count()
+  geom_count() +
+  theme_bw()
 ```
 
 ```{r}
@@ -147,11 +149,13 @@ for_beta_window %>% filter(read_id == "HWI-EAS149_7:1:100:1168:337:0:1:1") %>%
 ```{r}
 for_beta_window %>% distinct(index, read_id, alpha, window_alpha, meth_pattern, window_pattern, total, window_total) %>%
   ggplot(aes(x = alpha, y = window_alpha)) +
-  geom_count()
+  geom_count() +
+  theme_bw()
 
 for_beta_window %>% distinct(index, read_id, alpha, window_alpha, meth_pattern, window_pattern, total, window_total) %>%
   ggplot(aes(x = alpha, y = window_alpha)) +
-  geom_point(alpha = 0.4)
+  geom_point(alpha = 0.4) +
+  theme_bw()
 ```
 
 * it's pretty but I have no clue what it means
@@ -160,14 +164,16 @@ for_beta_window %>% distinct(index, read_id, alpha, window_alpha, meth_pattern, 
   group_by(index) %>%
   summarise(n_read = n()) %>%
   ggplot(aes(x = n_read)) +
-  geom_histogram(bins = 100)
+  geom_histogram(bins = 100) +
+  theme_bw()
 
 for_beta_window %>% distinct(index, read_id, alpha, window_alpha, meth_pattern, window_pattern, total, window_total) %>%
   group_by(index) %>%
   mutate(n_read = n()) %>%
   filter(n_read > 1) %>%
   ggplot(aes(x = n_read)) +
-  geom_histogram(bins = 50)
+  geom_histogram(bins = 50) +
+  theme_bw()
 ```
 ```{r}
 for_beta_window %>% distinct(index, read_id, alpha, window_alpha, meth_pattern, window_pattern, total, window_total) %>%
@@ -185,14 +191,16 @@ for_beta_window %>% distinct(index, read_id, alpha, window_alpha, meth_pattern, 
   mutate(n_read = n()) %>%
   ungroup() %>% .[order(.$index),] %>% filter(index <= 10571837) %>%
   ggplot(aes(x = window_alpha, colour = as.factor(index))) +
-  geom_density() 
+  geom_density() +
+  theme_bw()
 
 for_beta_window %>% distinct(index, read_id, alpha, window_alpha, meth_pattern, window_pattern, total, window_total) %>%
   group_by(index) %>%
   mutate(n_read = n()) %>%
   ungroup() %>% .[order(.$index),] %>% filter(index <= 10571837) %>%
   ggplot(aes(x = window_alpha, colour = as.factor(index)), fill = as.factor(index)) +
-  geom_histogram(alpha = 0.4) 
+  geom_histogram(alpha = 0.4) +
+  theme_bw()
 ```
 
 ```{r}
@@ -201,7 +209,8 @@ for_beta_window %>% distinct(index, read_id, alpha, window_alpha, meth_pattern, 
   mutate(n_read = n()) %>%
   ungroup() %>% .[order(.$index),] %>% filter(index <= 10571837) %>%
   ggplot(aes(x = alpha, colour = as.factor(index))) +
-  geom_density() 
+  geom_density() +
+  theme_bw()
 ```
 
 * so the distributions in these bins for the alpha is different between window alpha and alpha
@@ -217,8 +226,7 @@ for_beta_window %>% distinct(index, read_id, alpha, window_alpha, meth_pattern, 
          var_window_alpha = var(window_alpha)) %>%
   ungroup() %>%
   .[,c(1,10:13)] %>%
-  reshape2::melt(id = "index") %>% distinct() %>% .[order(.$index),] 
-  
+  reshape2::melt(id = "index") %>% distinct() %>% .[order(.$index),] %>% .[1:10,]
 
 ```
 
@@ -232,7 +240,8 @@ for_beta_window %>% distinct(index, read_id, alpha, window_alpha, meth_pattern, 
          var_window_alpha = var(window_alpha)) %>%
   ungroup() %>%
   ggplot(aes(x = mean_alpha, y = mean_window_alpha)) +
-  geom_point(alpha = 0.4)
+  geom_point(alpha = 0.4) +
+  theme_bw()
 ```
 
 
@@ -246,7 +255,8 @@ for_beta_window %>% distinct(index, read_id, alpha, window_alpha, meth_pattern, 
          var_window_alpha = var(window_alpha)) %>%
   ungroup() %>%
   ggplot(aes(x = var_alpha, y = var_window_alpha)) +
-  geom_point(alpha = 0.4)
+  geom_point(alpha = 0.4) +
+  theme_bw()
 ```
 
 ```{r}
@@ -261,7 +271,8 @@ for_beta_window %>% distinct(index, read_id, alpha, window_alpha, meth_pattern, 
   .[,c(1,12:13)] %>%
   reshape2::melt(id = "index") %>% distinct() %>% .[order(.$index),] %>%
   ggplot(aes(x = value, colour = variable)) +
-  geom_density()
+  geom_density() +
+  theme_bw()
 
 for_beta_window %>% distinct(index, read_id, alpha, window_alpha, meth_pattern, window_pattern, total, window_total) %>%
   group_by(index) %>%
@@ -274,7 +285,8 @@ for_beta_window %>% distinct(index, read_id, alpha, window_alpha, meth_pattern, 
   .[,c(1,12:13)] %>%
   reshape2::melt(id = "index") %>% distinct() %>% .[order(.$index),] %>%
   ggplot(aes(x = log2(value), colour = variable)) +
-  geom_density()
+  geom_density() +
+  theme_bw()
 ```
 * actually looks like variance is lower in original alpha - interesting
 
@@ -290,7 +302,9 @@ for_beta_window %>% distinct(index, read_id, alpha, window_alpha, meth_pattern, 
   .[,c(1,12:13)] %>%
   reshape2::melt(id = "index") %>% distinct() %>% .[order(.$index),] %>%
   ggplot(aes(x = variable, y = value, fill = variable)) +
-  geom_boxplot()
+  geom_boxplot() +
+  theme(legend.position = "none") +
+  theme_bw()
 
 for_beta_window %>% distinct(index, read_id, alpha, window_alpha, meth_pattern, window_pattern, total, window_total) %>%
   group_by(index) %>%
@@ -303,7 +317,9 @@ for_beta_window %>% distinct(index, read_id, alpha, window_alpha, meth_pattern, 
   .[,c(1,12:13)] %>%
   reshape2::melt(id = "index") %>% distinct() %>% .[order(.$index),] %>%
   ggplot(aes(x = variable, y = log2(value), fill = variable)) +
-  geom_boxplot()
+  geom_boxplot() +
+  theme(legend.position = "none") +
+  theme_bw()
 ```
 
 
@@ -324,7 +340,7 @@ lev$index <- as.factor(lev$index)
 lev[1:10,]
 ```
 ```{r}
-distinct(lev, index)
+distinct(lev, index) %>% .[1:10,]
 ```
 
 ```{r}
@@ -334,9 +350,9 @@ car::leveneTest(value ~ variable, lev)
 * null is that all population variances are =
 
 ```{r}
-lev %>%
-  group_by(index) %>%
-  mutate(car::leveneTest(value ~ variable, .))
+#lev %>%
+ # group_by(index) %>%
+#  mutate(car::leveneTest(value ~ variable, .))
 ```
 
 
