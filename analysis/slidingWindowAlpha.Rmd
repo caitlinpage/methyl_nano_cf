@@ -1,0 +1,342 @@
+---
+title: "slidingWindowAlpha"
+author: "caitlinpage"
+date: "2026-02-23"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+## Concept
+Also sliding windows anchored at a cpg and make fake alphas, only cpgs in that region, and have window same as read length
+More controllable to work with
+Be able to inform cpgs
+
+```{r}
+library(annotatr)
+library(data.table)
+library(plyranges)
+library(tidyr)
+library(stringr)
+library(dplyr)
+library(ggplot2)
+```
+
+## Data Objects
+```{r}
+cg_sites <- cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38[["chr22"]])), seqnames = "chr22") %>% 
+  mutate(pos = paste0(seqnames, "-", start)) %>%
+  relocate(pos, seqnames)
+cg_sites$index <- 1:nrow(cg_sites)
+```
+
+
+```{r}
+source("../code/processData.R")
+for_beta_all <- readRDS("/researchers/caitlin.page/cf_nano/r_output/rrbs_alpha_beta.rds")
+#for_beta <- readRDS("../output/cluster_files/rrbs_alpha_beta.rds")
+for_beta <- for_beta_all %>% filter(seqnames == "chr22")
+rrbs_for_beta_pat <- pat_for_wgbs(for_beta)
+
+for_beta <- for_beta %>% group_by(start) %>% mutate(coverage = n(), mean_alpha = mean(alpha)) %>% ungroup() %>% data.frame()
+just_beta <- for_beta %>% distinct(start, beta, coverage, mean_alpha) %>% .[order(.$start),]
+
+```
+
+
+```{r}
+annots <- c("hg38_cpgs")
+
+annotations <- annotatr::build_annotations(genome = 'hg38', annotations = annots)
+seqs <- annotations %>% data.frame() %>% distinct(seqnames) %>% .[1:22,]
+annotations <- annotations %>% data.frame() %>% filter(seqnames %in% seqs)
+```
+
+```{r}
+for_beta <- find_overlaps(as_granges(for_beta), as_granges(annotations)) %>% data.frame() %>%
+  mutate(cgi = ifelse(type == "hg38_cpg_islands", "island", "not_island"))
+```
+
+```{r}
+annots <- c("hg38_basicgenes", "hg38_genes_intergenic")
+
+annotations <- annotatr::build_annotations(genome = 'hg38', annotations = annots)
+seqs <- annotations %>% data.frame() %>% distinct(seqnames) %>% .[1:22,]
+annotations <- annotations %>% data.frame() %>% filter(seqnames %in% seqs)
+annotations %>% group_by(type) %>% summarise(n=n())
+```
+
+```{r}
+for_beta_genes <- find_overlaps(as_granges(for_beta), as_granges(annotations)) %>% data.frame()
+for_beta_genes[1:10,]
+```
+
+## How to sliding window
+
+* anchor at a CpG
+* window extends +/- from it
+* new alpha for each read is calculated based on the number of CpGs within the window
+* make the window length the read length
+
+
+* this sample the reads are 36bp (I know it's crazy)
+* make a granges of windows? - and then overlap and recalculate?
+```{r}
+windows <- for_beta %>% distinct(seqnames, start) %>%
+  mutate(index = start, start = index - 18, end = index + 18) %>% as_granges() 
+```
+
+```{r}
+for_beta_window <- find_overlaps(windows, as_granges(mutate(for_beta, cpg_pos = start))) %>% data.frame() %>%
+  group_by(index, read_id) %>%
+  mutate(window_total = n(),
+         window_pattern = paste0(meth_status, collapse = ""),
+         window_meth = str_count(window_pattern, pattern = "M"),
+         window_unmeth = str_count(window_pattern, pattern = "U"),
+         window_alpha = window_meth/window_total) %>%
+  ungroup()
+for_beta_window %>% distinct(index, read_id, alpha, window_alpha, meth_pattern, window_pattern)
+```
+
+# how many windows do reads fit into?
+
+```{r}
+for_beta_window %>% distinct(index, read_id, alpha, window_alpha, meth_pattern, window_pattern) %>%
+  group_by(read_id) %>%
+  summarise(n_window = n()) %>%
+  ggplot(aes(x = n_window)) +
+  geom_histogram()
+```
+* this reflects CpG density? - I think?
+
+```{r}
+for_beta_window %>% distinct(index, read_id, alpha, window_alpha, meth_pattern, window_pattern, total) %>%
+  group_by(read_id, total) %>%
+  summarise(n_window = n()) %>%
+  ggplot(aes(x = total, y = n_window)) +
+  geom_count()
+```
+
+```{r}
+for_beta_window %>% distinct(index, read_id, alpha, window_alpha, meth_pattern, window_pattern) %>%
+  group_by(read_id) %>%
+  mutate(n_window = n()) %>%
+  ungroup() %>%
+  filter(n_window == 12) %>% distinct(read_id) %>% nrow()
+
+for_beta_window %>% distinct(index, read_id, alpha, window_alpha, meth_pattern, window_pattern) %>%
+  group_by(read_id) %>%
+  mutate(n_window = n()) %>%
+  ungroup() %>%
+  filter(n_window == 12) %>% .[1:5,]
+```
+
+```{r}
+for_beta_window %>% filter(read_id == "HWI-EAS149_7:1:100:1168:337:0:1:1") %>%
+  ggplot(aes(x = index, y = window_total)) +
+  geom_point()
+```
+
+# alpha correlations
+
+* each read will now have multiple alphas
+
+* also we now have an alpha for the window, and the original alpha
+* are the new alphas more correlated to each other? - and how do they compare to the original?
+
+```{r}
+for_beta_window %>% distinct(index, read_id, alpha, window_alpha, meth_pattern, window_pattern, total, window_total) %>%
+  ggplot(aes(x = alpha, y = window_alpha)) +
+  geom_count()
+
+for_beta_window %>% distinct(index, read_id, alpha, window_alpha, meth_pattern, window_pattern, total, window_total) %>%
+  ggplot(aes(x = alpha, y = window_alpha)) +
+  geom_point(alpha = 0.4)
+```
+
+* it's pretty but I have no clue what it means
+```{r}
+for_beta_window %>% distinct(index, read_id, alpha, window_alpha, meth_pattern, window_pattern, total, window_total) %>%
+  group_by(index) %>%
+  summarise(n_read = n()) %>%
+  ggplot(aes(x = n_read)) +
+  geom_histogram(bins = 100)
+
+for_beta_window %>% distinct(index, read_id, alpha, window_alpha, meth_pattern, window_pattern, total, window_total) %>%
+  group_by(index) %>%
+  mutate(n_read = n()) %>%
+  filter(n_read > 1) %>%
+  ggplot(aes(x = n_read)) +
+  geom_histogram(bins = 50)
+```
+```{r}
+for_beta_window %>% distinct(index, read_id, alpha, window_alpha, meth_pattern, window_pattern, total, window_total) %>%
+  group_by(index) %>%
+  mutate(n_read = n()) %>%
+  ungroup() %>% summarise(mean(n_read), sd(n_read), median(n_read))
+```
+
+
+* compare new alphas within their windowsm
+
+```{r}
+for_beta_window %>% distinct(index, read_id, alpha, window_alpha, meth_pattern, window_pattern, total, window_total) %>%
+  group_by(index) %>%
+  mutate(n_read = n()) %>%
+  ungroup() %>% .[order(.$index),] %>% filter(index <= 10571837) %>%
+  ggplot(aes(x = window_alpha, colour = as.factor(index))) +
+  geom_density() 
+
+for_beta_window %>% distinct(index, read_id, alpha, window_alpha, meth_pattern, window_pattern, total, window_total) %>%
+  group_by(index) %>%
+  mutate(n_read = n()) %>%
+  ungroup() %>% .[order(.$index),] %>% filter(index <= 10571837) %>%
+  ggplot(aes(x = window_alpha, colour = as.factor(index)), fill = as.factor(index)) +
+  geom_histogram(alpha = 0.4) 
+```
+
+```{r}
+for_beta_window %>% distinct(index, read_id, alpha, window_alpha, meth_pattern, window_pattern, total, window_total) %>%
+  group_by(index) %>%
+  mutate(n_read = n()) %>%
+  ungroup() %>% .[order(.$index),] %>% filter(index <= 10571837) %>%
+  ggplot(aes(x = alpha, colour = as.factor(index))) +
+  geom_density() 
+```
+
+* so the distributions in these bins for the alpha is different between window alpha and alpha
+* but what does it mean?
+
+```{r}
+for_beta_window %>% distinct(index, read_id, alpha, window_alpha, meth_pattern, window_pattern, total, window_total) %>%
+  group_by(index) %>%
+  mutate(n_read = n(),
+         mean_alpha = mean(alpha), 
+         mean_window_alpha = mean(window_alpha),
+         var_alpha = var(alpha),
+         var_window_alpha = var(window_alpha)) %>%
+  ungroup() %>%
+  .[,c(1,10:13)] %>%
+  reshape2::melt(id = "index") %>% distinct() %>% .[order(.$index),] 
+  
+
+```
+
+```{r}
+for_beta_window %>% distinct(index, read_id, alpha, window_alpha, meth_pattern, window_pattern, total, window_total) %>%
+  group_by(index) %>%
+  mutate(n_read = n(),
+         mean_alpha = mean(alpha), 
+         mean_window_alpha = mean(window_alpha),
+         var_alpha = var(alpha),
+         var_window_alpha = var(window_alpha)) %>%
+  ungroup() %>%
+  ggplot(aes(x = mean_alpha, y = mean_window_alpha)) +
+  geom_point(alpha = 0.4)
+```
+
+
+```{r}
+for_beta_window %>% distinct(index, read_id, alpha, window_alpha, meth_pattern, window_pattern, total, window_total) %>%
+  group_by(index) %>%
+  mutate(n_read = n(),
+         mean_alpha = mean(alpha), 
+         mean_window_alpha = mean(window_alpha),
+         var_alpha = var(alpha),
+         var_window_alpha = var(window_alpha)) %>%
+  ungroup() %>%
+  ggplot(aes(x = var_alpha, y = var_window_alpha)) +
+  geom_point(alpha = 0.4)
+```
+
+```{r}
+for_beta_window %>% distinct(index, read_id, alpha, window_alpha, meth_pattern, window_pattern, total, window_total) %>%
+  group_by(index) %>%
+  mutate(n_read = n(),
+         mean_alpha = mean(alpha), 
+         mean_window_alpha = mean(window_alpha),
+         var_alpha = var(alpha),
+         var_window_alpha = var(window_alpha)) %>%
+  ungroup() %>%
+  .[,c(1,12:13)] %>%
+  reshape2::melt(id = "index") %>% distinct() %>% .[order(.$index),] %>%
+  ggplot(aes(x = value, colour = variable)) +
+  geom_density()
+
+for_beta_window %>% distinct(index, read_id, alpha, window_alpha, meth_pattern, window_pattern, total, window_total) %>%
+  group_by(index) %>%
+  mutate(n_read = n(),
+         mean_alpha = mean(alpha), 
+         mean_window_alpha = mean(window_alpha),
+         var_alpha = var(alpha),
+         var_window_alpha = var(window_alpha)) %>%
+  ungroup() %>%
+  .[,c(1,12:13)] %>%
+  reshape2::melt(id = "index") %>% distinct() %>% .[order(.$index),] %>%
+  ggplot(aes(x = log2(value), colour = variable)) +
+  geom_density()
+```
+* actually looks like variance is lower in original alpha - interesting
+
+```{r}
+for_beta_window %>% distinct(index, read_id, alpha, window_alpha, meth_pattern, window_pattern, total, window_total) %>%
+  group_by(index) %>%
+  mutate(n_read = n(),
+         mean_alpha = mean(alpha), 
+         mean_window_alpha = mean(window_alpha),
+         var_alpha = var(alpha),
+         var_window_alpha = var(window_alpha)) %>%
+  ungroup() %>%
+  .[,c(1,12:13)] %>%
+  reshape2::melt(id = "index") %>% distinct() %>% .[order(.$index),] %>%
+  ggplot(aes(x = variable, y = value, fill = variable)) +
+  geom_boxplot()
+
+for_beta_window %>% distinct(index, read_id, alpha, window_alpha, meth_pattern, window_pattern, total, window_total) %>%
+  group_by(index) %>%
+  mutate(n_read = n(),
+         mean_alpha = mean(alpha), 
+         mean_window_alpha = mean(window_alpha),
+         var_alpha = var(alpha),
+         var_window_alpha = var(window_alpha)) %>%
+  ungroup() %>%
+  .[,c(1,12:13)] %>%
+  reshape2::melt(id = "index") %>% distinct() %>% .[order(.$index),] %>%
+  ggplot(aes(x = variable, y = log2(value), fill = variable)) +
+  geom_boxplot()
+```
+
+
+# levene test
+
+[tutorial](https://www.geeksforgeeks.org/r-language/levenes-test-in-r-programming/)
+
+* compares variations between 2 groups
+* group with lower variance is more similar to itself
+
+Package `car`
+
+* oh except I have index groups, and then the alpha/window group
+```{r}
+lev <- for_beta_window %>% distinct(index, read_id, alpha, window_alpha) %>%
+  reshape2::melt(id = c("index", "read_id"))
+lev$index <- as.factor(lev$index)
+lev[1:10,]
+```
+```{r}
+distinct(lev, index)
+```
+
+```{r}
+car::leveneTest(value ~ variable, lev)
+```
+* fail to reject null
+* null is that all population variances are =
+
+```{r}
+lev %>%
+  group_by(index) %>%
+  mutate(car::leveneTest(value ~ variable, .))
+```
+
+
