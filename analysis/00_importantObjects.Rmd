@@ -100,6 +100,9 @@ saveRDS(alpha_and_beta2_pat, "/researchers/caitlin.page/cf_nano/r_output/nano_pa
 # WGBS data
 
 # RRBS processed file
+
+FastQ to CpG text file with bismark described [here](../code/seqFastqToReadMeth.txt)
+
 * ENCODE cell line
 ```{r}
 files <- list.files("/researchers/caitlin.page/rrbs_encode_cell_line/")
@@ -124,3 +127,42 @@ saveRDS(for_beta, "/researchers/caitlin.page/cf_nano/r_output/rrbs_alpha_beta.rd
 readRDS("../output/cluster_files/rrbs_alpha_beta.rds")
 ```
 
+
+```{r}
+source("../processData.R")
+
+bis <- fread("/researchers/caitlin.page/rrbs_encode_cell_line/CpG_OT_ENCFF000LYP_bismark_bt2.txt")
+gm12878_2 <- process_wgbs(bis)
+gm12878_2_pat <- pat_for_wgbs(gm12878_2)
+gm12878_2_beta <- gm12878_2 %>% distinct(start, beta) %>% .[order(.$start),]
+
+saveRDS(gm12878_2, "/researchers/caitlin.page/cf_nano/r_output/rrbs_alpha_beta_rep2.rds")
+```
+
+* ENCODE Cell line 562
+
+```{r}
+source("../processData.R")
+
+bis <- fread("/researchers/caitlin.page/rrbs_encode_cell_line/CpG_OT_k562_cml_line1_bismark_bt2.txt")
+k562 <- process_wgbs(bis)
+k562_pat <- pat_for_wgbs(k562)
+k562_beta <- k562 %>% distinct(start, beta) %>% .[order(.$start),]
+```
+
+```{r}
+saveRDS(k562, "/researchers/caitlin.page/cf_nano/r_output/k562_rep1.rds")
+```
+
+```{r}
+source("../processData.R")
+
+bis <- fread("/researchers/caitlin.page/rrbs_encode_cell_line/CpG_OT_k562_cml_line2_bismark_bt2.txt")
+k562_2 <- process_wgbs(bis)
+#k562_2_pat <- pat_for_wgbs(k562_2)
+#k562_2_beta <- k562_2 %>% distinct(start, beta) %>% .[order(.$start),]
+```
+
+```{r}
+saveRDS(k562_2, "/researchers/caitlin.page/cf_nano/r_output/k562_rep2.rds")
+```
