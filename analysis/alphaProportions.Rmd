@@ -277,9 +277,6 @@ rbind(for_beta %>% distinct(read_id, alpha, type) %>%
 
 
 # find genes with mean beta = 0.5
-```{r}
-for_beta_genes
-```
 
 ```{r}
 for_beta_genes[,c(1:16,22:23,26:28)] %>% distinct() %>%
