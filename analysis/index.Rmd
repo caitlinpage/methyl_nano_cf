@@ -166,6 +166,9 @@ LEARNINGS:
 
 * idk what im doing
 
+## windows
+[sliding windows of alpha](slidingWindowAlpha.html)
+
 [whole genome analysis of RRBS data](wholeGenomeRrbs.html)
 * basic plot looks the same as with chr22 - this is good
 
