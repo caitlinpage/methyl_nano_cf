@@ -68,7 +68,7 @@ for_beta_genes <- find_overlaps(as_granges(for_beta), as_granges(annotations)) %
 for_beta_genes[1:10,]
 ```
 
-* REP 2 GM1268 cell line
+* REP 2 GM12878 cell line
 ```{r}
 source("../code/processData.R")
 gm12878_2 <- readRDS("/researchers/caitlin.page/cf_nano/r_output/rrbs_alpha_beta_rep2.rds")
@@ -197,6 +197,13 @@ k562_chr22 %>%
 
 
 # differential transcript usage
+
+CONDITIONS: GM12878 X K562 cell lines
+
+Lymphoblastoid (B cell) X lymphoblast from CML
+(not a great comparison to pick because different cell types and cancer/non cancer)
+but differential methylation should be associated with cancer at least
+
 * apply it to alpha/meth pattern
 
 * realistically we care about methylation in a genomic context
@@ -253,6 +260,18 @@ k562_chr22_genes %>% distinct(start, beta, type.y) %>%
   geom_bar(position = "fill") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
+
+# conducting DTU analysis
+
+* group alphas into ranges
+[0,0.2)
+[0.2, 0.4]
+(0.4, 0.6)
+[0.6, 0.8]
+(0.8, 1]
+
+* these serve as 5 possible "transcripts"
+* only using reads that overlap to promoters as identified by `annotatr`
 
 
 [2025 benchmark paper](https://academic.oup.com/nargab/article/7/3/lqaf117/8251390#531509445)
@@ -340,8 +359,6 @@ y <- DGEList(as.matrix(edger_counts[,2:5]), group = c(1,1,2,2), genes = edger_co
 y
 ```
 
-* it won't like that I don't have replicates
-* but oh well
 
 * main steps
 - dge list
@@ -370,13 +387,19 @@ ds <- diffSpliceDGE(fit, coef = 2, geneid = "gene_id", exonid = "transcript")
 ds
 ```
 ```{r}
-ts.gene.simes <- topSpliceDGE(ds,number = Inf)
+ts.gene.simes <- topSpliceDGE(ds, test = "Simes", number = Inf)
 ts.gene.simes
 ```
 
 ```{r}
 ts.gene.gene <- topSpliceDGE(ds, test = "gene", number = Inf)
 ts.gene.gene
+```
+
+* odd because in documentation, the F column appears in the global test, not in the genes test. And in the documentation, the gene test is Simes
+
+```{r}
+?topSpliceDGE
 ```
 
 ```{r}
@@ -394,7 +417,127 @@ The Simes method processes the exon-level p-values to give an overall call of di
 The gene-level tests are likely to be powerful for genes in which several exons are differentially splices. The Simes p-values is likely to be more powerful when only a minority of the exons for a gene are differentially spliced. The exon-level tests are not recommended for formal error rate control.
 
 
-* don't know how to interpret
+# results as expression proportions
+
+* except of course the functions listed in the example are not found anywhere 
+ TPM <- tpm(fit, fit$genes$EffectiveLength, fit$genes$Overdispersion)
+> TPMProp <- tpmProp(TPM, y$genes$SYMBOL)
+> g <- which(fit$genes$SYMBOL=="HLA-A")
+> TPM[g,]
+
+* asked perplexity and it has provided code to calculate it
+* oops need a length
+* or maybe that's the number of cpgs?
+
+```{r}
+gene_cg <- find_overlaps(as_granges(annotations), as_granges(cg_sites)) %>% data.frame() %>%
+  group_by(gene_id, symbol) %>%
+  summarise(n_cg = n()) %>%
+  ungroup() %>% data.frame()
+```
+
+```{r}
+fit$genes <- fit$genes %>% mutate(n_cg = gene_cg[match(.$gene_id, gene_cg$symbol), "n_cg"])
+```
+
+
+```{r}
+rpk <- y$counts/rep(fit$genes$n_cg/1000, times = ncol(y$counts))
+tpm_mat <- sweep(rpk, 2, colSums(rpk)/1e6, "/")
+
+```
+
+```{r}
+tpm_prop <- sweep(tpm_mat, 2, colSums(tpm_mat), "/")
+```
+
+* I think that worked
+* transcript length stuff is a bit dodgy
+* doesn't have any rownames/colnames because the y$counts is missing that
+* so add that in
+```{r}
+?sweep
+```
+
+```{r}
+tpm_mat <- tpm_mat %>% data.frame() %>% mutate(id = edger_counts$transcript, gene_id = edger_counts$gene_id)
+tpm_prop <- tpm_prop %>% data.frame() %>% mutate(id = edger_counts$transcript, gene_id = edger_counts$gene_id)
+tpm_mat
+```
+```{r}
+tpm_prop %>% filter(gene_id == "FAM83F") %>% summarise(sum(Sample1_gm))
+tpm_prop %>% summarise(sum(Sample1_gm))
+```
+* proportions should be by gene
+* so this is wrong
+
+```{r}
+tpm_mat <- tpm_mat %>% 
+  group_by(gene_id) %>% 
+  mutate(prop_S1_gm = Sample1_gm/sum(Sample1_gm),
+         prop_S2_gm = Sample2_gm/sum(Sample2_gm),
+         prop_S3_k = Sample3_k/sum(Sample3_k),
+         prop_S4_k = Sample4_k/sum(Sample4_k)) %>%
+  ungroup() %>% data.frame()
+tpm_mat %>% .[order(.$gene_id),] %>% .[1:10,]
+```
+* nice can see even in these 2 genes, difference in proportions between the groups
+
+```{r}
+ts.gene.simes[1:10,]
+ts.gene.simes %>% filter(FDR < 0.05) %>% nrow()
+tail(ts.gene.simes)
+nrow(ts.gene.simes)
+```
+```{r}
+tpm_mat %>% filter(gene_id == ts.gene.simes$gene_id[1])
+```
+
+```{r}
+tpm_mat %>% filter(gene_id == ts.gene.simes$gene_id[643])
+```
+
+
+* picking most and least significant can see it worked
+* in least, proportions are same across the cell lines
+* in most, proportions are different across the cell lines
+
+```{r}
+tpm_mat %>% mutate(alpha_group = sub(".*_", "", id)) %>% .[,6:11] %>%
+  filter(gene_id %in% ts.gene.simes$gene_id[1:10]) %>%
+  reshape2::melt(id = c("alpha_group", "gene_id")) %>%
+  ggplot(aes(x = variable, y = value, fill = alpha_group)) +
+  geom_col() +
+  scale_x_discrete(labels = c("B_cell_1", "B_cell_2", "CML_1", "CML_2")) +
+  facet_wrap(~ gene_id)
+```
+
+
+* bottom 10 genes
+
+```{r}
+tpm_mat %>% mutate(alpha_group = sub(".*_", "", id)) %>% .[,6:11] %>%
+  filter(gene_id %in% ts.gene.simes$gene_id[634:643]) %>%
+  reshape2::melt(id = c("alpha_group", "gene_id")) %>%
+  ggplot(aes(x = variable, y = value, fill = alpha_group)) +
+  geom_col() +
+  scale_x_discrete(labels = c("B_cell_1", "B_cell_2", "CML_1", "CML_2")) +
+  facet_wrap(~ gene_id)
+```
+
+
+
+# Interp the results
+
+* gene level: differences in exon usage between conditions
+* Simes:
+
+* gene: better when many exons differentially splices
+* Simes: better when minority of exons are differentially spliced
+
+* look up the alphas in the top genes for the different samples
+
+
 
  targets <- read.delim("targets.txt", header=TRUE)
  quant.dirs <- dirname(list.files(".", "quant.sf",recursive=TRUE, full.names=TRUE))
