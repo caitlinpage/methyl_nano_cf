@@ -38,34 +38,7 @@ rrbs_for_beta_pat <- pat_for_wgbs(for_beta)
 for_beta <- for_beta %>% group_by(start) %>% mutate(coverage = n(), mean_alpha = mean(alpha)) %>% ungroup() %>% data.frame()
 just_beta <- for_beta %>% distinct(start, beta, coverage, mean_alpha) %>% .[order(.$start),]
 
-```
-
-
-```{r}
-annots <- c("hg38_cpgs")
-
-annotations <- annotatr::build_annotations(genome = 'hg38', annotations = annots)
-seqs <- annotations %>% data.frame() %>% distinct(seqnames) %>% .[1:22,]
-annotations <- annotations %>% data.frame() %>% filter(seqnames %in% seqs)
-```
-
-```{r}
-for_beta <- find_overlaps(as_granges(for_beta), as_granges(annotations)) %>% data.frame() %>%
-  mutate(cgi = ifelse(type == "hg38_cpg_islands", "island", "not_island"))
-```
-
-```{r}
-annots <- c("hg38_basicgenes", "hg38_genes_intergenic")
-
-annotations <- annotatr::build_annotations(genome = 'hg38', annotations = annots)
-seqs <- annotations %>% data.frame() %>% distinct(seqnames) %>% .[1:22,]
-annotations <- annotations %>% data.frame() %>% filter(seqnames %in% seqs)
-annotations %>% group_by(type) %>% summarise(n=n())
-```
-
-```{r}
 for_beta_genes <- find_overlaps(as_granges(for_beta), as_granges(annotations)) %>% data.frame()
-for_beta_genes[1:10,]
 ```
 
 * REP 2 GM12878 cell line
@@ -76,28 +49,6 @@ gm12878_2 <- readRDS("/researchers/caitlin.page/cf_nano/r_output/rrbs_alpha_beta
 gm12878_2_chr22 <- gm12878_2 %>% filter(seqnames == "chr22")
 
 gm12878_2_chr22 <- gm12878_2_chr22 %>% group_by(start) %>% mutate(coverage = n(), mean_alpha = mean(alpha)) %>% ungroup() %>% data.frame()
-
-```
-
-
-```{r}
-annots <- c("hg38_cpgs")
-
-annotations <- annotatr::build_annotations(genome = 'hg38', annotations = annots)
-seqs <- annotations %>% data.frame() %>% distinct(seqnames) %>% .[1:22,]
-annotations <- annotations %>% data.frame() %>% filter(seqnames %in% seqs)
-
-gm12878_2_chr22 <- find_overlaps(as_granges(gm12878_2_chr22), as_granges(annotations)) %>% data.frame() %>%
-  mutate(cgi = ifelse(type == "hg38_cpg_islands", "island", "not_island"))
-
-annots <- c("hg38_basicgenes", "hg38_genes_intergenic")
-
-annotations <- annotatr::build_annotations(genome = 'hg38', annotations = annots)
-seqs <- annotations %>% data.frame() %>% distinct(seqnames) %>% .[1:22,]
-annotations <- annotations %>% data.frame() %>% filter(seqnames %in% seqs)
-annotations %>% group_by(type) %>% summarise(n=n())
-
-gm12878_2_chr22_genes <- find_overlaps(as_granges(gm12878_2_chr22), as_granges(annotations)) %>% data.frame()
 ```
 
 * K562 cml cell line
@@ -110,17 +61,32 @@ k562_chr22 <- k562 %>% filter(seqnames == "chr22")
 k562_chr22 <- k562_chr22 %>% group_by(start) %>% mutate(coverage = n(), mean_alpha = mean(alpha)) %>% ungroup() %>% data.frame()
 ```
 
+* REP 2 K562
+```{r}
+source("../code/processData.R")
+k562_2 <- readRDS("/researchers/caitlin.page/cf_nano/r_output/k562_rep2.rds")
 
+k562_2 <- k562_2 %>% as_granges() %>% data.frame()
+k562_2_chr22 <- k562_2 %>% filter(seqnames == "chr22")
+
+k562_2_chr22 <- k562_2_chr22 %>% group_by(start) %>% mutate(coverage = n(), mean_alpha = mean(alpha)) %>% ungroup() %>% data.frame()
+```
+
+* add cpg islands and gene annotations
 ```{r}
 annots <- c("hg38_cpgs")
 
 annotations <- annotatr::build_annotations(genome = 'hg38', annotations = annots)
 seqs <- annotations %>% data.frame() %>% distinct(seqnames) %>% .[1:22,]
 annotations <- annotations %>% data.frame() %>% filter(seqnames %in% seqs)
-```
 
-```{r}
+for_beta <- find_overlaps(as_granges(for_beta), as_granges(annotations)) %>% data.frame() %>%
+  mutate(cgi = ifelse(type == "hg38_cpg_islands", "island", "not_island"))
+gm12878_2_chr22 <- find_overlaps(as_granges(gm12878_2_chr22), as_granges(annotations)) %>% data.frame() %>%
+  mutate(cgi = ifelse(type == "hg38_cpg_islands", "island", "not_island"))
 k562_chr22 <- find_overlaps(as_granges(k562_chr22), as_granges(annotations)) %>% data.frame() %>%
+  mutate(cgi = ifelse(type == "hg38_cpg_islands", "island", "not_island"))
+k562_2_chr22 <- find_overlaps(as_granges(k562_2_chr22), as_granges(annotations)) %>% data.frame() %>%
   mutate(cgi = ifelse(type == "hg38_cpg_islands", "island", "not_island"))
 ```
 
@@ -131,45 +97,15 @@ annotations <- annotatr::build_annotations(genome = 'hg38', annotations = annots
 seqs <- annotations %>% data.frame() %>% distinct(seqnames) %>% .[1:22,]
 annotations <- annotations %>% data.frame() %>% filter(seqnames %in% seqs)
 annotations %>% group_by(type) %>% summarise(n=n())
-```
 
-```{r}
+for_beta_genes <- find_overlaps(as_granges(for_beta), as_granges(annotations)) %>% data.frame()
+gm12878_2_chr22_genes <- find_overlaps(as_granges(gm12878_2_chr22), as_granges(annotations)) %>% data.frame()
 k562_chr22_genes <- find_overlaps(as_granges(k562_chr22), as_granges(annotations)) %>% data.frame()
-k562_chr22_genes[1:10,]
-```
-
-* REP 2 K562
-```{r}
-source("../code/processData.R")
-k562_2 <- readRDS("/researchers/caitlin.page/cf_nano/r_output/k562_rep2.rds")
-```
-
-
-```{r}
-k562_2 <- k562_2 %>% as_granges() %>% data.frame()
-k562_2_chr22 <- k562_2 %>% filter(seqnames == "chr22")
-
-k562_2_chr22 <- k562_2_chr22 %>% group_by(start) %>% mutate(coverage = n(), mean_alpha = mean(alpha)) %>% ungroup() %>% data.frame()
-
-annots <- c("hg38_cpgs")
-
-annotations <- annotatr::build_annotations(genome = 'hg38', annotations = annots)
-seqs <- annotations %>% data.frame() %>% distinct(seqnames) %>% .[1:22,]
-annotations <- annotations %>% data.frame() %>% filter(seqnames %in% seqs)
-
-k562_2_chr22 <- find_overlaps(as_granges(k562_2_chr22), as_granges(annotations)) %>% data.frame() %>%
-  mutate(cgi = ifelse(type == "hg38_cpg_islands", "island", "not_island"))
-
-annots <- c("hg38_basicgenes", "hg38_genes_intergenic")
-
-annotations <- annotatr::build_annotations(genome = 'hg38', annotations = annots)
-seqs <- annotations %>% data.frame() %>% distinct(seqnames) %>% .[1:22,]
-annotations <- annotations %>% data.frame() %>% filter(seqnames %in% seqs)
-
-
 k562_2_chr22_genes <- find_overlaps(as_granges(k562_2_chr22), as_granges(annotations)) %>% data.frame()
 k562_2_chr22_genes[1:10,]
 ```
+
+
 
 # plot check
 
