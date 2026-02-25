@@ -308,6 +308,7 @@ dtu_k562_2 <- k562_2_chr22_genes %>% distinct(read_id, alpha, gene_id.y, symbol.
                                 alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
                                 alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
                                 TRUE ~ "0.6 <= a <= 0.8"))
+dtu_k562_2[1:10,]
 ```
 
 * ok to fudge this I need the counts of the "transcripts"
@@ -332,6 +333,7 @@ trans_count_k_2 <- dtu_k562_2 %>%
   mutate(transcript = paste0(symbol.y, "_", alpha_group)) %>%
   group_by(transcript) %>%
   summarise(transcript_count = n()) %>% data.frame()
+trans_count_k_2[1:10,]
 ```
 
 ```{r}
@@ -352,6 +354,7 @@ edger_counts[is.na(edger_counts)] <- 0
 edger_counts$gene_id <- sub("_.*", "", edger_counts$transcript)
 edger_counts <- edger_counts %>% filter(!gene_id == "NA") 
 rownames(edger_counts) <- edger_counts$transcript
+edger_counts[1:10,]
 ```
 
 ```{r}
@@ -388,24 +391,21 @@ ds
 ```
 ```{r}
 ts.gene.simes <- topSpliceDGE(ds, test = "Simes", number = Inf)
-ts.gene.simes
+ts.gene.simes[1:10,]
 ```
 
 ```{r}
 ts.gene.gene <- topSpliceDGE(ds, test = "gene", number = Inf)
-ts.gene.gene
+ts.gene.gene[1:10,]
 ```
 
 * odd because in documentation, the F column appears in the global test, not in the genes test. And in the documentation, the gene test is Simes
 
-```{r}
-?topSpliceDGE
-```
 
 ```{r}
 #exon not recc but doing it anyway
 ts.gene.exon <- topSpliceDGE(ds, test = "exon", number = Inf)
-ts.gene.exon
+ts.gene.exon[1:10,]
 ```
 
 
@@ -434,9 +434,7 @@ gene_cg <- find_overlaps(as_granges(annotations), as_granges(cg_sites)) %>% data
   group_by(gene_id, symbol) %>%
   summarise(n_cg = n()) %>%
   ungroup() %>% data.frame()
-```
 
-```{r}
 fit$genes <- fit$genes %>% mutate(n_cg = gene_cg[match(.$gene_id, gene_cg$symbol), "n_cg"])
 ```
 
@@ -444,33 +442,15 @@ fit$genes <- fit$genes %>% mutate(n_cg = gene_cg[match(.$gene_id, gene_cg$symbol
 ```{r}
 rpk <- y$counts/rep(fit$genes$n_cg/1000, times = ncol(y$counts))
 tpm_mat <- sweep(rpk, 2, colSums(rpk)/1e6, "/")
-
 ```
 
-```{r}
-tpm_prop <- sweep(tpm_mat, 2, colSums(tpm_mat), "/")
-```
-
-* I think that worked
-* transcript length stuff is a bit dodgy
-* doesn't have any rownames/colnames because the y$counts is missing that
-* so add that in
-```{r}
-?sweep
-```
 
 ```{r}
 tpm_mat <- tpm_mat %>% data.frame() %>% mutate(id = edger_counts$transcript, gene_id = edger_counts$gene_id)
-tpm_prop <- tpm_prop %>% data.frame() %>% mutate(id = edger_counts$transcript, gene_id = edger_counts$gene_id)
-tpm_mat
+tpm_mat[1:10,]
 ```
-```{r}
-tpm_prop %>% filter(gene_id == "FAM83F") %>% summarise(sum(Sample1_gm))
-tpm_prop %>% summarise(sum(Sample1_gm))
-```
-* proportions should be by gene
-* so this is wrong
 
+* now add in proportions
 ```{r}
 tpm_mat <- tpm_mat %>% 
   group_by(gene_id) %>% 
@@ -485,9 +465,9 @@ tpm_mat %>% .[order(.$gene_id),] %>% .[1:10,]
 
 ```{r}
 ts.gene.simes[1:10,]
-ts.gene.simes %>% filter(FDR < 0.05) %>% nrow()
 tail(ts.gene.simes)
-nrow(ts.gene.simes)
+c(signif = ts.gene.simes %>% filter(FDR < 0.05) %>% nrow(),
+  total = nrow(ts.gene.simes))
 ```
 ```{r}
 tpm_mat %>% filter(gene_id == ts.gene.simes$gene_id[1])
@@ -525,10 +505,6 @@ tpm_mat %>% mutate(alpha_group = sub(".*_", "", id)) %>% .[,6:11] %>%
   facet_wrap(~ gene_id)
 ```
 
-
-
-# Interp the results
-
 * gene level: differences in exon usage between conditions
 * Simes:
 
@@ -536,32 +512,3 @@ tpm_mat %>% mutate(alpha_group = sub(".*_", "", id)) %>% .[,6:11] %>%
 * Simes: better when minority of exons are differentially spliced
 
 * look up the alphas in the top genes for the different samples
-
-
-
- targets <- read.delim("targets.txt", header=TRUE)
- quant.dirs <- dirname(list.files(".", "quant.sf",recursive=TRUE, full.names=TRUE))
-catch <- catchSalmon(paths = quant.dirs)
-divided.counts <- catch$counts/catch$annotation$Overdispersion
-samples <- targets[match(colnames(divided.counts),targets$GSM),]
-y <- DGEList(counts = divided.counts,samples = samples,group = samples$Group,genes = catch$annotation)
-require(AnnotationHub)
-ah <- AnnotationHub()
-edb <- ah[['AH78783']]
-edb.info <- select(edb,keys(edb),c("TXIDVERSION","TXBIOTYPE","SYMBOL"))
-edb.info <- edb.info[match(rownames(y),edb.info$TXIDVERSION),]
-keep <- filterByExpr(y)
-table(keep)
-y <- y[keep, , keep.lib.sizes=FALSE]
-plotMDS(y,col = c(1:2)[y$samples$group],labels = y$samples$Sample,xlim = c(-4,4))
-design <- model.matrix(~ group, data = y$samples)
-* DTU TIME
-fit <- glmQLFit(y, design, robust=TRUE)
-ds <- diffSplice(fit,coef = 2,geneid = 'SYMBOL',exonid = 'TXIDVERSION')
-ts.gene.f <- topSplice(ds,number = Inf)
-ts.gene.simes <- topSplice(ds,test = 'simes',number = Inf) # gene level
-* expression prop - for dte not dtu
-TPM <- tpm(fit, fit$genes$EffectiveLength, fit$genes$Overdispersion)
-TPMProp <- tpmProp(TPM, y$genes$SYMBOL)
-g <- which(fit$genes$SYMBOL=="HLA-A")
-TPM[g,
