@@ -9,7 +9,378 @@ editor_options:
 
 ## Introduction
 
+Continuation of developing [differential alpha usage](differentialAlphaUsage.html)
+Conduct differential methylation analysis and conduct DTU on those regions
+Compare back to others
+
+
 ```{r}
+library(bsseq)
+library(DMRcate)
+library(annotatr)
+library(data.table)
+library(plyranges)
+library(tidyr)
+library(stringr)
+library(dplyr)
+library(ggplot2)
+library(edgeR)
+```
+
+
+## Data Objects
+```{r}
+cg_sites <- cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38[["chr22"]])), seqnames = "chr22") %>% 
+  mutate(pos = paste0(seqnames, "-", start)) %>%
+  relocate(pos, seqnames)
+cg_sites$index <- 1:nrow(cg_sites)
+```
+
+* GM1268 cell line
+
+```{r}
+source("../code/processData.R")
+rrbs_alpha_beta <- readRDS("/researchers/caitlin.page/cf_nano/r_output/rrbs_alpha_beta.rds")
+```
+
+* REP 2 GM12878 cell line
+```{r}
+gm12878_2 <- readRDS("/researchers/caitlin.page/cf_nano/r_output/rrbs_alpha_beta_rep2.rds")
 
 ```
 
+* K562 cml cell line
+```{r}
+source("../code/processData.R")
+k562 <- readRDS("/researchers/caitlin.page/cf_nano/r_output/k562_rep1.rds")
+k562 <- k562 %>% as_granges() %>% data.frame()
+```
+
+* REP 2 K562
+```{r}
+source("../code/processData.R")
+k562_2 <- readRDS("/researchers/caitlin.page/cf_nano/r_output/k562_rep2.rds")
+```
+
+
+
+
+
+# Differential Methylation
+
+* b 1 and 2.  (gm12878)
+* cml 1 and 2 (k562)
+
+
+```{r}
+b_1 <- rrbs_alpha_beta %>% 
+  group_by(seqnames, start) %>%
+  mutate(cov = n()) %>%
+  filter(meth_status == "M") %>%
+mutate(meth = n()) %>%
+    ungroup() %>% distinct(seqnames, start, meth, cov) %>% .[order(.$seqnames),] %>% .[order(.$start),]
+b_2 <- gm12878_2 %>% 
+  group_by(seqnames, start) %>%
+  mutate(cov = n()) %>%
+  filter(meth_status == "M") %>%
+mutate(meth = n()) %>%
+    ungroup() %>% distinct(seqnames, start, meth, cov) %>% .[order(.$seqnames),] %>% .[order(.$start),]
+
+cml_1 <- k562 %>% 
+  group_by(seqnames, start) %>%
+  mutate(cov = n()) %>%
+  filter(meth_status == "M") %>%
+mutate(meth = n()) %>%
+    ungroup() %>% distinct(seqnames, start, meth, cov) %>% .[order(.$seqnames),] %>% .[order(.$start),]
+
+cml_2 <- k562_2 %>% 
+  group_by(seqnames, start) %>%
+  mutate(cov = n()) %>%
+  filter(meth_status == "M") %>%
+mutate(meth = n()) %>%
+    ungroup() %>% distinct(seqnames, start, meth, cov) %>% .[order(.$seqnames),] %>% .[order(.$start),]
+```
+
+```{r}
+b_1 <- b_1 %>% mutate(pos = paste0(seqnames, "-", start)) %>% data.frame()
+b_2 <- b_2 %>% mutate(pos = paste0(seqnames, "-", start)) %>% data.frame()
+cml_1 <- cml_1 %>% mutate(pos = paste0(seqnames, "-", start)) %>% data.frame()
+cml_2 <- cml_2 %>% mutate(pos = paste0(seqnames, "-", start)) %>% data.frame()
+```
+
+```{r}
+seqs <- data.frame(s = 1:22) %>% mutate(seqs = paste0("chr", s))
+b_1 <- b_1 %>% filter(seqnames %in% seqs$seqs)
+b_2 <- b_2 %>% filter(seqnames %in% seqs$seqs)
+cml_1 <- cml_1 %>% filter(seqnames %in% seqs$seqs)
+cml_2 <- cml_2 %>% filter(seqnames %in% seqs$seqs)
+```
+
+
+```{r}
+dm_table <- rbind(b_1[,1:2], b_2[,1:2,], cml_1[,1:2], cml_2[,1:2]) %>%
+  distinct() %>%
+  mutate(pos = paste0(seqnames, "-", start))
+dm_meth <- dm_table %>%
+  mutate(b1 = b_1[match(.$pos, b_1$pos), "meth"],
+         b2 = b_2[match(.$pos, b_2$pos), "meth"],
+         cml1 = cml_1[match(.$pos, cml_1$pos), "meth"],
+         cml2 = cml_2[match(.$pos, cml_2$pos), "meth"])
+dm_cov <- dm_table %>%
+  mutate(b1 = b_1[match(.$pos, b_1$pos), "cov"],
+         b2 = b_2[match(.$pos, b_2$pos), "cov"],
+         cml1 = cml_1[match(.$pos, cml_1$pos), "cov"],
+         cml2 = cml_2[match(.$pos, cml_2$pos), "cov"])
+
+dm_meth[is.na(dm_meth)] <- 0
+dm_cov[is.na(dm_cov)] <- 0
+
+dm_meth <- dm_meth %>% .[order(.$seqnames),]
+dm_cov <- dm_cov %>% .[order(.$seqnames),]
+```
+
+
+```{r}
+#library(bsseq)
+```
+
+```{r}
+sample_stuff <- c(Type = "b", "b", "cml", "cml") %>% data.frame()
+rownames(sample_stuff) <- colnames(dm_meth)[4:7]
+
+## make BSseq object
+bseq <- bsseq::BSseq(M = as.matrix(dm_meth[,4:7]),
+                             Cov = as.matrix(dm_cov[,4:7]), pData = sample_stuff,
+                             chr = dm_meth$seqnames, pos = as.numeric(dm_meth$start),
+                             sampleNames = colnames(dm_meth)[4:7])
+bseq <- sort(bseq)
+```
+
+
+```{r}
+saveRDS(bseq, "/researchers/caitlin.page/cf_nano/r_output/bseq.rds")
+```
+
+
+
+## BSmooth by sample - so it doesn't crash
+
+
+
+```{r}
+bsmooth1 <- BSmooth(BSseq = bseq[,1], BPPARAM = BiocParallel::MulticoreParam(workers = 4), verbose = TRUE)
+
+bsmooth2 <- BSmooth(BSseq = bseq[,2], BPPARAM = BiocParallel::MulticoreParam(workers = 4), verbose = TRUE)
+bsmooth3 <- BSmooth(BSseq = bseq[,3], BPPARAM = BiocParallel::MulticoreParam(workers = 4), verbose = TRUE)
+bsmooth4 <- BSmooth(BSseq = bseq[,4], BPPARAM = BiocParallel::MulticoreParam(workers = 4), verbose = TRUE)
+```
+
+
+```{r}
+bsmooth_obj <- vctrs::vec_c(bsmooth1, bsmooth2, bsmooth3, bsmooth4)
+```
+```{r}
+vctrs::vec_c
+```
+
+bsmooth_obj <- combine(bsmooth1, bsmooth2, bsmooth3, bsmooth4)
+```{r}
+list_bs <- list(bsmooth1, bsmooth2, bsmooth3, bsmooth4)
+bsmooth_obj <- combineList(list_bs)
+```
+
+```{r}
+bsmooth_obj <- bsseq::combine(bsmooth1, bsmooth2, bsmooth3, bsmooth4)
+```
+
+```{r}
+saveRDS(bsmooth1, "/researchers/caitlin.page/cf_nano/r_output/bsmooth_1.rds")
+
+saveRDS(bsmooth2, "/researchers/caitlin.page/cf_nano/r_output/bsmooth_2.rds")
+saveRDS(bsmooth3, "/researchers/caitlin.page/cf_nano/r_output/bsmooth_3.rds")
+saveRDS(bsmooth4, "/researchers/caitlin.page/cf_nano/r_output/bsmooth_4.rds")
+saveRDS(rrbs_alpha_beta, "/researchers/caitlin.page/cf_nano/r_output/rrbs_alpha_beta.rds")
+```
+
+```{r}
+bseq@assays@data$M
+```
+
+```{r}
+bsmooth_obj <- BSmooth(BSseq = bseq, BPPARAM = BiocParallel::MulticoreParam(workers = 4), verbose = TRUE)
+```
+```{r}
+bsmooth_obj
+```
+
+```{r}
+bsmooth_obj$.
+```
+
+```{r}
+## filter
+bseq.cov <- getCoverage(bsmooth_obj)
+keep <- which(rowSums(bseq.cov[, bsmooth_obj$. == "b"] >= 2) >= 2 &
+                rowSums(bseq.cov[, bsmooth_obj$. == "cml"] >= 2) >= 2)
+```
+```{r}
+length(keep)
+```
+
+```{r}
+colnames(bsmooth_obj)
+pData(bsmooth_obj) <- data.frame(replicate = c("1", "2", "1", "2"), 
+                                 tissue = c("b", "b", "cml", "cml"))
+                                 row.names(colnames(bsmooth_obj)))
+```
+```{r}
+data.frame(replicate = c("1", "2", "1", "2"), 
+                                 tissue = c("b", "b", "cml", "cml"))
+```
+
+```{r}
+#bsmooth_obj <- bsmooth_obj[keep,]
+saveRDS(bsmooth_obj, "../researchers/caitlin.page/cf_nano/r_output/bsmooth_obj_encode.rds")
+
+pData(bsmooth_obj) <- data.frame(replicate = c("1", "2", "1", "2"), 
+                                 tissue = c("b", "b", "cml", "cml"), row.names = colnames(bsmooth_obj))
+
+colData(bsmooth_obj)
+
+tissue <- factor(pData(bsmooth_obj)$tissue)
+tissue
+#Regular matrix design
+design <- model.matrix(~tissue)
+rownames(design) <- colnames(bsmooth_obj)
+design
+
+methdesign <- modelMatrixMeth(design)
+methdesign
+```
+
+```{r}
+bsmooth_obj
+```
+
+* this does some filtering
+
+
+```{r}
+seq_annot <- sequencing.annotate(bsmooth_obj, methdesign, all.cov = TRUE,
+                                 coef = 6, fdr=0.05)
+
+seq_dmrcate.res <- dmrcate(seq_annot, C=2, min.cpgs = 5)
+
+dmrcate_seq_dmr <- extractRanges(seq_dmrcate.res, genome = "hg19")
+dmrcate_seq_dmr <- dmrcate_seq_dmr %>% data.frame()
+dmrcate_seq_anno <- seq_annot@ranges %>% data.frame()
+```
+
+
+```{r}
+saveRDS(dmrcate_seq_dmr, "/researchers/caitlin.page/cf_nano/r_output/dmr_encode_gm12878_k562.rds")
+saveRDS(dmrcate_seq_anno, "/researchers/caitlin.page/cf_nano/r_output/dm_encode_gm12878_k562.rds")
+```
+
+
+####
+
+## DMR analysis
+
+```{r}
+dmrcate_seq_dmr
+```
+
+```{r}
+k562 <- k562[,colnames(rrbs_alpha_beta)]
+k562_2 <- k562_2[,colnames(rrbs_alpha_beta)]
+```
+
+
+```{r}
+all_samples <- rbind(rrbs_alpha_beta %>% mutate(sample = "b1"), gm12878_2 %>% mutate(sample = "b2"), 
+                     k562 %>% mutate(sample = "cml1"), k562_2 %>% mutate(sample = "cml2"))
+```
+
+```{r}
+rrbs_alpha_beta
+```
+
+```{r}
+find_overlaps(as_granges(all_samples), as_granges(dmrcate_seq_dmr[1,])) %>% data.frame()
+```
+
+```{r}
+find_overlaps(as_granges(all_samples), as_granges(dmrcate_seq_dmr[1,])) %>% data.frame()
+```
+
+
+
+
+```{r}
+find_overlaps(as_granges(all_samples), as_granges(dmrcate_seq_dmr[1,])) %>% data.frame() %>%
+  distinct(sample, read_id, read_start, read_end, alpha) %>%
+  ggplot() +
+  geom_segment(aes(x = read_start, xend = read_end, y = alpha, colour = read_id)) +
+  theme(legend.position = "none") +
+  facet_wrap(~ sample)
+```
+
+```{r}
+find_overlaps(as_granges(all_samples), as_granges(dmrcate_seq_dmr[1,])) %>% data.frame() %>%
+  group_by(sample, read_id, read_start, read_end, alpha) %>%
+  summarise(count = n()) %>% ungroup() %>% filter(count > 1)
+```
+
+
+```{r}
+find_overlaps(as_granges(all_samples), as_granges(dmrcate_seq_dmr[1,])) %>% data.frame() %>%
+  group_by(sample, read_id, read_start, read_end, alpha) %>%
+  summarise(count = n()) %>% ungroup() %>%
+  ggplot() +
+  geom_segment(aes(x = read_start, xend = read_end, y = alpha, colour = read_id, linewidth = count)) +
+  theme(legend.position = "none") +
+  facet_wrap(~ sample)
+```
+
+
+```{r}
+find_overlaps(as_granges(all_samples), as_granges(dmrcate_seq_dmr[2,])) %>% data.frame() %>%
+  group_by(sample, read_id, read_start, read_end, alpha) %>%
+  summarise(count = n()) %>% ungroup() %>%
+  ggplot() +
+  geom_segment(aes(x = read_start, xend = read_end, y = alpha, colour = read_id, linewidth = count)) +
+  theme(legend.position = "none") +
+  facet_wrap(~ sample)
+```
+
+
+
+rrbs_plot <- function(long_data, read_ids, cpgs = cg_sites, count_instead = FALSE) {
+  if(count_instead == FALSE) {
+  plot <- long_data %>% dplyr::filter(read_id %in% read_ids) %>%
+    distinct(read_id, read_start, read_end, alpha) %>%
+    ggplot() +
+    geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha), alpha = 0.2) +
+    geom_point(data = dplyr::filter(long_data, read_id %in% read_ids),
+               aes(x = start, y = alpha, colour = meth_status)) +
+    geom_point(data = distinct(dplyr::filter(long_data, read_id %in% read_ids), start, beta),
+               aes(x = start, y = beta), shape = 4, size = 3) +
+    geom_segment(data = filter(cg_sites, start >= min(dplyr::filter(long_data, read_id %in% read_ids)$start),
+                               end <= max(dplyr::filter(long_data, read_id %in% read_ids)$end)),
+                 aes(x = start, xend = start, y = -0.15, yend = -0.05), colour = "green")
+  } else {
+    plot <- long_data %>% dplyr::filter(read_id %in% read_ids) %>%
+      distinct(read_id, read_start, read_end, alpha) %>%
+      ggplot() +
+      geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha), alpha = 0.2) +
+      geom_count(data = dplyr::filter(long_data, read_id %in% read_ids),
+                 aes(x = start, y = alpha, colour = meth_status)) +
+      geom_point(data = distinct(dplyr::filter(long_data, read_id %in% read_ids), start, beta),
+                 aes(x = start, y = beta), shape = 4, size = 3) +
+      geom_segment(data = filter(cg_sites, start >= min(dplyr::filter(long_data, read_id %in% read_ids)$start),
+                                 end <= max(dplyr::filter(long_data, read_id %in% read_ids)$end)),
+                   aes(x = start, xend = start, y = -0.15, yend = -0.05), colour = "green")
+  }
+  plot
+}
