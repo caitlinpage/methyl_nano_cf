@@ -162,6 +162,7 @@ LEARNINGS:
 * and recommended I compare proportions of alpha
 
 [proportions of alpha and beta](alphaProportions.html)
+[attemmpt DTU but for alpha](differentialAlphaUsage.html)
 
 
 * idk what im doing
