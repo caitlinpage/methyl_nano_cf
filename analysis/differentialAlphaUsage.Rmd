@@ -18,7 +18,92 @@ library(ggplot2)
 library(edgeR)
 ```
 
+```{r}
+k562 <- k562[,colnames(rrbs_alpha_beta)]
+k562_2 <- k562_2[,colnames(rrbs_alpha_beta)]
+all_samples <- rbind(rrbs_alpha_beta %>% mutate(sample = "b1"), gm12878_2 %>% mutate(sample = "b2"), 
+                     k562 %>% mutate(sample = "cml1"), k562_2 %>% mutate(sample = "cml2"))
 
+```
+
+```{r}
+dmrcate_seq_dmr
+```
+
+```{r}
+find_overlaps(as_granges(all_samples), as_granges(dmrcate_seq_dmr[1,])) %>% data.frame()
+```
+
+
+
+
+```{r}
+find_overlaps(as_granges(all_samples), as_granges(dmrcate_seq_dmr[1,])) %>% data.frame() %>%
+  distinct(sample, read_id, read_start, read_end, alpha) %>%
+  ggplot() +
+  geom_segment(aes(x = read_start, xend = read_end, y = alpha, colour = read_id)) +
+  theme(legend.position = "none") +
+  facet_wrap(~ sample)
+```
+
+```{r}
+find_overlaps(as_granges(all_samples), as_granges(dmrcate_seq_dmr[1,])) %>% data.frame() %>%
+  group_by(sample, read_id, read_start, read_end, alpha) %>%
+  summarise(count = n()) %>% ungroup() %>% filter(count > 1)
+```
+
+
+```{r}
+find_overlaps(as_granges(all_samples), as_granges(dmrcate_seq_dmr[1,])) %>% data.frame() %>%
+  group_by(sample, read_id, read_start, read_end, alpha) %>%
+  summarise(count = n()) %>% ungroup() %>%
+  ggplot() +
+  geom_segment(aes(x = read_start, xend = read_end, y = alpha, colour = read_id, size = count)) +
+  theme(legend.position = "none") +
+  facet_wrap(~ sample)
+```
+
+
+```{r}
+find_overlaps(as_granges(all_samples), as_granges(dmrcate_seq_dmr[1,])) %>% data.frame() %>%
+  group_by(sample, read_id, read_start, read_end, alpha) %>%
+  summarise(count = n()) %>% ungroup() %>%
+  ggplot() +
+  geom_segment(aes(x = read_start, xend = read_end, y = alpha, colour = read_id, linewidth = count)) +
+  theme(legend.position = "none") +
+  facet_wrap(~ sample)
+```
+
+
+
+rrbs_plot <- function(long_data, read_ids, cpgs = cg_sites, count_instead = FALSE) {
+  if(count_instead == FALSE) {
+  plot <- long_data %>% dplyr::filter(read_id %in% read_ids) %>%
+    distinct(read_id, read_start, read_end, alpha) %>%
+    ggplot() +
+    geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha), alpha = 0.2) +
+    geom_point(data = dplyr::filter(long_data, read_id %in% read_ids),
+               aes(x = start, y = alpha, colour = meth_status)) +
+    geom_point(data = distinct(dplyr::filter(long_data, read_id %in% read_ids), start, beta),
+               aes(x = start, y = beta), shape = 4, size = 3) +
+    geom_segment(data = filter(cg_sites, start >= min(dplyr::filter(long_data, read_id %in% read_ids)$start),
+                               end <= max(dplyr::filter(long_data, read_id %in% read_ids)$end)),
+                 aes(x = start, xend = start, y = -0.15, yend = -0.05), colour = "green")
+  } else {
+    plot <- long_data %>% dplyr::filter(read_id %in% read_ids) %>%
+      distinct(read_id, read_start, read_end, alpha) %>%
+      ggplot() +
+      geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha), alpha = 0.2) +
+      geom_count(data = dplyr::filter(long_data, read_id %in% read_ids),
+                 aes(x = start, y = alpha, colour = meth_status)) +
+      geom_point(data = distinct(dplyr::filter(long_data, read_id %in% read_ids), start, beta),
+                 aes(x = start, y = beta), shape = 4, size = 3) +
+      geom_segment(data = filter(cg_sites, start >= min(dplyr::filter(long_data, read_id %in% read_ids)$start),
+                                 end <= max(dplyr::filter(long_data, read_id %in% read_ids)$end)),
+                   aes(x = start, xend = start, y = -0.15, yend = -0.05), colour = "green")
+  }
+  plot
+}
 ## Data Objects
 ```{r}
 cg_sites <- cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38[["chr22"]])), seqnames = "chr22") %>% 
@@ -38,7 +123,6 @@ rrbs_for_beta_pat <- pat_for_wgbs(for_beta)
 for_beta <- for_beta %>% group_by(start) %>% mutate(coverage = n(), mean_alpha = mean(alpha)) %>% ungroup() %>% data.frame()
 just_beta <- for_beta %>% distinct(start, beta, coverage, mean_alpha) %>% .[order(.$start),]
 
-for_beta_genes <- find_overlaps(as_granges(for_beta), as_granges(annotations)) %>% data.frame()
 ```
 
 * REP 2 GM12878 cell line
@@ -448,3 +532,86 @@ tpm_mat %>% mutate(alpha_group = sub(".*_", "", id)) %>% .[,6:11] %>%
 * Simes: better when minority of exons are differentially spliced
 
 * look up the alphas in the top genes for the different samples
+
+
+# jovana single cell version:
+
+* big table
+* biological feature: try promoters
+
+Columns:    Sample1Read1. Sample1Read2 ... Sample2Read1...
+Rows: Gene1
+      Gene2
+```{r}
+k562 <- k562[,colnames(rrbs_alpha_beta)]
+k562_2 <- k562_2[,colnames(rrbs_alpha_beta)]
+```
+
+```{r}
+all_samples <- rbind(rrbs_alpha_beta %>% mutate(sample = "b1"), gm12878_2 %>% mutate(sample = "b2"), 
+                     k562 %>% mutate(sample = "cml1"), k562_2 %>% mutate(sample = "cml2"))
+```
+
+```{r}
+annots <- c("hg38_basicgenes", "hg38_genes_intergenic")
+
+annotations <- annotatr::build_annotations(genome = 'hg38', annotations = annots)
+seqs <- annotations %>% data.frame() %>% distinct(seqnames) %>% .[1:22,]
+annotations <- annotations %>% data.frame() %>% filter(seqnames %in% seqs)
+annotations <- annotations[annotations$type == "hg38_genes_promoters",]
+
+all_samples_simple <- all_samples %>% distinct(sample, read_id, seqnames, read_start, read_end, alpha, meth_pattern, num_meth, total)
+all_samples_simple$start <- all_samples_simple$read_start
+all_samples_simple$end <- all_samples_simple$read_end
+all_samples_genes <- find_overlaps(as_granges(all_samples_simple), as_granges(annotations)) %>% data.frame()
+all_samples_genes <- all_samples_genes[!is.na(all_samples_genes$symbol),]
+```
+
+* so there's multiple promoters per gene here because of multiple transcripts
+* but going to ignore that for now
+* just use the promoter id
+* forgot TxDb was an option
+
+
+```{r}
+all_samples_genes %>%
+  distinct(sample, read_id, alpha, gene_id, symbol) %>%
+  group_by(sample, symbol) %>%
+  mutate(alpha_id = paste0(sample, "read", 1:n())) %>% .[order(.$symbol),] %>% ungroup() %>% .[,c(3,5,6)]
+```
+
+```{r}
+single_cell <- all_samples_genes %>%
+  distinct(sample, read_id, alpha, gene_id, symbol) %>%
+  group_by(sample, symbol) %>%
+  mutate(alpha_id = paste0(sample, "read", 1:n())) %>% .[order(.$symbol),] %>% ungroup() %>% .[,c(3,5,6)] %>%
+  pivot_wider(names_from = alpha_id, values_from = alpha)
+
+nrow(single_cell)
+ncol(single_cell)
+single_cell[1:5,1:5]
+```
+* putting a pause on this
+* because there are NAs
+* and in single cells they put 0s
+* but we can't put a 0 here because there is no read
+* so it's unclear if we can find a workaround for this
+
+[belinda's analysis](https://bphipson.github.io/Human_Development_snRNAseq/14-MarkerAnalysisBCT.html)
+
+
+
+
+
+```{r}
+promoters(TxDb.Hsapiens.UCSC.hg19.knownGene::TxDb.Hsapiens.UCSC.hg19.knownGene)
+```
+
+```{r}
+all_samples_genes_txdb <- find_overlaps(as_granges(all_samples_simple), promoters(TxDb.Hsapiens.UCSC.hg19.knownGene::TxDb.Hsapiens.UCSC.hg19.knownGene)) %>% data.frame()
+
+```
+
+
+
+
