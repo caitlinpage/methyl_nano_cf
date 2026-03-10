@@ -1,0 +1,42 @@
+---
+title: "rrbsAndNanopore"
+author: "caitlinpage"
+date: "2026-03-06"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+```{r}
+library(data.table)
+library(plyranges)
+library(tidyr)
+library(stringr)
+library(dplyr)
+library(ggplot2)
+```
+
+
+## Data Objects
+```{r}
+cg_sites <- cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38[["chr22"]])), seqnames = "chr22") %>% 
+  mutate(pos = paste0(seqnames, "-", start)) %>%
+  relocate(pos, seqnames)
+cg_sites$index <- 1:nrow(cg_sites)
+```
+
+* GM1268 cell line
+
+```{r}
+source("../code/processData.R")
+rrbs_alpha_beta <- readRDS("/researchers/caitlin.page/cf_nano/r_output/rrbs_alpha_beta.rds")
+```
+
+```{r}
+nano_alpha_beta <- readRDS("/researchers/caitlin.page/cf_nano/r_output/nano_alpha_beta.rds")
+```
+
+```{r}
+nano_alpha_beta
+```
+
