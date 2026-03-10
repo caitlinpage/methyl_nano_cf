@@ -99,6 +99,24 @@ saveRDS(alpha_and_beta2_pat, "/researchers/caitlin.page/cf_nano/r_output/nano_pa
 
 # WGBS data
 
+```{r}
+files <- list.files("/researchers/caitlin.page/pancreatic_cancer_wgbs")
+files[grep("CpG", files)]
+```
+
+```{r}
+files <- list.files("/researchers/caitlin.page/pancreatic_cancer_wgbs/bismark_res")
+files[grep("CpG", files)]
+```
+```{r}
+source("../processData.R")
+
+bis <- fread("/researchers/caitlin.page/pancreatic_cancer_wgbs/bismark_res/CpG_OT_SRR1646792_GSM1541788_38-Lg_rep1_BS-Seq_Homo_sapiens_Bisulfite-Seq_1_bismark_bt2_pe.txt")
+pancreatic_a38_lg1 <- process_wgbs(bis)
+
+saveRDS(pancreatic_a38_lg1, "/researchers/caitlin.page/cf_nano/r_output/pancreatic_a38_lg1.rds")
+```
+
 # RRBS processed file
 
 FastQ to CpG text file with bismark described [here](../code/seqFastqToReadMeth.txt)
