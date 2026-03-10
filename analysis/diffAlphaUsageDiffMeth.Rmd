@@ -18,7 +18,7 @@ Compare back to others
 library(bsseq)
 library(DMRcate)
 library(annotatr)
-library(data.table)
+#library(data.table)
 library(plyranges)
 library(tidyr)
 library(stringr)
@@ -343,6 +343,14 @@ find_overlaps(as_granges(all_samples), as_granges(dmrcate_seq_dmr[1,])) %>% data
   facet_wrap(~ sample)
 ```
 
+```{r}
+find_overlaps(as_granges(all_samples), as_granges(dmrcate_seq_dmr[1,])) %>% data.frame() %>%
+  distinct(sample, read_id, read_start, read_end, alpha) %>%
+  ggplot(aes(x = sample, y = alpha, fill = sample)) +
+  geom_violin() +
+  theme(legend.position = "none")
+```
+
 
 ```{r}
 find_overlaps(as_granges(all_samples), as_granges(dmrcate_seq_dmr[2,])) %>% data.frame() %>%
@@ -352,6 +360,186 @@ find_overlaps(as_granges(all_samples), as_granges(dmrcate_seq_dmr[2,])) %>% data
   geom_segment(aes(x = read_start, xend = read_end, y = alpha, colour = read_id, linewidth = count)) +
   theme(legend.position = "none") +
   facet_wrap(~ sample)
+```
+
+```{r}
+find_overlaps(as_granges(all_samples), as_granges(dmrcate_seq_dmr[2,])) %>% data.frame() %>%
+  distinct(sample, read_id, read_start, read_end, alpha) %>%
+  ggplot(aes(x = sample, y = alpha, fill = sample)) +
+  geom_violin() +
+  theme(legend.position = "none")
+```
+
+
+## proportions in dmrs
+
+```{r}
+find_overlaps(as_granges(all_samples), as_granges(dmrcate_seq_dmr[1,])) %>% data.frame() %>%
+  distinct(sample, read_id, read_start, read_end, alpha) %>% 
+  mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                alpha > 0.8 ~ "a > 0.8",
+                                alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                TRUE ~ "0.6 <= a <= 0.8")) %>%
+  ggplot(aes(x = sample, fill = alpha_group)) +
+  geom_bar(position = "fill")
+```
+
+```{r}
+find_overlaps(as_granges(all_samples), as_granges(dmrcate_seq_dmr[2,])) %>% data.frame() %>%
+  distinct(sample, read_id, read_start, read_end, alpha) %>% 
+  mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                alpha > 0.8 ~ "a > 0.8",
+                                alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                TRUE ~ "0.6 <= a <= 0.8")) %>%
+  ggplot(aes(x = sample, fill = alpha_group)) +
+  geom_bar(position = "fill")
+```
+
+# least significant dmr
+```{r}
+dmrcate_seq_dmr %>% tail()
+find_overlaps(as_granges(all_samples), as_granges(dmrcate_seq_dmr[7909,])) %>% data.frame() %>%
+  group_by(sample, read_id, read_start, read_end, alpha) %>%
+  summarise(count = n()) %>% ungroup() %>%
+  ggplot() +
+  geom_segment(aes(x = read_start, xend = read_end, y = alpha, colour = read_id, linewidth = count)) +
+  theme(legend.position = "none") +
+  facet_wrap(~ sample)
+
+find_overlaps(as_granges(all_samples), as_granges(dmrcate_seq_dmr[7909,])) %>% data.frame() %>%
+  distinct(sample, read_id, read_start, read_end, alpha) %>%
+  ggplot(aes(x = sample, y = alpha, fill = sample)) +
+  geom_violin() +
+  theme(legend.position = "none")
+
+find_overlaps(as_granges(all_samples), as_granges(dmrcate_seq_dmr[7909,])) %>% data.frame() %>%
+  distinct(sample, read_id, read_start, read_end, alpha) %>% 
+  mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                alpha > 0.8 ~ "a > 0.8",
+                                alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                TRUE ~ "0.6 <= a <= 0.8")) %>%
+  ggplot(aes(x = sample, fill = alpha_group)) +
+  geom_bar(position = "fill")
+```
+
+
+
+
+## dtu on top dmr
+
+```{r}
+dtu_dmr <- find_overlaps(as_granges(all_samples), as_granges(mutate(dmrcate_seq_dmr, rank = paste0("DMR:", 1:nrow(dmrcate_seq_dmr))))) %>% data.frame() %>%
+  distinct(sample, read_id, read_start, read_end, alpha, rank) %>% 
+  mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                alpha > 0.8 ~ "a > 0.8",
+                                alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                TRUE ~ "0.6 <= a <= 0.8"))
+
+dtu_dmr <- dtu_dmr %>% 
+  mutate(transcript = paste0(rank, "_", alpha_group)) %>%
+  group_by(sample, transcript) %>%
+  summarise(transcript_count = n()) %>% data.frame()
+```
+
+
+```{r}
+edger_counts <- c(dtu_for_beta %>% 
+  mutate(transcript = paste0(symbol.y, "_", alpha_group)) %>% .$transcript,
+  dtu_k562 %>% 
+  mutate(transcript = paste0(symbol.y, "_", alpha_group)) %>% .$transcript,
+  dtu_beta_2 %>% 
+  mutate(transcript = paste0(symbol.y, "_", alpha_group)) %>% .$transcript,
+  dtu_k562_2 %>% 
+  mutate(transcript = paste0(symbol.y, "_", alpha_group)) %>% .$transcript) %>% data.frame() %>% distinct()
+names(edger_counts) <- "transcript"
+edger_counts <- edger_counts %>% mutate(Sample1_gm = trans_count_beta[match(.$transcript, trans_count_beta$transcript), "transcript_count"],
+                                        Sample2_gm = trans_count_beta2[match(.$transcript, trans_count_beta2$transcript), "transcript_count"],
+                        Sample3_k = trans_count_k[match(.$transcript, trans_count_k$transcript), "transcript_count"],
+                        Sample4_k = trans_count_k_2[match(.$transcript, trans_count_k_2$transcript), "transcript_count"])
+edger_counts[is.na(edger_counts)] <- 0
+edger_counts$gene_id <- sub("_.*", "", edger_counts$transcript)
+edger_counts <- edger_counts %>% filter(!gene_id == "NA") 
+rownames(edger_counts) <- edger_counts$transcript
+edger_counts[1:10,]
+```
+
+```{r}
+y <- DGEList(as.matrix(edger_counts[,2:5]), group = c(1,1,2,2), genes = edger_counts[,c("gene_id", "transcript")])
+y
+
+design <- model.matrix(~ c(1,1,2,2), data = y$samples)
+
+fit <- glmQLFit(y, design, robust=TRUE)
+
+ds <- diffSpliceDGE(fit, coef = 2, geneid = "gene_id", exonid = "transcript")
+```
+
+```{r}
+ts.gene.simes <- topSpliceDGE(ds, test = "Simes", number = Inf)
+ts.gene.simes[1:10,]
+
+ts.gene.gene <- topSpliceDGE(ds, test = "gene", number = Inf)
+ts.gene.gene[1:10,]
+```
+
+```{r}
+gene_cg <- find_overlaps(as_granges(annotations), as_granges(cg_sites)) %>% data.frame() %>%
+  group_by(gene_id, symbol) %>%
+  summarise(n_cg = n()) %>%
+  ungroup() %>% data.frame()
+
+fit$genes <- fit$genes %>% mutate(n_cg = gene_cg[match(.$gene_id, gene_cg$symbol), "n_cg"])
+```
+
+
+```{r}
+rpk <- y$counts/rep(fit$genes$n_cg/1000, times = ncol(y$counts))
+tpm_mat <- sweep(rpk, 2, colSums(rpk)/1e6, "/")
+
+tpm_mat <- tpm_mat %>% data.frame() %>% mutate(id = edger_counts$transcript, gene_id = edger_counts$gene_id)
+tpm_mat[1:10,]
+```
+
+* now add in proportions
+```{r}
+tpm_mat <- tpm_mat %>% 
+  group_by(gene_id) %>% 
+  mutate(prop_S1_gm = Sample1_gm/sum(Sample1_gm),
+         prop_S2_gm = Sample2_gm/sum(Sample2_gm),
+         prop_S3_k = Sample3_k/sum(Sample3_k),
+         prop_S4_k = Sample4_k/sum(Sample4_k)) %>%
+  ungroup() %>% data.frame()
+tpm_mat %>% .[order(.$gene_id),] %>% .[1:10,]
+```
+* nice can see even in these 2 genes, difference in proportions between the groups
+
+```{r}
+ts.gene.simes[1:10,]
+tail(ts.gene.simes)
+c(signif = ts.gene.simes %>% filter(FDR < 0.05) %>% nrow(),
+  total = nrow(ts.gene.simes))
+```
+```{r}
+tpm_mat %>% filter(gene_id == ts.gene.simes$gene_id[1])
+```
+
+```{r}
+tpm_mat %>% filter(gene_id == ts.gene.simes$gene_id[643])
+```
+
+
+```{r}
+tpm_mat %>% mutate(alpha_group = sub(".*_", "", id)) %>% .[,6:11] %>%
+  filter(gene_id %in% ts.gene.simes$gene_id[1:10]) %>%
+  reshape2::melt(id = c("alpha_group", "gene_id")) %>%
+  ggplot(aes(x = variable, y = value, fill = alpha_group)) +
+  geom_col() +
+  scale_x_discrete(labels = c("B_cell_1", "B_cell_2", "CML_1", "CML_2")) +
+  facet_wrap(~ gene_id)
 ```
 
 
