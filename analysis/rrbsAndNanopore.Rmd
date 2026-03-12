@@ -35,8 +35,15 @@ rrbs_alpha_beta <- readRDS("/researchers/caitlin.page/cf_nano/r_output/rrbs_alph
 ```{r}
 nano_alpha_beta <- readRDS("/researchers/caitlin.page/cf_nano/r_output/nano_alpha_beta.rds")
 ```
+```{r}
+nano_reads <- read.table("/researchers/caitlin.page/cf_nano/modkit_output/extract_calls_he_hu5.10.tsv", header = TRUE)
+```
 
 ```{r}
 nano_alpha_beta
+```
+
+```{r}
+rrbs_alpha_beta
 ```
 
