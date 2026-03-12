@@ -30,6 +30,51 @@ process_modkit <- function(modkit_fread, path_to_bed_file) {
   alpha_and_beta2
 }
 
+process_modkit_no_bed <- function(modkit_fread) {
+  reads <- modkit_fread
+  reads <- reads$ref_position + 1 # convert to 1 based
+  reads <- reads[, ref_position := ifelse(strand == "-", ref_position - 1, ref_position)] # convert to 1 based
+  reads <- reads[, read_and_pos := paste0(reads$read_id, ":", reads$ref_position)]
+  reads$seqnames <- reads$start
+  reads$start <- reads$ref_position
+  reads$end <- reads$ref_position
+
+  reads <- reads[call_prob > 0.66,]
+  reads <- reads[, meth_status := ifelse(call_code == "m", "M", "U")]
+  reads <- reads[, meth_pattern := paste(meth_status, collapse = ""), by = read_id]
+  reads <- reads[, num_meth := str_count(meth_pattern, pattern = "M")]
+  reads <- reads[, total := str_length(meth_pattern)]
+  reads <- reads[, alpha := num_meth/total]
+  reads <- reads[, genom_positions := paste0(ref_position, collapse = ","), by = read_id]
+  reads <- reads[, read_start := min(start), by = read_id]
+  reads <- reads[, read_end := max(end), by = read_id]
+  reads <- reads[, beta := ]
+
+
+  res <- bismark_processed %>% group_by(start, meth_status) %>%
+    .[order(.$start),] %>%
+    mutate(meth_count_pos = n(), unmeth_count_pos = n()) %>%
+    mutate(meth_count_pos = ifelse(meth_status == "M", meth_count_pos, NA),
+           unmeth_count_pos = ifelse(meth_status == "U", unmeth_count_pos, NA)) %>%
+    ungroup() %>%
+    distinct(seqnames, start, end, meth_count_pos, unmeth_count_pos) %>%
+    group_by(start) %>%
+
+  alpha_and_beta2 <- find_overlaps(as_granges(reads), as_granges(bed)) %>% data.frame() %>%
+    filter(call_prob > 0.66) %>% # solution for alpha and beta match
+    group_by(read_id) %>%
+    .[order(.$alignment_start),] %>%
+    mutate(call_code = ifelse(call_code == "m", "M", "U")) %>%
+    mutate(meth_pattern = paste(call_code, collapse = "")) %>%
+    mutate(num_meth = str_count(meth_pattern, pattern = "M"),
+           total = str_length(meth_pattern),
+           alpha = num_meth/total) %>%
+    mutate(genom_positions = paste0(ref_position, collapse = ",")) %>%
+    ungroup()
+  alpha_and_beta2 <- alpha_and_beta2 %>% data.frame()
+  alpha_and_beta2
+}
+
 modkit_to_pat <- function(alpha_and_beta) {
   alpha_and_beta2_pat <- alpha_and_beta2 %>%
     mutate(start_pos = sapply(str_split(genom_positions, ","), head, 1),
