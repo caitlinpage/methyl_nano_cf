@@ -591,6 +591,39 @@ nrow(single_cell)
 ncol(single_cell)
 single_cell[1:5,1:5]
 ```
+
+* instead have alpha as the columns
+* and the value is the number of reads with that alpha
+* think of a region: has 4 cpgs
+* alpha has limited options, of if read has 1,2,3,4 cpgs
+* each sample: how many reads in each cat
+* if imprinted: 20 reads, 10 0 10 1
+* if random: in between
+* samples columns, rows alpha
+
+* probably binomial distribution
+* library size link factor - how many reads in distrib
+* need replicates
+* do a test between conditions for a region - difference in distribution
+
+* are we thinking of coming up with framework of differential alpha?
+* likely would largely overlap with differential beta
+* others that wouldn't: could be occuring when beta = 0.5 - beta doesn't have the information
+* could be from different cell(types) or allele specific
+
+* if dmr from beta = 1, beta = 0.5
+* is alpha going to half 0 or about otherwise
+
+* a little package exploring differnces in alpha and betas
+* there are differences, and this is ways we can see them
+* imprinted regions would be good examples
+* if can get one region: how data should look and test - then can repeat
+* may be able to use differential beta framework: proportion, instead of counts its the distrib
+* 2 samples as columns, test to compare distributions
+* ask a statistician
+
+
+
 * putting a pause on this
 * because there are NAs
 * and in single cells they put 0s
