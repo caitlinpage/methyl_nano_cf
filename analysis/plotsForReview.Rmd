@@ -1,0 +1,409 @@
+---
+title: "plotsForReview"
+author: "caitlinpage"
+date: "2026-03-11"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+```{r}
+library(annotatr)
+```
+
+
+## Data Objects
+```{r}
+cg_sites <- cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38[["chr22"]])), seqnames = "chr22") %>% 
+  mutate(pos = paste0(seqnames, "-", start)) %>%
+  relocate(pos, seqnames)
+cg_sites$index <- 1:nrow(cg_sites)
+```
+
+* GM1268 cell line
+
+```{r}
+source("../code/processData.R")
+rrbs_alpha_beta <- readRDS("/researchers/caitlin.page/cf_nano/r_output/rrbs_alpha_beta.rds")
+```
+
+```{r}
+nano_alpha_beta <- readRDS("/researchers/caitlin.page/cf_nano/r_output/nano_alpha_beta.rds")
+```
+```{r}
+nano_reads <- read.table("/researchers/caitlin.page/cf_nano/modkit_output/extract_calls_he_hu5.10.tsv", header = TRUE)
+```
+
+
+# DISTRIBUTIONS
+
+```{r}
+rrbs_alpha_beta
+
+nano_alpha_beta <- nano_alpha_beta %>% group_by(read_id) %>%
+    mutate(read_start = min(start), read_end = max(end)) %>% data.frame()
+```
+
+```{r}
+rbind(nano_alpha_beta %>% distinct(start, beta) %>% mutate(technology = "Cell free Nanopore"),
+      rrbs_alpha_beta %>% distinct(start, beta) %>% mutate(technology = "RRBS")) %>%
+  ggplot(aes(x = beta, colour = technology)) +
+  geom_density() +
+  theme_bw()
+```
+
+```{r}
+rbind(nano_alpha_beta %>% distinct(read_id, alpha) %>% mutate(technology = "Cell free Nanopore"),
+      rrbs_alpha_beta %>% distinct(read_id, alpha) %>% mutate(technology = "RRBS")) %>%
+  ggplot(aes(x = alpha, colour = technology)) +
+  geom_density() +
+  theme_bw()
+```
+
+```{r}
+rbind(nano_alpha_beta %>% mutate(variable = start, value = beta) %>% distinct(variable, value) %>% mutate(technology = "Cell free Nanopore", method = "beta"),
+      rrbs_alpha_beta %>% mutate(variable = start, value = beta) %>% distinct(variable, value) %>% mutate(technology = "RRBS", method = "beta"),
+      nano_alpha_beta %>% mutate(variable = start, value = alpha) %>% distinct(variable, value) %>% mutate(technology = "Cell free Nanopore", method = "alpha"),
+      rrbs_alpha_beta %>% mutate(variable = start, value = alpha) %>% distinct(variable, value) %>% mutate(technology = "RRBS", method = "alpha")) %>%
+  ggplot(aes(x = method, y = value, fill = technology)) +
+  geom_violin() +
+  theme_bw()
+```
+
+```{r}
+rbind(nano_alpha_beta %>% mutate(variable = start, value = beta) %>% distinct(variable, value) %>% mutate(technology = "Cell free Nanopore", method = "beta"),
+      rrbs_alpha_beta %>% filter(seqnames == "chr22") %>% mutate(variable = start, value = beta) %>% distinct(variable, value) %>% mutate(technology = "RRBS", method = "beta"),
+      nano_alpha_beta %>% mutate(variable = start, value = alpha) %>% distinct(variable, value) %>% mutate(technology = "Cell free Nanopore", method = "alpha"),
+      rrbs_alpha_beta %>% filter(seqnames == "chr22") %>% mutate(variable = start, value = alpha) %>% distinct(variable, value) %>% mutate(technology = "RRBS", method = "alpha")) %>%
+  ggplot(aes(x = method, y = value, fill = technology)) +
+  geom_violin() +
+  theme_bw()
+```
+
+* coverage
+
+```{r}
+rrbs_alpha_beta %>% filter(seqnames == "chr22") %>%
+  ggplot(aes(x = start)) +
+  geom_density()
+```
+
+
+```{r}
+rrbs_alpha_beta %>% filter(seqnames == "chr22") %>%
+  ggplot(aes(x = start)) +
+  geom_histogram(bins = 100)
+```
+```{r}
+nano_alpha_beta %>% filter(seqnames == "chr22") %>%
+  ggplot(aes(x = start)) +
+  geom_histogram(bins = 100)
+```
+
+```{r}
+rbind(rrbs_alpha_beta %>% filter(seqnames == "chr22") %>% distinct(read_id, start) %>% mutate(technology = "RRBS"),
+      nano_alpha_beta %>% filter(seqnames == "chr22") %>% distinct(read_id, start) %>% mutate(technology = "Cell free Nanopore")) %>%
+  ggplot(aes(x = start, fill = technology)) +
+  geom_histogram(bins = 100, position = "identity")
+```
+
+```{r}
+rrbs_alpha_beta %>% filter(seqnames == "chr22") %>%
+  ggplot(aes(x = start)) +
+  geom_histogram(bins = 100) +
+  geom_histogram(data = nano_alpha_beta, aes(x = start), fill = "red", bins = 100) +
+  theme_bw()
+```
+* use this to justify why using RRBS data in other plots
+
+```{r}
+rrbs_alpha_beta %>% filter(seqnames == "chr22") %>% mutate(technology = "RRBS") %>%
+  ggplot(aes(x = start, fill = technology)) +
+  geom_histogram(bins = 100) +
+  geom_histogram(data = mutate(nano_alpha_beta, technology = "CF Nanopore"), aes(x = start, fill = technology), bins = 100) +
+  theme_bw()
+```
+
+```{r}
+rbind(rrbs_alpha_beta %>% filter(seqnames == "chr22") %>% distinct(read_id, read_start, read_end) %>% mutate(technology = "RRBS"),
+      nano_alpha_beta %>% filter(seqnames == "chr22") %>% distinct(read_id, read_start, read_end) %>% mutate(technology = "Cell free Nanopore")) %>%
+  mutate(read_length = read_end - read_start + 1) %>%
+  ggplot(aes(x = read_length, fill = technology)) +
+  geom_density()
+  #geom_histogram(bins = 100, position = "identity")
+```
+
+```{r}
+rbind(rrbs_alpha_beta %>% filter(seqnames == "chr22") %>% distinct(read_id, read_start, read_end) %>% mutate(technology = "RRBS"),
+      nano_alpha_beta %>% filter(seqnames == "chr22") %>% distinct(read_id, read_start, read_end) %>% mutate(technology = "CF Nanopore")) %>%
+  mutate(read_length = read_end - read_start + 1) %>%
+  ggplot(aes(x = log2(read_length), fill = technology)) +
+  geom_density(alpha = 0.5) +
+  theme_bw()
+#  geom_histogram(bins = 100, position = "identity")
+```
+
+```{r}
+rbind(rrbs_alpha_beta %>% filter(seqnames == "chr22") %>% distinct(read_id, total) %>% mutate(technology = "RRBS"),
+      nano_alpha_beta %>% filter(seqnames == "chr22") %>% distinct(read_id, total) %>% mutate(technology = "CF Nanopore")) %>%
+  ggplot(aes(x = log2(total), fill = technology)) +
+  geom_histogram(alpha = 0.5, bins = 100) +
+  theme_bw()
+
+rrbs_alpha_beta %>% filter(seqnames == "chr22") %>% mutate(technology = "RRBS") %>% distinct(read_id, total, technology) %>%
+  ggplot(aes(x = log2(total), fill = technology)) +
+  geom_histogram(bins = 30) +
+  geom_histogram(data = distinct(mutate(nano_alpha_beta, technology = "CF Nanopore"), read_id, total, technology), aes(x = log2(total), fill = technology), bins = 30) +
+  theme_bw()
+```
+
+
+* gene features
+
+```{r}
+annots <- c("hg38_cpgs")
+
+annotations <- annotatr::build_annotations(genome = 'hg38', annotations = annots)
+seqs <- annotations %>% data.frame() %>% distinct(seqnames) %>% .[1:22,]
+annotations <- annotations %>% data.frame() %>% filter(seqnames %in% seqs)
+
+rrbs_alpha_beta <- find_overlaps(as_granges(rrbs_alpha_beta), as_granges(annotations)) %>% data.frame() %>%
+  mutate(cgi = ifelse(type == "hg38_cpg_islands", "island", "not_island"))
+nano_alpha_beta <- find_overlaps(as_granges(nano_alpha_beta), as_granges(annotations)) %>% data.frame() %>%
+  mutate(cgi = ifelse(type.y == "hg38_cpg_islands", "island", "not_island"))
+```
+
+
+```{r}
+rrbs_alpha_beta %>% distinct(read_id, alpha, cgi) %>%
+  mutate(alpha_group = case_when(alpha < 0.3 ~ "a < 0.3",
+                                alpha > 0.7 ~ "a > 0.7",
+                                TRUE ~ " 0.3 < a < 0.7")) %>%
+  ggplot(aes(x = cgi, fill = alpha_group)) +
+  geom_bar(position = "fill") +
+  theme_bw()
+```
+
+```{r}
+rrbs_alpha_beta %>% filter(seqnames == "chr22") %>% distinct(read_id, alpha, cgi) %>%
+  mutate(alpha_group = case_when(alpha < 0.3 ~ "a < 0.3",
+                                alpha > 0.7 ~ "a > 0.7",
+                                TRUE ~ " 0.3 < a < 0.7")) %>%
+  ggplot(aes(x = cgi, fill = alpha_group)) +
+  geom_bar(position = "fill") +
+  theme_bw()
+```
+
+```{r}
+nano_alpha_beta %>% distinct(read_id, alpha, cgi) %>%
+  mutate(alpha_group = case_when(alpha < 0.3 ~ "a < 0.3",
+                                alpha > 0.7 ~ "a > 0.7",
+                                TRUE ~ " 0.3 < a < 0.7")) %>%
+  ggplot(aes(x = cgi, fill = alpha_group)) +
+  geom_bar(position = "fill") +
+  theme_bw()
+```
+
+```{r}
+rbind(nano_alpha_beta %>% mutate(variable = start, value = beta) %>% distinct(variable, value, cgi) %>% mutate(technology = "Cell free Nanopore", method = "beta"),
+      rrbs_alpha_beta %>% mutate(variable = start, value = beta) %>% distinct(variable, value, cgi) %>% mutate(technology = "RRBS", method = "beta"),
+      nano_alpha_beta %>% mutate(variable = start, value = alpha) %>% distinct(variable, value, cgi) %>% mutate(technology = "Cell free Nanopore", method = "alpha"),
+      rrbs_alpha_beta %>% mutate(variable = start, value = alpha) %>% distinct(variable, value, cgi) %>% mutate(technology = "RRBS", method = "alpha")) %>%
+  mutate(tech_cgi = paste0(technology, ":", cgi),
+    alpha_group = case_when(alpha < 0.3 ~ "a < 0.3",
+                                alpha > 0.7 ~ "a > 0.7",
+                                TRUE ~ " 0.3 < a < 0.7")) %>%
+  ggplot(aes(x = tech_cgi, fill = alpha_group)) +
+  geom_bar(position = "fill") +
+  theme_bw()
+  
+```
+
+```{r}
+rbind(
+      
+      nano_alpha_beta %>% mutate(variable = start, value = alpha) %>% distinct(variable, value, cgi) %>% mutate(technology = "Cell free Nanopore", method = "alpha"),
+      rrbs_alpha_beta %>% mutate(variable = start, value = alpha) %>% distinct(variable, value, cgi) %>% mutate(technology = "RRBS", method = "alpha")) %>%
+  mutate(value_group = case_when(value < 0.3 ~ "a < 0.3",
+                                value > 0.7 ~ "a > 0.7",
+                                TRUE ~ " 0.3 < a < 0.7")) %>%
+  ggplot(aes(x = cgi, fill = value_group, group = technology)) +
+  geom_bar(position = "fill") +
+  theme_bw()
+```
+
+
+```{r}
+annots <- c("hg38_basicgenes", "hg38_genes_intergenic")
+
+annotations <- annotatr::build_annotations(genome = 'hg38', annotations = annots)
+seqs <- annotations %>% data.frame() %>% distinct(seqnames) %>% .[1:22,]
+annotations <- annotations %>% data.frame() %>% filter(seqnames %in% seqs)
+
+rrbs_alpha_beta_genes <- find_overlaps(as_granges(rrbs_alpha_beta), as_granges(annotations)) %>% data.frame()
+nano_alpha_beta_genes <- find_overlaps(as_granges(nano_alpha_beta), as_granges(annotations)) %>% data.frame()
+```
+
+```{r}
+rrbs_alpha_beta_genes %>% distinct(read_id, alpha, type.y) %>%
+  mutate(alpha_group = case_when(alpha < 0.3 ~ "a < 0.3",
+                                alpha > 0.7 ~ "a > 0.7",
+                                TRUE ~ " 0.3 < a < 0.7")) %>%
+  ggplot(aes(x = type.y, fill = alpha_group)) +
+  geom_bar(position = "fill") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
+```
+
+```{r}
+rrbs_alpha_beta_genes %>% distinct(read_id, alpha, type.y) %>%
+  mutate(alpha_group = case_when(alpha < 0.3 ~ "a < 0.3",
+                                alpha > 0.7 ~ "a > 0.7",
+                                TRUE ~ " 0.3 < a < 0.7"),
+         gene_group = case_when(type.y == "hg38_genes_promoters" ~ "promoters",
+                                type.y == "hg38_genes_int")) %>%
+  ggplot(aes(x = type.y, fill = alpha_group)) +
+  geom_bar(position = "fill") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
+```
+
+
+```{r}
+rrbs_alpha_beta_genes %>% filter(seqnames == "chr22") %>% distinct(read_id, alpha, type.y) %>%
+  mutate(alpha_group = case_when(alpha < 0.3 ~ "a < 0.3",
+                                alpha > 0.7 ~ "a > 0.7",
+                                TRUE ~ " 0.3 < a < 0.7")) %>%
+  ggplot(aes(x = type.y, fill = alpha_group)) +
+  geom_bar(position = "fill") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
+```
+
+```{r}
+nano_alpha_beta_genes %>% distinct(read_id, alpha, type) %>%
+  mutate(alpha_group = case_when(alpha < 0.3 ~ "a < 0.3",
+                                alpha > 0.7 ~ "a > 0.7",
+                                TRUE ~ " 0.3 < a < 0.7")) %>%
+  ggplot(aes(x = type, fill = alpha_group)) +
+  geom_bar(position = "fill") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+* this one doesn't look good
+
+* mean
+```{r}
+rrbs_alpha_beta %>%
+  group_by(start, beta) %>% summarise(mean_alpha = mean(alpha)) %>%
+  ggplot(aes(x = beta, y = mean_alpha)) +
+  geom_point(alpha = 0.3) +
+  geom_abline(intercept = 0, linetype = "dashed", colour = "red") +
+  theme_bw()
+```
+
+```{r}
+rrbs_alpha_beta %>%
+  group_by(start, beta) %>% summarise(mean_alpha = mean(alpha)) %>%
+  ggplot(aes(x = beta, y = mean_alpha)) +
+  geom_count(alpha = 0.3) +
+  geom_abline(intercept = 0, linetype = "dashed", colour = "red") +
+  theme_bw()
+```
+
+* just chr22
+```{r}
+rrbs_alpha_beta %>% filter(seqnames == "chr22") %>%
+  group_by(start, beta) %>% summarise(mean_alpha = mean(alpha)) %>%
+  ggplot(aes(x = beta, y = mean_alpha)) +
+  geom_point(alpha = 0.3) +
+  geom_abline(intercept = 0, linetype = "dashed", colour = "red") +
+  theme_bw()
+```
+```{r}
+nano_alpha_beta %>%
+  group_by(start, beta) %>% summarise(mean_alpha = mean(alpha))
+```
+
+```{r}
+nano_alpha_beta %>%
+  group_by(start, beta) %>% summarise(mean_alpha = mean(alpha)) %>%
+  ggplot(aes(x = beta, y = mean_alpha)) +
+  geom_point(alpha = 0.3) +
+  geom_abline(intercept = 0, linetype = "dashed", colour = "red") +
+  theme_bw()
+```
+
+
+# FEATURES OF ALPHA
+
+```{r}
+rrbs_alpha_beta %>% mutate(read_length = read_end - read_start + 1) %>% 
+  distinct(read_id, alpha, total, read_length) %>%
+  ggplot(aes(x = read_length, y = total)) +
+  geom_point(alpha = 0.3) +
+  theme_bw()
+```
+
+```{r}
+rrbs_alpha_beta %>% mutate(read_length = read_end - read_start + 1) %>% 
+  distinct(read_id, alpha, total, read_length) %>%
+  ggplot(aes(x = as.factor(read_length), y = total)) +
+  geom_boxplot() +
+  theme_bw() +
+  theme(legend.position = "none")
+```
+```{r}
+nano_alpha_beta %>% mutate(read_length = read_end - read_start + 1) %>% 
+  distinct(read_id, alpha, total, read_length) %>% distinct(read_length) %>% .[order(.$read_length),] 
+```
+
+
+```{r}
+rrbs_alpha_beta %>% mutate(read_length = read_end - read_start + 1) %>% 
+  distinct(read_id, alpha, total, read_length) %>%
+  ggplot(aes(x = read_length, y = alpha)) +
+  geom_point(alpha = 0.3) +
+  theme_bw()
+```
+
+```{r}
+rrbs_alpha_beta %>% mutate(read_length = read_end - read_start + 1) %>% 
+  distinct(read_id, alpha, total, read_length) %>%
+  ggplot(aes(x = as.factor(read_length), y = alpha)) +
+  geom_boxplot() +
+  theme_bw() +
+  theme(legend.position = "none")
+```
+
+
+```{r}
+rrbs_alpha_beta %>% mutate(read_length = read_end - read_start + 1) %>% 
+  distinct(read_id, alpha, total, read_length) %>%
+  ggplot(aes(x = total, y = alpha)) +
+  geom_point(alpha = 0.3) +
+  theme_bw()
+```
+
+```{r}
+rrbs_alpha_beta %>% mutate(read_length = read_end - read_start + 1) %>% 
+  distinct(read_id, alpha, total, read_length) %>%
+  ggplot(aes(x = as.factor(total), y = alpha)) +
+  geom_boxplot() +
+  theme_bw() +
+  theme(legend.position = "none")
+```
+
+* distance between cpgs
+
+
+
+# COMETHYLATION - MANTEL-HAENSZ
+
+
+# READ VISUALISATIONS
+
+
+# DIFFERENTIAL PROPORTIONS
+
+# DMR analysis
