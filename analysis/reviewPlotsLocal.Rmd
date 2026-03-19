@@ -76,6 +76,16 @@ rbind(
   theme(legend.position = "none")
 ```
 
+```{r}
+rbind(
+      for_beta %>% filter(total > 4) %>% mutate(variable = start, value = beta) %>% distinct(variable, value) %>% mutate(technology = "RRBS", method = "beta"),
+      for_beta %>% filter(total > 4) %>% mutate(variable = read_id, value = alpha) %>% distinct(variable, value) %>% mutate(technology = "RRBS", method = "alpha")) %>%
+  ggplot(aes(x = method, y = value, fill = method)) +
+  geom_violin() +
+  theme_bw() +
+  theme(legend.position = "none")
+```
+
 
 ```{r}
 for_beta %>% distinct(start, beta) %>% .[order(.$start),] %>% mutate(dist_to_next = lead(start) - start) %>%
@@ -280,15 +290,16 @@ overlap_bins_reads_5b %>% dplyr::filter(bin_num == 97770) %>%
 ```{r}
 set.seed(42) # For reproducibility
 # Calculate a single jitter amount per row (segment)
-jitter_amount <- runif(nrow(overlap_bins_reads_5b), -0.01, 0.01) 
+jitter_amount <- runif(nrow(distinct(overlap_bins_reads_5b, read_id)), -0.01, 0.01) 
+read_jitter <- cbind(distinct(overlap_bins_reads_5b, read_id, alpha), jitter_amount) %>% data.frame()
+read_jitter$alpha_jit <- read_jitter$alpha + read_jitter$jitter_amount
 
 # Add jittered coordinates to new columns in the data frame
-overlap_bins_reads_5b$alpha_jit <- overlap_bins_reads_5b$alpha + jitter_amount
+overlap_bins_reads_5b$alpha_jit <- overlap_bins_reads_5b[match(overlap_bins_reads_5b$read_id, read_jitter$read_id), "alpha_jit"]
 ```
 
 
 * high var in alpha
- 
 ```{r}
 overlap_bins_reads_5b %>% dplyr::filter(bin_num == 97770) %>%
   ggplot(aes(x = read_start, y = alpha, colour = read_id)) +
@@ -314,6 +325,22 @@ overlap_bins_reads_5b %>% dplyr::filter(bin_num == 92143) %>% group_by(read_star
   geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha, linewidth = count)) +
   guides(colour = "none") +
   theme_bw()
+```
+```{r}
+overlap_bins_reads_5b %>% dplyr::filter(bin_num == 92143) %>% distinct(read_id) %>% .$read_id
+
+overlap_bins_reads_5b %>% distinct(read_id, bin_num) %>% group_by(bin_num) %>% summarise(n=n()) %>% .[order(.$n, decreasing = TRUE),] 
+```
+```{r}
+rrbs_plot(for_beta, read_ids = overlap_bins_reads_5b %>% dplyr::filter(bin_num == 25388) %>% distinct(read_id) %>% .$read_id, count_instead = TRUE) + theme_bw()
+rrbs_plot2(for_beta, read_ids = overlap_bins_reads_5b %>% dplyr::filter(bin_num == 25388) %>% distinct(read_id) %>% .$read_id, count_instead = TRUE) + theme_bw()
+```
+
+
+```{r}
+rrbs_plot(for_beta, read_ids = overlap_bins_reads_5b %>% dplyr::filter(bin_num == 92143) %>% distinct(read_id) %>% .$read_id, count_instead = TRUE) + theme_bw()
+rrbs_plot(for_beta, read_ids = overlap_bins_reads_5b %>% dplyr::filter(bin_num == 21144) %>% distinct(read_id) %>% .$read_id, count_instead = TRUE) + theme_bw()
+rrbs_plot(for_beta, read_ids = overlap_bins_reads_5b %>% dplyr::filter(bin_num == 25388) %>% distinct(read_id) %>% .$read_id, count_instead = TRUE) + theme_bw()
 ```
 
 
@@ -449,6 +476,43 @@ grouped_betas[1:10,]
 ```{r}
 source("../code/processData.R")
 rrbs_plot(for_beta, for_beta %>% filter(start %in% just_beta[1:6,]$start) %>% .$read_id %>% unique()) + theme_bw()
+```
+```{r}
+rrbs_plot(for_beta, for_beta %>% filter(start %in% just_beta[1:6,]$start) %>% .$read_id %>% unique(), count_instead = TRUE) + theme_bw()
+for_beta %>% filter(start %in% just_beta[1:6,]$start) %>% distinct(read_id, alpha) %>%
+  ggplot(aes(x = alpha)) +
+  geom_density() +
+  theme_bw()
+
+for_beta %>% filter(start %in% just_beta[1:6,]$start) %>% distinct(read_id, alpha) %>% mutate(region = "region") %>%
+  ggplot(aes(x = region, y = alpha)) +
+  geom_violin() +
+  theme_bw() +
+  theme(legend.position = "none")
+
+rbind(
+      for_beta %>% filter(start %in% just_beta[1:6,]$start) %>% mutate(variable = start, value = beta) %>% distinct(variable, value) %>% mutate(technology = "RRBS", method = "beta"),
+      for_beta %>% filter(start %in% just_beta[1:6,]$start) %>% mutate(variable = read_id, value = alpha) %>% distinct(variable, value) %>% mutate(technology = "RRBS", method = "alpha")) %>%
+  ggplot(aes(x = method, y = value, fill = method)) +
+  geom_violin() +
+  theme_bw() +
+  theme(legend.position = "none")
+
+rbind(
+      for_beta %>% filter(start %in% just_beta[1:6,]$start) %>% mutate(variable = start, value = beta) %>% distinct(variable, value) %>% mutate(technology = "RRBS", method = "beta"),
+      for_beta %>% filter(start %in% just_beta[1:6,]$start) %>% mutate(variable = read_id, value = alpha) %>% distinct(variable, value) %>% mutate(technology = "RRBS", method = "alpha")) %>%
+  ggplot(aes(x = method, y = value, fill = method)) +
+  geom_boxplot() +
+  geom_violin() +
+  theme_bw() +
+  theme(legend.position = "none")
+
+rbind(
+      for_beta %>% filter(start %in% just_beta[1:6,]$start) %>% mutate(variable = start, value = beta) %>% distinct(variable, value) %>% mutate(technology = "RRBS", method = "beta"),
+      for_beta %>% filter(start %in% just_beta[1:6,]$start) %>% mutate(variable = read_id, value = alpha) %>% distinct(variable, value) %>% mutate(technology = "RRBS", method = "alpha")) %>%
+  ggplot(aes(x = value, colour = method)) +
+  geom_density() +
+  theme_bw()
 ```
 
 ```{r}
@@ -783,6 +847,7 @@ test_reads <- for_beta_genes[,c(1:16,22:23,26:28)] %>% distinct() %>%
   filter(symbol.y == "FRG1FP") %>% distinct(read_id) %>% .$read_id
 
 rrbs_plot(for_beta, read_ids = test_reads) + theme_bw()
+rrbs_plot(for_beta, read_ids = test_reads, count_instead = TRUE) + theme_bw()
 ```
 ```{r}
 for_beta_genes[,c(1:16,22:23,26:28)] %>% distinct() %>%
@@ -835,17 +900,28 @@ for_beta_genes[,c(1:16,22:23,26:28)] %>% distinct() %>%
 ## DMR analysis
 
 ```{r}
+#gm12878_2 <- readRDS("/researchers/caitlin.page/cf_nano/r_output/rrbs_alpha_beta_rep2.rds")
+gm12878_2 <- readRDS("../output/cluster_files/rrbs_alpha_beta_rep2.rds")
+#k562 <- readRDS("/researchers/caitlin.page/cf_nano/r_output/k562_rep1.rds")
+k562 <- readRDS("../output/cluster_files/k562_rep1.rds")
+#k562_2 <- readRDS("/researchers/caitlin.page/cf_nano/r_output/k562_rep2.rds")
+k562_2 <- readRDS("../output/cluster_files/k562_rep2.rds")
+```
+
+```{r}
 dmrcate_seq_dmr
+for_beta_all
+gm12878_2
 ```
 
 ```{r}
-k562 <- k562[,colnames(rrbs_alpha_beta)]
-k562_2 <- k562_2[,colnames(rrbs_alpha_beta)]
+k562 <- k562[,colnames(for_beta_all)]
+k562_2 <- k562_2[,colnames(for_beta_all)]
 ```
 
 
 ```{r}
-all_samples <- rbind(rrbs_alpha_beta %>% mutate(sample = "b1"), gm12878_2 %>% mutate(sample = "b2"), 
+all_samples <- rbind(for_beta_all %>% mutate(sample = "b1"), gm12878_2 %>% mutate(sample = "b2"), 
                      k562 %>% mutate(sample = "cml1"), k562_2 %>% mutate(sample = "cml2"))
 ```
 
@@ -1092,4 +1168,94 @@ tpm_mat %>% mutate(alpha_group = sub(".*_", "", id)) %>% .[,6:11] %>%
   facet_wrap(~ gene_id)
 ```
 
+##
+# presentation plots
+
+# dist boxplots but combine them
+
+
+
+
+```{r}
+rbind(
+      for_beta %>% distinct(start, beta) %>% .[order(.$start),] %>% mutate(dist_to_next = lead(start) - start) %>% mutate(variable = start, value = beta) %>% distinct(variable, value, dist_to_next) %>% mutate(technology = "RRBS", method = "beta"),
+      for_beta %>% group_by(read_id) %>% mutate(dist_to_next = lead(start) - start) %>% ungroup() %>% mutate(variable = read_id, value = alpha) %>% distinct(variable, value, dist_to_next) %>% mutate(technology = "RRBS", method = "alpha")) %>% 
+  filter(value %in% c(0,0.5,1)) %>%
+  ggplot(aes(x = as.factor(value), y = log2(dist_to_next), fill = method)) +
+  geom_boxplot() +
+  theme_bw() 
+  theme(legend.position = "none")
+```
+
+
+```{r}
+for_beta %>% distinct(start, beta) %>% .[order(.$start),] %>% mutate(dist_to_next = lead(start) - start) %>%
+  filter(beta %in% c(0,0.5,1)) %>%
+  ggplot(aes(x = as.factor(beta), y = log2(dist_to_next), fill = as.factor(beta))) +
+  geom_boxplot() +
+  theme_bw() +
+  theme(legend.position = "none")
+```
+
+```{r}
+for_beta %>% filter(beta == 0.5) %>% distinct(read_id, alpha, beta) %>%
+  ggplot(aes(x = alpha)) +
+  geom_density() +
+  theme_bw() +
+  theme(legend.position = "none")
+
+for_beta %>% filter(beta > 0.4, beta < 0.6) %>% distinct(read_id, alpha, beta) %>%
+  ggplot(aes(x = alpha)) +
+  geom_density() +
+  theme_bw() +
+  theme(legend.position = "none")
+```
+```{r}
+for_beta %>% distinct(read_id, alpha, total) %>%
+  ggplot(aes(x = total)) +
+  geom_histogram()
+
+
+for_beta %>% distinct(read_id, alpha, total) %>% filter(total > 1) %>%
+  ggplot(aes(x = as.factor(total), fill = as.factor(total))) +
+  geom_bar() +
+  theme_bw() +
+  theme(legend.position = "none")
+```
+
+
+```{r}
+for_beta %>% filter(beta == 0.5) %>% distinct(read_id, alpha, beta) %>%
+  ggplot(aes(x = as.factor(beta), y = alpha)) +
+  geom_violin(fill = "lavender") +
+  theme_bw() +
+  theme(legend.position = "none")
+
+for_beta %>% filter(beta != 0.5) %>% distinct(read_id, alpha, beta) %>% mutate(a = "not_0.5") %>%
+  ggplot(aes(x = a, y = alpha)) +
+  geom_violin(fill = "lavender") +
+  theme_bw() +
+  theme(legend.position = "none")
+```
+- default red group: #F8766D
+- default blue: #619CFF - actually it's not the colour I want
+-well it's the blue in the boxplot but i want the blue from the violin plot
+- default green group: #00BA38
+
+
+```{r}
+for_beta %>% distinct(read_id, alpha, beta) %>% mutate(beta_0.5 = ifelse(beta == 0.5, TRUE, FALSE)) %>%
+  ggplot(aes(x = beta_0.5, y = alpha, fill = beta_0.5)) +
+  geom_violin() +
+  theme_bw() +
+  theme(legend.position = "none")
+```
+
+```{r}
+for_beta %>% distinct(read_id, alpha, beta) %>% mutate(beta_0.4_0.6 = ifelse(beta > 0.4 & beta < 0.6, TRUE, FALSE)) %>%
+  ggplot(aes(x = beta_0.4_0.6, y = alpha, fill = beta_0.4_0.6)) +
+  geom_violin() +
+  theme_bw() +
+  theme(legend.position = "none")
+```
 
