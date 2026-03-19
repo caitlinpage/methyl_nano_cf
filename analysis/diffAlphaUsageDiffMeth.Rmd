@@ -431,7 +431,7 @@ find_overlaps(as_granges(all_samples), as_granges(dmrcate_seq_dmr[7909,])) %>% d
 ## dtu on top dmr
 
 ```{r}
-dtu_dmr <- find_overlaps(as_granges(all_samples), as_granges(mutate(dmrcate_seq_dmr, rank = paste0("DMR:", 1:nrow(dmrcate_seq_dmr))))) %>% data.frame() %>%
+dtu_dmr <- find_overlaps(as_granges(all_samples), as_granges(mutate(dmrs, rank = paste0("DMR:", 1:nrow(dmrs))))) %>% data.frame() %>%
   distinct(sample, read_id, read_start, read_end, alpha, rank) %>% 
   mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
                                 alpha > 0.8 ~ "a > 0.8",
