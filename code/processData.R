@@ -186,3 +186,39 @@ rrbs_plot <- function(long_data, read_ids, cpgs = cg_sites, count_instead = FALS
   }
   plot
 }
+
+# plot only first cpg on read
+rrbs_plot2 <- function(long_data, read_ids, cpgs = cg_sites, read_width = FALSE, count_instead = FALSE) {
+  set.seed(42) # For reproducibility
+  # Calculate a single jitter amount per row (segment)
+  jitter_amount <- runif(nrow(distinct(long_data, read_id)), -0.01, 0.01)
+
+  # Add jittered coordinates to new columns in the data frame
+  overlap_bins_reads_5b$alpha_jit <- overlap_bins_reads_5b$alpha + jitter_amount
+  if(count_instead == FALSE) {
+    plot <- long_data %>% dplyr::filter(read_id %in% read_ids) %>%
+      distinct(read_id, read_start, read_end, alpha) %>%
+      ggplot() +
+      geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha), alpha = 0.2) +
+      geom_point(data = dplyr::filter(long_data, read_id %in% read_ids, start == read_start),
+                 aes(x = start, y = alpha, colour = meth_status)) +
+      geom_point(data = distinct(dplyr::filter(long_data, read_id %in% read_ids), start, beta),
+                 aes(x = start, y = beta), shape = 4, size = 3) +
+      geom_segment(data = filter(cg_sites, start >= min(dplyr::filter(long_data, read_id %in% read_ids)$start),
+                                 end <= max(dplyr::filter(long_data, read_id %in% read_ids)$end)),
+                   aes(x = start, xend = start, y = -0.15, yend = -0.05), colour = "green")
+  } else {
+    plot <- long_data %>% dplyr::filter(read_id %in% read_ids) %>%
+      distinct(read_id, read_start, read_end, alpha) %>%
+      ggplot() +
+      geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha), alpha = 0.2) +
+      geom_count(data = dplyr::filter(long_data, read_id %in% read_ids, start == read_start),
+                 aes(x = start, y = alpha, colour = meth_status)) +
+      geom_point(data = distinct(dplyr::filter(long_data, read_id %in% read_ids), start, beta),
+                 aes(x = start, y = beta), shape = 4, size = 3) +
+      geom_segment(data = filter(cg_sites, start >= min(dplyr::filter(long_data, read_id %in% read_ids)$start),
+                                 end <= max(dplyr::filter(long_data, read_id %in% read_ids)$end)),
+                   aes(x = start, xend = start, y = -0.15, yend = -0.05), colour = "green")
+  }
+  plot
+}
