@@ -1,0 +1,114 @@
+---
+title: "diffAlphaUsageCompare"
+author: "Caitlin Page"
+date: "2026-03-20"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+
+
+## Introduction
+
+* Q: do the DTUs overlap the DMRs??
+
+* except I did dmrs on everything, and did dtu on chr22
+* and memory limit keeps expiring uh
+
+```{r}
+tpm_mat <- readRDS("../output/cluster_files/dtu_prop.rds")
+ts.gene.gene <- readRDS("../output/cluster_files/dtu_res_gene.rds")
+ts.gene.simes <- readRDS("../output/cluster_files/dtu_res_simes.rds")
+```
+
+```{r}
+#dmrcate_seq_dmr <- readRDS("/researchers/caitlin.page/cf_nano/r_output/dmr_encode_gm12878_k562.rds")
+dmrcate_seq_dmr <- readRDS("../output/cluster_files/dmr_encode_gm12878_k562.rds")
+```
+
+
+
+```{r}
+dmrcate_seq_dmr
+```
+
+```{r}
+ts.gene.simes %>% group_by(gene_id) %>% summarise(n=n()) %>% filter(n>1)
+ts.gene.gene %>% group_by(gene_id) %>% summarise(n=n()) %>% filter(n>1)
+```
+
+* need gene positions/read positions
+
+
+```{r}
+colnames(dtu_for_beta)[3] <- "gene_id"
+colnames(dtu_for_beta)[4] <- "symbol"
+```
+
+```{r}
+dtu_all <- rbind(dtu_for_beta %>% mutate(sample = "b1"),
+      dtu_beta_2 %>% mutate(sample = "b2"),
+      dtu_k562 %>% mutate(sample = "cml1"),
+      dtu_k562_2 %>% mutate(sample = "cml2"))
+```
+```{r}
+ts.gene.simes %>% filter(FDR < 0.05)
+```
+
+```{r}
+dtu_all <- dtu_all %>% filter(symbol %in% filter(ts.gene.simes, FDR < 0.05)$gene_id) %>% mutate(seqnames = "chr22", start = read_start, end = read_end)
+```
+```{r}
+dmrcate_seq_dmr$rank <- 1:nrow(dmrcate_seq_dmr)
+```
+
+```{r}
+overlap <- find_overlaps(as_granges(dmrcate_seq_dmr), as_granges(dtu_all)) %>% data.frame()
+```
+
+```{r}
+ts.gene.simes %>% filter(FDR < 0.05) %>% mutate(rank = 1:n(), overlap_dmr = ifelse(gene_id %in% overlap$symbol, TRUE, FALSE)) %>% group_by(overlap_dmr) %>% summarise(n=n())
+```
+
+```{r}
+dmrcate_seq_dmr %>% filter(seqnames == "chr22") %>% mutate(overlap_dtu = ifelse(rank %in% overlap$rank, TRUE, FALSE)) %>% group_by(overlap_dtu) %>% summarise(n=n())
+```
+```{r}
+dmrcate_seq_dmr %>% filter(seqnames == "chr22")
+```
+
+* ok so not all overlap
+* but would more overlap if I did it right?
+
+```{r}
+ts.gene.simes %>% filter(FDR < 0.05) %>% mutate(rank = 1:n(), overlap_dmr = ifelse(gene_id %in% overlap$symbol, TRUE, FALSE)) %>%
+  ggplot(aes(x = rank, colour = overlap_dmr)) +
+  geom_density()
+
+ts.gene.simes %>% filter(FDR < 0.05) %>% mutate(rank = 1:n(), overlap_dmr = ifelse(gene_id %in% overlap$symbol, TRUE, FALSE)) %>%
+  ggplot(aes(x = rank, fill = overlap_dmr)) +
+  geom_histogram()
+
+```
+
+```{r}
+dmrcate_seq_dmr %>% mutate(overlap_dtu = ifelse(rank %in% overlap$rank, TRUE, FALSE)) %>%
+  ggplot(aes(x = rank, colour = overlap_dtu)) +
+  geom_density()
+
+dmrcate_seq_dmr %>% mutate(overlap_dtu = ifelse(rank %in% overlap$rank, TRUE, FALSE)) %>%
+  ggplot(aes(x = rank, fill = overlap_dtu)) +
+  geom_histogram()
+```
+
+
+# what are the genes that didn't overlap?
+```{r}
+ts.gene.simes %>% filter(FDR < 0.05) %>% mutate(rank = 1:n(), overlap_dmr = ifelse(gene_id %in% overlap$symbol, TRUE, FALSE)) %>% filter(overlap_dmr == FALSE)
+```
+
+```{r}
+tpm_mat
+```
+
