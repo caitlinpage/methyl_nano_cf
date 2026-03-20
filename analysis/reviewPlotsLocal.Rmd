@@ -27,7 +27,6 @@ cg_sites$index <- 1:nrow(cg_sites)
 ```
 
 ```{r}
-
 source("../code/processData.R")
 #for_beta_all <- readRDS("/researchers/caitlin.page/cf_nano/r_output/rrbs_alpha_beta.rds")
 for_beta_all <- readRDS("../output/cluster_files/rrbs_alpha_beta_all.rds")
@@ -66,6 +65,20 @@ for_beta_genes <- find_overlaps(as_granges(for_beta), as_granges(annotations)) %
 for_beta_genes[1:10,]
 ```
 
+# data structures
+
+```{r}
+a <- just_beta[,c(5,1,2,3)] 
+a[1:5,]
+rrbs_for_beta_pat[1:5,c(1:3,7)]
+```
+
+```{r}
+for_beta[1:10,c(6,1:5,7:17)]
+```
+
+# Distributions
+
 ```{r}
 rbind(
       for_beta %>% mutate(variable = start, value = beta) %>% distinct(variable, value) %>% mutate(technology = "RRBS", method = "beta"),
@@ -86,6 +99,21 @@ rbind(
   theme(legend.position = "none")
 ```
 
+```{r}
+for_beta %>% distinct(read_id, alpha, total) %>%
+  ggplot(aes(x = total)) +
+  geom_histogram()
+
+
+for_beta %>% distinct(read_id, alpha, total) %>% filter(total > 1) %>%
+  ggplot(aes(x = as.factor(total), fill = as.factor(total))) +
+  geom_bar() +
+  theme_bw() +
+  theme(legend.position = "none")
+```
+
+
+# distance between CpGs
 
 ```{r}
 for_beta %>% distinct(start, beta) %>% .[order(.$start),] %>% mutate(dist_to_next = lead(start) - start) %>%
@@ -250,14 +278,15 @@ overlap_bins_reads_5b %>% group_by(bin_num) %>% summarise(var_alpha = var(alpha)
 ```
 
 ```{r}
-overlap_bins_reads %>% group_by(bin_num) %>% summarise(var_alpha = var(alpha)) %>% .[order(.$var_alpha, decreasing = TRUE),]
+overlap_bins_reads %>% group_by(bin_num) %>% summarise(var_alpha = var(alpha)) %>% 
+  .[order(.$var_alpha, decreasing = TRUE),] %>% .[1:10,]
 ```
 
 ```{r}
-overlap_bins_reads %>% filter(total > 2) %>% group_by(bin_num) %>% summarise(var_alpha = var(alpha), num_reads = n()) %>% .[order(.$var_alpha, decreasing = TRUE),] %>% filter(num_reads > 3)
+overlap_bins_reads %>% filter(total > 2) %>% group_by(bin_num) %>% summarise(var_alpha = var(alpha), num_reads = n()) %>% .[order(.$var_alpha, decreasing = TRUE),] %>% filter(num_reads > 3) %>% .[1:10,]
 ```
 ```{r}
-overlap_bins_reads_5b %>% filter(total > 2) %>% group_by(bin_num) %>% summarise(var_alpha = var(alpha), num_reads = n()) %>% .[order(.$var_alpha, decreasing = TRUE),] %>% filter(num_reads > 3)
+overlap_bins_reads_5b %>% filter(total > 2) %>% group_by(bin_num) %>% summarise(var_alpha = var(alpha), num_reads = n()) %>% .[order(.$var_alpha, decreasing = TRUE),] %>% filter(num_reads > 3) %>% .[1:10,]
 ```
 
 ```{r}
@@ -317,7 +346,7 @@ overlap_bins_reads_5b %>% dplyr::filter(bin_num == 97770) %>% group_by(read_star
 
 * high density
 ```{r}
-overlap_bins_reads_5b %>% filter(total > 2) %>% group_by(bin_num) %>% summarise(var_alpha = var(alpha), num_reads = n()) %>% .[order(.$num_reads, decreasing = TRUE),]
+overlap_bins_reads_5b %>% filter(total > 2) %>% group_by(bin_num) %>% summarise(var_alpha = var(alpha), num_reads = n()) %>% .[order(.$num_reads, decreasing = TRUE),] %>% .[1:10,]
 ```
 ```{r}
 overlap_bins_reads_5b %>% dplyr::filter(bin_num == 92143) %>% group_by(read_start, alpha) %>% mutate(count = n()) %>%
@@ -327,17 +356,18 @@ overlap_bins_reads_5b %>% dplyr::filter(bin_num == 92143) %>% group_by(read_star
   theme_bw()
 ```
 ```{r}
-overlap_bins_reads_5b %>% dplyr::filter(bin_num == 92143) %>% distinct(read_id) %>% .$read_id
-
-overlap_bins_reads_5b %>% distinct(read_id, bin_num) %>% group_by(bin_num) %>% summarise(n=n()) %>% .[order(.$n, decreasing = TRUE),] 
+overlap_bins_reads_5b %>% distinct(read_id, bin_num) %>% group_by(bin_num) %>% 
+  summarise(n=n()) %>% .[order(.$n, decreasing = TRUE),] %>% .[1:10,]
 ```
 ```{r}
+source("../code/processData.R")
 rrbs_plot(for_beta, read_ids = overlap_bins_reads_5b %>% dplyr::filter(bin_num == 25388) %>% distinct(read_id) %>% .$read_id, count_instead = TRUE) + theme_bw()
 rrbs_plot2(for_beta, read_ids = overlap_bins_reads_5b %>% dplyr::filter(bin_num == 25388) %>% distinct(read_id) %>% .$read_id, count_instead = TRUE) + theme_bw()
 ```
 
 
 ```{r}
+source("../code/processData.R")
 rrbs_plot(for_beta, read_ids = overlap_bins_reads_5b %>% dplyr::filter(bin_num == 92143) %>% distinct(read_id) %>% .$read_id, count_instead = TRUE) + theme_bw()
 rrbs_plot(for_beta, read_ids = overlap_bins_reads_5b %>% dplyr::filter(bin_num == 21144) %>% distinct(read_id) %>% .$read_id, count_instead = TRUE) + theme_bw()
 rrbs_plot(for_beta, read_ids = overlap_bins_reads_5b %>% dplyr::filter(bin_num == 25388) %>% distinct(read_id) %>% .$read_id, count_instead = TRUE) + theme_bw()
@@ -447,7 +477,7 @@ just_beta %>%
   group_by(group) %>%
   mutate(length = n(), av_coverage = mean(coverage), av_beta = mean(beta)) %>%
   ungroup() %>%
-  distinct(group, beta_range, length, av_coverage, av_beta) %>% filter(beta_range == "medium", length > 2) %>% .[order(.$length, decreasing = TRUE),] 
+  distinct(group, beta_range, length, av_coverage, av_beta) %>% filter(beta_range == "medium", length > 2) %>% .[order(.$length, decreasing = TRUE),] %>% .[1:10,]
 ```
 
 ```{r}
@@ -478,6 +508,7 @@ source("../code/processData.R")
 rrbs_plot(for_beta, for_beta %>% filter(start %in% just_beta[1:6,]$start) %>% .$read_id %>% unique()) + theme_bw()
 ```
 ```{r}
+source("../code/processData.R")
 rrbs_plot(for_beta, for_beta %>% filter(start %in% just_beta[1:6,]$start) %>% .$read_id %>% unique(), count_instead = TRUE) + theme_bw()
 for_beta %>% filter(start %in% just_beta[1:6,]$start) %>% distinct(read_id, alpha) %>%
   ggplot(aes(x = alpha)) +
@@ -520,27 +551,6 @@ just_beta[1:6,]
 for_beta %>% filter(start %in% just_beta[1:6,]$start) %>% distinct(read_id, alpha) %>% summarise(var(alpha))
 ```
 
-# data structures
-
-```{r}
-for_beta_all %>% distinct(read_id)
-for_beta_all
-```
-
-```{r}
-for_beta_all %>% distinct(seqnames, start)
-```
-
-```{r}
-a <- just_beta[,c(5,1,2,3)] 
-just_beta
-a[1:5,]
-rrbs_for_beta_pat[1:5,c(1:3,7)]
-```
-
-```{r}
-for_beta[1:10,c(6,1:5,7:17)]
-```
 
 # proportions
 
@@ -589,19 +599,12 @@ rbind(
 # dmr analysis
 
 ```{r}
-for_beta_2 <- readRDS("../output/cluster_files/rrbs_alpha_beta_rep2.rds")
-
-k562_1 <- readRDS("../output/cluster_files/k562_rep1.rds")
-k562_2 <- readRDS("../output/cluster_files/k562_rep2.rds")
-```
-
-```{r}
 dmrs <- readRDS("../output/cluster_files/dmr_encode_gm12878_k562.rds")
 dmrs$id <- 1:nrow(dmrs)
 ```
 
 ```{r}
-find_overlaps(as_granges(mutate(just_beta, width = 1)), as_granges(dmrs)) %>% data.frame() %>% group_by(id, beta_range) %>% summarise(n())
+find_overlaps(as_granges(mutate(just_beta, width = 1)), as_granges(dmrs)) %>% data.frame() %>% group_by(id, beta_range) %>% summarise(n()) %>% .[1:10,]
 ```
 ```{r}
 find_overlaps(as_granges(mutate(just_beta, width = 1)), as_granges(dmrs)) %>% data.frame() %>% group_by(id) %>% summarise(mean_beta = mean(beta)) %>% ungroup() %>%
@@ -707,7 +710,7 @@ for_beta_genes[,c(1:16,22:23,26:28)] %>% distinct() %>%
 ```{r}
 for_beta_genes[,c(1:16,22:23,26:28)] %>% distinct() %>%
   filter(!is.na(symbol.y)) %>%
-  distinct(read_id, alpha, gene_id.y, symbol.y) %>% distinct(symbol.y)
+  distinct(read_id, alpha, gene_id.y, symbol.y) %>% distinct(symbol.y) %>% .[1:10,]
 ```
 
 
@@ -726,7 +729,7 @@ for_beta_genes[,c(1:16,22:23,26:28)] %>% distinct() %>%
   group_by(gene_id.y) %>%
   mutate(mean_beta = mean(beta), n_cgs= n()) %>% 
   ungroup() %>% distinct(gene_id.y, symbol.y, mean_beta, n_cgs) %>%
-  filter(mean_beta > 0.4 & mean_beta < 0.6)
+  filter(mean_beta > 0.4 & mean_beta < 0.6) %>% .[1:10,]
 
 for_beta_genes[,c(1:16,22:23,26:28)] %>% distinct() %>%
   filter(!is.na(symbol.y)) %>%
@@ -734,7 +737,7 @@ for_beta_genes[,c(1:16,22:23,26:28)] %>% distinct() %>%
   group_by(gene_id.y) %>%
   mutate(mean_beta = mean(beta), n_cgs= n()) %>% 
   ungroup() %>% distinct(gene_id.y, symbol.y, mean_beta, n_cgs) %>%
-  filter(mean_beta == 0.5) 
+  filter(mean_beta == 0.5) %>% .[1:10,]
 
 # mean alpha
 for_beta_genes[,c(1:16,22:23,26:28)] %>% distinct() %>%
@@ -743,7 +746,7 @@ for_beta_genes[,c(1:16,22:23,26:28)] %>% distinct() %>%
   group_by(gene_id.y) %>%
   mutate(mean_alpha = mean(alpha), n_reads= n()) %>% 
   ungroup() %>% distinct(gene_id.y, symbol.y, mean_alpha, n_reads) %>%
-  filter(mean_alpha == 0.5) 
+  filter(mean_alpha == 0.5) %>% .[1:10,]
 
 for_beta_genes[,c(1:16,22:23,26:28)] %>% distinct() %>%
   filter(!is.na(symbol.y)) %>%
@@ -751,7 +754,7 @@ for_beta_genes[,c(1:16,22:23,26:28)] %>% distinct() %>%
   group_by(gene_id.y) %>%
   mutate(mean_alpha = mean(alpha), n_reads= n()) %>% 
   ungroup() %>% distinct(gene_id.y, symbol.y, mean_alpha, n_reads) %>%
-  filter(mean_alpha > 0.4, mean_alpha < 0.6) 
+  filter(mean_alpha > 0.4, mean_alpha < 0.6) %>% .[1:10,]
 ```
 * it is a lot of the same genes that have mean_alpha=mean_beta = 0.5
 
@@ -769,7 +772,7 @@ for_beta_genes[,c(1:16,22:23,26:28)] %>% distinct() %>%
   group_by(gene_id.y) %>%
   mutate(mean_value = mean(alpha), n= n()) %>% 
   ungroup() %>% distinct(gene_id.y, symbol.y, mean_value, n) %>%
-  filter(mean_value == 0.5) %>% mutate(value = "alpha")) %>% group_by(symbol.y) %>% mutate(n=n()) 
+  filter(mean_value == 0.5) %>% mutate(value = "alpha")) %>% group_by(symbol.y) %>% mutate(n=n()) %>% .[1:10,]
 ```
 
 
@@ -792,7 +795,7 @@ medium_genes <- for_beta_genes[,c(1:16,22:23,26:28)] %>% distinct() %>%
   group_by(gene_id.y) %>%
   mutate(mean_beta = mean(beta), n_cgs= n()) %>% 
   ungroup() %>% distinct(gene_id.y, symbol.y, mean_beta, n_cgs) %>%
-  filter(mean_beta >= 0.4 & mean_beta <= 0.6) %>% .[order(.$mean_beta),]
+  filter(mean_beta >= 0.4 & mean_beta <= 0.6) %>% .[order(.$mean_beta),] %>% .[1:10,]
 
 for_beta_genes %>% mutate(gene_status = ifelse(symbol.y %in% medium_genes$symbol.y, "medium_beta", "not")) %>%
   distinct(read_id, alpha, symbol.y, gene_status) %>%
@@ -813,11 +816,11 @@ for_beta_genes %>% mutate(gene_status = ifelse(symbol.y %in% medium_genes$symbol
 
 ```{r}
 for_beta_genes[,c(1:16,22:23,26:28)] %>% distinct() %>%
-  filter(symbol.y == "SLC5A1") %>% distinct(read_id, meth_pattern)
+  filter(symbol.y == "SLC5A1") %>% distinct(read_id, meth_pattern) %>% .[1:10,]
 ```
 
 ```{r}
-#source("../code/processData.R")
+source("../code/processData.R")
 test_reads <- for_beta_genes[,c(1:16,22:23,26:28)] %>% distinct() %>%
   filter(symbol.y == "SLC5A1") %>% distinct(read_id) %>% .$read_id
 
@@ -842,9 +845,9 @@ for_beta_genes[,c(1:16,22:23,26:28)] %>% distinct() %>%
 ```
 
 ```{r}
-#source("../code/processData.R")
+source("../code/processData.R")
 test_reads <- for_beta_genes[,c(1:16,22:23,26:28)] %>% distinct() %>%
-  filter(symbol.y == "FRG1FP") %>% distinct(read_id) %>% .$read_id
+  filter(symbol.y == "FRG1FP") %>% distinct(read_id) %>% .$read_id 
 
 rrbs_plot(for_beta, read_ids = test_reads) + theme_bw()
 rrbs_plot(for_beta, read_ids = test_reads, count_instead = TRUE) + theme_bw()
@@ -908,11 +911,7 @@ k562 <- readRDS("../output/cluster_files/k562_rep1.rds")
 k562_2 <- readRDS("../output/cluster_files/k562_rep2.rds")
 ```
 
-```{r}
-dmrcate_seq_dmr
-for_beta_all
-gm12878_2
-```
+
 
 ```{r}
 k562 <- k562[,colnames(for_beta_all)]
@@ -925,17 +924,11 @@ all_samples <- rbind(for_beta_all %>% mutate(sample = "b1"), gm12878_2 %>% mutat
                      k562 %>% mutate(sample = "cml1"), k562_2 %>% mutate(sample = "cml2"))
 ```
 
-```{r}
-rrbs_alpha_beta
-```
 
 ```{r}
-find_overlaps(as_granges(all_samples), as_granges(dmrcate_seq_dmr[1,])) %>% data.frame()
+find_overlaps(as_granges(all_samples), as_granges(dmrcate_seq_dmr[1,])) %>% data.frame() %>% .[1:10,]
 ```
 
-```{r}
-find_overlaps(as_granges(all_samples), as_granges(dmrcate_seq_dmr[1,])) %>% data.frame()
-```
 
 
 
@@ -952,7 +945,7 @@ find_overlaps(as_granges(all_samples), as_granges(dmrcate_seq_dmr[1,])) %>% data
 ```{r}
 find_overlaps(as_granges(all_samples), as_granges(dmrcate_seq_dmr[1,])) %>% data.frame() %>%
   group_by(sample, read_id, read_start, read_end, alpha) %>%
-  summarise(count = n()) %>% ungroup() %>% filter(count > 1)
+  summarise(count = n()) %>% ungroup() %>% filter(count > 1) %>% nrow()
 ```
 
 
@@ -1053,11 +1046,11 @@ find_overlaps(as_granges(all_samples), as_granges(dmrcate_seq_dmr[7909,])) %>% d
 
 ## dtu on top dmr
 ```{r}
-dmrs
+dmrs[1:5,]
 ```
 
 ```{r}
-dtu_dmr <- find_overlaps(as_granges(all_samples), as_granges(mutate(dmrcate_seq_dmr, rank = paste0("DMR:", 1:nrow(dmrcate_seq_dmr))))) %>% data.frame() %>%
+dtu_dmr <- find_overlaps(as_granges(all_samples), as_granges(mutate(dmrs, rank = paste0("DMR:", 1:nrow(dmrs))))) %>% data.frame() %>%
   distinct(sample, read_id, read_start, read_end, alpha, rank) %>% 
   mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
                                 alpha > 0.8 ~ "a > 0.8",
@@ -1210,18 +1203,7 @@ for_beta %>% filter(beta > 0.4, beta < 0.6) %>% distinct(read_id, alpha, beta) %
   theme_bw() +
   theme(legend.position = "none")
 ```
-```{r}
-for_beta %>% distinct(read_id, alpha, total) %>%
-  ggplot(aes(x = total)) +
-  geom_histogram()
 
-
-for_beta %>% distinct(read_id, alpha, total) %>% filter(total > 1) %>%
-  ggplot(aes(x = as.factor(total), fill = as.factor(total))) +
-  geom_bar() +
-  theme_bw() +
-  theme(legend.position = "none")
-```
 
 
 ```{r}
