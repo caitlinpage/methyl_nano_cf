@@ -48,7 +48,7 @@ process_modkit_no_bed <- function(modkit_fread) {
   reads <- reads[, genom_positions := paste0(ref_position, collapse = ","), by = read_id]
   reads <- reads[, read_start := min(start), by = read_id]
   reads <- reads[, read_end := max(end), by = read_id]
-  reads <- reads[, beta := ]
+  #reads <- reads[, beta := ]
 
 
   res <- bismark_processed %>% group_by(start, meth_status) %>%
