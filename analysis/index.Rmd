@@ -163,7 +163,7 @@ LEARNINGS:
 
 [proportions of alpha and beta](alphaProportions.html)
 [attemmpt DTU but for alpha](differentialAlphaUsage.html)
-
+[DTU on DMRs](diffAlphaUsageDiffMeth.html)
 
 * idk what im doing
 
@@ -172,6 +172,15 @@ LEARNINGS:
 
 [whole genome analysis of RRBS data](wholeGenomeRrbs.html)
 * basic plot looks the same as with chr22 - this is good
+
+
+
+
+## 2nd year review PhD
+[plots](plotsForReview.html)
+[plots but I ran things locally](reviewPlotsLocal.html)
+
+
 
 ## Ideas of files
 
