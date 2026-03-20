@@ -18,17 +18,7 @@ library(ggplot2)
 library(edgeR)
 ```
 
-```{r}
-k562 <- k562[,colnames(rrbs_alpha_beta)]
-k562_2 <- k562_2[,colnames(rrbs_alpha_beta)]
-all_samples <- rbind(rrbs_alpha_beta %>% mutate(sample = "b1"), gm12878_2 %>% mutate(sample = "b2"), 
-                     k562 %>% mutate(sample = "cml1"), k562_2 %>% mutate(sample = "cml2"))
 
-```
-
-```{r}
-dmrcate_seq_dmr
-```
 
 ```{r}
 find_overlaps(as_granges(all_samples), as_granges(dmrcate_seq_dmr[1,])) %>% data.frame()
@@ -157,7 +147,7 @@ k562_2_chr22 <- k562_2_chr22 %>% group_by(start) %>% mutate(coverage = n(), mean
 ```
 
 * add cpg islands and gene annotations
-```{r}
+
 annots <- c("hg38_cpgs")
 
 annotations <- annotatr::build_annotations(genome = 'hg38', annotations = annots)
@@ -172,7 +162,7 @@ k562_chr22 <- find_overlaps(as_granges(k562_chr22), as_granges(annotations)) %>%
   mutate(cgi = ifelse(type == "hg38_cpg_islands", "island", "not_island"))
 k562_2_chr22 <- find_overlaps(as_granges(k562_2_chr22), as_granges(annotations)) %>% data.frame() %>%
   mutate(cgi = ifelse(type == "hg38_cpg_islands", "island", "not_island"))
-```
+
 
 ```{r}
 annots <- c("hg38_basicgenes", "hg38_genes_intergenic")
@@ -182,7 +172,7 @@ seqs <- annotations %>% data.frame() %>% distinct(seqnames) %>% .[1:22,]
 annotations <- annotations %>% data.frame() %>% filter(seqnames %in% seqs)
 annotations %>% group_by(type) %>% summarise(n=n())
 
-for_beta_genes <- find_overlaps(as_granges(for_beta), as_granges(annotations)) %>% data.frame()
+#for_beta_genes <- find_overlaps(as_granges(for_beta), as_granges(annotations)) %>% data.frame()
 gm12878_2_chr22_genes <- find_overlaps(as_granges(gm12878_2_chr22), as_granges(annotations)) %>% data.frame()
 k562_chr22_genes <- find_overlaps(as_granges(k562_chr22), as_granges(annotations)) %>% data.frame()
 k562_2_chr22_genes <- find_overlaps(as_granges(k562_2_chr22), as_granges(annotations)) %>% data.frame()
@@ -302,27 +292,27 @@ k562_chr22_genes %>% distinct(start, beta, type.y) %>%
 * Section 4.6 for example (page 90)
 
 ```{r}
-dtu_for_beta <- for_beta_genes %>% distinct(read_id, alpha, gene_id.y, symbol.y) %>%
+dtu_for_beta <- for_beta_genes %>% distinct(read_id, alpha, gene_id.y, symbol.y, read_start, read_end) %>%
   mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
                                 alpha > 0.8 ~ "a > 0.8",
                                 alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
                                 alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
                                 TRUE ~ "0.6 <= a <= 0.8"))
-dtu_beta_2 <- gm12878_2_chr22_genes %>% distinct(read_id, alpha, gene_id, symbol) %>%
-  mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
-                                alpha > 0.8 ~ "a > 0.8",
-                                alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
-                                alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
-                                TRUE ~ "0.6 <= a <= 0.8"))
-
-dtu_k562 <- k562_chr22_genes %>% distinct(read_id, alpha, gene_id, symbol) %>%
+dtu_beta_2 <- gm12878_2_chr22_genes %>% distinct(read_id, alpha, gene_id, symbol, read_start, read_end) %>%
   mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
                                 alpha > 0.8 ~ "a > 0.8",
                                 alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
                                 alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
                                 TRUE ~ "0.6 <= a <= 0.8"))
 
-dtu_k562_2 <- k562_2_chr22_genes %>% distinct(read_id, alpha, gene_id, symbol) %>%
+dtu_k562 <- k562_chr22_genes %>% distinct(read_id, alpha, gene_id, symbol, read_start, read_end) %>%
+  mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                alpha > 0.8 ~ "a > 0.8",
+                                alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                TRUE ~ "0.6 <= a <= 0.8"))
+
+dtu_k562_2 <- k562_2_chr22_genes %>% distinct(read_id, alpha, gene_id, symbol, read_start, read_end) %>%
   mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
                                 alpha > 0.8 ~ "a > 0.8",
                                 alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
@@ -489,6 +479,19 @@ tail(ts.gene.simes)
 c(signif = ts.gene.simes %>% filter(FDR < 0.05) %>% nrow(),
   total = nrow(ts.gene.simes))
 ```
+
+```{r}
+tpm_mat
+ts.gene.gene
+ts.gene.simes
+```
+```{r}
+saveRDS(tpm_mat, "../output/cluster_files/dtu_prop.rds")
+saveRDS(ts.gene.gene, "../output/cluster_files/dtu_res_gene.rds")
+saveRDS(ts.gene.simes, "../output/cluster_files/dtu_res_simes.rds")
+```
+
+
 ```{r}
 tpm_mat %>% filter(gene_id == ts.gene.simes$gene_id[1])
 ```
@@ -557,9 +560,7 @@ rbind(for_beta_genes %>% filter(symbol.y %in% ts.gene.simes[1:3,"gene_id"]) %>% 
   theme_bw() 
 ```
 
-```{r}
-find_overlaps(as_granges(all_samples), as_granges(annotations)) %>% data.frame()
-```
+
 
 
 * bottom 10 genes
@@ -613,6 +614,139 @@ tpm_mat %>% mutate(alpha_group = sub(".*_", "", id)) %>% .[,6:11] %>%
 * Simes: better when minority of exons are differentially spliced
 
 * look up the alphas in the top genes for the different samples
+
+
+# repeat for all chr
+```{r}
+annots <- c("hg38_basicgenes", "hg38_genes_intergenic")
+
+annotations <- annotatr::build_annotations(genome = 'hg38', annotations = annots)
+seqs <- annotations %>% data.frame() %>% distinct(seqnames) %>% .[1:22,]
+annotations <- annotations %>% data.frame() %>% filter(seqnames %in% seqs)
+
+
+for_beta_all <- for_beta_all %>% filter(seqnames %in% seqs)
+gm12878_2 <- gm12878_2 %>% filter(seqnames %in% seqs)
+k562 <- k562 %>% filter(seqnames %in% seqs)
+k562_2 <- k562_2 %>% filter(seqnames %in% seqs)
+
+for_beta_all_genes <- find_overlaps(as_granges(for_beta_all), as_granges(annotations)) %>% data.frame()
+gm12878_2_genes <- find_overlaps(as_granges(gm12878_2), as_granges(annotations)) %>% data.frame()
+k562_genes <- find_overlaps(as_granges(k562), as_granges(annotations)) %>% data.frame()
+k562_2_genes <- find_overlaps(as_granges(k562_2), as_granges(annotations)) %>% data.frame()
+```
+
+```{r}
+distinct(for_beta_all, seqnames) %>% filter(seqnames %in% unique(annotations$seqnames))
+distinct(for_beta_all, seqnames) %>% filter(seqnames %in% seqs)
+```
+
+```{r}
+# set up
+dtu_for_beta <- for_beta_all_genes %>% distinct(read_id, alpha, gene_id.y, symbol.y, seqnames, read_start, read_end) %>%
+  mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                alpha > 0.8 ~ "a > 0.8",
+                                alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                TRUE ~ "0.6 <= a <= 0.8"))
+dtu_beta_2 <- gm12878_2_genes %>% distinct(read_id, alpha, gene_id, symbol, seqnames, read_start, read_end) %>%
+  mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                alpha > 0.8 ~ "a > 0.8",
+                                alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                TRUE ~ "0.6 <= a <= 0.8"))
+
+dtu_k562 <- k562_genes %>% distinct(read_id, alpha, gene_id, symbol, seqnames, read_start, read_end) %>%
+  mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                alpha > 0.8 ~ "a > 0.8",
+                                alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                TRUE ~ "0.6 <= a <= 0.8"))
+
+dtu_k562_2 <- k562_2_genes %>% distinct(read_id, alpha, gene_id, symbol, seqnames, read_start, read_end) %>%
+  mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                alpha > 0.8 ~ "a > 0.8",
+                                alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                TRUE ~ "0.6 <= a <= 0.8"))
+
+trans_count_beta <- dtu_for_beta %>% 
+  mutate(transcript = paste0(symbol.y, "_", alpha_group)) %>%
+  group_by(transcript) %>%
+  summarise(transcript_count = n()) %>% data.frame()
+
+trans_count_beta2 <- dtu_beta_2 %>% 
+  mutate(transcript = paste0(symbol, "_", alpha_group)) %>%
+  group_by(transcript) %>%
+  summarise(transcript_count = n()) %>% data.frame()
+
+trans_count_k <- dtu_k562 %>% 
+  mutate(transcript = paste0(symbol, "_", alpha_group)) %>%
+  group_by(transcript) %>%
+  summarise(transcript_count = n()) %>% data.frame()
+
+trans_count_k_2 <- dtu_k562_2 %>% 
+  mutate(transcript = paste0(symbol, "_", alpha_group)) %>%
+  group_by(transcript) %>%
+  summarise(transcript_count = n()) %>% data.frame()
+
+edger_counts <- c(dtu_for_beta %>% 
+  mutate(transcript = paste0(symbol.y, "_", alpha_group)) %>% .$transcript,
+  dtu_k562 %>% 
+  mutate(transcript = paste0(symbol, "_", alpha_group)) %>% .$transcript,
+  dtu_beta_2 %>% 
+  mutate(transcript = paste0(symbol, "_", alpha_group)) %>% .$transcript,
+  dtu_k562_2 %>% 
+  mutate(transcript = paste0(symbol, "_", alpha_group)) %>% .$transcript) %>% data.frame() %>% distinct()
+names(edger_counts) <- "transcript"
+edger_counts <- edger_counts %>% mutate(Sample1_gm = trans_count_beta[match(.$transcript, trans_count_beta$transcript), "transcript_count"],
+                                        Sample2_gm = trans_count_beta2[match(.$transcript, trans_count_beta2$transcript), "transcript_count"],
+                        Sample3_k = trans_count_k[match(.$transcript, trans_count_k$transcript), "transcript_count"],
+                        Sample4_k = trans_count_k_2[match(.$transcript, trans_count_k_2$transcript), "transcript_count"])
+edger_counts[is.na(edger_counts)] <- 0
+edger_counts$gene_id <- sub("_.*", "", edger_counts$transcript)
+edger_counts <- edger_counts %>% filter(!gene_id == "NA") 
+rownames(edger_counts) <- edger_counts$transcript
+
+#testing
+y <- edgeR::DGEList(as.matrix(edger_counts[,2:5]), group = c(1,1,2,2), genes = edger_counts[,c("gene_id", "transcript")])
+
+design <- model.matrix(~ c(1,1,2,2), data = y$samples)
+
+fit <- edgeR::glmQLFit(y, design, robust=TRUE)
+
+ds <- edgeR::diffSpliceDGE(fit, coef = 2, geneid = "gene_id", exonid = "transcript")
+
+ts.gene.simes <- edgeR::topSpliceDGE(ds, test = "Simes", number = Inf)
+
+ts.gene.gene <- edgeR::topSpliceDGE(ds, test = "gene", number = Inf)
+
+gene_cg <- find_overlaps(as_granges(annotations), as_granges(cg_sites)) %>% data.frame() %>%
+  group_by(gene_id, symbol) %>%
+  summarise(n_cg = n()) %>%
+  ungroup() %>% data.frame()
+
+# proportions to visualise
+fit$genes <- fit$genes %>% mutate(n_cg = gene_cg[match(.$gene_id, gene_cg$symbol), "n_cg"])
+
+rpk <- y$counts/rep(fit$genes$n_cg/1000, times = ncol(y$counts))
+tpm_mat <- sweep(rpk, 2, colSums(rpk)/1e6, "/")
+
+tpm_mat <- tpm_mat %>% data.frame() %>% mutate(id = edger_counts$transcript, gene_id = edger_counts$gene_id)
+
+tpm_mat <- tpm_mat %>% 
+  group_by(gene_id) %>% 
+  mutate(prop_S1_gm = Sample1_gm/sum(Sample1_gm),
+         prop_S2_gm = Sample2_gm/sum(Sample2_gm),
+         prop_S3_k = Sample3_k/sum(Sample3_k),
+         prop_S4_k = Sample4_k/sum(Sample4_k)) %>%
+  ungroup() %>% data.frame()
+# save results
+saveRDS(tpm_mat, "../output/cluster_files/dtu_all_prop.rds")
+saveRDS(ts.gene.gene, "../output/cluster_files/dtu_all_res_gene.rds")
+saveRDS(ts.gene.simes, "../output/cluster_files/dtu_all_res_simes.rds")
+```
+
 
 
 # jovana single cell version:
