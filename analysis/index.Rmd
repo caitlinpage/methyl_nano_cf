@@ -165,6 +165,8 @@ LEARNINGS:
 [attemmpt DTU but for alpha](differentialAlphaUsage.html)
 [DTU on DMRs](diffAlphaUsageDiffMeth.html)
 
+[whole genome DTU](diffAlphaUsageAll.html)
+
 * idk what im doing
 
 ## windows
