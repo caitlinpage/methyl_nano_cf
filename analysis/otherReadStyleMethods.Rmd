@@ -1,0 +1,177 @@
+---
+title: "otherReadStyleMethods"
+author: "caitlinpage"
+date: "2026-04-01"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+## Introduction
+
+```{r}
+
+```
+
+* run metheor on cluster
+
+
+conda create -n run_metheor
+conda activate run_metheor
+** deactivate active enviro: conda deactivate
+
+
+conda install -c dohlee metheor
+
+* NOTE: requires sorted and indexed bams
+** MUST RUN IN OUTPUT DIRECTORY - FAILS IF PROVIDE PATH TO OUTPUT FILE INSTEAD OF NAME OF OUTPUT FILE
+
+
+* folder for outputs: /researchers/caitlin.page/cf_nano/run_metheor
+```{r}
+list.files("/researchers/caitlin.page/cf_nano/run_metheor")
+```
+
+* folder with rrbs bams: /researchers/caitlin.page/rrbs_encode_cell_line
+
+```{r}
+list.files("/researchers/caitlin.page/rrbs_encode_cell_line")[grep("bam",list.files("/researchers/caitlin.page/rrbs_encode_cell_line") )]
+```
+
+
+
+* LPMD
+DEFAULTS
+-m, --min-distance: Minimum distance between CpG pairs to consider. [default: 2]
+-M, --max-distance: Maximum distance between CpG pairs to consider. [default: 16]
+-q, --min-qual: Minimum quality for a read to be considered. [default: 10]
+
+metheor lpmd --input /researchers/caitlin.page/rrbs_encode_cell_line/ENCFF000LYO_bismark_bt2.bam --output /researchers/caitlin.page/phd/run_metheor/lpmd_ENCFF000LYO.tsv
+
+OUTPUT
+By default, it produces a simple tab-delimited table containing genomewide average lpmd values. It has two columns:
+
+name: Filename
+lpmd: LPMD values averaged for all CpG pairs participating in the analysis
+Optionally, when --pairs flag is turned on, you can have a more detailed table with CpG pair-wise statistics for LPMD computation. Note that the size of the file can be large. There are six columns:
+
+chrom: Chromosome where the CpG pair exists
+cpg1: 0-based position of the cytosine (C) of the first CpG
+cpg2: 0-based position of the cytosine (C) of the second CpG
+lpmd: LPMD value. Computed as n_discordant / (n_concordant + n_discordant)
+n_concordant: Number of sequencing reads supporting CpG pairs having the same methylation state
+n_discordant: Number of sequencing reads supporting CpG pairs having different methylation states
+
+
+```{r}
+example <- read.table("/researchers/caitlin.page/cf_nano/run_metheor/lpmd_ENCFF000LYO.tsv")
+example
+```
+* ah this is what you get without the pairs flag
+(redo this one later)
+
+*MHL
+DEFAULTS
+-d, --min-depth: Minimum depth of reads covering epialleles to consider. [default: 10]
+-p, --min-cpgs: Minimum number of consecutive CpGs in a CpG stretch to consider.
+-q, --min-qual: Minimum quality for a read to be considered. [default: 10]
+
+OUTPUT
+Produces a (BedGraph-compatible) tab-separated table with the following four columns.
+
+chrom: Chromosome where the CpG exists.
+start: 0-based position of the cytosine (C) in CpG
+end: 0-based position + 1 of the guanine (G) in CpG
+mhl: Value of MHL
+
+```{r}
+example <- read.table("/researchers/caitlin.page/cf_nano/run_metheor/mhl_ENCFF000LYO.tsv")
+example
+```
+
+
+* epipolymorph
+DEFAULTS
+-d, --min-depth: Minimum depth of reads covering epialleles to consider. [default: 10]
+-q, --min-qual: Minimum quality for a read to be considered. [default: 10]
+
+OUTPUT
+chrom: Chromosome where the CpG quartet exists.
+cpg1: 0-based position of the cytosine (C) in the first CpG
+cpg2: 0-based position of the cytosine (C) in the second CpG
+cpg3: 0-based position of the cytosine (C) in the third CpG
+cpg4: 0-based position of the cytosine (C) in the fourth CpG
+pm: Value of PM
+
+```{r}
+example <- read.table("/researchers/caitlin.page/cf_nano/run_metheor/pm_ENCFF000LYO.tsv")
+example
+```
+
+
+* entropy
+DEFAULTS
+-d, --min-depth: Minimum depth of reads covering epialleles to consider. [default: 10]
+-q, --min-qual: Minimum quality for a read to be considered. [default: 10]
+
+OUTPUT
+chrom: Chromosome where the CpG quartet exists.
+cpg1: 0-based position of the cytosine (C) in the first CpG
+cpg2: 0-based position of the cytosine (C) in the second CpG
+cpg3: 0-based position of the cytosine (C) in the third CpG
+cpg4: 0-based position of the cytosine (C) in the fourth CpG
+me: Value of ME
+NOTE: The order of CpG quartets in the output file is not sorted.
+
+```{r}
+example <- read.table("/researchers/caitlin.page/cf_nano/run_metheor/me_ENCFF000LYO.tsv")
+example
+```
+
+
+* fraction discordant read pairs
+DEFAULTS
+-q, --min-qual: Minimum quality for a read to be considered. [default: 10]
+-d, --min-depth: Minimum depth of reads covering epialleles to consider. [default: 10]
+-D, --max-depth: Maximum number of reads to consider. [default: 40]
+-l, --min-overlap: Minimum overlap between two reads to consider in basepairs. [default: 35]
+
+OUTPUT
+Produces a (BedGraph-compatible) tab-separated table with the following four columns.
+
+chrom: Chromosome where the CpG exists.
+start: 0-based position of the cytosine (C) in CpG
+end: 0-based position + 1 of the guanine (G) in CpG
+fdrp: Value of FDRP
+
+```{r}
+example <- read.table("/researchers/caitlin.page/cf_nano/run_metheor/fdrp_ENCFF000LYO.tsv")
+example
+```
+
+
+* quantitative fraction discordant reads
+
+qFDRP is a soft-version of FDRP. Instead of deciding whether the read pair is discordant, qFDRP computes the normalized hamming distance. Note that when the methylation states of the common CpGs are completely same, normalized hamming distance will be 0, and when the methylation states are completely different, it will be 1, which makes qFDRP calculation equivalent to FDRP.
+
+DEFAULTS
+-i, --input: Path to input BAM file.
+-o, --output: Path to output table file summarizing the result of epipolymorphism calculation.
+-q, --min-qual: Minimum quality for a read to be considered. [default: 10]
+-d, --min-depth: Minimum depth of reads covering epialleles to consider. [default: 10]
+-D, --max-depth: Maximum number of reads to consider. [default: 40]
+-l, --min-overlap: Minimum overlap between two reads to consider in basepairs. [default: 35]
+-c, --cpg-set: (Optional) Specify a predefined set of CpGs (in BED file) to be analyzed.
+
+OUTPUT
+Produces a (BedGraph-compatible) tab-separated table with the following four columns.
+
+chrom: Chromosome where the CpG exists.
+start: 0-based position of the cytosine (C) in CpG
+end: 0-based position + 1 of the guanine (G) in CpG
+qfdrp: Value of qFDRP
+```{r}
+example <- read.table("/researchers/caitlin.page/cf_nano/run_metheor/qfdrp_ENCFF000LYO.tsv")
+example
+```
+
