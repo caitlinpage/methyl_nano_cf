@@ -389,7 +389,7 @@ for_beta_all_genes %>% distinct(read_id, alpha, total, symbol) %>%
 
 
 # what about adding an effect size: so like adding a mean change in alpha
-
+moving this to [new file](diffAlphaMakeAlphaChange.html)
 ```{r}
 ts.gene.gene
 ```
