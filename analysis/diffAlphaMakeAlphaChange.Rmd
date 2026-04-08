@@ -1,0 +1,120 @@
+---
+title: "diffAlphaMakeAlphaChange"
+author: "caitlinpage"
+date: "2026-04-01"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+## Introduction
+
+```{r}
+library(annotatr)
+library(data.table)
+library(plyranges)
+library(tidyr)
+library(stringr)
+library(dplyr)
+library(ggplot2)
+library(edgeR)
+```
+
+
+```{r}
+for_beta_all <- readRDS("/researchers/caitlin.page/cf_nano/r_output/rrbs_alpha_beta.rds")
+#for_beta <- readRDS("../output/cluster_files/rrbs_alpha_beta.rds")
+
+gm12878_2 <- readRDS("/researchers/caitlin.page/cf_nano/r_output/rrbs_alpha_beta_rep2.rds")
+
+k562 <- readRDS("/researchers/caitlin.page/cf_nano/r_output/k562_rep1.rds")
+
+k562_2 <- readRDS("/researchers/caitlin.page/cf_nano/r_output/k562_rep2.rds")
+
+```
+
+```{r}
+annots <- c("hg38_basicgenes", "hg38_genes_intergenic")
+
+annotations <- annotatr::build_annotations(genome = 'hg38', annotations = annots)
+seqs <- annotations %>% data.frame() %>% distinct(seqnames) %>% .[1:22,]
+annotations <- annotations %>% data.frame() %>% filter(seqnames %in% seqs)
+
+
+for_beta_all <- for_beta_all %>% filter(seqnames %in% seqs)
+gm12878_2 <- gm12878_2 %>% filter(seqnames %in% seqs)
+k562 <- k562 %>% filter(seqnames %in% seqs)
+k562_2 <- k562_2 %>% filter(seqnames %in% seqs)
+
+for_beta_all_genes <- find_overlaps(as_granges(for_beta_all), as_granges(annotations)) %>% data.frame()
+gm12878_2_genes <- find_overlaps(as_granges(gm12878_2), as_granges(annotations)) %>% data.frame()
+k562_genes <- find_overlaps(as_granges(k562), as_granges(annotations)) %>% data.frame()
+k562_2_genes <- find_overlaps(as_granges(k562_2), as_granges(annotations)) %>% data.frame()
+```
+
+```{r}
+dmrcate_seq_dmr <- readRDS("/researchers/caitlin.page/cf_nano/r_output/dmr_encode_gm12878_k562.rds")
+
+dmrcate_seq_dmr$rank <- 1:nrow(dmrcate_seq_dmr)
+
+overlap_genes_dmrs <- find_overlaps(as_granges(dmrcate_seq_dmr), as_granges(annotations)) %>% data.frame()
+```
+
+# what about adding an effect size: so like adding a mean change in alpha
+
+
+```{r}
+ts.gene.gene <- readRDS("/researchers/caitlin.page/cf_nano/r_output/ts.gene.gene.rds")
+```
+
+```{r}
+b <- for_beta_all_genes %>% distinct(read_id, alpha, symbol) %>% filter(symbol %in% ts.gene.gene$gene_id) %>% 
+  group_by(symbol) %>% summarise(mean_alpha = mean(alpha)) %>% data.frame()
+
+ts.gene.gene$gm_1_mean <- b[match(ts.gene.gene$gene_id, b$symbol), "mean_alpha"]
+
+b <- gm12878_2_genes %>% distinct(read_id, alpha, symbol) %>% filter(symbol %in% ts.gene.gene$gene_id) %>% 
+  group_by(symbol) %>% summarise(mean_alpha = mean(alpha)) %>% data.frame()
+
+ts.gene.gene$gm_2_mean <- b[match(ts.gene.gene$gene_id, b$symbol), "mean_alpha"]
+
+b <- k562_genes %>% distinct(read_id, alpha, symbol) %>% filter(symbol %in% ts.gene.gene$gene_id) %>% 
+  group_by(symbol) %>% summarise(mean_alpha = mean(alpha)) %>% data.frame()
+
+ts.gene.gene$k_1_mean <- b[match(ts.gene.gene$gene_id, b$symbol), "mean_alpha"]
+
+b <- k562_2_genes %>% distinct(read_id, alpha, symbol) %>% filter(symbol %in% ts.gene.gene$gene_id) %>% 
+  group_by(symbol) %>% summarise(mean_alpha = mean(alpha)) %>% data.frame()
+
+ts.gene.gene$k_2_mean <- b[match(ts.gene.gene$gene_id, b$symbol), "mean_alpha"]
+```
+
+
+```{r}
+ts.gene.gene %>% mutate(change_alpha = rowMeans(.[,6:7]) - rowMeans(.[,8:9])) %>% mutate(fdr_rank = 1:n()) %>% .[order(abs(.$change_alpha), decreasing = TRUE),] %>% mutate(change_alpha_rank = 1:n()) %>% .[order(.$FDR),]
+
+ts.gene.gene %>% mutate(change_alpha = rowMeans(.[,6:7]) - rowMeans(.[,8:9])) %>% mutate(fdr_rank = 1:n()) %>% .[order(abs(.$change_alpha), decreasing = TRUE),] %>% mutate(change_alpha_rank = 1:n()) %>% .[order(.$FDR),] %>%
+  ggplot(aes(x = fdr_rank, y = change_alpha_rank)) +
+  geom_point(alpha = 0.3)
+```
+
+```{r}
+ts.gene.gene %>% mutate(change_alpha = rowMeans(.[,6:7]) - rowMeans(.[,8:9])) %>%
+  ggplot(aes(x = FDR, y = change_alpha)) +
+  geom_point(alpha = 0.3)
+```
+
+```{r}
+ts.gene.gene %>% mutate(change_alpha = rowMeans(.[,6:7]) - rowMeans(.[,8:9])) %>%
+  ggplot(aes(x = change_alpha, y = -log10(FDR))) +
+  geom_point(alpha = 0.3)
+```
+
+```{r}
+ts.gene.gene %>% mutate(overlap_dmr = ifelse(gene_id %in% overlap_genes_dmrs$symbol, TRUE, FALSE)) %>%
+  mutate(change_alpha = rowMeans(.[,6:7]) - rowMeans(.[,8:9])) %>%
+  ggplot(aes(x = change_alpha, y = -log10(FDR), colour = overlap_dmr)) +
+  geom_point(alpha = 0.3)
+```
+
+
