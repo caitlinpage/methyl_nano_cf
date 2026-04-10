@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="caitlinpage" />
+
+<meta name="date" content="2026-04-01" />
+
+<title>otherReadStyleMethods</title>
+
+<script src="site_libs/header-attrs-2.29/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/jqueryui-1.13.2/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<link href="site_libs/font-awesome-6.5.2/css/all.min.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet" />
+
+<link rel="icon" href="https://github.com/workflowr/workflowr-assets/raw/main/img/reproducible.png">
+<!-- Add a small amount of space between sections. -->
+<style type="text/css">
+div.section {
+  padding-top: 12px;
+}
+</style>
+
+
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">3_cf_nano</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Home</a>
+</li>
+<li>
+  <a href="about.html">About</a>
+</li>
+<li>
+  <a href="license.html">License</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li>
+  <a href="https://github.com/caitlinpage/methyl_nano_cf">
+    <span class="fab fa-github"></span>
+     
+    Source code
+  </a>
+</li>
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+
+
+<h1 class="title toc-ignore">otherReadStyleMethods</h1>
+<h4 class="author">caitlinpage</h4>
+<h4 class="date">2026-04-01</h4>
+
+</div>
+
+
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-report" data-toggle="collapse" data-target="#workflowr-report">
+<span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+workflowr <span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span>
+</button>
+</p>
+<div id="workflowr-report" class="collapse">
+<ul class="nav nav-tabs">
+<li class="active">
+<a data-toggle="tab" href="#summary">Summary</a>
+</li>
+<li>
+<a data-toggle="tab" href="#checks"> Checks <span
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span>
+</a>
+</li>
+<li>
+<a data-toggle="tab" href="#versions">Past versions</a>
+</li>
+</ul>
+<div class="tab-content">
+<div id="summary" class="tab-pane fade in active">
+<p>
+<strong>Last updated:</strong> 2026-04-10
+</p>
+<p>
+<strong>Checks:</strong> <span
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 7
+<span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> 0
+</p>
+<p>
+<strong>Knit directory:</strong> <code>methyl_nano_cf/analysis/</code>
+<span class="glyphicon glyphicon-question-sign" aria-hidden="true"
+title="This is the local directory in which the code in this file was executed.">
+</span>
+</p>
+<p>
+This reproducible <a href="https://rmarkdown.rstudio.com">R Markdown</a>
+analysis was created with <a
+  href="https://github.com/workflowr/workflowr">workflowr</a> (version
+1.7.1). The <em>Checks</em> tab describes the reproducibility checks
+that were applied when the results were created. The <em>Past
+versions</em> tab lists the development history.
+</p>
+<hr>
+</div>
+<div id="checks" class="tab-pane fade">
+<div id="workflowr-checks" class="panel-group">
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRMarkdownfilestronguptodate">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>R Markdown file:</strong> up-to-date
+</a>
+</p>
+</div>
+<div id="strongRMarkdownfilestronguptodate"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great! Since the R Markdown file has been committed to the Git
+repository, you know the exact version of the code that produced these
+results.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongEnvironmentstrongempty">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Environment:</strong> empty </a>
+</p>
+</div>
+<div id="strongEnvironmentstrongempty" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! The global environment was empty. Objects defined in the
+global environment can affect the analysis in your R Markdown file in
+unknown ways. For reproduciblity it’s best to always run the code in an
+empty environment.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSeedstrongcodesetseed20250606code">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Seed:</strong>
+<code>set.seed(20250606)</code> </a>
+</p>
+</div>
+<div id="strongSeedstrongcodesetseed20250606code"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>The command <code>set.seed(20250606)</code> was run prior to running
+the code in the R Markdown file. Setting a seed ensures that any results
+that rely on randomness, e.g. subsampling or permutations, are
+reproducible.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSessioninformationstrongrecorded">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Session information:</strong>
+recorded </a>
+</p>
+</div>
+<div id="strongSessioninformationstrongrecorded"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Recording the operating system, R version, and package
+versions is critical for reproducibility.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongCachestrongnone">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Cache:</strong> none </a>
+</p>
+</div>
+<div id="strongCachestrongnone" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Nice! There were no cached chunks for this analysis, so you can be
+confident that you successfully produced the results during this
+run.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongFilepathsstrongrelative">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>File paths:</strong> relative </a>
+</p>
+</div>
+<div id="strongFilepathsstrongrelative" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Using relative paths to the files within your workflowr
+project makes it easier to run your code on other machines.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpagemethylnanocftree48f337615e21d6b9ae53168fdb9474ce96f2b904targetblank48f3376a">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Repository version:</strong>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/tree/48f337615e21d6b9ae53168fdb9474ce96f2b904" target="_blank">48f3376</a>
+</a>
+</p>
+</div>
+<div
+id="strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpagemethylnanocftree48f337615e21d6b9ae53168fdb9474ce96f2b904targetblank48f3376a"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>
+Great! You are using Git for version control. Tracking code development
+and connecting the code version to the results is critical for
+reproducibility.
+</p>
+<p>
+The results in this page were generated with repository version
+<a href="https://github.com/caitlinpage/methyl_nano_cf/tree/48f337615e21d6b9ae53168fdb9474ce96f2b904" target="_blank">48f3376</a>.
+See the <em>Past versions</em> tab to see a history of the changes made
+to the R Markdown and HTML files.
+</p>
+<p>
+Note that you need to be careful to ensure that all relevant files for
+the analysis have been committed to Git prior to generating the results
+(you can use <code>wflow_publish</code> or
+<code>wflow_git_commit</code>). workflowr only checks the R Markdown
+file, but you know if there are other scripts or data files that it
+depends on. Below is the status of the Git repository when the results
+were generated:
+</p>
+<pre><code>
+Ignored files:
+    Ignored:    .Rproj.user/
+    Ignored:    analysis/.RData
+
+Untracked files:
+    Untracked:  renv.lock
+    Untracked:  renv/
+
+Unstaged changes:
+    Modified:   .Rprofile
+    Modified:   _workflowr.yml
+
+</code></pre>
+<p>
+Note that any generated files, e.g. HTML, png, CSS, etc., are not
+included in this status report because it is ok for generated content to
+have uncommitted changes.
+</p>
+</div>
+</div>
+</div>
+</div>
+<hr>
+</div>
+<div id="versions" class="tab-pane fade">
+<p>
+These are the previous versions of the repository in which changes were
+made to the R Markdown (<code>analysis/otherReadStyleMethods.Rmd</code>)
+and HTML (<code>docs/otherReadStyleMethods.html</code>) files. If you’ve
+configured a remote Git repository (see <code>?wflow_git_remote</code>),
+click on the hyperlinks in the table below to view the files as they
+were in that past version.
+</p>
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+File
+</th>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+<th>
+Message
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/48f337615e21d6b9ae53168fdb9474ce96f2b904/analysis/otherReadStyleMethods.Rmd" target="_blank">48f3376</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-04-10
+</td>
+<td>
+wflow_publish("otherReadStyleMethods.Rmd")
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/c7dfea702d54d3f192630335c50ff283a29ff97a/analysis/otherReadStyleMethods.Rmd" target="_blank">c7dfea7</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-04-08
+</td>
+<td>
+init commit - description
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr>
+</div>
+</div>
+</div>
+<div id="introduction" class="section level2">
+<h2>Introduction</h2>
+<p>Description of methods Analysis can be found <a
+href="otherReadStyleMethodsAnalysis.html">here</a></p>
+<ul>
+<li>run metheor on cluster</li>
+</ul>
+<p>conda create -n run_metheor conda activate run_metheor ** deactivate
+active enviro: conda deactivate</p>
+<p>conda install -c dohlee metheor</p>
+<ul>
+<li><p>NOTE: requires sorted and indexed bams ** MUST RUN IN OUTPUT
+DIRECTORY - FAILS IF PROVIDE PATH TO OUTPUT FILE INSTEAD OF NAME OF
+OUTPUT FILE</p></li>
+<li><p>everything is 0 based coordinates</p></li>
+<li><p>my alpha/beta is 1 based coordinate - so need to + 1 to start for
+each row</p></li>
+<li><p>folder for outputs:
+/researchers/caitlin.page/cf_nano/run_metheor</p></li>
+</ul>
+<pre class="r"><code>list.files(&quot;/researchers/caitlin.page/cf_nano/run_metheor&quot;)</code></pre>
+<pre><code> [1] &quot;fdrp_ENCFF000LYO.tsv&quot;     &quot;fdrp_ENCFF000LYP.tsv&quot;    
+ [3] &quot;fdrp_k562_cml_line1.tsv&quot;  &quot;fdrp_k562_cml_line2.tsv&quot; 
+ [5] &quot;lpmd_ENCFF000LYO.tsv&quot;     &quot;lpmd_ENCFF000LYP.tsv&quot;    
+ [7] &quot;me_ENCFF000LYO.tsv&quot;       &quot;me_ENCFF000LYP.tsv&quot;      
+ [9] &quot;me_k562_cml_line1.tsv&quot;    &quot;me_k562_cml_line2.tsv&quot;   
+[11] &quot;mhl_ENCFF000LYO.tsv&quot;      &quot;mhl_ENCFF000LYP.tsv&quot;     
+[13] &quot;mhl_k562_cml_line1.tsv&quot;   &quot;mhl_k562_cml_line2.tsv&quot;  
+[15] &quot;pdr_ENCFF000LYO.tsv&quot;      &quot;pdr_ENCFF000LYP.tsv&quot;     
+[17] &quot;pdr_k562_cml_line1.tsv&quot;   &quot;pdr_k562_cml_line2.tsv&quot;  
+[19] &quot;pm_ENCFF000LYO.tsv&quot;       &quot;pm_ENCFF000LYP.tsv&quot;      
+[21] &quot;pm_k562_cml_line1.tsv&quot;    &quot;pm_k562_cml_line2.tsv&quot;   
+[23] &quot;qfdrp_ENCFF000LYO.tsv&quot;    &quot;qfdrp_ENCFF000LYP.tsv&quot;   
+[25] &quot;qfdrp_k562_cml_line1.tsv&quot; &quot;qfdrp_k562_cml_line2.tsv&quot;</code></pre>
+<ul>
+<li>folder with rrbs bams:
+/researchers/caitlin.page/rrbs_encode_cell_line</li>
+</ul>
+<pre class="r"><code>list.files(&quot;/researchers/caitlin.page/rrbs_encode_cell_line&quot;)[grep(&quot;bam&quot;,list.files(&quot;/researchers/caitlin.page/rrbs_encode_cell_line&quot;) )]</code></pre>
+<pre><code>[1] &quot;ENCFF000LYO_bismark_bt2.bam&quot;        &quot;ENCFF000LYO_bismark_bt2.bam.bai&quot;   
+[3] &quot;ENCFF000LYP_bismark_bt2.bam&quot;        &quot;ENCFF000LYP_bismark_bt2.bam.bai&quot;   
+[5] &quot;k562_cml_line1_bismark_bt2.bam&quot;     &quot;k562_cml_line1_bismark_bt2.bam.bai&quot;
+[7] &quot;k562_cml_line2_bismark_bt2.bam&quot;     &quot;k562_cml_line2_bismark_bt2.bam.bai&quot;</code></pre>
+</div>
+<div id="pdr" class="section level1">
+<h1>PDR</h1>
+<p>DEFAULTS -d, –min-depth: Minimum depth of CpG stretches to consider.
+[default: 10] -p, –min-cpgs: Minimum number of consecutive CpGs in a CpG
+stretch to consider. [default: 10] -q, –min-qual: Minimum quality for a
+read to be considered [default: 10] -c, –cpg-set: (Optional) Specify a
+predefined set of CpGs (in BED file) to be analyzed.</p>
+<p>OUTPUT Produces a tab-separated table with the following six columns.
+Note that the coordinate system follows that of BED/BedGraph format
+(0-based, half-open), without header names.</p>
+<p>chrom: Chromosome where the CpG exists. start: 0-based position of
+the cytosine (C) in CpG end: 0-based position + 1 of the guanine (G) in
+CpG pdr: Value of PDR n_c: Number of concordant reads (i.e., all the
+CpGs covered by the read have identical methylation states) supporting
+the CpG n_d: Number of discordant reads (i.e., CpGs covered by the read
+have more than one methylation states)</p>
+<pre class="r"><code>example &lt;- read.table(&quot;/researchers/caitlin.page/cf_nano/run_metheor/pdr_ENCFF000LYO.tsv&quot;)
+colnames(example) &lt;- c(&quot;seqnames&quot;, &quot;start&quot;, &quot;end&quot;, &quot;PDR&quot;, &quot;n_c&quot;, &quot;n_d&quot;)
+example[1:10,]</code></pre>
+<pre><code>   seqnames  start    end        PDR n_c n_d
+1      chr1 779095 779097 0.06349207  59   4
+2      chr1 779099 779101 0.06349207  59   4
+3      chr1 779109 779111 0.06349207  59   4
+4      chr1 779129 779131 0.06349207  59   4
+5      chr1 827412 827414 0.08333334  11   1
+6      chr1 827425 827427 0.08333334  11   1
+7      chr1 827428 827430 0.08333334  11   1
+8      chr1 827444 827446 0.08333334  11   1
+9      chr1 827469 827471 0.06666667  14   1
+10     chr1 827484 827486 0.06666667  14   1</code></pre>
+</div>
+<div id="lpmd" class="section level1">
+<h1>LPMD</h1>
+<p>DEFAULTS -m, –min-distance: Minimum distance between CpG pairs to
+consider. [default: 2] -M, –max-distance: Maximum distance between CpG
+pairs to consider. [default: 16] -q, –min-qual: Minimum quality for a
+read to be considered. [default: 10]</p>
+<p>metheor lpmd –input
+/researchers/caitlin.page/rrbs_encode_cell_line/ENCFF000LYO_bismark_bt2.bam
+–output
+/researchers/caitlin.page/phd/run_metheor/lpmd_ENCFF000LYO.tsv</p>
+<p>OUTPUT By default, it produces a simple tab-delimited table
+containing genomewide average lpmd values. It has two columns:</p>
+<p>name: Filename lpmd: LPMD values averaged for all CpG pairs
+participating in the analysis Optionally, when –pairs flag is turned on,
+you can have a more detailed table with CpG pair-wise statistics for
+LPMD computation. Note that the size of the file can be large. There are
+six columns:</p>
+<p>chrom: Chromosome where the CpG pair exists cpg1: 0-based position of
+the cytosine (C) of the first CpG cpg2: 0-based position of the cytosine
+(C) of the second CpG lpmd: LPMD value. Computed as n_discordant /
+(n_concordant + n_discordant) n_concordant: Number of sequencing reads
+supporting CpG pairs having the same methylation state n_discordant:
+Number of sequencing reads supporting CpG pairs having different
+methylation states</p>
+<pre class="r"><code>example &lt;- read.table(&quot;/researchers/caitlin.page/cf_nano/run_metheor/lpmd_ENCFF000LYO.tsv&quot;)
+example</code></pre>
+<pre><code>                                                                           V1
+1                                                                        name
+2 /researchers/caitlin.page/rrbs_encode_cell_line/ENCFF000LYO_bismark_bt2.bam
+          V2
+1       lpmd
+2 0.06877721</code></pre>
+<ul>
+<li>ah this is what you get without the pairs flag (redo this one
+later)</li>
+<li>pairs requires a value and I don’t understand - so we skip it for
+now</li>
+</ul>
+</div>
+<div id="mhl" class="section level1">
+<h1>MHL</h1>
+<p>DEFAULTS -d, –min-depth: Minimum depth of reads covering epialleles
+to consider. [default: 10] -p, –min-cpgs: Minimum number of consecutive
+CpGs in a CpG stretch to consider. -q, –min-qual: Minimum quality for a
+read to be considered. [default: 10]</p>
+<p>OUTPUT Produces a (BedGraph-compatible) tab-separated table with the
+following four columns.</p>
+<p>chrom: Chromosome where the CpG exists. start: 0-based position of
+the cytosine (C) in CpG end: 0-based position + 1 of the guanine (G) in
+CpG mhl: Value of MHL</p>
+<pre class="r"><code>example &lt;- read.table(&quot;/researchers/caitlin.page/cf_nano/run_metheor/mhl_ENCFF000LYO.tsv&quot;)
+colnames(example) &lt;- c(&quot;seqnames&quot;, &quot;start&quot;, &quot;end&quot;, &quot;MHL&quot;)
+example[1:10,]</code></pre>
+<pre><code>   seqnames  start    end         MHL
+1      chr1 779095 779097 0.001587302
+2      chr1 779099 779101 0.001587302
+3      chr1 779109 779111 0.001587302
+4      chr1 779129 779131 0.001587302
+5      chr1 827412 827414 0.002083333
+6      chr1 827425 827427 0.002083333
+7      chr1 827428 827430 0.002083333
+8      chr1 827444 827446 0.002083333
+9      chr1 827469 827471 0.001666667
+10     chr1 827484 827486 0.001666667</code></pre>
+</div>
+<div id="epipolymorph" class="section level1">
+<h1>epipolymorph</h1>
+<p>DEFAULTS -d, –min-depth: Minimum depth of reads covering epialleles
+to consider. [default: 10] -q, –min-qual: Minimum quality for a read to
+be considered. [default: 10]</p>
+<p>OUTPUT chrom: Chromosome where the CpG quartet exists. cpg1: 0-based
+position of the cytosine (C) in the first CpG cpg2: 0-based position of
+the cytosine (C) in the second CpG cpg3: 0-based position of the
+cytosine (C) in the third CpG cpg4: 0-based position of the cytosine (C)
+in the fourth CpG pm: Value of PM</p>
+<pre class="r"><code>example &lt;- read.table(&quot;/researchers/caitlin.page/cf_nano/run_metheor/pm_ENCFF000LYO.tsv&quot;)
+colnames(example) &lt;- c(&quot;seqnames&quot;, &quot;start&quot;, &quot;start_2&quot;, &quot;start_3&quot;, &quot;start_4&quot;, &quot;PM&quot;)
+example[1:10,]</code></pre>
+<pre><code>   seqnames     start   start_2   start_3   start_4         PM
+1     chr11 111512895 111512898 111512903 111512908 0.28136140
+2     chr17  39980989  39980991  39980994  39980997 0.02531233
+3      chr8  23528841  23528844  23528861  23528866 0.03919996
+4      chr8 144517979 144517983 144517990 144517993 0.05401239
+5      chr3 129002015 129002022 129002027 129002029 0.00000000
+6      chr2 234496714 234496717 234496723 234496725 0.18000005
+7      chr9 122213810 122213823 122213827 122213829 0.75739650
+8     chr11  46238019  46238021  46238024  46238027 0.12011719
+9      chr1   1615903   1615912   1615915   1615919 0.04648531
+10     chr4  77819954  77819966  77819972  77819980 0.06887755</code></pre>
+</div>
+<div id="entropy" class="section level1">
+<h1>entropy</h1>
+<p>DEFAULTS -d, –min-depth: Minimum depth of reads covering epialleles
+to consider. [default: 10] -q, –min-qual: Minimum quality for a read to
+be considered. [default: 10]</p>
+<p>OUTPUT chrom: Chromosome where the CpG quartet exists. cpg1: 0-based
+position of the cytosine (C) in the first CpG cpg2: 0-based position of
+the cytosine (C) in the second CpG cpg3: 0-based position of the
+cytosine (C) in the third CpG cpg4: 0-based position of the cytosine (C)
+in the fourth CpG me: Value of ME NOTE: The order of CpG quartets in the
+output file is not sorted.</p>
+<pre class="r"><code>example &lt;- read.table(&quot;/researchers/caitlin.page/cf_nano/run_metheor/me_ENCFF000LYO.tsv&quot;)
+colnames(example) &lt;- c(&quot;seqnames&quot;, &quot;start&quot;, &quot;start_2&quot;, &quot;start_3&quot;, &quot;start_4&quot;, &quot;ME&quot;)
+example[1:10,]</code></pre>
+<pre><code>   seqnames     start   start_2   start_3   start_4         ME
+1      chr3  71725399  71725401  71725406  71725408 0.09292256
+2      chr2 174025978 174025985 174025998 174026003 0.26456925
+3     chr12  65825532  65825538  65825541  65825543 0.13835362
+4     chr10 133179710 133179722 133179724 133179728 0.37738930
+5     chr18  51197148  51197158  51197160  51197168 0.00000000
+6     chr20   3173384   3173386   3173402   3173405 0.03713737
+7     chr10 122374988 122374992 122374996 122374998 0.08627933
+8      chr1 220878846 220878850 220878852 220878868 0.09058897
+9      chr4  40629825  40629832  40629837  40629841 0.03427488
+10    chr21  33229928  33229930  33229936  33229941 0.00000000</code></pre>
+</div>
+<div id="fraction-discordant-read-pairs" class="section level1">
+<h1>fraction discordant read pairs</h1>
+<p>DEFAULTS -q, –min-qual: Minimum quality for a read to be considered.
+[default: 10] -d, –min-depth: Minimum depth of reads covering epialleles
+to consider. [default: 10] -D, –max-depth: Maximum number of reads to
+consider. [default: 40] -l, –min-overlap: Minimum overlap between two
+reads to consider in basepairs. [default: 35]</p>
+<p>OUTPUT Produces a (BedGraph-compatible) tab-separated table with the
+following four columns.</p>
+<p>chrom: Chromosome where the CpG exists. start: 0-based position of
+the cytosine (C) in CpG end: 0-based position + 1 of the guanine (G) in
+CpG fdrp: Value of FDRP</p>
+<pre class="r"><code>example &lt;- read.table(&quot;/researchers/caitlin.page/cf_nano/run_metheor/fdrp_ENCFF000LYO.tsv&quot;)
+colnames(example) &lt;- c(&quot;seqnames&quot;, &quot;start&quot;, &quot;end&quot;, &quot;FDRP&quot;)
+example[1:10,]</code></pre>
+<pre><code>   seqnames  start    end      FDRP
+1      chr1 136875 136877 0.5615385
+2      chr1 136894 136896 0.5346154
+3      chr1 136910 136912 0.6166667
+4      chr1 191437 191439 0.2637363
+5      chr1 634023 634025 0.0000000
+6      chr1 634027 634029 0.0000000
+7      chr1 777995 777997 0.6928105
+8      chr1 778007 778009 0.6928105
+9      chr1 778019 778021 0.6928105
+10     chr1 778066 778068 0.5736842</code></pre>
+</div>
+<div id="quantitative-fraction-discordant-reads" class="section level1">
+<h1>quantitative fraction discordant reads</h1>
+<p>qFDRP is a soft-version of FDRP. Instead of deciding whether the read
+pair is discordant, qFDRP computes the normalized hamming distance. Note
+that when the methylation states of the common CpGs are completely same,
+normalized hamming distance will be 0, and when the methylation states
+are completely different, it will be 1, which makes qFDRP calculation
+equivalent to FDRP.</p>
+<p>DEFAULTS -i, –input: Path to input BAM file. -o, –output: Path to
+output table file summarizing the result of epipolymorphism calculation.
+-q, –min-qual: Minimum quality for a read to be considered. [default:
+10] -d, –min-depth: Minimum depth of reads covering epialleles to
+consider. [default: 10] -D, –max-depth: Maximum number of reads to
+consider. [default: 40] -l, –min-overlap: Minimum overlap between two
+reads to consider in basepairs. [default: 35] -c, –cpg-set: (Optional)
+Specify a predefined set of CpGs (in BED file) to be analyzed.</p>
+<p>OUTPUT Produces a (BedGraph-compatible) tab-separated table with the
+following four columns.</p>
+<p>chrom: Chromosome where the CpG exists. start: 0-based position of
+the cytosine (C) in CpG end: 0-based position + 1 of the guanine (G) in
+CpG qfdrp: Value of qFDRP</p>
+<pre class="r"><code>example &lt;- read.table(&quot;/researchers/caitlin.page/cf_nano/run_metheor/qfdrp_ENCFF000LYO.tsv&quot;)
+colnames(example) &lt;- c(&quot;seqnames&quot;, &quot;start&quot;, &quot;end&quot;, &quot;QFDRP&quot;)
+example[1:10,]</code></pre>
+<pre><code>   seqnames  start    end     QFDRP
+1      chr1 136875 136877 0.3055553
+2      chr1 136894 136896 0.2794869
+3      chr1 136910 136912 0.2688032
+4      chr1 191437 191439 0.2637363
+5      chr1 634023 634025 0.0000000
+6      chr1 634027 634029 0.0000000
+7      chr1 777995 777997 0.3028322
+8      chr1 778007 778009 0.3028322
+9      chr1 778019 778021 0.3028322
+10     chr1 778066 778068 0.2070175</code></pre>
+<br>
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-sessioninfo" data-toggle="collapse" data-target="#workflowr-sessioninfo" style="display: block;">
+<span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
+Session information
+</button>
+</p>
+<div id="workflowr-sessioninfo" class="collapse">
+<pre class="r"><code>sessionInfo()</code></pre>
+<pre><code>R version 4.4.1 (2024-06-14)
+Platform: x86_64-pc-linux-gnu
+Running under: Red Hat Enterprise Linux 9.6 (Plow)
+
+Matrix products: default
+BLAS/LAPACK: FlexiBLAS OPENBLAS-OPENMP;  LAPACK version 3.9.0
+
+locale:
+ [1] LC_CTYPE=en_AU.UTF-8       LC_NUMERIC=C              
+ [3] LC_TIME=en_AU.UTF-8        LC_COLLATE=en_AU.UTF-8    
+ [5] LC_MONETARY=en_AU.UTF-8    LC_MESSAGES=en_AU.UTF-8   
+ [7] LC_PAPER=en_AU.UTF-8       LC_NAME=C                 
+ [9] LC_ADDRESS=C               LC_TELEPHONE=C            
+[11] LC_MEASUREMENT=en_AU.UTF-8 LC_IDENTIFICATION=C       
+
+time zone: Australia/Melbourne
+tzcode source: system (glibc)
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+loaded via a namespace (and not attached):
+ [1] vctrs_0.6.5       cli_3.6.5         knitr_1.50        rlang_1.1.6      
+ [5] xfun_0.52         stringi_1.8.7     promises_1.3.3    jsonlite_2.0.0   
+ [9] workflowr_1.7.1   glue_1.8.0        rprojroot_2.1.0   git2r_0.36.2     
+[13] htmltools_0.5.8.1 httpuv_1.6.16     sass_0.4.10       rmarkdown_2.29   
+[17] evaluate_1.0.4    jquerylib_0.1.4   tibble_3.3.0      fastmap_1.2.0    
+[21] yaml_2.3.10       lifecycle_1.0.4   whisker_0.4.1     stringr_1.5.1    
+[25] compiler_4.4.1    fs_1.6.6          Rcpp_1.1.0        pkgconfig_2.0.3  
+[29] rstudioapi_0.17.1 later_1.4.2       digest_0.6.37     R6_2.6.1         
+[33] pillar_1.11.0     magrittr_2.0.3    bslib_0.9.0       tools_4.4.1      
+[37] cachem_1.1.0     </code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+
+<!-- Adjust MathJax settings so that all math formulae are shown using
+TeX fonts only; see
+https://docs.mathjax.org/en/latest/web/configuration.html. This will make
+the presentation more consistent at the cost of the webpage sometimes
+taking slightly longer to load. Note that this only works because the
+footer is added to webpages before the MathJax javascript. -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    "HTML-CSS": { availableFonts: ["TeX"] }
+  });
+</script>
+
+
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+
+<script>
+$(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
