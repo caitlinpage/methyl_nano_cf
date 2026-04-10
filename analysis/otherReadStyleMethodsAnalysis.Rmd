@@ -1,0 +1,469 @@
+---
+title: "otherReadStyleMethodsAnalysis"
+author: "caitlinpage"
+date: "2026-04-08"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+## Introduction
+
+```{r}
+library(annotatr)
+library(data.table)
+library(plyranges)
+library(tidyr)
+library(stringr)
+library(dplyr)
+library(ggplot2)
+library(edgeR)
+```
+
+
+Description of methods [here](otherReadStyleMethods.html)
+
+## Analysis
+
+```{r}
+for_beta_all <- readRDS("/researchers/caitlin.page/cf_nano/r_output/rrbs_alpha_beta.rds")
+#for_beta <- readRDS("../output/cluster_files/rrbs_alpha_beta.rds")
+
+#gm12878_2 <- readRDS("/researchers/caitlin.page/cf_nano/r_output/rrbs_alpha_beta_rep2.rds")
+
+#k562 <- readRDS("/researchers/caitlin.page/cf_nano/r_output/k562_rep1.rds")
+
+#k562_2 <- readRDS("/researchers/caitlin.page/cf_nano/r_output/k562_rep2.rds")
+```
+
+
+```{r}
+files <- list.files("/researchers/caitlin.page/cf_nano/run_metheor")
+files
+files <- paste0("/researchers/caitlin.page/cf_nano/run_metheor/", files)
+```
+
+
+# MHL
+```{r}
+files[grep("mhl", files)]
+```
+
+* MHL 0 based coordinates, my alpha in 1-based coordinates
+* so +1 to the start
+```{r}
+mhl_gm1 <- read.table(files[grep("mhl", files)][1])
+colnames(mhl_gm1) <- c("seqnames", "start", "end", "MHL")
+mhl_gm1$start <- mhl_gm1$start + 1
+
+#mhl_gm2 <- read.table(files[grep("mhl", files)][2])
+#colnames(mhl_gm2) <- c("seqnames", "start", "end", "MHL")
+
+#mhl_k562_1 <- read.table(files[grep("mhl", files)][3])
+#colnames(mhl_k562_1) <- c("seqnames", "start", "end", "MHL")
+
+#mhl_k562_2 <- read.table(files[grep("mhl", files)][4])
+#colnames(mhl_k562_2) <- c("seqnames", "start", "end", "MHL")
+```
+
+```{r}
+mhl_gm1[1:10,]
+nrow(mhl_gm1)
+```
+
+# THEORY: MHL is like a summarised region alpha
+
+LOGIC
+* MHL: how well meth haplotypes (consec CpGs) conserved throughout cell pop (across reads) for given region
+* calculates a per cpg value
+* 0 - all unmethylated, 1 - all methylated, in between - a mix
+** the only metric that does this (through metheor - I think someone else modified one of these to distinguish)
+* in this it's like alpha - differentiates between states
+* and it's a population metric and a read metric 
+
+
+## Correlation?
+
+```{r}
+for_beta_all %>% filter(seqnames == "chr1") %>% distinct(seqnames, start) %>% nrow()
+mhl_gm1 %>% filter(seqnames == "chr1") %>% distinct(seqnames, start) %>% nrow()
+```
+
+```{r}
+mhl_gm1 %>% filter(seqnames == "chr1") %>% distinct(seqnames, start) %>% .$start %in% distinct(filter(for_beta_all, seqnames == "chr1"), seqnames, start)$start %>% summary()
+```
+
+```{r}
+cg_sites <- cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38[["chr1"]])), seqnames = "chr1") %>% 
+  mutate(pos = paste0(seqnames, "-", start)) %>%
+  relocate(pos, seqnames)
+cg_sites$index <- 1:nrow(cg_sites)
+
+mhl_gm1 %>% filter(seqnames == "chr1") %>% distinct(seqnames, start) %>% .$start %in% cg_sites$start %>% summary()
+```
+
+```{r}
+for_beta_all %>% filter(seqnames == "chr1") %>% distinct(seqnames, start) %>% .$start %in% cg_sites$start %>% summary()
+```
+
+```{r}
+mhl_gm1_subset <- mhl_gm1 %>% filter(seqnames == "chr1")
+```
+
+
+```{r}
+for_beta_all %>% filter(seqnames == "chr1") %>% 
+  group_by(seqnames, start) %>%
+  summarise(mean_alpha = mean(alpha)) %>%
+  ungroup() %>%
+  mutate(mhl = mhl_gm1_subset[match(.$start, mhl_gm1_subset$start), "MHL"]) %>%
+  ggplot(aes(x = mean_alpha, y = mhl)) +
+  geom_point(alpha = 0.3)
+```
+```{r}
+for_beta_all %>% filter(seqnames == "chr1") %>% 
+  distinct(seqnames, start, beta) %>%
+  mutate(mhl = mhl_gm1_subset[match(.$start, mhl_gm1_subset$start), "MHL"]) %>%
+  ggplot(aes(x = beta, y = mhl)) +
+  geom_point(alpha = 0.3)
+```
+
+```{r}
+for_beta_all %>% filter(seqnames == "chr1") %>% 
+  group_by(seqnames, start, beta) %>%
+  summarise(mean_alpha = mean(alpha)) %>%
+  ungroup() %>%
+  mutate(mhl = mhl_gm1_subset[match(.$start, mhl_gm1_subset$start), "MHL"]) %>%
+  ggplot(aes(x = mean_alpha, y = mhl, colour = beta)) +
+  geom_point(alpha = 0.3)
+```
+
+```{r}
+test_mhl <- for_beta_all %>% filter(seqnames == "chr1") %>% 
+  group_by(seqnames, start, beta) %>%
+  summarise(mean_alpha = mean(alpha)) %>%
+  ungroup() %>%
+  mutate(mhl = mhl_gm1_subset[match(.$start, mhl_gm1_subset$start), "MHL"])
+
+cor.test(test_mhl$mean_alpha, test_mhl$beta)
+cor.test(test_mhl$mean_alpha, test_mhl$mhl)
+cor.test(test_mhl$beta, test_mhl$mhl)
+```
+
+## Q: MHL compared with my previous plots of grouped alphas
+
+```{r}
+mhl_gm1_subset[100:1000,] %>%
+  ggplot(aes(x = start, y = MHL)) +
+  geom_line()
+```
+```{r}
+for_beta_all_subset <- for_beta_all %>% filter(seqnames == "chr1")
+```
+
+
+```{r}
+just_beta <- for_beta_all %>% filter(seqnames == "chr1") %>% distinct(seqnames, start, beta) %>% group_by(start) %>% mutate(coverage = n()) %>% ungroup() %>% data.frame() %>% .[order(.$start),] %>%
+  mutate(row_num = 1:nrow(.)) %>%
+  mutate(beta_high = ifelse(beta >= 0.8 & beta < 1, "high", "other"))
+
+grouped_betas <- just_beta %>% 
+  group_by(beta_high) %>%
+  mutate(consec = n()) %>%
+  mutate(count = 1:n()) %>%
+  ungroup() %>%
+  mutate(length = sequence(rle(.$beta_high)$lengths)) %>% 
+  mutate(group = cumsum(c(TRUE, diff(length) <= 0))) %>%
+  group_by(group) %>%
+  mutate(length = n(), av_coverage = mean(coverage), av_beta = mean(beta)) %>%
+  ungroup() %>% filter(beta_high == "high", length > 2) %>% data.frame() 
+
+poten_groups <- for_beta_all %>% filter(seqnames == "chr1") %>% mutate(beta_range_group_num = grouped_betas[match(.$start, grouped_betas$start), "group"],
+                    beta_range_group_length = grouped_betas[match(.$start, grouped_betas$start), "length"]) %>% 
+  filter(!is.na(beta_range_group_num)) %>% distinct(read_id, alpha, beta_range_group_num, beta_range_group_length) %>%
+  mutate(beta_range_group_num = as.factor(beta_range_group_num)) %>%
+  group_by(beta_range_group_num) %>%
+  summarise(bimodal_p = list(diptest::dip.test(alpha)$p.value)
+  ) %>%
+  unnest(cols = c(bimodal_p)) %>% filter(bimodal_p < 0.01) %>% .$beta_range_group_num
+```
+
+```{r}
+source("../code/processData.R")
+plot_list <- list()
+for (i in 1:5) {
+  row_pos <- just_beta %>%
+  group_by(beta_high) %>%
+  mutate(consec = n()) %>%
+  mutate(count = 1:n()) %>%
+  ungroup() %>%
+  mutate(length = sequence(rle(.$beta_high)$lengths)) %>% 
+  mutate(group = cumsum(c(TRUE, diff(length) <= 0))) %>% filter(group == i)
+  min_row <- min(row_pos$row_num)
+  max_row <- max(row_pos$row_num)
+  plot_list[[i]] <- rrbs_plot(for_beta_all_subset, for_beta_all_subset %>% filter(start %in% just_beta[min_row:max_row,]$start) %>% .$read_id %>% unique(), count_instead = TRUE)
+}
+plot_list
+```
+* arbitarirly find one because section with multiple reads
+```{r}
+mhl_gm1_subset %>% filter(start >= 136870) %>% .[1:10,]
+```
+
+```{r}
+rrbs_plot(for_beta_all_subset, for_beta_all_subset %>% filter(start >= 136870, start <= 136920) %>% .$read_id %>% unique(), count_instead = TRUE) +
+  geom_line(data = filter(mhl_gm1_subset, start >= 181000, start <= 181650), aes(x = start, y = MHL), alpha = 0.3)
+```
+
+
+```{r}
+rrbs_plot(for_beta_all_subset, for_beta_all_subset %>% filter(start >= 181000, start <= 181650) %>% .$read_id %>% unique(), count_instead = TRUE) +
+  geom_line(data = filter(mhl_gm1_subset, start >= 181000, start <= 181650), aes(x = start, y = MHL), alpha = 0.3)
+```
+
+```{r}
+mhl_gm1 %>%
+  ggplot(aes(x = log2(MHL + 0.1))) +
+  geom_density()
+
+mhl_gm1 %>%
+  ggplot(aes(x = MHL)) +
+  geom_histogram(bins = 75)
+```
+
+```{r}
+for_beta_all %>% distinct(read_id, alpha) %>%
+  ggplot(aes(x = alpha)) +
+  geom_histogram(bins = 75)
+```
+
+
+```{r}
+for_beta_all_subset %>% 
+  group_by(seqnames, start, beta) %>%
+  summarise(mean_alpha = mean(alpha)) %>%
+  ungroup() %>%
+  mutate(mhl = mhl_gm1_subset[match(.$start, mhl_gm1_subset$start), "MHL"],
+         row_num = 1:n()) %>% .[1:10,]
+```
+```{r}
+827532 - 827413	
+```
+
+```{r}
+rrbs_plot(for_beta_all_subset, for_beta_all_subset %>% filter(start >= 827413, start <= 827532) %>% .$read_id %>% unique(), count_instead = TRUE) +
+  geom_line(data = filter(mhl_gm1_subset, start >= 827413, start <= 827532), aes(x = start, y = MHL), alpha = 0.3, colour = "purple")
+```
+
+```{r}
+for_beta_all_subset %>% 
+  group_by(seqnames, start, beta) %>%
+  summarise(mean_alpha = mean(alpha)) %>%
+  ungroup() %>%
+  mutate(mhl = mhl_gm1_subset[match(.$start, mhl_gm1_subset$start), "MHL"],
+         row_num = 1:n()) %>% 
+  filter(!is.na(mhl)) %>%
+  filter(mhl > 0.2) %>% .[1:10,]
+```
+
+```{r}
+for_beta_all_subset %>% 
+  group_by(seqnames, start, beta) %>%
+  summarise(mean_alpha = mean(alpha)) %>%
+  ungroup() %>%
+  mutate(mhl = mhl_gm1_subset[match(.$start, mhl_gm1_subset$start), "MHL"],
+         row_num = 1:n()) %>% .[145:155,]
+```
+
+```{r}
+for_beta_all_subset_sum <- for_beta_all_subset %>% 
+  group_by(seqnames, start, beta) %>%
+  summarise(mean_alpha = mean(alpha)) %>%
+  ungroup() %>%
+  mutate(mhl = mhl_gm1_subset[match(.$start, mhl_gm1_subset$start), "MHL"],
+         row_num = 1:n())
+```
+
+
+```{r}
+rrbs_plot(for_beta_all_subset, for_beta_all_subset %>% filter(start >= 909867, start <= 909959) %>% .$read_id %>% unique(), count_instead = TRUE) +
+  geom_line(data = filter(mhl_gm1_subset, start >= 909867, start <= 909959), aes(x = start, y = MHL), alpha = 0.3, colour = "purple") +
+  geom_line(data = filter(for_beta_all_subset_sum, start >= 909867, start <= 909959), aes(x = start, y = mean_alpha), alpha = 0.3, colour = "orange")
+```
+* row 494-498
+* high beta + mean alpha, lower mhl
+```{r}
+for_beta_all_subset_sum[494:498,]
+rrbs_plot(for_beta_all_subset, for_beta_all_subset %>% filter(start >= 959748, start <= 959777) %>% .$read_id %>% unique(), count_instead = TRUE) +
+  geom_line(data = filter(mhl_gm1_subset, start >= 959748, start <= 959777), aes(x = start, y = MHL), alpha = 0.3, colour = "purple") +
+  geom_line(data = filter(for_beta_all_subset_sum, start >= 959748, start <= 959777), aes(x = start, y = mean_alpha), alpha = 0.3, colour = "orange")
+```
+
+* when mean_alpha = 1
+** seems to be a bigger distribution of mhl
+
+```{r}
+for_beta_all_subset_sum %>% filter(mean_alpha == 1, !is.na(mhl)) %>%
+  ggplot(aes(x = as.factor(mean_alpha), y = mhl)) +
+  geom_violin()
+
+for_beta_all_subset_sum %>% filter(mean_alpha == 0, !is.na(mhl)) %>%
+  ggplot(aes(x = as.factor(mean_alpha), y = mhl)) +
+  geom_violin()
+```
+
+
+
+```{r}
+mhl_gm1_subset[1:10,]
+```
+
+
+
+
+# FDRP
+
+```{r}
+fdrp_gm1 <- read.table("/researchers/caitlin.page/cf_nano/run_metheor/fdrp_ENCFF000LYO.tsv")
+colnames(fdrp_gm1) <- c("seqnames", "start", "end", "FDRP")
+fdrp_gm1 <- fdrp_gm1 %>% filter(seqnames == "chr1")
+fdrp_gm1$start <- fdrp_gm1$start + 1
+```
+
+```{r}
+fdrp_gm1 %>% filter(seqnames == "chr1") %>%
+  ggplot(aes(x = FDRP)) +
+  geom_density()
+```
+```{r}
+fdrp_gm1[1:10,]
+```
+
+```{r}
+for_beta_all_subset_sum %>% mutate(fdrp = fdrp_gm1[match(.$start, fdrp_gm1$start), "FDRP"]) %>%
+  ggplot(aes(x = mean_alpha, y = fdrp)) +
+  geom_point(alpha = 0.3)
+```
+
+```{r}
+for_beta_all_subset_sum %>% mutate(fdrp = fdrp_gm1[match(.$start, fdrp_gm1$start), "FDRP"]) %>%
+  ggplot(aes(x = beta, y = fdrp)) +
+  geom_point(alpha = 0.3)
+```
+
+```{r}
+for_beta_all_subset_sum %>% mutate(fdrp = fdrp_gm1[match(.$start, fdrp_gm1$start), "FDRP"]) %>%
+  ggplot(aes(x = mhl, y = fdrp)) +
+  geom_point(alpha = 0.3)
+```
+
+* well these plots mean nothing
+* because fdrp measures something different
+
+
+# entropy
+
+```{r}
+entropy_gm1 <- read.table("/researchers/caitlin.page/cf_nano/run_metheor/me_ENCFF000LYO.tsv")
+colnames(entropy_gm1) <- c("seqnames", "start", "start_2", "start_3", "start_4", "ME")
+entropy_gm1$start <- entropy_gm1$start + 1
+entropy_gm1$start_2 <- entropy_gm1$start_2 + 1
+entropy_gm1$start_3 <- entropy_gm1$start_3 + 1
+entropy_gm1$start_4 <- entropy_gm1$start_4 + 1
+
+entropy_gm1 <- entropy_gm1 %>% filter(seqnames == "chr1") %>% .[order(.$start),]
+```
+
+```{r}
+entropy_gm1 %>%
+  ggplot(aes(x = ME)) +
+  geom_density()
+```
+
+```{r}
+for_beta_all_subset_sum %>% mutate(entropy = entropy_gm1[match(.$start, entropy_gm1$start), "ME"]) %>%
+  ggplot(aes(x = mean_alpha, y = entropy)) +
+  geom_point(alpha = 0.3)
+```
+
+```{r}
+for_beta_all_subset_sum %>% mutate(fdrp = fdrp_gm1[match(.$start, fdrp_gm1$start), "FDRP"]) %>% 
+  mutate(entropy = entropy_gm1[match(.$start, entropy_gm1$start), "ME"]) %>%
+  ggplot(aes(x = fdrp, y = entropy)) +
+  geom_point(alpha = 0.3)
+```
+```{r}
+for_beta_all_subset_sum <- for_beta_all_subset_sum %>%
+  mutate(var_alpha = for_beta_all_subset %>% group_by(start) %>% summarise(var_alpha = var(alpha)) %>% .$var_alpha) %>%
+  mutate(fdrp = fdrp_gm1[match(.$start, fdrp_gm1$start), "FDRP"]) %>% 
+  mutate(entropy = entropy_gm1[match(.$start, entropy_gm1$start), "ME"])
+```
+
+```{r}
+for_beta_all_subset_sum %>% 
+  ggplot(aes(x = var_alpha, y = entropy)) +
+  geom_point(alpha = 0.3)
+
+for_beta_all_subset_sum %>% 
+  ggplot(aes(x = var_alpha, y = fdrp)) +
+  geom_point(alpha = 0.3)
+```
+
+```{r}
+cor.test(for_beta_all_subset_sum$var_alpha, for_beta_all_subset_sum$entropy)
+cor.test(for_beta_all_subset_sum$var_alpha, for_beta_all_subset_sum$fdrp)
+cor.test(for_beta_all_subset_sum$entropy, for_beta_all_subset_sum$fdrp)
+```
+
+# compare variation to DTU??
+* entropy and fdrp are both variation measurements
+* so what does it look like in dtu?
+
+```{r}
+ts.gene.gene <- readRDS("/researchers/caitlin.page/cf_nano/r_output/ts.gene.gene.rds")
+```
+
+```{r}
+annots <- c("hg38_basicgenes", "hg38_genes_intergenic")
+
+annotations <- annotatr::build_annotations(genome = 'hg38', annotations = annots)
+seqs <- annotations %>% data.frame() %>% distinct(seqnames) %>% .[1:22,]
+annotations <- annotations %>% data.frame() %>% filter(seqnames %in% seqs)
+
+for_beta_all_genes <- find_overlaps(as_granges(for_beta_all), as_granges(annotations)) %>% data.frame()
+```
+
+* luckily 1 of the top 10 genes is on chr1
+```{r}
+dtu_gene <- for_beta_all_genes %>% filter(symbol %in% ts.gene.gene[1:10,]$gene_id) %>% filter(seqnames == "chr1") %>% distinct(seqnames, start, beta, symbol)
+```
+
+```{r}
+for_beta_all_subset_sum %>% filter(start %in% dtu_gene$start) %>%
+  ggplot(aes(x = start, y = entropy)) +
+  geom_point()
+```
+
+
+```{r}
+rrbs_plot(for_beta_all_subset, for_beta_all_subset %>% filter(start >= 29124612, start <= 29125168) %>% .$read_id %>% unique(), count_instead = TRUE) +
+  geom_line(data = filter(mhl_gm1_subset, start >= 29124612, start <= 29125168), aes(x = start, y = MHL), alpha = 0.3, colour = "purple") +
+  geom_line(data = filter(for_beta_all_subset_sum, start >= 29124612, start <= 29125168), aes(x = start, y = mean_alpha), alpha = 0.3, colour = "orange") +
+  geom_line(data = filter(for_beta_all_subset_sum, start >= 29124612, start <= 29125168), aes(x = start, y = entropy), alpha = 0.3, colour = "red") +
+  geom_line(data = filter(for_beta_all_subset_sum, start >= 29124612, start <= 29125168), aes(x = start, y = fdrp), alpha = 0.3, colour = "blue")
+```
+
+
+
+
+```{r}
+rrbs_plot(for_beta_all_subset, for_beta_all_subset %>% filter(start >= 29124612, start <= 29125168) %>% .$read_id %>% unique(), count_instead = TRUE) +
+  geom_line(data = filter(mhl_gm1_subset, start >= 29124612, start <= 29125168), aes(x = start, y = MHL), alpha = 0.3, colour = "purple") +
+  geom_line(data = filter(for_beta_all_subset_sum, start >= 29124612, start <= 29125168), aes(x = start, y = mean_alpha), alpha = 0.3, colour = "orange") +
+  geom_line(data = filter(for_beta_all_subset_sum, start >= 29124612, start <= 29125168), aes(x = start, y = entropy), alpha = 0.3, colour = "red") +
+  geom_line(data = filter(for_beta_all_subset_sum, start >= 29124612, start <= 29125168), aes(x = start, y = fdrp), alpha = 0.3, colour = "blue") +
+  geom_line(data = filter(for_beta_all_subset_sum, start >= 29124612, start <= 29125168), aes(x = start, y = var_alpha), alpha = 0.3, colour = "yellow") +
+  scale_x_continuous(limits = c(29124600, 29125000)) +
+  scale_y_continuous(limits = c(-0.1, 0.4))
+```
+
