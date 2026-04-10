@@ -1,0 +1,1547 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="caitlinpage" />
+
+<meta name="date" content="2026-04-08" />
+
+<title>otherReadStyleMethodsAnalysis</title>
+
+<script src="site_libs/header-attrs-2.29/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/jqueryui-1.13.2/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<link href="site_libs/font-awesome-6.5.2/css/all.min.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet" />
+
+<link rel="icon" href="https://github.com/workflowr/workflowr-assets/raw/main/img/reproducible.png">
+<!-- Add a small amount of space between sections. -->
+<style type="text/css">
+div.section {
+  padding-top: 12px;
+}
+</style>
+
+
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">3_cf_nano</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Home</a>
+</li>
+<li>
+  <a href="about.html">About</a>
+</li>
+<li>
+  <a href="license.html">License</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li>
+  <a href="https://github.com/caitlinpage/methyl_nano_cf">
+    <span class="fab fa-github"></span>
+     
+    Source code
+  </a>
+</li>
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+
+
+<h1 class="title toc-ignore">otherReadStyleMethodsAnalysis</h1>
+<h4 class="author">caitlinpage</h4>
+<h4 class="date">2026-04-08</h4>
+
+</div>
+
+
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-report" data-toggle="collapse" data-target="#workflowr-report">
+<span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+workflowr <span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span>
+</button>
+</p>
+<div id="workflowr-report" class="collapse">
+<ul class="nav nav-tabs">
+<li class="active">
+<a data-toggle="tab" href="#summary">Summary</a>
+</li>
+<li>
+<a data-toggle="tab" href="#checks"> Checks <span
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span>
+</a>
+</li>
+<li>
+<a data-toggle="tab" href="#versions">Past versions</a>
+</li>
+</ul>
+<div class="tab-content">
+<div id="summary" class="tab-pane fade in active">
+<p>
+<strong>Last updated:</strong> 2026-04-10
+</p>
+<p>
+<strong>Checks:</strong> <span
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 7
+<span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> 0
+</p>
+<p>
+<strong>Knit directory:</strong> <code>methyl_nano_cf/analysis/</code>
+<span class="glyphicon glyphicon-question-sign" aria-hidden="true"
+title="This is the local directory in which the code in this file was executed.">
+</span>
+</p>
+<p>
+This reproducible <a href="https://rmarkdown.rstudio.com">R Markdown</a>
+analysis was created with <a
+  href="https://github.com/workflowr/workflowr">workflowr</a> (version
+1.7.1). The <em>Checks</em> tab describes the reproducibility checks
+that were applied when the results were created. The <em>Past
+versions</em> tab lists the development history.
+</p>
+<hr>
+</div>
+<div id="checks" class="tab-pane fade">
+<div id="workflowr-checks" class="panel-group">
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRMarkdownfilestronguptodate">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>R Markdown file:</strong> up-to-date
+</a>
+</p>
+</div>
+<div id="strongRMarkdownfilestronguptodate"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great! Since the R Markdown file has been committed to the Git
+repository, you know the exact version of the code that produced these
+results.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongEnvironmentstrongempty">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Environment:</strong> empty </a>
+</p>
+</div>
+<div id="strongEnvironmentstrongempty" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! The global environment was empty. Objects defined in the
+global environment can affect the analysis in your R Markdown file in
+unknown ways. For reproduciblity it’s best to always run the code in an
+empty environment.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSeedstrongcodesetseed20250606code">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Seed:</strong>
+<code>set.seed(20250606)</code> </a>
+</p>
+</div>
+<div id="strongSeedstrongcodesetseed20250606code"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>The command <code>set.seed(20250606)</code> was run prior to running
+the code in the R Markdown file. Setting a seed ensures that any results
+that rely on randomness, e.g. subsampling or permutations, are
+reproducible.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSessioninformationstrongrecorded">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Session information:</strong>
+recorded </a>
+</p>
+</div>
+<div id="strongSessioninformationstrongrecorded"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Recording the operating system, R version, and package
+versions is critical for reproducibility.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongCachestrongnone">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Cache:</strong> none </a>
+</p>
+</div>
+<div id="strongCachestrongnone" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Nice! There were no cached chunks for this analysis, so you can be
+confident that you successfully produced the results during this
+run.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongFilepathsstrongrelative">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>File paths:</strong> relative </a>
+</p>
+</div>
+<div id="strongFilepathsstrongrelative" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Using relative paths to the files within your workflowr
+project makes it easier to run your code on other machines.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpagemethylnanocftree45f9636d14b7ef3f9537aafa7672c119339db581targetblank45f9636a">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Repository version:</strong>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/tree/45f9636d14b7ef3f9537aafa7672c119339db581" target="_blank">45f9636</a>
+</a>
+</p>
+</div>
+<div
+id="strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpagemethylnanocftree45f9636d14b7ef3f9537aafa7672c119339db581targetblank45f9636a"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>
+Great! You are using Git for version control. Tracking code development
+and connecting the code version to the results is critical for
+reproducibility.
+</p>
+<p>
+The results in this page were generated with repository version
+<a href="https://github.com/caitlinpage/methyl_nano_cf/tree/45f9636d14b7ef3f9537aafa7672c119339db581" target="_blank">45f9636</a>.
+See the <em>Past versions</em> tab to see a history of the changes made
+to the R Markdown and HTML files.
+</p>
+<p>
+Note that you need to be careful to ensure that all relevant files for
+the analysis have been committed to Git prior to generating the results
+(you can use <code>wflow_publish</code> or
+<code>wflow_git_commit</code>). workflowr only checks the R Markdown
+file, but you know if there are other scripts or data files that it
+depends on. Below is the status of the Git repository when the results
+were generated:
+</p>
+<pre><code>
+Ignored files:
+    Ignored:    .Rproj.user/
+    Ignored:    analysis/.RData
+
+Untracked files:
+    Untracked:  renv.lock
+    Untracked:  renv/
+
+Unstaged changes:
+    Modified:   .Rprofile
+    Modified:   _workflowr.yml
+    Modified:   analysis/otherReadStyleMethods.Rmd
+
+</code></pre>
+<p>
+Note that any generated files, e.g. HTML, png, CSS, etc., are not
+included in this status report because it is ok for generated content to
+have uncommitted changes.
+</p>
+</div>
+</div>
+</div>
+</div>
+<hr>
+</div>
+<div id="versions" class="tab-pane fade">
+<p>
+These are the previous versions of the repository in which changes were
+made to the R Markdown
+(<code>analysis/otherReadStyleMethodsAnalysis.Rmd</code>) and HTML
+(<code>docs/otherReadStyleMethodsAnalysis.html</code>) files. If you’ve
+configured a remote Git repository (see <code>?wflow_git_remote</code>),
+click on the hyperlinks in the table below to view the files as they
+were in that past version.
+</p>
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+File
+</th>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+<th>
+Message
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/45f9636d14b7ef3f9537aafa7672c119339db581/analysis/otherReadStyleMethodsAnalysis.Rmd" target="_blank">45f9636</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-04-10
+</td>
+<td>
+wflow_publish("otherReadStyleMethodsAnalysis.Rmd")
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr>
+</div>
+</div>
+</div>
+<div id="introduction" class="section level2">
+<h2>Introduction</h2>
+<pre class="r"><code>library(annotatr)</code></pre>
+<pre><code>Warning: replacing previous import &#39;S4Arrays::makeNindexFromArrayViewport&#39; by
+&#39;DelayedArray::makeNindexFromArrayViewport&#39; when loading &#39;SummarizedExperiment&#39;</code></pre>
+<pre class="r"><code>library(data.table)
+library(plyranges)</code></pre>
+<pre><code>Loading required package: BiocGenerics</code></pre>
+<pre><code>
+Attaching package: &#39;BiocGenerics&#39;</code></pre>
+<pre><code>The following objects are masked from &#39;package:stats&#39;:
+
+    IQR, mad, sd, var, xtabs</code></pre>
+<pre><code>The following objects are masked from &#39;package:base&#39;:
+
+    anyDuplicated, aperm, append, as.data.frame, basename, cbind,
+    colnames, dirname, do.call, duplicated, eval, evalq, Filter, Find,
+    get, grep, grepl, intersect, is.unsorted, lapply, Map, mapply,
+    match, mget, order, paste, pmax, pmax.int, pmin, pmin.int,
+    Position, rank, rbind, Reduce, rownames, sapply, saveRDS, setdiff,
+    table, tapply, union, unique, unsplit, which.max, which.min</code></pre>
+<pre><code>Loading required package: IRanges</code></pre>
+<pre><code>Loading required package: S4Vectors</code></pre>
+<pre><code>Loading required package: stats4</code></pre>
+<pre><code>
+Attaching package: &#39;S4Vectors&#39;</code></pre>
+<pre><code>The following objects are masked from &#39;package:data.table&#39;:
+
+    first, second</code></pre>
+<pre><code>The following object is masked from &#39;package:utils&#39;:
+
+    findMatches</code></pre>
+<pre><code>The following objects are masked from &#39;package:base&#39;:
+
+    expand.grid, I, unname</code></pre>
+<pre><code>
+Attaching package: &#39;IRanges&#39;</code></pre>
+<pre><code>The following object is masked from &#39;package:data.table&#39;:
+
+    shift</code></pre>
+<pre><code>Loading required package: GenomicRanges</code></pre>
+<pre><code>Loading required package: GenomeInfoDb</code></pre>
+<pre><code>
+Attaching package: &#39;plyranges&#39;</code></pre>
+<pre><code>The following object is masked from &#39;package:IRanges&#39;:
+
+    slice</code></pre>
+<pre><code>The following object is masked from &#39;package:data.table&#39;:
+
+    between</code></pre>
+<pre><code>The following object is masked from &#39;package:stats&#39;:
+
+    filter</code></pre>
+<pre class="r"><code>library(tidyr)</code></pre>
+<pre><code>
+Attaching package: &#39;tidyr&#39;</code></pre>
+<pre><code>The following object is masked from &#39;package:S4Vectors&#39;:
+
+    expand</code></pre>
+<pre class="r"><code>library(stringr)
+library(dplyr)</code></pre>
+<pre><code>
+Attaching package: &#39;dplyr&#39;</code></pre>
+<pre><code>The following objects are masked from &#39;package:plyranges&#39;:
+
+    between, n, n_distinct</code></pre>
+<pre><code>The following objects are masked from &#39;package:GenomicRanges&#39;:
+
+    intersect, setdiff, union</code></pre>
+<pre><code>The following object is masked from &#39;package:GenomeInfoDb&#39;:
+
+    intersect</code></pre>
+<pre><code>The following objects are masked from &#39;package:IRanges&#39;:
+
+    collapse, desc, intersect, setdiff, slice, union</code></pre>
+<pre><code>The following objects are masked from &#39;package:S4Vectors&#39;:
+
+    first, intersect, rename, setdiff, setequal, union</code></pre>
+<pre><code>The following objects are masked from &#39;package:BiocGenerics&#39;:
+
+    combine, intersect, setdiff, union</code></pre>
+<pre><code>The following objects are masked from &#39;package:data.table&#39;:
+
+    between, first, last</code></pre>
+<pre><code>The following objects are masked from &#39;package:stats&#39;:
+
+    filter, lag</code></pre>
+<pre><code>The following objects are masked from &#39;package:base&#39;:
+
+    intersect, setdiff, setequal, union</code></pre>
+<pre class="r"><code>library(ggplot2)
+library(edgeR)</code></pre>
+<pre><code>Loading required package: limma</code></pre>
+<pre><code>
+Attaching package: &#39;limma&#39;</code></pre>
+<pre><code>The following object is masked from &#39;package:BiocGenerics&#39;:
+
+    plotMA</code></pre>
+<p>Description of methods <a
+href="otherReadStyleMethods.html">here</a></p>
+</div>
+<div id="analysis" class="section level2">
+<h2>Analysis</h2>
+<pre class="r"><code>for_beta_all &lt;- readRDS(&quot;/researchers/caitlin.page/cf_nano/r_output/rrbs_alpha_beta.rds&quot;)
+#for_beta &lt;- readRDS(&quot;../output/cluster_files/rrbs_alpha_beta.rds&quot;)
+
+#gm12878_2 &lt;- readRDS(&quot;/researchers/caitlin.page/cf_nano/r_output/rrbs_alpha_beta_rep2.rds&quot;)
+
+#k562 &lt;- readRDS(&quot;/researchers/caitlin.page/cf_nano/r_output/k562_rep1.rds&quot;)
+
+#k562_2 &lt;- readRDS(&quot;/researchers/caitlin.page/cf_nano/r_output/k562_rep2.rds&quot;)</code></pre>
+<pre class="r"><code>files &lt;- list.files(&quot;/researchers/caitlin.page/cf_nano/run_metheor&quot;)
+files</code></pre>
+<pre><code> [1] &quot;fdrp_ENCFF000LYO.tsv&quot;     &quot;fdrp_ENCFF000LYP.tsv&quot;    
+ [3] &quot;fdrp_k562_cml_line1.tsv&quot;  &quot;fdrp_k562_cml_line2.tsv&quot; 
+ [5] &quot;lpmd_ENCFF000LYO.tsv&quot;     &quot;lpmd_ENCFF000LYP.tsv&quot;    
+ [7] &quot;me_ENCFF000LYO.tsv&quot;       &quot;me_ENCFF000LYP.tsv&quot;      
+ [9] &quot;me_k562_cml_line1.tsv&quot;    &quot;me_k562_cml_line2.tsv&quot;   
+[11] &quot;mhl_ENCFF000LYO.tsv&quot;      &quot;mhl_ENCFF000LYP.tsv&quot;     
+[13] &quot;mhl_k562_cml_line1.tsv&quot;   &quot;mhl_k562_cml_line2.tsv&quot;  
+[15] &quot;pdr_ENCFF000LYO.tsv&quot;      &quot;pdr_ENCFF000LYP.tsv&quot;     
+[17] &quot;pdr_k562_cml_line1.tsv&quot;   &quot;pdr_k562_cml_line2.tsv&quot;  
+[19] &quot;pm_ENCFF000LYO.tsv&quot;       &quot;pm_ENCFF000LYP.tsv&quot;      
+[21] &quot;pm_k562_cml_line1.tsv&quot;    &quot;pm_k562_cml_line2.tsv&quot;   
+[23] &quot;qfdrp_ENCFF000LYO.tsv&quot;    &quot;qfdrp_ENCFF000LYP.tsv&quot;   
+[25] &quot;qfdrp_k562_cml_line1.tsv&quot; &quot;qfdrp_k562_cml_line2.tsv&quot;</code></pre>
+<pre class="r"><code>files &lt;- paste0(&quot;/researchers/caitlin.page/cf_nano/run_metheor/&quot;, files)</code></pre>
+</div>
+<div id="mhl" class="section level1">
+<h1>MHL</h1>
+<pre class="r"><code>files[grep(&quot;mhl&quot;, files)]</code></pre>
+<pre><code>[1] &quot;/researchers/caitlin.page/cf_nano/run_metheor/mhl_ENCFF000LYO.tsv&quot;   
+[2] &quot;/researchers/caitlin.page/cf_nano/run_metheor/mhl_ENCFF000LYP.tsv&quot;   
+[3] &quot;/researchers/caitlin.page/cf_nano/run_metheor/mhl_k562_cml_line1.tsv&quot;
+[4] &quot;/researchers/caitlin.page/cf_nano/run_metheor/mhl_k562_cml_line2.tsv&quot;</code></pre>
+<ul>
+<li>MHL 0 based coordinates, my alpha in 1-based coordinates</li>
+<li>so +1 to the start</li>
+</ul>
+<pre class="r"><code>mhl_gm1 &lt;- read.table(files[grep(&quot;mhl&quot;, files)][1])
+colnames(mhl_gm1) &lt;- c(&quot;seqnames&quot;, &quot;start&quot;, &quot;end&quot;, &quot;MHL&quot;)
+mhl_gm1$start &lt;- mhl_gm1$start + 1
+
+#mhl_gm2 &lt;- read.table(files[grep(&quot;mhl&quot;, files)][2])
+#colnames(mhl_gm2) &lt;- c(&quot;seqnames&quot;, &quot;start&quot;, &quot;end&quot;, &quot;MHL&quot;)
+
+#mhl_k562_1 &lt;- read.table(files[grep(&quot;mhl&quot;, files)][3])
+#colnames(mhl_k562_1) &lt;- c(&quot;seqnames&quot;, &quot;start&quot;, &quot;end&quot;, &quot;MHL&quot;)
+
+#mhl_k562_2 &lt;- read.table(files[grep(&quot;mhl&quot;, files)][4])
+#colnames(mhl_k562_2) &lt;- c(&quot;seqnames&quot;, &quot;start&quot;, &quot;end&quot;, &quot;MHL&quot;)</code></pre>
+<pre class="r"><code>mhl_gm1[1:10,]</code></pre>
+<pre><code>   seqnames  start    end         MHL
+1      chr1 779096 779097 0.001587302
+2      chr1 779100 779101 0.001587302
+3      chr1 779110 779111 0.001587302
+4      chr1 779130 779131 0.001587302
+5      chr1 827413 827414 0.002083333
+6      chr1 827426 827427 0.002083333
+7      chr1 827429 827430 0.002083333
+8      chr1 827445 827446 0.002083333
+9      chr1 827470 827471 0.001666667
+10     chr1 827485 827486 0.001666667</code></pre>
+<pre class="r"><code>nrow(mhl_gm1)</code></pre>
+<pre><code>[1] 397212</code></pre>
+</div>
+<div id="theory-mhl-is-like-a-summarised-region-alpha"
+class="section level1">
+<h1>THEORY: MHL is like a summarised region alpha</h1>
+<p>LOGIC * MHL: how well meth haplotypes (consec CpGs) conserved
+throughout cell pop (across reads) for given region * calculates a per
+cpg value * 0 - all unmethylated, 1 - all methylated, in between - a mix
+** the only metric that does this (through metheor - I think someone
+else modified one of these to distinguish) * in this it’s like alpha -
+differentiates between states * and it’s a population metric and a read
+metric</p>
+<div id="correlation" class="section level2">
+<h2>Correlation?</h2>
+<pre class="r"><code>for_beta_all %&gt;% filter(seqnames == &quot;chr1&quot;) %&gt;% distinct(seqnames, start) %&gt;% nrow()</code></pre>
+<pre><code>[1] 94986</code></pre>
+<pre class="r"><code>mhl_gm1 %&gt;% filter(seqnames == &quot;chr1&quot;) %&gt;% distinct(seqnames, start) %&gt;% nrow()</code></pre>
+<pre><code>[1] 36228</code></pre>
+<pre class="r"><code>mhl_gm1 %&gt;% filter(seqnames == &quot;chr1&quot;) %&gt;% distinct(seqnames, start) %&gt;% .$start %in% distinct(filter(for_beta_all, seqnames == &quot;chr1&quot;), seqnames, start)$start %&gt;% summary()</code></pre>
+<pre><code>   Mode   FALSE    TRUE 
+logical   11211   25017 </code></pre>
+<pre class="r"><code>cg_sites &lt;- cbind(data.frame(Biostrings::matchPattern(&quot;CG&quot;, BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38[[&quot;chr1&quot;]])), seqnames = &quot;chr1&quot;) %&gt;% 
+  mutate(pos = paste0(seqnames, &quot;-&quot;, start)) %&gt;%
+  relocate(pos, seqnames)</code></pre>
+<pre><code>Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored</code></pre>
+<pre class="r"><code>cg_sites$index &lt;- 1:nrow(cg_sites)
+
+mhl_gm1 %&gt;% filter(seqnames == &quot;chr1&quot;) %&gt;% distinct(seqnames, start) %&gt;% .$start %in% cg_sites$start %&gt;% summary()</code></pre>
+<pre><code>   Mode    TRUE 
+logical   36228 </code></pre>
+<pre class="r"><code>for_beta_all %&gt;% filter(seqnames == &quot;chr1&quot;) %&gt;% distinct(seqnames, start) %&gt;% .$start %in% cg_sites$start %&gt;% summary()</code></pre>
+<pre><code>   Mode    TRUE 
+logical   94986 </code></pre>
+<pre class="r"><code>mhl_gm1_subset &lt;- mhl_gm1 %&gt;% filter(seqnames == &quot;chr1&quot;)</code></pre>
+<pre class="r"><code>for_beta_all %&gt;% filter(seqnames == &quot;chr1&quot;) %&gt;% 
+  group_by(seqnames, start) %&gt;%
+  summarise(mean_alpha = mean(alpha)) %&gt;%
+  ungroup() %&gt;%
+  mutate(mhl = mhl_gm1_subset[match(.$start, mhl_gm1_subset$start), &quot;MHL&quot;]) %&gt;%
+  ggplot(aes(x = mean_alpha, y = mhl)) +
+  geom_point(alpha = 0.3)</code></pre>
+<pre><code>`summarise()` has grouped output by &#39;seqnames&#39;. You can override using the
+`.groups` argument.</code></pre>
+<pre><code>Warning: Removed 69969 rows containing missing values or values outside the scale range
+(`geom_point()`).</code></pre>
+<p><img src="figure/otherReadStyleMethodsAnalysis.Rmd/unnamed-chunk-12-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>for_beta_all %&gt;% filter(seqnames == &quot;chr1&quot;) %&gt;% 
+  distinct(seqnames, start, beta) %&gt;%
+  mutate(mhl = mhl_gm1_subset[match(.$start, mhl_gm1_subset$start), &quot;MHL&quot;]) %&gt;%
+  ggplot(aes(x = beta, y = mhl)) +
+  geom_point(alpha = 0.3)</code></pre>
+<pre><code>Warning: Removed 69969 rows containing missing values or values outside the scale range
+(`geom_point()`).</code></pre>
+<p><img src="figure/otherReadStyleMethodsAnalysis.Rmd/unnamed-chunk-13-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>for_beta_all %&gt;% filter(seqnames == &quot;chr1&quot;) %&gt;% 
+  group_by(seqnames, start, beta) %&gt;%
+  summarise(mean_alpha = mean(alpha)) %&gt;%
+  ungroup() %&gt;%
+  mutate(mhl = mhl_gm1_subset[match(.$start, mhl_gm1_subset$start), &quot;MHL&quot;]) %&gt;%
+  ggplot(aes(x = mean_alpha, y = mhl, colour = beta)) +
+  geom_point(alpha = 0.3)</code></pre>
+<pre><code>`summarise()` has grouped output by &#39;seqnames&#39;, &#39;start&#39;. You can override using
+the `.groups` argument.</code></pre>
+<pre><code>Warning: Removed 69969 rows containing missing values or values outside the scale range
+(`geom_point()`).</code></pre>
+<p><img src="figure/otherReadStyleMethodsAnalysis.Rmd/unnamed-chunk-14-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>test_mhl &lt;- for_beta_all %&gt;% filter(seqnames == &quot;chr1&quot;) %&gt;% 
+  group_by(seqnames, start, beta) %&gt;%
+  summarise(mean_alpha = mean(alpha)) %&gt;%
+  ungroup() %&gt;%
+  mutate(mhl = mhl_gm1_subset[match(.$start, mhl_gm1_subset$start), &quot;MHL&quot;])</code></pre>
+<pre><code>`summarise()` has grouped output by &#39;seqnames&#39;, &#39;start&#39;. You can override using
+the `.groups` argument.</code></pre>
+<pre class="r"><code>cor.test(test_mhl$mean_alpha, test_mhl$beta)</code></pre>
+<pre><code>
+    Pearson&#39;s product-moment correlation
+
+data:  test_mhl$mean_alpha and test_mhl$beta
+t = 844.77, df = 94984, p-value &lt; 2.2e-16
+alternative hypothesis: true correlation is not equal to 0
+95 percent confidence interval:
+ 0.9386827 0.9401767
+sample estimates:
+      cor 
+0.9394342 </code></pre>
+<pre class="r"><code>cor.test(test_mhl$mean_alpha, test_mhl$mhl)</code></pre>
+<pre><code>
+    Pearson&#39;s product-moment correlation
+
+data:  test_mhl$mean_alpha and test_mhl$mhl
+t = 436.6, df = 25015, p-value &lt; 2.2e-16
+alternative hypothesis: true correlation is not equal to 0
+95 percent confidence interval:
+ 0.9387550 0.9416305
+sample estimates:
+      cor 
+0.9402095 </code></pre>
+<pre class="r"><code>cor.test(test_mhl$beta, test_mhl$mhl)</code></pre>
+<pre><code>
+    Pearson&#39;s product-moment correlation
+
+data:  test_mhl$beta and test_mhl$mhl
+t = 332.1, df = 25015, p-value &lt; 2.2e-16
+alternative hypothesis: true correlation is not equal to 0
+95 percent confidence interval:
+ 0.9005267 0.9051091
+sample estimates:
+      cor 
+0.9028435 </code></pre>
+</div>
+<div id="q-mhl-compared-with-my-previous-plots-of-grouped-alphas"
+class="section level2">
+<h2>Q: MHL compared with my previous plots of grouped alphas</h2>
+<pre class="r"><code>mhl_gm1_subset[100:1000,] %&gt;%
+  ggplot(aes(x = start, y = MHL)) +
+  geom_line()</code></pre>
+<p><img src="figure/otherReadStyleMethodsAnalysis.Rmd/unnamed-chunk-16-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>for_beta_all_subset &lt;- for_beta_all %&gt;% filter(seqnames == &quot;chr1&quot;)</code></pre>
+<pre class="r"><code>just_beta &lt;- for_beta_all %&gt;% filter(seqnames == &quot;chr1&quot;) %&gt;% distinct(seqnames, start, beta) %&gt;% group_by(start) %&gt;% mutate(coverage = n()) %&gt;% ungroup() %&gt;% data.frame() %&gt;% .[order(.$start),] %&gt;%
+  mutate(row_num = 1:nrow(.)) %&gt;%
+  mutate(beta_high = ifelse(beta &gt;= 0.8 &amp; beta &lt; 1, &quot;high&quot;, &quot;other&quot;))
+
+grouped_betas &lt;- just_beta %&gt;% 
+  group_by(beta_high) %&gt;%
+  mutate(consec = n()) %&gt;%
+  mutate(count = 1:n()) %&gt;%
+  ungroup() %&gt;%
+  mutate(length = sequence(rle(.$beta_high)$lengths)) %&gt;% 
+  mutate(group = cumsum(c(TRUE, diff(length) &lt;= 0))) %&gt;%
+  group_by(group) %&gt;%
+  mutate(length = n(), av_coverage = mean(coverage), av_beta = mean(beta)) %&gt;%
+  ungroup() %&gt;% filter(beta_high == &quot;high&quot;, length &gt; 2) %&gt;% data.frame() 
+
+poten_groups &lt;- for_beta_all %&gt;% filter(seqnames == &quot;chr1&quot;) %&gt;% mutate(beta_range_group_num = grouped_betas[match(.$start, grouped_betas$start), &quot;group&quot;],
+                    beta_range_group_length = grouped_betas[match(.$start, grouped_betas$start), &quot;length&quot;]) %&gt;% 
+  filter(!is.na(beta_range_group_num)) %&gt;% distinct(read_id, alpha, beta_range_group_num, beta_range_group_length) %&gt;%
+  mutate(beta_range_group_num = as.factor(beta_range_group_num)) %&gt;%
+  group_by(beta_range_group_num) %&gt;%
+  summarise(bimodal_p = list(diptest::dip.test(alpha)$p.value)
+  ) %&gt;%
+  unnest(cols = c(bimodal_p)) %&gt;% filter(bimodal_p &lt; 0.01) %&gt;% .$beta_range_group_num</code></pre>
+<pre><code>Warning: There were 8 warnings in `summarise()`.
+The first warning was:
+ℹ In argument: `bimodal_p = list(diptest::dip.test(alpha)$p.value)`.
+ℹ In group 82: `beta_range_group_num = 1092`.
+Caused by warning in `regularize.values()`:
+! collapsing to unique &#39;x&#39; values
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 7 remaining warnings.</code></pre>
+<pre class="r"><code>source(&quot;../code/processData.R&quot;)
+plot_list &lt;- list()
+for (i in 1:5) {
+  row_pos &lt;- just_beta %&gt;%
+  group_by(beta_high) %&gt;%
+  mutate(consec = n()) %&gt;%
+  mutate(count = 1:n()) %&gt;%
+  ungroup() %&gt;%
+  mutate(length = sequence(rle(.$beta_high)$lengths)) %&gt;% 
+  mutate(group = cumsum(c(TRUE, diff(length) &lt;= 0))) %&gt;% filter(group == i)
+  min_row &lt;- min(row_pos$row_num)
+  max_row &lt;- max(row_pos$row_num)
+  plot_list[[i]] &lt;- rrbs_plot(for_beta_all_subset, for_beta_all_subset %&gt;% filter(start %in% just_beta[min_row:max_row,]$start) %&gt;% .$read_id %&gt;% unique(), count_instead = TRUE)
+}
+plot_list</code></pre>
+<pre><code>[[1]]</code></pre>
+<p><img src="figure/otherReadStyleMethodsAnalysis.Rmd/unnamed-chunk-19-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[2]]</code></pre>
+<p><img src="figure/otherReadStyleMethodsAnalysis.Rmd/unnamed-chunk-19-2.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[3]]</code></pre>
+<p><img src="figure/otherReadStyleMethodsAnalysis.Rmd/unnamed-chunk-19-3.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[4]]</code></pre>
+<p><img src="figure/otherReadStyleMethodsAnalysis.Rmd/unnamed-chunk-19-4.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[5]]</code></pre>
+<p><img src="figure/otherReadStyleMethodsAnalysis.Rmd/unnamed-chunk-19-5.png" width="672" style="display: block; margin: auto;" />
+* arbitarirly find one because section with multiple reads</p>
+<pre class="r"><code>mhl_gm1_subset %&gt;% filter(start &gt;= 136870) %&gt;% .[1:10,]</code></pre>
+<pre><code>   seqnames  start    end         MHL
+1      chr1 779096 779097 0.001587302
+2      chr1 779100 779101 0.001587302
+3      chr1 779110 779111 0.001587302
+4      chr1 779130 779131 0.001587302
+5      chr1 827413 827414 0.002083333
+6      chr1 827426 827427 0.002083333
+7      chr1 827429 827430 0.002083333
+8      chr1 827445 827446 0.002083333
+9      chr1 827470 827471 0.001666667
+10     chr1 827485 827486 0.001666667</code></pre>
+<pre class="r"><code>rrbs_plot(for_beta_all_subset, for_beta_all_subset %&gt;% filter(start &gt;= 136870, start &lt;= 136920) %&gt;% .$read_id %&gt;% unique(), count_instead = TRUE) +
+  geom_line(data = filter(mhl_gm1_subset, start &gt;= 181000, start &lt;= 181650), aes(x = start, y = MHL), alpha = 0.3)</code></pre>
+<p><img src="figure/otherReadStyleMethodsAnalysis.Rmd/unnamed-chunk-21-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>rrbs_plot(for_beta_all_subset, for_beta_all_subset %&gt;% filter(start &gt;= 181000, start &lt;= 181650) %&gt;% .$read_id %&gt;% unique(), count_instead = TRUE) +
+  geom_line(data = filter(mhl_gm1_subset, start &gt;= 181000, start &lt;= 181650), aes(x = start, y = MHL), alpha = 0.3)</code></pre>
+<p><img src="figure/otherReadStyleMethodsAnalysis.Rmd/unnamed-chunk-22-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>mhl_gm1 %&gt;%
+  ggplot(aes(x = log2(MHL + 0.1))) +
+  geom_density()</code></pre>
+<p><img src="figure/otherReadStyleMethodsAnalysis.Rmd/unnamed-chunk-23-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>mhl_gm1 %&gt;%
+  ggplot(aes(x = MHL)) +
+  geom_histogram(bins = 75)</code></pre>
+<p><img src="figure/otherReadStyleMethodsAnalysis.Rmd/unnamed-chunk-23-2.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>for_beta_all %&gt;% distinct(read_id, alpha) %&gt;%
+  ggplot(aes(x = alpha)) +
+  geom_histogram(bins = 75)</code></pre>
+<p><img src="figure/otherReadStyleMethodsAnalysis.Rmd/unnamed-chunk-24-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>for_beta_all_subset %&gt;% 
+  group_by(seqnames, start, beta) %&gt;%
+  summarise(mean_alpha = mean(alpha)) %&gt;%
+  ungroup() %&gt;%
+  mutate(mhl = mhl_gm1_subset[match(.$start, mhl_gm1_subset$start), &quot;MHL&quot;],
+         row_num = 1:n()) %&gt;% .[1:10,]</code></pre>
+<pre><code>`summarise()` has grouped output by &#39;seqnames&#39;, &#39;start&#39;. You can override using
+the `.groups` argument.</code></pre>
+<pre><code># A tibble: 10 × 6
+   seqnames  start  beta mean_alpha   mhl row_num
+   &lt;chr&gt;     &lt;int&gt; &lt;dbl&gt;      &lt;dbl&gt; &lt;dbl&gt;   &lt;int&gt;
+ 1 chr1      10589 1          1        NA       1
+ 2 chr1      10609 1          1        NA       2
+ 3 chr1      10620 1          1        NA       3
+ 4 chr1     136876 0.844      0.807    NA       4
+ 5 chr1     136895 0.703      0.807    NA       5
+ 6 chr1     136911 0.875      0.807    NA       6
+ 7 chr1     181119 1          0.95     NA       7
+ 8 chr1     181139 0.75       0.95     NA       8
+ 9 chr1     181147 1          0.95     NA       9
+10 chr1     181150 1          0.95     NA      10</code></pre>
+<pre class="r"><code>827532 - 827413 </code></pre>
+<pre><code>[1] 119</code></pre>
+<pre class="r"><code>rrbs_plot(for_beta_all_subset, for_beta_all_subset %&gt;% filter(start &gt;= 827413, start &lt;= 827532) %&gt;% .$read_id %&gt;% unique(), count_instead = TRUE) +
+  geom_line(data = filter(mhl_gm1_subset, start &gt;= 827413, start &lt;= 827532), aes(x = start, y = MHL), alpha = 0.3, colour = &quot;purple&quot;)</code></pre>
+<p><img src="figure/otherReadStyleMethodsAnalysis.Rmd/unnamed-chunk-27-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>for_beta_all_subset %&gt;% 
+  group_by(seqnames, start, beta) %&gt;%
+  summarise(mean_alpha = mean(alpha)) %&gt;%
+  ungroup() %&gt;%
+  mutate(mhl = mhl_gm1_subset[match(.$start, mhl_gm1_subset$start), &quot;MHL&quot;],
+         row_num = 1:n()) %&gt;% 
+  filter(!is.na(mhl)) %&gt;%
+  filter(mhl &gt; 0.2) %&gt;% .[1:10,]</code></pre>
+<pre><code>`summarise()` has grouped output by &#39;seqnames&#39;, &#39;start&#39;. You can override using
+the `.groups` argument.</code></pre>
+<pre><code># A tibble: 10 × 6
+   seqnames  start  beta mean_alpha   mhl row_num
+   &lt;chr&gt;     &lt;int&gt; &lt;dbl&gt;      &lt;dbl&gt; &lt;dbl&gt;   &lt;int&gt;
+ 1 chr1     909867 0.636      0.691 0.519     148
+ 2 chr1     909871 0.636      0.691 0.519     149
+ 3 chr1     909876 0.727      0.691 0.519     150
+ 4 chr1     909891 0.818      0.691 0.519     151
+ 5 chr1     909898 0.636      0.691 0.519     152
+ 6 chr1     928536 0          0.333 0.573     315
+ 7 chr1     937138 1          1     0.506     353
+ 8 chr1     948110 0.983      0.983 0.932     468
+ 9 chr1     953553 0.960      0.954 0.893     475
+10 chr1     953567 0.919      0.957 0.922     476</code></pre>
+<pre class="r"><code>for_beta_all_subset %&gt;% 
+  group_by(seqnames, start, beta) %&gt;%
+  summarise(mean_alpha = mean(alpha)) %&gt;%
+  ungroup() %&gt;%
+  mutate(mhl = mhl_gm1_subset[match(.$start, mhl_gm1_subset$start), &quot;MHL&quot;],
+         row_num = 1:n()) %&gt;% .[145:155,]</code></pre>
+<pre><code>`summarise()` has grouped output by &#39;seqnames&#39;, &#39;start&#39;. You can override using
+the `.groups` argument.</code></pre>
+<pre><code># A tibble: 11 × 6
+   seqnames  start   beta mean_alpha    mhl row_num
+   &lt;chr&gt;     &lt;int&gt;  &lt;dbl&gt;      &lt;dbl&gt;  &lt;dbl&gt;   &lt;int&gt;
+ 1 chr1     909429 0.857       0.821 NA         145
+ 2 chr1     909449 0.857       0.821 NA         146
+ 3 chr1     909456 0.571       0.821 NA         147
+ 4 chr1     909867 0.636       0.691  0.519     148
+ 5 chr1     909871 0.636       0.691  0.519     149
+ 6 chr1     909876 0.727       0.691  0.519     150
+ 7 chr1     909891 0.818       0.691  0.519     151
+ 8 chr1     909898 0.636       0.691  0.519     152
+ 9 chr1     909956 0.273       0.152 NA         153
+10 chr1     909959 0.0909      0.152 NA         154
+11 chr1     909961 0.182       0.152  0.117     155</code></pre>
+<pre class="r"><code>for_beta_all_subset_sum &lt;- for_beta_all_subset %&gt;% 
+  group_by(seqnames, start, beta) %&gt;%
+  summarise(mean_alpha = mean(alpha)) %&gt;%
+  ungroup() %&gt;%
+  mutate(mhl = mhl_gm1_subset[match(.$start, mhl_gm1_subset$start), &quot;MHL&quot;],
+         row_num = 1:n())</code></pre>
+<pre><code>`summarise()` has grouped output by &#39;seqnames&#39;, &#39;start&#39;. You can override using
+the `.groups` argument.</code></pre>
+<pre class="r"><code>rrbs_plot(for_beta_all_subset, for_beta_all_subset %&gt;% filter(start &gt;= 909867, start &lt;= 909959) %&gt;% .$read_id %&gt;% unique(), count_instead = TRUE) +
+  geom_line(data = filter(mhl_gm1_subset, start &gt;= 909867, start &lt;= 909959), aes(x = start, y = MHL), alpha = 0.3, colour = &quot;purple&quot;) +
+  geom_line(data = filter(for_beta_all_subset_sum, start &gt;= 909867, start &lt;= 909959), aes(x = start, y = mean_alpha), alpha = 0.3, colour = &quot;orange&quot;)</code></pre>
+<p><img src="figure/otherReadStyleMethodsAnalysis.Rmd/unnamed-chunk-31-1.png" width="672" style="display: block; margin: auto;" />
+* row 494-498 * high beta + mean alpha, lower mhl</p>
+<pre class="r"><code>for_beta_all_subset_sum[494:498,]</code></pre>
+<pre><code># A tibble: 5 × 6
+  seqnames  start  beta mean_alpha   mhl row_num
+  &lt;chr&gt;     &lt;int&gt; &lt;dbl&gt;      &lt;dbl&gt; &lt;dbl&gt;   &lt;int&gt;
+1 chr1     959748 0.938      0.871 0.653     494
+2 chr1     959756 0.896      0.871 0.653     495
+3 chr1     959761 0.875      0.871 0.653     496
+4 chr1     959770 0.896      0.871 0.653     497
+5 chr1     959777 0.75       0.871 0.653     498</code></pre>
+<pre class="r"><code>rrbs_plot(for_beta_all_subset, for_beta_all_subset %&gt;% filter(start &gt;= 959748, start &lt;= 959777) %&gt;% .$read_id %&gt;% unique(), count_instead = TRUE) +
+  geom_line(data = filter(mhl_gm1_subset, start &gt;= 959748, start &lt;= 959777), aes(x = start, y = MHL), alpha = 0.3, colour = &quot;purple&quot;) +
+  geom_line(data = filter(for_beta_all_subset_sum, start &gt;= 959748, start &lt;= 959777), aes(x = start, y = mean_alpha), alpha = 0.3, colour = &quot;orange&quot;)</code></pre>
+<p><img src="figure/otherReadStyleMethodsAnalysis.Rmd/unnamed-chunk-32-1.png" width="672" style="display: block; margin: auto;" /></p>
+<ul>
+<li>when mean_alpha = 1 ** seems to be a bigger distribution of mhl</li>
+</ul>
+<pre class="r"><code>for_beta_all_subset_sum %&gt;% filter(mean_alpha == 1, !is.na(mhl)) %&gt;%
+  ggplot(aes(x = as.factor(mean_alpha), y = mhl)) +
+  geom_violin()</code></pre>
+<p><img src="figure/otherReadStyleMethodsAnalysis.Rmd/unnamed-chunk-33-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>for_beta_all_subset_sum %&gt;% filter(mean_alpha == 0, !is.na(mhl)) %&gt;%
+  ggplot(aes(x = as.factor(mean_alpha), y = mhl)) +
+  geom_violin()</code></pre>
+<p><img src="figure/otherReadStyleMethodsAnalysis.Rmd/unnamed-chunk-33-2.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>mhl_gm1_subset[1:10,]</code></pre>
+<pre><code>   seqnames  start    end         MHL
+1      chr1 779096 779097 0.001587302
+2      chr1 779100 779101 0.001587302
+3      chr1 779110 779111 0.001587302
+4      chr1 779130 779131 0.001587302
+5      chr1 827413 827414 0.002083333
+6      chr1 827426 827427 0.002083333
+7      chr1 827429 827430 0.002083333
+8      chr1 827445 827446 0.002083333
+9      chr1 827470 827471 0.001666667
+10     chr1 827485 827486 0.001666667</code></pre>
+</div>
+</div>
+<div id="fdrp" class="section level1">
+<h1>FDRP</h1>
+<pre class="r"><code>fdrp_gm1 &lt;- read.table(&quot;/researchers/caitlin.page/cf_nano/run_metheor/fdrp_ENCFF000LYO.tsv&quot;)
+colnames(fdrp_gm1) &lt;- c(&quot;seqnames&quot;, &quot;start&quot;, &quot;end&quot;, &quot;FDRP&quot;)
+fdrp_gm1 &lt;- fdrp_gm1 %&gt;% filter(seqnames == &quot;chr1&quot;)
+fdrp_gm1$start &lt;- fdrp_gm1$start + 1</code></pre>
+<pre class="r"><code>fdrp_gm1 %&gt;% filter(seqnames == &quot;chr1&quot;) %&gt;%
+  ggplot(aes(x = FDRP)) +
+  geom_density()</code></pre>
+<p><img src="figure/otherReadStyleMethodsAnalysis.Rmd/unnamed-chunk-36-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>fdrp_gm1[1:10,]</code></pre>
+<pre><code>   seqnames  start    end      FDRP
+1      chr1 136876 136877 0.5615385
+2      chr1 136895 136896 0.5346154
+3      chr1 136911 136912 0.6166667
+4      chr1 191438 191439 0.2637363
+5      chr1 634024 634025 0.0000000
+6      chr1 634028 634029 0.0000000
+7      chr1 777996 777997 0.6928105
+8      chr1 778008 778009 0.6928105
+9      chr1 778020 778021 0.6928105
+10     chr1 778067 778068 0.5736842</code></pre>
+<pre class="r"><code>for_beta_all_subset_sum %&gt;% mutate(fdrp = fdrp_gm1[match(.$start, fdrp_gm1$start), &quot;FDRP&quot;]) %&gt;%
+  ggplot(aes(x = mean_alpha, y = fdrp)) +
+  geom_point(alpha = 0.3)</code></pre>
+<pre><code>Warning: Removed 58610 rows containing missing values or values outside the scale range
+(`geom_point()`).</code></pre>
+<p><img src="figure/otherReadStyleMethodsAnalysis.Rmd/unnamed-chunk-38-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>for_beta_all_subset_sum %&gt;% mutate(fdrp = fdrp_gm1[match(.$start, fdrp_gm1$start), &quot;FDRP&quot;]) %&gt;%
+  ggplot(aes(x = beta, y = fdrp)) +
+  geom_point(alpha = 0.3)</code></pre>
+<pre><code>Warning: Removed 58610 rows containing missing values or values outside the scale range
+(`geom_point()`).</code></pre>
+<p><img src="figure/otherReadStyleMethodsAnalysis.Rmd/unnamed-chunk-39-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>for_beta_all_subset_sum %&gt;% mutate(fdrp = fdrp_gm1[match(.$start, fdrp_gm1$start), &quot;FDRP&quot;]) %&gt;%
+  ggplot(aes(x = mhl, y = fdrp)) +
+  geom_point(alpha = 0.3)</code></pre>
+<pre><code>Warning: Removed 69969 rows containing missing values or values outside the scale range
+(`geom_point()`).</code></pre>
+<p><img src="figure/otherReadStyleMethodsAnalysis.Rmd/unnamed-chunk-40-1.png" width="672" style="display: block; margin: auto;" /></p>
+<ul>
+<li>well these plots mean nothing</li>
+<li>because fdrp measures something different</li>
+</ul>
+</div>
+<div id="entropy" class="section level1">
+<h1>entropy</h1>
+<pre class="r"><code>entropy_gm1 &lt;- read.table(&quot;/researchers/caitlin.page/cf_nano/run_metheor/me_ENCFF000LYO.tsv&quot;)
+colnames(entropy_gm1) &lt;- c(&quot;seqnames&quot;, &quot;start&quot;, &quot;start_2&quot;, &quot;start_3&quot;, &quot;start_4&quot;, &quot;ME&quot;)
+entropy_gm1$start &lt;- entropy_gm1$start + 1
+entropy_gm1$start_2 &lt;- entropy_gm1$start_2 + 1
+entropy_gm1$start_3 &lt;- entropy_gm1$start_3 + 1
+entropy_gm1$start_4 &lt;- entropy_gm1$start_4 + 1
+
+entropy_gm1 &lt;- entropy_gm1 %&gt;% filter(seqnames == &quot;chr1&quot;) %&gt;% .[order(.$start),]</code></pre>
+<pre class="r"><code>entropy_gm1 %&gt;%
+  ggplot(aes(x = ME)) +
+  geom_density()</code></pre>
+<p><img src="figure/otherReadStyleMethodsAnalysis.Rmd/unnamed-chunk-42-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>for_beta_all_subset_sum %&gt;% mutate(entropy = entropy_gm1[match(.$start, entropy_gm1$start), &quot;ME&quot;]) %&gt;%
+  ggplot(aes(x = mean_alpha, y = entropy)) +
+  geom_point(alpha = 0.3)</code></pre>
+<pre><code>Warning: Removed 80720 rows containing missing values or values outside the scale range
+(`geom_point()`).</code></pre>
+<p><img src="figure/otherReadStyleMethodsAnalysis.Rmd/unnamed-chunk-43-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>for_beta_all_subset_sum %&gt;% mutate(fdrp = fdrp_gm1[match(.$start, fdrp_gm1$start), &quot;FDRP&quot;]) %&gt;% 
+  mutate(entropy = entropy_gm1[match(.$start, entropy_gm1$start), &quot;ME&quot;]) %&gt;%
+  ggplot(aes(x = fdrp, y = entropy)) +
+  geom_point(alpha = 0.3)</code></pre>
+<pre><code>Warning: Removed 80732 rows containing missing values or values outside the scale range
+(`geom_point()`).</code></pre>
+<p><img src="figure/otherReadStyleMethodsAnalysis.Rmd/unnamed-chunk-44-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>for_beta_all_subset_sum &lt;- for_beta_all_subset_sum %&gt;%
+  mutate(var_alpha = for_beta_all_subset %&gt;% group_by(start) %&gt;% summarise(var_alpha = var(alpha)) %&gt;% .$var_alpha) %&gt;%
+  mutate(fdrp = fdrp_gm1[match(.$start, fdrp_gm1$start), &quot;FDRP&quot;]) %&gt;% 
+  mutate(entropy = entropy_gm1[match(.$start, entropy_gm1$start), &quot;ME&quot;])</code></pre>
+<pre class="r"><code>for_beta_all_subset_sum %&gt;% 
+  ggplot(aes(x = var_alpha, y = entropy)) +
+  geom_point(alpha = 0.3)</code></pre>
+<pre><code>Warning: Removed 81256 rows containing missing values or values outside the scale range
+(`geom_point()`).</code></pre>
+<p><img src="figure/otherReadStyleMethodsAnalysis.Rmd/unnamed-chunk-46-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>for_beta_all_subset_sum %&gt;% 
+  ggplot(aes(x = var_alpha, y = fdrp)) +
+  geom_point(alpha = 0.3)</code></pre>
+<pre><code>Warning: Removed 60589 rows containing missing values or values outside the scale range
+(`geom_point()`).</code></pre>
+<p><img src="figure/otherReadStyleMethodsAnalysis.Rmd/unnamed-chunk-46-2.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>cor.test(for_beta_all_subset_sum$var_alpha, for_beta_all_subset_sum$entropy)</code></pre>
+<pre><code>
+    Pearson&#39;s product-moment correlation
+
+data:  for_beta_all_subset_sum$var_alpha and for_beta_all_subset_sum$entropy
+t = 126.62, df = 13728, p-value &lt; 2.2e-16
+alternative hypothesis: true correlation is not equal to 0
+95 percent confidence interval:
+ 0.7261603 0.7415945
+sample estimates:
+      cor 
+0.7339721 </code></pre>
+<pre class="r"><code>cor.test(for_beta_all_subset_sum$var_alpha, for_beta_all_subset_sum$fdrp)</code></pre>
+<pre><code>
+    Pearson&#39;s product-moment correlation
+
+data:  for_beta_all_subset_sum$var_alpha and for_beta_all_subset_sum$fdrp
+t = 140.5, df = 34395, p-value &lt; 2.2e-16
+alternative hypothesis: true correlation is not equal to 0
+95 percent confidence interval:
+ 0.5971157 0.6105447
+sample estimates:
+      cor 
+0.6038731 </code></pre>
+<pre class="r"><code>cor.test(for_beta_all_subset_sum$entropy, for_beta_all_subset_sum$fdrp)</code></pre>
+<pre><code>
+    Pearson&#39;s product-moment correlation
+
+data:  for_beta_all_subset_sum$entropy and for_beta_all_subset_sum$fdrp
+t = 181.27, df = 14252, p-value &lt; 2.2e-16
+alternative hypothesis: true correlation is not equal to 0
+95 percent confidence interval:
+ 0.8301145 0.8400493
+sample estimates:
+    cor 
+0.83515 </code></pre>
+</div>
+<div id="compare-variation-to-dtu" class="section level1">
+<h1>compare variation to DTU??</h1>
+<ul>
+<li>entropy and fdrp are both variation measurements</li>
+<li>so what does it look like in dtu?</li>
+</ul>
+<pre class="r"><code>ts.gene.gene &lt;- readRDS(&quot;/researchers/caitlin.page/cf_nano/r_output/ts.gene.gene.rds&quot;)</code></pre>
+<pre class="r"><code>annots &lt;- c(&quot;hg38_basicgenes&quot;, &quot;hg38_genes_intergenic&quot;)
+
+annotations &lt;- annotatr::build_annotations(genome = &#39;hg38&#39;, annotations = annots)</code></pre>
+<pre><code>Loading required package: GenomicFeatures</code></pre>
+<pre><code>Loading required package: AnnotationDbi</code></pre>
+<pre><code>Loading required package: Biobase</code></pre>
+<pre><code>Welcome to Bioconductor
+
+    Vignettes contain introductory material; view with
+    &#39;browseVignettes()&#39;. To cite Bioconductor, see
+    &#39;citation(&quot;Biobase&quot;)&#39;, and for packages &#39;citation(&quot;pkgname&quot;)&#39;.</code></pre>
+<pre><code>
+Attaching package: &#39;AnnotationDbi&#39;</code></pre>
+<pre><code>The following object is masked from &#39;package:dplyr&#39;:
+
+    select</code></pre>
+<pre><code>The following object is masked from &#39;package:plyranges&#39;:
+
+    select</code></pre>
+<pre><code></code></pre>
+<pre><code>&#39;select()&#39; returned 1:1 mapping between keys and columns</code></pre>
+<pre><code>Building promoters...</code></pre>
+<pre><code>Building 1to5kb upstream of TSS...</code></pre>
+<pre><code>Building intergenic...</code></pre>
+<pre><code>Building 5UTRs...</code></pre>
+<pre><code>Building 3UTRs...</code></pre>
+<pre><code>Building exons...</code></pre>
+<pre><code>Building introns...</code></pre>
+<pre class="r"><code>seqs &lt;- annotations %&gt;% data.frame() %&gt;% distinct(seqnames) %&gt;% .[1:22,]
+annotations &lt;- annotations %&gt;% data.frame() %&gt;% filter(seqnames %in% seqs)
+
+for_beta_all_genes &lt;- find_overlaps(as_granges(for_beta_all), as_granges(annotations)) %&gt;% data.frame()</code></pre>
+<pre><code>Warning in .merge_two_Seqinfo_objects(x, y): Each of the 2 combined objects has sequence levels not in the other:
+  - in &#39;x&#39;: KI270733.1, KI270442.1, GL000225.1, GL000214.1, GL000220.1, KZ208915.1, GL000216.2, KI270724.1, KI270714.1, KI270722.1, KI270723.1, KV766196.1, KI270772.1, KI270712.1, KI270728.1, KQ759762.1, KI270853.1, GL383533.1, KI270821.1, GL000253.2, ML143364.1, KZ208921.1, GL000219.1, KI270830.1, KI270769.1, KI270905.1, KI270832.1, KV766198.1, KI270785.1, KQ458386.1, KI270879.1, KI270880.1, KI270709.1, KI270808.1, GL949752.1, KI270819.1, KI270734.1, KN538364.1, KZ208906.1, KI270750.1, KI270924.1, KI270835.1, KI270736.1, KV880766.1, KI270898.1, KV575244.1, KI270713.1, KI270745.1, ML143375.1, KI270754.1, KI270539.1, KI270913.1, GL000194.1, KN196479.1, KI270847.1, ML143371.1, KI270894.1, GL000257.2, KI270780.1, GL000251.2, KI270878.1, KN196472.1, ML143365.1, KI270784.1, KI270749.1, KI270842.1, KI270725.1, KZ559113.1, KI270438.1, KI270927.1, KI270824.1, KI270729.1, ML143378.1, KI270744.1, KI270937.1, KI270845.1, KN538371.1, KI270856.1, KI270817.1, KI270827.1, KI270834.1, KZ208917.1, KQ031389.1, KI270854.1, KI270857.1, KI270768.1, KI270519.1, KI270816.1, KI270903.1, ML143376.1, KI270860.1, KI270862.1, ML143355.1, KI270735.1, KI270706.1, KI270721.1, ML143358.1, KI270848.1, ML143377.1, KV766193.1, KN196484.1, KI270774.1, GL000252.2, KI270757.1, KI270792.1, KZ559100.1, KZ559109.1, GL000218.1, KI270900.1, KI270804.1, ML143380.1, KZ208922.1, KQ759759.1, GL000258.2, KI270732.1, GL000254.2, KZ559110.1, KI270850.1, KQ090017.1, KI270708.1, KI270873.1, KI270753.1, KI270803.1, GL000221.1, GL000256.2, ML143366.1, GL383563.3, GL383545.1, KI270807.1, KI270467.1, KI270912.1, KI270719.1, KI270738.1, GL000208.1, KI270815.1, GL000008.2, KN538360.1, KV880768.1, GL383546.1, KI270776.1, KQ983258.1, KI270802.1, JH159147.1, KI270831.1, KI270925.1, KI270731.1, KI270871.1, GL383526.1, KI270742.1, KI270926.1, KQ090025.1, KN538370.1, KI270793.1, KI270868.1, KI270896.1, KI270522.1, KI270424.1, KI270811.1, KI270707.1, GL383581.2, KI270775.1, KI270869.1, GL949746.1, ML143372.1, KI270812.1, KI270588.1, KI270822.1, KQ090022.1, KQ090026.1, ML143367.1, GL383532.1, KI270846.1, KN196487.1, GL383534.2, GL383555.2, KV880764.1, GL000224.1, KZ208923.1, KI270907.1, KI270876.1, KI270938.1, KI270797.1, KI270759.1, KI270726.1, GL339449.2, KI270801.1, KN538372.1, KI270743.1, KN538361.1, GL383554.1, GL383567.1, KI270795.1, GL000009.2, KZ559105.1, KI270435.1, KV575243.1, KI270747.1, GL000255.2, KV880763.1, KZ208918.1, KI270730.1, GL383557.1, KI270466.1, GL383550.2, KI270791.1, GL383530.1, KI270509.1, KZ559111.1, ML143344.1, GL383542.1, KI270836.1, KZ208912.1, KI270897.1, KI270877.1, KI270787.1, KI270818.1, ML143343.1, KI270908.1, KQ090024.1, GL949753.2, GL949747.2, GL000250.2, KZ208914.1, KI270861.1, KI270887.1, KI270901.1, KV766194.1, KQ458383.1, KI270825.1, ML143345.1, KI270765.1, KZ559101.1, KI270875.1, KN196476.1, KZ208924.1, KI270844.1, KZ208919.1, KN538363.1, KI270448.1, ML143361.1, KI270786.1, KQ983257.1, KI270798.1, KV880765.1, GL383580.2, KI270855.1, KQ031387.1, KI270716.1, KI270746.1, KI270863.1, KI270751.1, GL383568.1, KQ090020.1, GL383571.1, KI270935.1, KZ208913.1, KQ090023.1, KI270829.1, KZ559107.1, KN538369.1, GL877875.1, KZ208904.1, KI270788.1, KI270517.1, KI270758.1, GL383575.2, ML143360.1, ML143369.1, KI270760.1, KI270770.1, ML143385.1, GL383522.1, GL383577.2, ML143353.1, KZ559108.1, KI270805.1, KI270783.1, KI270833.1
+  - in &#39;y&#39;: chr1_GL383518v1_alt, chr1_GL383519v1_alt, chr1_GL383520v2_alt, chr1_KI270759v1_alt, chr1_KI270760v1_alt, chr1_KI270761v1_alt, chr1_KI270762v1_alt, chr1_KI270763v1_alt, chr1_KI270764v1_alt, chr1_KI270765v1_alt, chr1_KI270766v1_alt, chr1_KI270892v1_alt, chr2_GL383521v1_alt, chr2_GL383522v1_alt, chr2_GL582966v2_alt, chr2_KI270767v1_alt, chr2_KI270768v1_alt, chr2_KI270769v1_alt, chr2_KI270770v1_alt, chr2_KI270771v1_alt, chr2_KI270772v1_alt, chr2_KI270773v1_alt, chr2_KI270774v1_alt, chr2_KI270775v1_alt, chr2_KI270776v1_alt, chr2_KI270893v1_alt, chr2_KI270894v1_alt, chr3_GL383526v1_alt, chr3_JH636055v2_alt, chr3_KI270777v1_alt, chr3_KI270778v1_alt, chr3_KI270779v1_alt, chr3_KI270780v1_alt, chr3_KI270781v1_alt, chr3_KI270782v1_alt, chr3_KI270783v1_alt, chr3_KI270784v1_alt, chr3_KI270895v1_alt, chr3_KI270924v1_alt, chr3_KI270934v1_alt, chr3_KI270935v1_alt, chr3_KI270936v1_alt, chr3_KI270937v1_alt, chr4_GL000257v2_alt, chr4_GL383527v1_alt, chr4_GL383528v1_alt, chr4_KI270785v1_alt, chr4_KI270786v1_alt, chr4_KI270787v1_alt, chr4_KI270788v1_alt, chr4_KI270789v1_alt, chr4_KI270790v1_alt, chr4_KI270896v1_alt, chr4_KI270925v1_alt, chr5_GL339449v2_alt, chr5_GL383530v1_alt, chr5_GL383531v1_alt, chr5_GL383532v1_alt, chr5_GL949742v1_alt, chr5_KI270791v1_alt, chr5_KI270792v1_alt, chr5_KI270793v1_alt, chr5_KI270794v1_alt, chr5_KI270795v1_alt, chr5_KI270796v1_alt, chr5_KI270897v1_alt, chr5_KI270898v1_alt, chr6_GL000250v2_alt, chr6_GL000251v2_alt, chr6_GL000252v2_alt, chr6_GL000253v2_alt, chr6_GL000254v2_alt, chr6_GL000255v2_alt, chr6_GL000256v2_alt, chr6_GL383533v1_alt, chr6_KB021644v2_alt, chr6_KI270758v1_alt, chr6_KI270797v1_alt, chr6_KI270798v1_alt, chr6_KI270799v1_alt, chr6_KI270800v1_alt, chr6_KI270801v1_alt, chr6_KI270802v1_alt, chr7_GL383534v2_alt, chr7_KI270803v1_alt, chr7_KI270804v1_alt, chr7_KI270805v1_alt, chr7_KI270806v1_alt, chr7_KI270807v1_alt, chr7_KI270808v1_alt, chr7_KI270809v1_alt, chr7_KI270899v1_alt, chr8_KI270810v1_alt, chr8_KI270811v1_alt, chr8_KI270812v1_alt, chr8_KI270813v1_alt, chr8_KI270814v1_alt, chr8_KI270815v1_alt, chr8_KI270816v1_alt, chr8_KI270817v1_alt, chr8_KI270818v1_alt, chr8_KI270819v1_alt, chr8_KI270820v1_alt, chr8_KI270821v1_alt, chr8_KI270822v1_alt, chr8_KI270900v1_alt, chr8_KI270901v1_alt, chr8_KI270926v1_alt, chr9_GL383539v1_alt, chr9_GL383540v1_alt, chr9_GL383541v1_alt, chr9_GL383542v1_alt, chr9_KI270823v1_alt, chr10_GL383545v1_alt, chr10_GL383546v1_alt, chr10_KI270824v1_alt, chr10_KI270825v1_alt, chr11_GL383547v1_alt, chr11_JH159136v1_alt, chr11_JH159137v1_alt, chr11_KI270826v1_alt, chr11_KI270827v1_alt, chr11_KI270829v1_alt, chr11_KI270830v1_alt, chr11_KI270831v1_alt, chr11_KI270832v1_alt, chr11_KI270902v1_alt, chr11_KI270903v1_alt, chr11_KI270927v1_alt, chr12_GL383549v1_alt, chr12_GL383550v2_alt, chr12_GL383551v1_alt, chr12_GL383552v1_alt, chr12_GL383553v2_alt, chr12_GL877875v1_alt, chr12_GL877876v1_alt, chr12_KI270833v1_alt, chr12_KI270834v1_alt, chr12_KI270835v1_alt, chr12_KI270836v1_alt, chr12_KI270837v1_alt, chr12_KI270904v1_alt, chr13_KI270838v1_alt, chr13_KI270839v1_alt, chr13_KI270840v1_alt, chr13_KI270841v1_alt, chr13_KI270842v1_alt, chr13_KI270843v1_alt, chr14_KI270844v1_alt, chr14_KI270845v1_alt, chr14_KI270846v1_alt, chr14_KI270847v1_alt, chr15_GL383554v1_alt, chr15_GL383555v2_alt, chr15_KI270848v1_alt, chr15_KI270849v1_alt, chr15_KI270850v1_alt, chr15_KI270851v1_alt, chr15_KI270852v1_alt, chr15_KI270905v1_alt, chr15_KI270906v1_alt, chr16_GL383556v1_alt, chr16_GL383557v1_alt, chr16_KI270853v1_alt, chr16_KI270854v1_alt, chr16_KI270855v1_alt, chr16_KI270856v1_alt, chr17_GL000258v2_alt, chr17_GL383563v3_alt, chr17_GL383564v2_alt, chr17_GL383565v1_alt, chr17_GL383566v1_alt, chr17_JH159146v1_alt, chr17_JH159147v1_alt, chr17_JH159148v1_alt, chr17_KI270857v1_alt, chr17_KI270858v1_alt, chr17_KI270859v1_alt, chr17_KI270860v1_alt, chr17_KI270861v1_alt, chr17_KI270862v1_alt, chr17_KI270907v1_alt, chr17_KI270908v1_alt, chr17_KI270909v1_alt, chr17_KI270910v1_alt, chr18_GL383567v1_alt, chr18_GL383568v1_alt, chr18_GL383569v1_alt, chr18_GL383570v1_alt, chr18_GL383571v1_alt, chr18_GL383572v1_alt, chr18_KI270863v1_alt, chr18_KI270864v1_alt, chr18_KI270911v1_alt, chr18_KI270912v1_alt, chr19_GL000209v2_alt, chr19_GL383573v1_alt, chr19_GL383574v1_alt, chr19_GL383575v2_alt, chr19_GL383576v1_alt, chr19_GL949746v1_alt, chr19_GL949747v2_alt, chr19_GL949748v2_alt, chr19_GL949749v2_alt, chr19_GL949750v2_alt, chr19_GL949751v2_alt, chr19_GL949752v1_alt, chr19_GL949753v2_alt, chr19_KI270865v1_alt, chr19_KI270866v1_alt, chr19_KI270867v1_alt, chr19_KI270868v1_alt, chr19_KI270882v1_alt, chr19_KI270883v1_alt, chr19_KI270884v1_alt, chr19_KI270885v1_alt, chr19_KI270886v1_alt, chr19_KI270887v1_alt, chr19_KI270888v1_alt, chr19_KI270889v1_alt, chr19_KI270890v1_alt, chr19_KI27089</code></pre>
+<ul>
+<li>luckily 1 of the top 10 genes is on chr1</li>
+</ul>
+<pre class="r"><code>dtu_gene &lt;- for_beta_all_genes %&gt;% filter(symbol %in% ts.gene.gene[1:10,]$gene_id) %&gt;% filter(seqnames == &quot;chr1&quot;) %&gt;% distinct(seqnames, start, beta, symbol)</code></pre>
+<pre class="r"><code>for_beta_all_subset_sum %&gt;% filter(start %in% dtu_gene$start) %&gt;%
+  ggplot(aes(x = start, y = entropy)) +
+  geom_point()</code></pre>
+<pre><code>Warning: Removed 104 rows containing missing values or values outside the scale range
+(`geom_point()`).</code></pre>
+<p><img src="figure/otherReadStyleMethodsAnalysis.Rmd/unnamed-chunk-51-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>rrbs_plot(for_beta_all_subset, for_beta_all_subset %&gt;% filter(start &gt;= 29124612, start &lt;= 29125168) %&gt;% .$read_id %&gt;% unique(), count_instead = TRUE) +
+  geom_line(data = filter(mhl_gm1_subset, start &gt;= 29124612, start &lt;= 29125168), aes(x = start, y = MHL), alpha = 0.3, colour = &quot;purple&quot;) +
+  geom_line(data = filter(for_beta_all_subset_sum, start &gt;= 29124612, start &lt;= 29125168), aes(x = start, y = mean_alpha), alpha = 0.3, colour = &quot;orange&quot;) +
+  geom_line(data = filter(for_beta_all_subset_sum, start &gt;= 29124612, start &lt;= 29125168), aes(x = start, y = entropy), alpha = 0.3, colour = &quot;red&quot;) +
+  geom_line(data = filter(for_beta_all_subset_sum, start &gt;= 29124612, start &lt;= 29125168), aes(x = start, y = fdrp), alpha = 0.3, colour = &quot;blue&quot;)</code></pre>
+<pre><code>Warning: Removed 13 rows containing missing values or values outside the scale range
+(`geom_line()`).</code></pre>
+<pre><code>Warning: Removed 10 rows containing missing values or values outside the scale range
+(`geom_line()`).</code></pre>
+<p><img src="figure/otherReadStyleMethodsAnalysis.Rmd/unnamed-chunk-52-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>rrbs_plot(for_beta_all_subset, for_beta_all_subset %&gt;% filter(start &gt;= 29124612, start &lt;= 29125168) %&gt;% .$read_id %&gt;% unique(), count_instead = TRUE) +
+  geom_line(data = filter(mhl_gm1_subset, start &gt;= 29124612, start &lt;= 29125168), aes(x = start, y = MHL), alpha = 0.3, colour = &quot;purple&quot;) +
+  geom_line(data = filter(for_beta_all_subset_sum, start &gt;= 29124612, start &lt;= 29125168), aes(x = start, y = mean_alpha), alpha = 0.3, colour = &quot;orange&quot;) +
+  geom_line(data = filter(for_beta_all_subset_sum, start &gt;= 29124612, start &lt;= 29125168), aes(x = start, y = entropy), alpha = 0.3, colour = &quot;red&quot;) +
+  geom_line(data = filter(for_beta_all_subset_sum, start &gt;= 29124612, start &lt;= 29125168), aes(x = start, y = fdrp), alpha = 0.3, colour = &quot;blue&quot;) +
+  geom_line(data = filter(for_beta_all_subset_sum, start &gt;= 29124612, start &lt;= 29125168), aes(x = start, y = var_alpha), alpha = 0.3, colour = &quot;yellow&quot;) +
+  scale_x_continuous(limits = c(29124600, 29125000)) +
+  scale_y_continuous(limits = c(-0.1, 0.4))</code></pre>
+<pre><code>Warning: Removed 7 rows containing non-finite outside the scale range
+(`stat_sum()`).</code></pre>
+<pre><code>Warning: Removed 2 rows containing missing values or values outside the scale range
+(`geom_segment()`).</code></pre>
+<pre><code>Warning: Removed 7 rows containing missing values or values outside the scale range
+(`geom_point()`).</code></pre>
+<pre><code>Warning: Removed 56 rows containing missing values or values outside the scale range
+(`geom_segment()`).</code></pre>
+<pre><code>Warning: Removed 7 rows containing missing values or values outside the scale range
+(`geom_line()`).</code></pre>
+<pre><code>Warning: Removed 13 rows containing missing values or values outside the scale range
+(`geom_line()`).</code></pre>
+<pre><code>Warning: Removed 10 rows containing missing values or values outside the scale range
+(`geom_line()`).</code></pre>
+<pre><code>Warning: Removed 7 rows containing missing values or values outside the scale range
+(`geom_line()`).</code></pre>
+<p><img src="figure/otherReadStyleMethodsAnalysis.Rmd/unnamed-chunk-53-1.png" width="672" style="display: block; margin: auto;" /></p>
+<br>
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-sessioninfo" data-toggle="collapse" data-target="#workflowr-sessioninfo" style="display: block;">
+<span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
+Session information
+</button>
+</p>
+<div id="workflowr-sessioninfo" class="collapse">
+<pre class="r"><code>sessionInfo()</code></pre>
+<pre><code>R version 4.4.1 (2024-06-14)
+Platform: x86_64-pc-linux-gnu
+Running under: Red Hat Enterprise Linux 9.6 (Plow)
+
+Matrix products: default
+BLAS/LAPACK: FlexiBLAS OPENBLAS-OPENMP;  LAPACK version 3.9.0
+
+locale:
+ [1] LC_CTYPE=en_AU.UTF-8       LC_NUMERIC=C              
+ [3] LC_TIME=en_AU.UTF-8        LC_COLLATE=en_AU.UTF-8    
+ [5] LC_MONETARY=en_AU.UTF-8    LC_MESSAGES=en_AU.UTF-8   
+ [7] LC_PAPER=en_AU.UTF-8       LC_NAME=C                 
+ [9] LC_ADDRESS=C               LC_TELEPHONE=C            
+[11] LC_MEASUREMENT=en_AU.UTF-8 LC_IDENTIFICATION=C       
+
+time zone: Australia/Melbourne
+tzcode source: system (glibc)
+
+attached base packages:
+[1] stats4    stats     graphics  grDevices utils     datasets  methods  
+[8] base     
+
+other attached packages:
+ [1] org.Hs.eg.db_3.20.0                     
+ [2] TxDb.Hsapiens.UCSC.hg38.knownGene_3.20.0
+ [3] GenomicFeatures_1.58.0                  
+ [4] AnnotationDbi_1.68.0                    
+ [5] Biobase_2.66.0                          
+ [6] edgeR_4.4.2                             
+ [7] limma_3.62.2                            
+ [8] ggplot2_3.5.2                           
+ [9] dplyr_1.1.4                             
+[10] stringr_1.5.1                           
+[11] tidyr_1.3.1                             
+[12] plyranges_1.26.0                        
+[13] GenomicRanges_1.58.0                    
+[14] GenomeInfoDb_1.42.3                     
+[15] IRanges_2.40.1                          
+[16] S4Vectors_0.44.0                        
+[17] BiocGenerics_0.52.0                     
+[18] data.table_1.17.8                       
+[19] annotatr_1.32.0                         
+
+loaded via a namespace (and not attached):
+  [1] DBI_1.2.3                         bitops_1.0-9                     
+  [3] rlang_1.1.6                       magrittr_2.0.3                   
+  [5] git2r_0.36.2                      matrixStats_1.5.0                
+  [7] compiler_4.4.1                    RSQLite_2.4.2                    
+  [9] png_0.1-8                         vctrs_0.6.5                      
+ [11] reshape2_1.4.4                    pkgconfig_2.0.3                  
+ [13] crayon_1.5.3                      fastmap_1.2.0                    
+ [15] dbplyr_2.5.0                      XVector_0.46.0                   
+ [17] labeling_0.4.3                    utf8_1.2.6                       
+ [19] Rsamtools_2.22.0                  promises_1.3.3                   
+ [21] rmarkdown_2.29                    tzdb_0.5.0                       
+ [23] UCSC.utils_1.2.0                  purrr_1.1.0                      
+ [25] bit_4.6.0                         BSgenome.Hsapiens.UCSC.hg38_1.4.5
+ [27] xfun_0.52                         zlibbioc_1.52.0                  
+ [29] cachem_1.1.0                      jsonlite_2.0.0                   
+ [31] blob_1.2.4                        later_1.4.2                      
+ [33] DelayedArray_0.32.0               BiocParallel_1.40.2              
+ [35] parallel_4.4.1                    R6_2.6.1                         
+ [37] bslib_0.9.0                       stringi_1.8.7                    
+ [39] RColorBrewer_1.1-3                rtracklayer_1.66.0               
+ [41] diptest_0.77-2                    jquerylib_0.1.4                  
+ [43] Rcpp_1.1.0                        SummarizedExperiment_1.36.0      
+ [45] knitr_1.50                        readr_2.1.5                      
+ [47] httpuv_1.6.16                     Matrix_1.7-0                     
+ [49] tidyselect_1.2.1                  rstudioapi_0.17.1                
+ [51] dichromat_2.0-0.1                 abind_1.4-8                      
+ [53] yaml_2.3.10                       codetools_0.2-20                 
+ [55] curl_6.4.0                        lattice_0.22-6                   
+ [57] tibble_3.3.0                      regioneR_1.38.0                  
+ [59] plyr_1.8.9                        withr_3.0.2                      
+ [61] KEGGREST_1.46.0                   evaluate_1.0.4                   
+ [63] BiocFileCache_2.14.0              Biostrings_2.74.1                
+ [65] pillar_1.11.0                     BiocManager_1.30.26              
+ [67] filelock_1.0.3                    MatrixGenerics_1.18.1            
+ [69] whisker_0.4.1                     generics_0.1.4                   
+ [71] rprojroot_2.1.0                   RCurl_1.98-1.17                  
+ [73] BiocVersion_3.20.0                hms_1.1.3                        
+ [75] scales_1.4.0                      glue_1.8.0                       
+ [77] tools_4.4.1                       AnnotationHub_3.14.0             
+ [79] BiocIO_1.16.0                     locfit_1.5-9.12                  
+ [81] BSgenome_1.74.0                   GenomicAlignments_1.42.0         
+ [83] fs_1.6.6                          XML_3.99-0.18                    
+ [85] grid_4.4.1                        GenomeInfoDbData_1.2.13          
+ [87] restfulr_0.0.16                   cli_3.6.5                        
+ [89] rappdirs_0.3.3                    workflowr_1.7.1                  
+ [91] S4Arrays_1.6.0                    gtable_0.3.6                     
+ [93] sass_0.4.10                       digest_0.6.37                    
+ [95] SparseArray_1.6.2                 rjson_0.2.23                     
+ [97] farver_2.1.2                      memoise_2.0.1                    
+ [99] htmltools_0.5.8.1                 lifecycle_1.0.4                  
+[101] httr_1.4.7                        statmod_1.5.1                    
+[103] bit64_4.6.0-1                    </code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+
+<!-- Adjust MathJax settings so that all math formulae are shown using
+TeX fonts only; see
+https://docs.mathjax.org/en/latest/web/configuration.html. This will make
+the presentation more consistent at the cost of the webpage sometimes
+taking slightly longer to load. Note that this only works because the
+footer is added to webpages before the MathJax javascript. -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    "HTML-CSS": { availableFonts: ["TeX"] }
+  });
+</script>
+
+
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+
+<script>
+$(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
