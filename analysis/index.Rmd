@@ -182,7 +182,11 @@ LEARNINGS:
 [plots](plotsForReview.html)
 [plots but I ran things locally](reviewPlotsLocal.html)
 
+# compare to different read-style approaches
 
+metheor runs entropy, haplotype, epi-allele etc methods
+[method description](otherReadStyleMethods.html)
+[exploratory analysis](otherReadStyleMethodsAnalysis.html)
 
 ## Ideas of files
 
