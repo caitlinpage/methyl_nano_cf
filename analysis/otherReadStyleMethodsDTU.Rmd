@@ -1,0 +1,45 @@
+---
+title: "otherReadStyleMethodsDTU"
+author: "caitlinpage"
+date: "2026-04-15"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+## Introduction
+
+```{r}
+library(annotatr)
+library(data.table)
+library(plyranges)
+library(tidyr)
+library(stringr)
+library(dplyr)
+library(ggplot2)
+library(edgeR)
+```
+
+```{r}
+seqs <- seqnames(BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38)[1:22]
+
+cg_sites <- lapply(seqs, function(x) {
+        cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38[[x]])),
+            seqnames = x
+        )}) %>% bind_rows()
+```
+
+
+```{r}
+dtu.gene <- readRDS("/researchers/caitlin.page/cf_nano/r_output/ts.gene.gene.rds")
+```
+
+```{r}
+cbind(dtu.gene, annotations_genes %>% filter(symbol %in% dtu.gene$gene_id) %>%
+  group_by(symbol, seqnames) %>%
+  summarise(start = min(start), end = max(end)) %>% ungroup() %>% .[match(dtu.gene$gene_id, .$symbol),] %>% .[,2:4])
+```
+
+
+
+
