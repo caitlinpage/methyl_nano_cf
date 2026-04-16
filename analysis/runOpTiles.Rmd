@@ -1,0 +1,501 @@
+---
+title: "runOpTiles"
+author: "caitlinpage"
+date: "2026-04-10"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+## Introduction
+```{r}
+seqnames(BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38)[1:22]
+BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38[[1:2]]
+```
+
+```{r}
+cg_sites <- cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38)), seqnames = seqnames( BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38)[1:22]) %>% 
+  mutate(pos = paste0(seqnames, "-", start)) %>%
+  relocate(pos, seqnames)
+cg_sites$index <- 1:nrow(cg_sites)
+```
+```{r}
+list.files("/researchers/caitlin.page/phd/cf_nano/r_output")
+```
+
+devtools::install_github("kassambara/easyGgplot2") - dependency
+renv::install("bioc::genomation", "bioc::methylKit") - other dependency
+* already installed dependencies: "GenomicRanges", "IRanges", "biomaRt", "limma"
+devtools::install_github("fhaive/OpTiles", build = F, type = "source")
+
+* but installed with renv
+
+
+```{r}
+library(annotatr)
+library(data.table)
+library(plyranges)
+library(tidyr)
+library(stringr)
+library(dplyr)
+library(ggplot2)
+
+library(OpTiles)
+```
+
+## Data Objects
+```{r}
+cg_sites <- cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38[["chr22"]])), seqnames = "chr22") %>% 
+  mutate(pos = paste0(seqnames, "-", start)) %>%
+  relocate(pos, seqnames)
+cg_sites$index <- 1:nrow(cg_sites)
+```
+
+```{r}
+seqs <- seqnames(BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38)[1:22]
+```
+
+```{r}
+for_beta_all <- readRDS("/researchers/caitlin.page/cf_nano/r_output/rrbs_alpha_beta.rds")
+#for_beta <- readRDS("../output/cluster_files/rrbs_alpha_beta.rds")
+for_beta_all <- for_beta_all %>% filter(seqnames %in% seqs)
+for_beta_all <- for_beta_all %>% group_by(seqnames, start) %>% mutate(coverage = n(), mean_alpha = mean(alpha)) %>% ungroup() %>% data.frame()
+just_beta <- for_beta_all %>% distinct(seqnames, start, beta, coverage, mean_alpha)
+
+```
+
+
+```{r}
+analyze_methylation_stats(
+  meth = just_beta,
+  variable_to_investigate = "coverage", 
+  position_text = 100)
+
+just_beta %>%
+  ggplot(aes(x = coverage)) +
+  geom_histogram(bins = 75)
+```
+```{r}
+betavalue <- just_beta$beta
+betavalue_df <- as.data.frame(betavalue)
+rownames(betavalue_df) <- paste0(just_beta$seqnames, ":", just_beta$start, "-", just_beta$start + 1)
+```
+```{r}
+metadata <- "sample_gm12878"
+metadata_df <- betavalue_df %>% mutate(sample = "gm12878_1")
+```
+
+```{r}
+analyze_methylation_stats(
+  meth = betavalue_df,
+  variable_to_investigate = "betavalue", 
+  position_text = 60,
+  metadata = metadata_df,
+  sample_name_variable = "sample")
+```
+
+
+```{r}
+length_region <- 300
+tiles <- methylKit::tileMethylCounts(just_beta,win.size=length_region,step.size=length_region,cov.bases = 0)
+```
+
+```{r}
+for_op <- just_beta %>% mutate(end = start, strand = "*", numCs = beta * coverage, numTs = coverage - numCs, chr = seqnames) %>% .[,c(10,2,6,7,4,8,9)]
+mr <- new(
+  "methylRaw",
+  for_op,
+  sample.id = "sample1",
+  assembly = "hg38",
+  context = "CpG",
+  resolution = "base"
+)
+```
+
+```{r}
+length_region <- 300
+tiles <- methylKit::tileMethylCounts(mr,win.size=length_region,step.size=length_region,cov.bases = 0)
+```
+
+
+```{r}
+tilesdf <- methylKit::getData(tiles)
+```
+
+```{r}
+betavalue_tiles <- percMethylation(tiles)
+betavalue_tilesdf <- as.data.frame(betavalue_tiles)
+location_all_regions <- paste0("chr", tilesdf$chr, ":", tilesdf$start, "-", tilesdf$end)
+rownames(betavalue_tilesdf) <- location_all_regions
+```
+
+# this is the optimisation step
+```{r}
+regions_plus_merged_regions <- merging_consecutive_regions(mr, 
+                                                           tiles,
+                                                           da_thr = length_region,
+                                                           cb_thr = length_region)
+```
+
+```{r}
+tilesdf <- tilesdf[,1:4] %>% mutate(width = end - start + 1) 
+colnames(tilesdf)[1] <- "seqnames"
+tilesdf$id <- 1:nrow(tilesdf)
+```
+
+
+```{r}
+regions_plus_merged_regions <- regions_plus_merged_regions %>% mutate(width = end - start + 1)
+colnames(regions_plus_merged_regions)[1] <- "seqnames"
+```
+
+* ok so regions have a set length but the positioning is changed
+* supposedly it's better at distribution of cpgs - so maybe compare num cpgs in regions + dist between them
+
+```{r}
+find_overlaps(as_granges(tilesdf), as_granges(mutate(just_beta, end = start))) %>% data.frame() %>% 
+  group_by(seqnames, start, end, width, id) %>%
+  summarise(n_cg = n()) %>%
+  ggplot(aes(x = n_cg)) +
+  geom_histogram()
+```
+
+```{r}
+find_overlaps(as_granges(regions_plus_merged_regions), as_granges(mutate(just_beta, end = start))) %>% data.frame() %>% 
+  group_by(seqnames, start, end, width, region_id) %>%
+  summarise(n_cg = n()) %>%
+  ggplot(aes(x = n_cg)) +
+  geom_histogram()
+```
+
+```{r}
+just_beta <- just_beta %>% group_by(seqnames) %>% .[order(.$start),] %>% mutate(dist_to_next = lead(start) - start) %>% ungroup()
+```
+
+
+```{r}
+find_overlaps(as_granges(tilesdf), as_granges(mutate(just_beta, end = start))) %>% data.frame() %>%
+  group_by(seqnames, start, end, width, id) %>%
+  summarise(n_cg = n(), mean_dist = mean(dist_to_next), median_dist = median(dist_to_next), var_dist = var(dist_to_next), sd_dist = sd(dist_to_next)) %>%
+  ggplot(aes(x = log2(mean_dist))) +
+  geom_density()
+```
+
+
+```{r}
+find_overlaps(as_granges(regions_plus_merged_regions), as_granges(mutate(just_beta, end = start))) %>% data.frame() %>%
+  group_by(seqnames, start, end, width, region_id) %>%
+  summarise(n_cg = n(), mean_dist = mean(dist_to_next), median_dist = median(dist_to_next), var_dist = var(dist_to_next), sd_dist = sd(dist_to_next)) %>%
+  ggplot(aes(x = log2(mean_dist))) +
+  geom_density()
+```
+
+
+```{r}
+annots <- c("hg38_cpgs")
+
+annotations <- annotatr::build_annotations(genome = 'hg38', annotations = annots)
+seqs <- annotations %>% data.frame() %>% distinct(seqnames) %>% .[1:22,]
+annotations <- annotations %>% data.frame() %>% filter(seqnames %in% seqs)
+
+for_beta_all <- find_overlaps(as_granges(for_beta_all), as_granges(annotations)) %>% data.frame() %>%
+  mutate(cgi = ifelse(type == "hg38_cpg_islands", "island", "not_island"))
+```
+
+```{r}
+annotations %>% filter(type == "hg38_cpg_islands")
+```
+*26,866 islands
+```{r}
+nrow(tilesdf)
+nrow(regions_plus_merged_regions)
+```
+
+```{r}
+find_overlaps(as_granges(tilesdf), as_granges(annotations)) %>% data.frame() %>%
+  group_by(type) %>% summarise(n=n()) %>% ungroup() %>% mutate(prop = n/sum(n))
+```
+
+```{r}
+find_overlaps(as_granges(regions_plus_merged_regions), as_granges(annotations)) %>% data.frame() %>%
+  group_by(type) %>% summarise(n=n()) %>% ungroup() %>% mutate(prop = n/sum(n))
+```
+
+```{r}
+rbind(find_overlaps(as_granges(regions_plus_merged_regions), as_granges(annotations)) %>% data.frame() %>%
+  group_by(type) %>% summarise(n=n()) %>% ungroup() %>% mutate(prop = n/sum(n)) %>% mutate(version = "optiles"),
+  find_overlaps(as_granges(tilesdf), as_granges(annotations)) %>% data.frame() %>%
+  group_by(type) %>% summarise(n=n()) %>% ungroup() %>% mutate(prop = n/sum(n)) %>% mutate(version = "original")) %>% group_by(type) %>% summarise(diff = diff(n))
+```
+
+
+```{r}
+find_overlaps(as_granges(tilesdf), as_granges(annotations)) %>% data.frame() %>% distinct(id.x) %>% nrow()/nrow(tilesdf)
+find_overlaps(as_granges(regions_plus_merged_regions), as_granges(annotations)) %>% data.frame() %>% distinct(region_id) %>% nrow()/nrow(regions_plus_merged_regions)
+```
+
+
+```{r}
+for_op %>% filter(chr == "chr1") %>% .[order(.$start),]
+```
+
+# DTU on TILE REGIONS
+```{r}
+library(edgeR)
+```
+
+```{r}
+rrbs_alpha_beta <- readRDS("/researchers/caitlin.page/cf_nano/r_output/rrbs_alpha_beta.rds")
+
+gm12878_2 <- readRDS("/researchers/caitlin.page/cf_nano/r_output/rrbs_alpha_beta_rep2.rds")
+
+k562 <- readRDS("/researchers/caitlin.page/cf_nano/r_output/k562_rep1.rds")
+
+k562_2 <- readRDS("/researchers/caitlin.page/cf_nano/r_output/k562_rep2.rds")
+```
+
+```{r}
+k562 <- k562[,colnames(rrbs_alpha_beta)]
+k562_2 <- k562_2[,colnames(rrbs_alpha_beta)]
+```
+
+```{r}
+cols <- c("read_id", "seqnames", "start", "end", "strand", "meth_pattern", "num_meth", "total", "alpha", "read_start", "read_end", "beta", "sample")
+```
+
+
+```{r}
+all_samples <- rbind(rrbs_alpha_beta %>% mutate(sample = "b1") %>% .[,cols], gm12878_2 %>% mutate(sample = "b2") %>% .[,cols], 
+                     k562 %>% mutate(sample = "cml1") %>% .[,cols], k562_2 %>% mutate(sample = "cml2") %>% .[,cols])
+```
+
+```{r}
+dtu_optile <- find_overlaps(as_granges(all_samples), as_granges(regions_plus_merged_regions)) %>% data.frame() %>%
+  distinct(sample, read_id, read_start, read_end, alpha, region_id) %>% 
+  mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                alpha > 0.8 ~ "a > 0.8",
+                                alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                TRUE ~ "0.6 <= a <= 0.8"))
+
+dtu_optile <- dtu_optile %>% 
+  mutate(transcript = paste0(region_id, "_", alpha_group)) %>%
+  group_by(sample, transcript) %>%
+ summarise(transcript_count = n()) %>% ungroup() %>% data.frame()
+```
+
+```{r}
+a <- dtu_optile %>% filter(sample == "b1") %>% .[,2:3]
+aa <- dtu_optile %>% filter(sample == "b2") %>% .[,2:3]
+aaa <- dtu_optile %>% filter(sample == "cml1") %>% .[,2:3]
+aaaa <- dtu_optile %>% filter(sample == "cml2") %>% .[,2:3]
+
+
+dtu_optile <- distinct(data.frame(transcript = c(a$transcript, aa$transcript, aaa$transcript, aaaa$transcript))) %>%
+  mutate(Sample_b1 = a[match(.$transcript, a$transcript), "transcript_count"],
+         Sample_b2 = aa[match(.$transcript, aa$transcript), "transcript_count"],
+         Sample_cml1 = aaa[match(.$transcript, aaa$transcript), "transcript_count"],
+         Sample_cml2 = aaaa[match(.$transcript, aaaa$transcript), "transcript_count"]) 
+dtu_optile[is.na(dtu_optile)] <- 0
+dtu_optile$gene_id <- sub("_.*", "", dtu_optile$transcript)
+```
+
+```{r}
+y <- DGEList(as.matrix(dtu_optile[,2:5]), group = c(1,1,2,2), genes = dtu_optile[,c("gene_id", "transcript")])
+y
+
+design <- model.matrix(~ c(1,1,2,2), data = y$samples)
+
+fit <- glmQLFit(y, design, robust=TRUE)
+
+ds <- diffSpliceDGE(fit, coef = 2, geneid = "gene_id", exonid = "transcript")
+```
+
+```{r}
+ts.gene.simes <- topSpliceDGE(ds, test = "Simes", number = Inf)
+ts.gene.simes[1:10,]
+
+ts.gene.gene <- topSpliceDGE(ds, test = "gene", number = Inf)
+ts.gene.gene[1:10,]
+```
+```{r}
+seqs <- seqnames(BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38)[1:22]
+
+df <- lapply(seqs, function(x) {
+        cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38[[x]])),
+            seqnames = x
+        )}) %>% bind_rows()
+cg_sites <- df
+```
+
+```{r}
+gene_cg <- find_overlaps(as_granges(regions_plus_merged_regions), as_granges(cg_sites)) %>% data.frame() %>%
+  group_by(region_id) %>%
+  summarise(n_cg = n()) %>%
+  ungroup() %>% data.frame()
+
+fit$genes <- fit$genes %>% mutate(n_cg = gene_cg[match(.$gene_id, gene_cg$region_id), "n_cg"])
+```
+
+
+```{r}
+rpk <- y$counts/rep(fit$genes$n_cg/1000, times = ncol(y$counts))
+tpm_mat <- sweep(rpk, 2, colSums(rpk)/1e6, "/")
+
+tpm_mat <- tpm_mat %>% data.frame() %>% mutate(id = dtu_optile$transcript, gene_id = dtu_optile$gene_id)
+tpm_mat[1:10,]
+```
+
+* now add in proportions
+```{r}
+tpm_mat <- tpm_mat %>% 
+  group_by(gene_id) %>% 
+  mutate(prop_S1_gm = Sample_b1/sum(Sample_b1),
+         prop_S2_gm = Sample_b2/sum(Sample_b2),
+         prop_S3_k = Sample_cml1/sum(Sample_cml1),
+         prop_S4_k = Sample_cml2/sum(Sample_cml2)) %>%
+  ungroup() %>% data.frame()
+tpm_mat %>% .[order(.$gene_id),] %>% .[1:10,]
+```
+* nice can see even in these 2 genes, difference in proportions between the groups
+
+```{r}
+ts.gene.gene %>% filter(FDR < 0.05)
+```
+
+* heaps of significant regions like this
+* ok where are these regions
+
+```{r}
+ts.gene.simes[1:10,]
+tail(ts.gene.simes)
+c(signif = ts.gene.simes %>% filter(FDR < 0.05) %>% nrow(),
+  total = nrow(ts.gene.simes))
+```
+```{r}
+tpm_mat %>% filter(gene_id == ts.gene.simes$gene_id[1])
+```
+
+```{r}
+tpm_mat %>% filter(gene_id == ts.gene.simes$gene_id[643])
+```
+
+
+```{r}
+tpm_mat %>% mutate(alpha_group = sub(".*_", "", id)) %>% .[,6:11] %>%
+  filter(gene_id %in% ts.gene.simes$gene_id[1:10]) %>%
+  reshape2::melt(id = c("alpha_group", "gene_id")) %>%
+  ggplot(aes(x = variable, y = value, fill = alpha_group)) +
+  geom_col() +
+  scale_x_discrete(labels = c("B_cell_1", "B_cell_2", "CML_1", "CML_2")) +
+  facet_wrap(~ gene_id)
+```
+
+* overlap dtu regions
+
+```{r}
+ts.gene.gene <- ts.gene.gene %>% 
+  separate_wider_delim(gene_id, delim = ":", names = c("seqnames", "gene_id")) %>%
+  mutate(seqnames = gsub("chrchr", "chr", seqnames)) %>%
+  separate_wider_delim(gene_id, delim = "-", names = c("start", "end"))
+ts.gene.gene$start <- as.double(ts.gene.gene$start)
+ts.gene.gene$end <- as.double(ts.gene.gene$end)
+ts.gene.gene$dtu_rank <- 1:nrow(ts.gene.gene)
+```
+
+```{r}
+find_overlaps(as_granges(ts.gene.gene), as_granges(annotations)) %>% data.frame() %>% filter(FDR < 0.05) %>%
+  ggplot(aes(x = type)) +
+  geom_bar()
+```
+
+```{r}
+annots <- c("hg38_basicgenes", "hg38_genes_intergenic")
+
+annotations_genes <- annotatr::build_annotations(genome = 'hg38', annotations = annots)
+seqs <- annotations %>% data.frame() %>% distinct(seqnames) %>% .[1:22,]
+annotations_genes <- annotations_genes %>% data.frame() %>% filter(seqnames %in% seqs)
+```
+
+```{r}
+find_overlaps(as_granges(ts.gene.gene), as_granges(annotations_genes)) %>% data.frame() %>% filter(FDR < 0.05) %>%
+  ggplot(aes(x = type)) +
+  geom_bar() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+* compare back to dmrs
+
+```{r}
+dmrcate_seq_dmr <- readRDS("/researchers/caitlin.page/cf_nano/r_output/dmr_encode_gm12878_k562.rds")
+dmrcate_seq_dmr$dmr_rank <- 1:nrow(dmrcate_seq_dmr)
+find_overlaps(as_granges(dmrcate_seq_dmr), as_granges(annotations_genes)) %>% data.frame() %>%
+  ggplot(aes(x = type)) +
+  geom_bar() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+* this is all artific inflated because only 7k dmrs, but genomic features smaller - so same dmr - multiple feat - I think
+
+```{r}
+find_overlaps(as_granges(dmrcate_seq_dmr), as_granges(ts.gene.gene)) %>% data.frame() %>% 
+  mutate(dtu_signif = ifelse(FDR < 0.05, TRUE, FALSE)) %>%
+  ggplot(aes(x = dmr_rank, y = dtu_rank, colour = dtu_signif)) +
+  geom_point(alpha = 0.3)
+
+
+find_overlaps(as_granges(dmrcate_seq_dmr), as_granges(ts.gene.gene)) %>% data.frame() %>% filter(FDR < 0.05) %>%
+  ggplot(aes(x = dmr_rank, y = dtu_rank)) +
+  geom_point(alpha = 0.3)
+```
+
+# visually compare old and new tiles
+
+```{r}
+rbind(regions_plus_merged_regions %>% mutate(version = "optiles"),
+      tilesdf %>% mutate(region_id = paste0("chr", seqnames, ":", start, "-", end), version = "original") %>% .[,c(1:3,7,8)]) %>% data.frame() %>%
+  filter(seqnames == "chr1", end < 5000000) %>%
+  mutate(version_num = ifelse(version == "optiles", 1, 0.5), 
+         dx = runif(n(), -0.1, 0.1),
+         version_num = version_num + dx) %>%
+  ggplot() +
+  geom_segment(aes(x = start, xend = end, y = version_num, yend = version_num, colour = version), linewidth = 2) +
+  scale_x_continuous(limits = c(1050000, 1060000))
+```
+
+```{r}
+rbind(regions_plus_merged_regions %>% mutate(version = "optiles"),
+      tilesdf %>% mutate(region_id = paste0("chr", seqnames, ":", start, "-", end), version = "original") %>% .[,c(1:3,7,8)]) %>% data.frame() %>%
+  filter(seqnames == "chr1") %>% group_by(start) %>% mutate(count = n()) %>% filter(count == 2)
+```
+
+```{r}
+tiles_combined <- rbind(regions_plus_merged_regions %>% mutate(version = "optiles"),
+      tilesdf %>% mutate(region_id = paste0("chr", seqnames, ":", start, "-", end), version = "original") %>% .[,c(1:3,7,8)]) %>% data.frame() %>%
+  filter(seqnames == "chr1") %>% group_by(start) %>% mutate(count = n()) %>% .[order(.$start),] %>% ungroup() %>% 
+  mutate(version = ifelse(count == 2, "both", version)) %>% distinct()
+```
+
+```{r}
+find_overlaps(as_granges(tiles_combined), as_granges(annotations_genes[,c(1:4,9:10)])) %>% data.frame() %>%
+  ggplot(aes(x = version, fill = type)) +
+  geom_bar()
+
+find_overlaps(as_granges(tiles_combined), as_granges(annotations_genes[,c(1:4,9:10)])) %>% data.frame() %>%
+  ggplot(aes(x = version, fill = type)) +
+  geom_bar(position = "fill")
+```
+
+* no real significant difference
+
+```{r}
+find_overlaps(as_granges(tiles_combined), as_granges(annotations_genes[,c(1:4,9:10)])) %>% data.frame() %>%
+  ggplot(aes(fill = version, x = type)) +
+  geom_bar() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+find_overlaps(as_granges(tiles_combined), as_granges(annotations_genes[,c(1:4,9:10)])) %>% data.frame() %>%
+  ggplot(aes(x = type, fill = version)) +
+  geom_bar(position = "fill") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
