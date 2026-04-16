@@ -167,10 +167,21 @@ LEARNINGS:
 
 [whole genome DTU](diffAlphaUsageAll.html)
 
-* idk what im doing
+[de analysis with DTU regions](deAnalysisWithDtuRegion.html)
+
+# compare to different read-style approaches
+
+metheor runs entropy, haplotype, epi-allele etc methods
+[method description](otherReadStyleMethods.html)
+[exploratory analysis](otherReadStyleMethodsAnalysis.html)
+
+
+
 
 ## windows
 [sliding windows of alpha](slidingWindowAlpha.html)
+[optimised tiles](runOpTiles.html)
+
 
 [whole genome analysis of RRBS data](wholeGenomeRrbs.html)
 * basic plot looks the same as with chr22 - this is good
@@ -182,19 +193,5 @@ LEARNINGS:
 [plots](plotsForReview.html)
 [plots but I ran things locally](reviewPlotsLocal.html)
 
-# compare to different read-style approaches
 
-metheor runs entropy, haplotype, epi-allele etc methods
-[method description](otherReadStyleMethods.html)
-[exploratory analysis](otherReadStyleMethodsAnalysis.html)
 
-## Ideas of files
-
-* files/analysis to do
-* genomic context: where are the patterns
-* pete thesis package mtuples
-* co-methylation
-* epiallele
-* entropy
-* haplotype
-* basically at least 1 file for the different methods - and try people's software
