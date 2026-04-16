@@ -1,0 +1,180 @@
+---
+title: "deAnalysisWithDtuRegion"
+author: "caitlinpage"
+date: "2026-04-16"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+## Introduction
+
+```{r}
+library(annotatr)
+library(data.table)
+library(plyranges)
+library(tidyr)
+library(stringr)
+library(dplyr)
+library(ggplot2)
+library(edgeR)
+library(TxDb.Hsapiens.UCSC.hg19.knownGene)
+```
+
+
+```{r}
+# all cpg positions
+seqs <- seqnames(BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38)[1:22]
+
+cg_sites <- lapply(seqs, function(x) {
+  cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38[[x]])),
+        seqnames = x
+  )}) %>% bind_rows()
+
+genes_txdb <- genes(TxDb.Hsapiens.UCSC.hg19.knownGene)
+genes_txdb <- filter(genes_txdb, seqnames %in% seqs)
+```
+
+
+
+```{r}
+# load data files
+rrbs_alpha_beta <- readRDS("/researchers/caitlin.page/cf_nano/r_output/rrbs_alpha_beta.rds")
+gm12878_2 <- readRDS("/researchers/caitlin.page/cf_nano/r_output/rrbs_alpha_beta_rep2.rds")
+k562 <- readRDS("/researchers/caitlin.page/cf_nano/r_output/k562_rep1.rds")
+k562_2 <- readRDS("/researchers/caitlin.page/cf_nano/r_output/k562_rep2.rds")
+
+# same columns and group samples
+cols <- c("read_id", "seqnames", "start", "end", "strand", "meth_pattern", "num_meth", "total", "alpha", "read_start", "read_end", "beta", "sample")
+
+all_samples <- rbind(rrbs_alpha_beta %>% mutate(sample = "b1") %>% .[,cols],
+                     gm12878_2 %>% mutate(sample = "b2") %>% .[,cols],
+                     k562 %>% mutate(sample = "cml1") %>% .[,cols],
+                     k562_2 %>% mutate(sample = "cml2") %>% .[,cols])
+```
+
+# define regions
+```{r}
+all_samples_simp <- all_samples %>% distinct(read_id, seqnames, read_start, read_end, strand, sample, alpha)
+colnames(all_samples_simp)[3:4] <- c("start", "end")
+```
+
+```{r}
+dtu_setup <- find_overlaps(as_granges(all_samples_simp), genes_txdb) %>% data.frame() %>%
+  mutate(alpha_group = case_when(alpha < 0.2 ~ "x < 0.2",
+                                 alpha > 0.8 ~ "x > 0.8",
+                                 alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= x <= 0.4",
+                                 alpha > 0.4 & alpha < 0.6 ~ "0.4 < x < 0.6",
+                                 TRUE ~ "0.6 <= x <= 0.8"))
+# count the occurence of the region+alpha ("transcript")
+dtu_setup <- dtu_setup %>%
+  mutate(transcript = paste0(gene_id, "_", alpha_group)) %>%
+  group_by(sample, transcript) %>%
+  summarise(transcript_count = n()) %>% ungroup() %>% data.frame()
+```
+
+
+```{r}
+mat <- dtu_setup %>% pivot_wider(names_from = sample, values_from = transcript_count)
+mat[is.na(mat)] <- 0
+```
+
+```{r}
+y <- DGEList(mat[,2:5], group = c(1,1,2,2), genes = mat[,1])
+keep <- filterByExpr(y)
+y <- y[keep,,keep.lib.sizes = FALSE]
+y <- normLibSizes(y)
+design <- model.matrix(~ c(1,1,2,2), data = y$samples)
+
+fit <- glmQLFit(y, design, robust=TRUE)
+qlf <- glmQLFTest(fit, coef = 2)
+```
+
+```{r}
+de_res <- topTags(qlf, n = Inf)
+de_res <- de_res$table
+
+de_res %>% filter(FDR < 0.05) %>% nrow()
+```
+```{r}
+de_res %>% mutate(region_id = transcript) %>% separate_wider_delim(transcript, delim = "_", names = c("gene_id", "group")) %>%
+  group_by(gene_id) %>% summarise(n=n()) %>%
+  ggplot(aes(x = as.factor(n), fill = as.factor(n))) +
+  geom_bar() +
+  theme(legend.position = "none")
+```
+
+# repeat but using beta values
+
+```{r}
+all_samples_simp <- all_samples %>% distinct(seqnames, start, beta, sample)
+all_samples_simp$end <- all_samples_simp$start + 1
+
+dtu_setup <- find_overlaps(as_granges(all_samples_simp), genes_txdb) %>% data.frame() %>%
+  mutate(beta_group = case_when(beta < 0.2 ~ "x < 0.2",
+                                 beta > 0.8 ~ "x > 0.8",
+                                 beta >= 0.2 & beta <= 0.4 ~ "0.2 <= x <= 0.4",
+                                 beta > 0.4 & beta < 0.6 ~ "0.4 < x < 0.6",
+                                 TRUE ~ "0.6 <= x <= 0.8"))
+
+dtu_setup <- dtu_setup %>%
+  mutate(transcript = paste0(gene_id, "_", beta_group)) %>%
+  group_by(sample, transcript) %>%
+  summarise(transcript_count = n()) %>% ungroup() %>% data.frame()
+```
+
+
+```{r}
+mat <- dtu_setup %>% pivot_wider(names_from = sample, values_from = transcript_count)
+mat[is.na(mat)] <- 0
+
+y <- DGEList(mat[,2:5], group = c(1,1,2,2), genes = mat[,1])
+keep <- filterByExpr(y)
+y <- y[keep,,keep.lib.sizes = FALSE]
+y <- normLibSizes(y)
+design <- model.matrix(~ c(1,1,2,2), data = y$samples)
+
+fit <- glmQLFit(y, design, robust=TRUE)
+qlf <- glmQLFTest(fit, coef = 2)
+```
+
+```{r}
+de_res_beta <- topTags(qlf, n = Inf)
+de_res_beta <- de_res_beta$table
+
+de_res_beta %>% filter(FDR < 0.05) %>% nrow()
+```
+```{r}
+de_res_beta[1:10,]
+```
+
+```{r}
+de_res_beta %>% mutate(region_id = transcript) %>% separate_wider_delim(transcript, delim = "_", names = c("gene_id", "group")) %>%
+  group_by(gene_id) %>% summarise(n=n()) %>%
+  ggplot(aes(x = as.factor(n), fill = as.factor(n))) +
+  geom_bar() +
+  theme(legend.position = "none")
+```
+
+# compare the results
+
+```{r}
+rbind(mutate(de_res, type = "alpha"), mutate(de_res_beta, type = "beta")) %>%
+  group_by(type) %>% mutate(rank = 1:n(), signif = ifelse(FDR < 0.05, TRUE, FALSE)) %>% ungroup() %>% 
+  group_by(transcript) %>% mutate(count = n()) %>% ungroup() %>% filter(count == 2) %>% .[order(.$transcript),] %>%
+  pivot_wider(names_from = type, values_from = rank) %>% group_by(transcript) %>% fill(alpha) %>% fill(beta, .direction = "up") %>% ungroup() %>% 
+  distinct(transcript, alpha, beta, signif) %>% 
+  ggplot(aes(x = beta, y = alpha, colour = signif)) +
+  geom_point()
+```
+
+
+
+```{r}
+rbind(mutate(de_res, type = "alpha"), mutate(de_res_beta, type = "beta")) %>%
+  group_by(type) %>% mutate(rank = 1:n()) %>% ungroup() %>% 
+  mutate(region_id = transcript) %>% separate_wider_delim(transcript, delim = "_", names = c("gene_id", "group")) %>%
+  group_by(region_id) %>% mutate(count = n()) %>% filter(count == 2) %>% .[order(.$gene_id),] %>%
+  group_by(gene_id, type) %>% summarise(n=n()) %>% .[1:10,]
+```
+
