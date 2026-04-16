@@ -82,6 +82,13 @@ LOGIC
 * and it's a population metric and a read metric 
 
 
+```{r}
+mhl_gm1 %>%
+  ggplot(aes(x = MHL)) +
+  geom_histogram(bins = 75)
+```
+
+
 ## Correlation?
 
 ```{r}
