@@ -1,0 +1,190 @@
+---
+title: "otherReadStyleMethodsVisualise"
+author: "caitlinpage"
+date: "2026-04-17"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+## Introduction
+```{r}
+seqs <- seqnames(BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38)[1:22]
+```
+
+```{r}
+mhl_gm1 <- read.table(files[grep("mhl", files)][1])
+colnames(mhl_gm1) <- c("seqnames", "start", "end", "MHL")
+mhl_gm1$start <- mhl_gm1$start + 1
+mhl_gm1 <- mhl_gm1 %>% filter(seqnames %in% seqs)
+```
+
+```{r}
+fdrp_gm1 <- read.table("/researchers/caitlin.page/cf_nano/run_metheor/fdrp_ENCFF000LYO.tsv")
+colnames(fdrp_gm1) <- c("seqnames", "start", "end", "FDRP")
+fdrp_gm1$start <- fdrp_gm1$start + 1
+fdrp_gm1 <- fdrp_gm1 %>% filter(seqnames %in% seqs)
+```
+
+
+```{r}
+entropy_gm1 <- read.table("/researchers/caitlin.page/cf_nano/run_metheor/me_ENCFF000LYO.tsv")
+colnames(entropy_gm1) <- c("seqnames", "start", "start_2", "start_3", "start_4", "ME")
+entropy_gm1$start <- entropy_gm1$start + 1
+entropy_gm1$start_2 <- entropy_gm1$start_2 + 1
+entropy_gm1$start_3 <- entropy_gm1$start_3 + 1
+entropy_gm1$start_4 <- entropy_gm1$start_4 + 1
+
+#entropy_gm1 <- entropy_gm1 %>% filter(seqnames == "chr1") %>% .[order(.$start),]
+entropy_gm1 <- entropy_gm1 %>% filter(seqnames %in% seqs)
+```
+
+```{r}
+pdr_gm1 <- read.table("/researchers/caitlin.page/cf_nano/run_metheor/pdr_ENCFF000LYO.tsv")
+colnames(pdr_gm1) <- c("seqnames", "start", "end", "PDR", "n_c", "n_d")
+pdr_gm1$start <- pdr_gm1$start + 1
+pdr_gm1 <- pdr_gm1 %>% filter(seqnames %in% seqs)
+pdr_gm1[1:10,]
+```
+
+```{r}
+mhl_gm1
+```
+
+
+```{r}
+epipm_gm1 <- read.table("/researchers/caitlin.page/cf_nano/run_metheor/pm_ENCFF000LYO.tsv")
+colnames(epipm_gm1) <- c("seqnames", "start", "start_2", "start_3", "start_4", "PM")
+epipm_gm1$start <- epipm_gm1$start + 1
+epipm_gm1$start_2 <- epipm_gm1$start_2 + 1
+epipm_gm1$start_3 <- epipm_gm1$start_3 + 1
+epipm_gm1$start_4 <- epipm_gm1$start_4 + 1
+epipm_gm1 <- epipm_gm1 %>% filter(seqnames %in% seqs)
+epipm_gm1[1:10,]
+```
+
+```{r}
+qfdrp_gm1 <- read.table("/researchers/caitlin.page/cf_nano/run_metheor/qfdrp_ENCFF000LYO.tsv")
+colnames(qfdrp_gm1) <- c("seqnames", "start", "end", "QFDRP")
+qfdrp_gm1$start <- qfdrp_gm1$start + 1
+qfdrp_gm1 <- qfdrp_gm1 %>% filter(seqnames %in% seqs)
+qfdrp_gm1[1:10,]
+```
+
+# Indiv CpG measures
+* qfdrp
+* fdrp
+* mhl
+* pdr
+```{r}
+all_samples_simp
+```
+
+```{r}
+ts.gene_optile <- ts.gene.gene
+
+mhl_gm1$id <- 1:nrow(mhl_gm1)
+mhl_gm1$pos <- paste0(mhl_gm1$seqnames, ":", mhl_gm1$start)
+```
+
+```{r}
+find_overlaps(as_granges(ts.gene_optile), as_granges(mhl_gm1)) %>% data.frame() %>% filter(dtu_rank <= 10) %>%
+  group_by(dtu_rank) %>% mutate(new_cg_id = 1:n()) %>%
+  ggplot(aes(x = new_cg_id, y = MHL)) +
+  geom_line() +
+  facet_wrap(~ dtu_rank)
+```
+
+```{r}
+plot_together <- find_overlaps(find_overlaps(as_granges(ts.gene_optile), as_granges(mhl_gm1)), as_granges(all_samples_simp)) %>% data.frame()
+```
+
+```{r}
+plot_together <- plot_together %>% filter(dtu_rank == 1, sample == "b1")
+plot_together
+```
+```{r}
+ov <- find_overlaps(as_granges(ts.gene_optile[1:10,]), as_granges(for_beta_all)) %>% data.frame()
+ov <- ov %>% group_by(read_id) %>% mutate(cpg_pos = 1:n())
+```
+
+```{r}
+plot_to <- find_overlaps(find_overlaps(as_granges(ts.gene_optile), as_granges(mhl_gm1)), as_granges(for_beta_all)) %>% data.frame()
+plot_to <- plot_to %>% filter(dtu_rank <= 10)
+plot_to <- distinct(plot_to) 
+
+
+```
+
+```{r}
+plot_to %>% distinct(dtu_rank, pos, MHL) %>% group_by(dtu_rank) %>% mutate(cpg_pos = 1:n()) %>%
+  ggplot(aes(x = cpg_pos, y = MHL)) +
+  geom_line() +
+  geom_line(data = ov, aes(x = cpg_pos, y = alpha, colour = read_id)) +
+  theme(legend.position = "none") +
+  facet_wrap(~ dtu_rank)
+```
+
+
+```{r}
+plot_to %>% distinct(dtu_rank, pos, MHL) %>% filter(dtu_rank == 1) %>% group_by(dtu_rank) %>% mutate(cpg_pos = 1:n()) %>%
+  ggplot(aes(x = cpg_pos, y = MHL)) +
+  geom_line() +
+  geom_line(data = filter(ov, dtu_rank == 1), aes(x = cpg_pos, y = alpha, colour = read_id)) +
+  theme(legend.position = "none")
+```
+
+```{r}
+find_overlaps(as_granges(ts.gene_optile[1:10,]), as_granges(mutate(pdr_gm1, pos = 1:nrow(pdr_gm1)))) %>% data.frame() %>% distinct(dtu_rank, pos, PDR) %>% group_by(dtu_rank) %>% mutate(cpg_pos = 1:n()) %>%
+  ggplot(aes(x = cpg_pos, y = PDR)) +
+  geom_line() +
+  geom_line(data = ov, aes(x = cpg_pos, y = alpha, colour = read_id)) +
+  theme(legend.position = "none") +
+  facet_wrap(~ dtu_rank)
+```
+
+
+
+```{r}
+find_overlaps(as_granges(ts.gene_optile[1:10,]), as_granges(mutate(fdrp_gm1, pos = 1:nrow(fdrp_gm1)))) %>% data.frame() %>% distinct(dtu_rank, pos, FDRP) %>% group_by(dtu_rank) %>% mutate(cpg_pos = 1:n()) %>%
+  ggplot(aes(x = cpg_pos, y = FDRP)) +
+  geom_line() +
+  geom_line(data = ov, aes(x = cpg_pos, y = alpha, colour = read_id)) +
+  theme(legend.position = "none") +
+  facet_wrap(~ dtu_rank)
+```
+
+```{r}
+find_overlaps(as_granges(ts.gene_optile[1:10,]), as_granges(mutate(qfdrp_gm1, pos = 1:nrow(qfdrp_gm1)))) %>% data.frame() %>% distinct(dtu_rank, pos, QFDRP) %>% group_by(dtu_rank) %>% mutate(cpg_pos = 1:n()) %>%
+  ggplot(aes(x = cpg_pos, y = QFDRP)) +
+  geom_line() +
+  geom_line(data = ov, aes(x = cpg_pos, y = alpha, colour = read_id)) +
+  theme(legend.position = "none") +
+  facet_wrap(~ dtu_rank)
+```
+
+
+```{r}
+ov2 <- find_overlaps(as_granges(mhl_gm1), as_granges(for_beta_all)) %>% data.frame()
+ov2 <- ov2 %>% group_by(read_id) %>% mutate(cpg_pos = 1:n())
+```
+
+
+```{r}
+find_overlaps(as_granges(ts.gene_optile[1,]), as_granges(ov2)) %>% data.frame() %>% distinct(dtu_rank, start, MHL) %>% 
+  ggplot(aes(x = start, y = MHL)) +
+  geom_line() +
+  geom_segment(data = ov2, aes(x = read_start, xend = read_end, y = alpha, yend = alpha, colour = read_id)) +
+  theme(legend.position = "none") 
+```
+
+
+```{r}
+all_samples_simp <- all_samples %>% distinct(read_id, seqnames, read_start, read_end, strand, sample, alpha)
+colnames(all_samples_simp)[3:4] <- c("start", "end")
+```
+
+
+# 4 CpGs
+* entropy
+* epipm
