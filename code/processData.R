@@ -222,3 +222,32 @@ rrbs_plot2 <- function(long_data, read_ids, cpgs = cg_sites, read_width = FALSE,
   }
   plot
 }
+
+# spread of cpgs
+rrbs_plot3 <- function(long_data, read_ids, cpgs = cg_sites, jit_amount = 0.1) {
+  set.seed(42) # For reproducibility
+  # Calculate a single jitter amount per row (segment)
+  long_data <- long_data %>% dplyr::filter(read_id %in% read_ids)
+  just_reads <- long_data %>% distinct(read_id, read_start, read_end, alpha)
+  jitter_amount <- runif(nrow(just_reads), -jit_amount, jit_amount)
+  just_reads$alpha_jit <- just_reads$alpha + jitter_amount
+  just_reads <- data.frame(just_reads)
+
+  # Add jittered coordinates to new columns in the data frame
+  long_data$alpha_jit <- just_reads[match(long_data$read_id, just_reads$read_id), "alpha_jit"]
+  long_data$alpha_jit <- as.double(long_data$alpha_jit)
+
+  plot <- long_data %>%
+    distinct(read_id, read_start, read_end, alpha_jit) %>%
+    ggplot() +
+    geom_segment(aes(x = read_start, xend = read_end, y = alpha_jit, yend = alpha_jit), alpha = 0.2) +
+    geom_point(data = dplyr::filter(long_data, read_id %in% read_ids),
+               aes(x = start, y = alpha_jit, fill = meth_status), shape = 21, color = "black") +
+    scale_fill_manual(values = c("U" = "white", "M" = "black")) +
+    geom_point(data = distinct(dplyr::filter(long_data, read_id %in% read_ids), start, beta),
+               aes(x = start, y = beta), shape = 4, size = 3) +
+    geom_segment(data = filter(cg_sites, start >= min(dplyr::filter(long_data, read_id %in% read_ids)$start),
+                               end <= max(dplyr::filter(long_data, read_id %in% read_ids)$end)),
+                 aes(x = start, xend = start, y = -0.15, yend = -0.05), colour = "green")
+  plot
+}

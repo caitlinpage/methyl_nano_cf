@@ -1,0 +1,225 @@
+---
+title: "vizDamefinder"
+author: "caitlinpage"
+date: "2026-04-17"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+## Introduction
+
+```{r}
+library(DAMEfinder)
+```
+
+
+[workflow](https://bioconductor.org/packages/release/bioc/vignettes/DAMEfinder/inst/doc/DAMEfinder_workflow.html)
+
+[github: methyl_circle_plot()](https://github.com/markrobinsonuzh/DAMEfinder/blob/master/R/methyl_circle_plot.R)
+
+```{r}
+library(annotatr)
+library(data.table)
+library(plyranges)
+library(tidyr)
+library(stringr)
+library(dplyr)
+library(ggplot2)
+library(edgeR)
+library(TxDb.Hsapiens.UCSC.hg19.knownGene)
+```
+
+
+```{r}
+# all cpg positions
+seqs <- seqnames(BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38)[1:22]
+
+cg_sites <- lapply(seqs, function(x) {
+  cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38[[x]])),
+        seqnames = x
+  )}) %>% bind_rows()
+
+genes_txdb <- genes(TxDb.Hsapiens.UCSC.hg19.knownGene)
+genes_txdb <- filter(genes_txdb, seqnames %in% seqs)
+```
+
+
+
+```{r}
+# load data files
+rrbs_alpha_beta <- readRDS("/researchers/caitlin.page/cf_nano/r_output/rrbs_alpha_beta.rds")
+gm12878_2 <- readRDS("/researchers/caitlin.page/cf_nano/r_output/rrbs_alpha_beta_rep2.rds")
+k562 <- readRDS("/researchers/caitlin.page/cf_nano/r_output/k562_rep1.rds")
+k562_2 <- readRDS("/researchers/caitlin.page/cf_nano/r_output/k562_rep2.rds")
+
+# same columns and group samples
+cols <- c("read_id", "seqnames", "start", "end", "strand", "meth_pattern", "num_meth", "total", "alpha", "read_start", "read_end", "beta", "sample")
+
+all_samples <- rbind(rrbs_alpha_beta %>% mutate(sample = "b1") %>% .[,cols],
+                     gm12878_2 %>% mutate(sample = "b2") %>% .[,cols],
+                     k562 %>% mutate(sample = "cml1") %>% .[,cols],
+                     k562_2 %>% mutate(sample = "cml2") %>% .[,cols])
+```
+
+# define regions
+```{r}
+all_samples_simp <- all_samples %>% distinct(read_id, seqnames, read_start, read_end, strand, sample, alpha)
+colnames(all_samples_simp)[3:4] <- c("start", "end")
+```
+
+
+# steal DAMEFINDER plot
+
+```{r}
+  
+    # data for points
+    d <- data.frame(CpG = rep(cgsite, length(alns.pairs)), 
+        read = rep(seq(from = 1, 
+        to = length(alns.pairs), by = 1), each = length(cgsite)), 
+        value = as.vector(conversion), stringsAsFactors = FALSE)
+    
+    # data for segments
+    reads <- d$read
+    
+    xstart <- vapply(reads, function(x) {
+        newd <- d[which(d$read == x), ]
+        vals <- which(!is.na(newd$value))
+        min(newd$CpG[vals], snp.start)
+    }, FUN.VALUE = double(1))
+    
+    xend <- vapply(reads, function(x) {
+        newd <- d[which(d$read == x), ]
+        vals <- which(!is.na(newd$value))
+        max(newd$CpG[vals], snp.start)
+    }, FUN.VALUE = double(1))
+    
+    d2 <- unique(data.frame(xstart, xend, reads, stringsAsFactors = FALSE))
+    d2$snp <- c(rep("a", length(alt.reads)), rep("r", length(ref.reads)))
+    
+    # To manually scale the colors
+    cols <- c("#0E4071", "#d55e00", "#0E4071", "#d55e00")
+    names(cols) <- c("a", "r", alt, ref)
+    
+    mp <- ggplot() + 
+        scale_shape_identity() + 
+        theme_void() + 
+        geom_segment(data = d2, aes(x = .data$xstart, 
+                                    y = .data$reads, 
+                                    xend = .data$xend, 
+                                    yend = .data$reads,
+                                    colour = .data$snp), linewidth = 0.2) + 
+        geom_point(data = d, aes(x = .data$CpG,
+                                 y = .data$read,
+                                 shape = .data$value), 
+            fill = "white", size = pointSize) + 
+        geom_point(aes(x = snp.start, y = seq(from = 1, to = length(alns.pairs),
+            by = 1), shape = letter, colour = letter), size = letterSize) + 
+        geom_point(aes(x = cpg.start, y = 0), shape = 24, size = 3, 
+            fill = "green") + 
+        scale_color_manual(values = cols) + 
+        guides(color = FALSE) + 
+        ggtitle(sampleName)
+```
+
+```{r}
+rrbs_plot2 <- function(long_data, read_ids, cpgs = cg_sites, jit_amount = 0.1) {
+  set.seed(42) # For reproducibility
+  # Calculate a single jitter amount per row (segment)
+  long_data <- long_data %>% dplyr::filter(read_id %in% read_ids)
+  just_reads <- long_data %>% distinct(read_id, read_start, read_end, alpha)
+  jitter_amount <- runif(nrow(just_reads), -jit_amount, jit_amount)
+  just_reads$alpha_jit <- just_reads$alpha + jitter_amount
+  just_reads <- data.frame(just_reads)
+  
+  # Add jittered coordinates to new columns in the data frame
+  long_data$alpha_jit <- just_reads[match(long_data$read_id, just_reads$read_id), "alpha_jit"]
+  long_data$alpha_jit <- as.double(long_data$alpha_jit)
+  
+    plot <- long_data %>%
+      distinct(read_id, read_start, read_end, alpha_jit) %>%
+      ggplot() +
+      geom_segment(aes(x = read_start, xend = read_end, y = alpha_jit, yend = alpha_jit), alpha = 0.2) +
+      geom_point(data = dplyr::filter(long_data, read_id %in% read_ids, start == read_start),
+                 aes(x = start, y = alpha_jit, colour = meth_status)) +
+      geom_point(data = distinct(dplyr::filter(long_data, read_id %in% read_ids), start, beta),
+                 aes(x = start, y = beta), shape = 4, size = 3) +
+      geom_segment(data = filter(cg_sites, start >= min(dplyr::filter(long_data, read_id %in% read_ids)$start),
+                                 end <= max(dplyr::filter(long_data, read_id %in% read_ids)$end)),
+                   aes(x = start, xend = start, y = -0.15, yend = -0.05), colour = "green")
+  plot
+}
+
+```
+
+```{r}
+rrbs_plot3 <- function(long_data, read_ids, cpgs = cg_sites, jit_amount = 0.1) {
+  set.seed(42) # For reproducibility
+  # Calculate a single jitter amount per row (segment)
+  long_data <- long_data %>% dplyr::filter(read_id %in% read_ids)
+  just_reads <- long_data %>% distinct(read_id, read_start, read_end, alpha)
+  jitter_amount <- runif(nrow(just_reads), -jit_amount, jit_amount)
+  just_reads$alpha_jit <- just_reads$alpha + jitter_amount
+  just_reads <- data.frame(just_reads)
+  
+  # Add jittered coordinates to new columns in the data frame
+  long_data$alpha_jit <- just_reads[match(long_data$read_id, just_reads$read_id), "alpha_jit"]
+  long_data$alpha_jit <- as.double(long_data$alpha_jit)
+  
+    plot <- long_data %>%
+      distinct(read_id, read_start, read_end, alpha_jit) %>%
+      ggplot() +
+      geom_segment(aes(x = read_start, xend = read_end, y = alpha_jit, yend = alpha_jit), alpha = 0.2) +
+      geom_point(data = dplyr::filter(long_data, read_id %in% read_ids),
+               aes(x = start, y = alpha_jit, fill = meth_status), shape = 21, color = "black") +
+      scale_fill_manual(values = c("U" = "white", "M" = "black")) +
+      geom_point(data = distinct(dplyr::filter(long_data, read_id %in% read_ids), start, beta),
+                 aes(x = start, y = beta), shape = 4, size = 3) +
+      geom_segment(data = filter(cg_sites, start >= min(dplyr::filter(long_data, read_id %in% read_ids)$start),
+                                 end <= max(dplyr::filter(long_data, read_id %in% read_ids)$end)),
+                   aes(x = start, xend = start, y = -0.15, yend = -0.05), colour = "green")
+  plot
+}
+```
+
+
+```{r}
+filt_reads <- rrbs_alpha_beta %>% filter(seqnames == "chr1") %>% .[order(.$start),]
+```
+
+```{r}
+filt_reads[4:130,] %>% distinct(read_id)
+```
+
+```{r}
+rrbs_plot(filt_reads, filt_reads[4:130,] %>% distinct(read_id) %>% .$read_id, cpgs = cg_sites)
+rrbs_plot(filt_reads, filt_reads[4:130,] %>% distinct(read_id) %>% .$read_id, cpgs = cg_sites, count_instead = TRUE)
+```
+```{r}
+reads <- filt_reads[4:130,] %>% distinct(read_id) %>% .$read_id
+```
+
+```{r}
+rrbs_plot2(filt_reads, reads, cpgs = cg_sites, jit_amount = 0.1)
+```
+```{r}
+rrbs_plot3(filt_reads, reads, cpgs = cg_sites, jit_amount = 0.1)
+```
+
+```{r}
+rrbs_plot3(filt_reads, reads, cpgs = cg_sites, jit_amount = 0.1) +
+  theme_bw() +
+  theme(legend.position = "none") +
+  labs(x = "coordinate")
+```
+* nice
+* and didn't actually need damefinder - just needed to fix the jitter
+
+```{r}
+rrbs_plot3(filt_reads, reads, cpgs = cg_sites, jit_amount = 0.05) +
+  theme_bw() +
+  theme(legend.position = "none") +
+  labs(x = "coordinate")
+```
+
+
