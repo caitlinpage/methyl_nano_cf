@@ -178,3 +178,18 @@ rbind(mutate(de_res, type = "alpha"), mutate(de_res_beta, type = "beta")) %>%
   group_by(gene_id, type) %>% summarise(n=n()) %>% .[1:10,]
 ```
 
+```{r}
+de_res
+de_res_beta
+```
+
+# venn diagram
+
+```{r}
+library(ggVennDiagram)
+```
+
+```{r}
+ggVennDiagram(list(alpha = filter(de_res, FDR < 0.05)$transcript, beta = filter(de_res_beta, FDR < 0.05)$transcript))
+```
+
