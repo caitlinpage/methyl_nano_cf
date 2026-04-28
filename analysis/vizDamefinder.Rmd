@@ -141,7 +141,8 @@ rrbs_plot2 <- function(long_data, read_ids, cpgs = cg_sites, jit_amount = 0.1) {
       ggplot() +
       geom_segment(aes(x = read_start, xend = read_end, y = alpha_jit, yend = alpha_jit), alpha = 0.2) +
       geom_point(data = dplyr::filter(long_data, read_id %in% read_ids, start == read_start),
-                 aes(x = start, y = alpha_jit, colour = meth_status)) +
+                 aes(x = start, y = alpha_jit, fill = meth_status), shape = 21, color = "black") +
+      scale_fill_manual(values = c("U" = "white", "M" = "black")) +
       geom_point(data = distinct(dplyr::filter(long_data, read_id %in% read_ids), start, beta),
                  aes(x = start, y = beta), shape = 4, size = 3) +
       geom_segment(data = filter(cg_sites, start >= min(dplyr::filter(long_data, read_id %in% read_ids)$start),
@@ -202,9 +203,7 @@ reads <- filt_reads[4:130,] %>% distinct(read_id) %>% .$read_id
 ```{r}
 rrbs_plot2(filt_reads, reads, cpgs = cg_sites, jit_amount = 0.1)
 ```
-```{r}
-rrbs_plot3(filt_reads, reads, cpgs = cg_sites, jit_amount = 0.1)
-```
+
 
 ```{r}
 rrbs_plot3(filt_reads, reads, cpgs = cg_sites, jit_amount = 0.1) +
@@ -222,4 +221,126 @@ rrbs_plot3(filt_reads, reads, cpgs = cg_sites, jit_amount = 0.05) +
   labs(x = "coordinate")
 ```
 
+# found a region from old plots
+```{r}
+reads <- rrbs_alpha_beta %>% filter(seqnames == "chr22", read_start >= 12693800, read_end <= 12694000) %>% distinct(read_id) %>% .$read_id
+
+rrbs_plot3(rrbs_alpha_beta, reads, cpgs = cg_sites, jit_amount = 0.05) +
+  theme_bw() +
+  theme(legend.position = "none") +
+  labs(x = "coordinate")
+
+rrbs_alpha_beta %>% filter(seqnames == "chr22", read_start >= 12693800, read_end <= 12694000) %>% 
+  distinct(read_id, alpha) %>%
+  mutate(region = "a") %>%
+    ggplot(aes(x = region, fill = as.factor(alpha))) +
+    geom_bar(position = "fill") 
+```
+
+```{r}
+reads <- rrbs_alpha_beta %>% filter(seqnames == "chr22", read_start >= 12693600, read_end <= 12693800) %>% distinct(read_id) %>% .$read_id
+
+rrbs_plot3(rrbs_alpha_beta, reads, cpgs = cg_sites, jit_amount = 0.05) +
+  theme_bw() +
+  theme(legend.position = "none") +
+  labs(x = "coordinate")
+```
+
+
+# plot a tile - maybe that will look more like data?
+```{r}
+library(OpTiles)
+rrbs_alpha_beta <- rrbs_alpha_beta %>% group_by(seqnames, start) %>% mutate(coverage = n(), mean_alpha = mean(alpha)) %>% ungroup() %>% data.frame()
+just_beta <- rrbs_alpha_beta %>% distinct(seqnames, start, beta, coverage, mean_alpha)
+
+```
+
+
+```{r}
+betavalue <- just_beta$beta
+betavalue_df <- as.data.frame(betavalue)
+rownames(betavalue_df) <- paste0(just_beta$seqnames, ":", just_beta$start, "-", just_beta$start + 1)
+
+metadata <- "sample_gm12878"
+metadata_df <- betavalue_df %>% mutate(sample = "gm12878_1")
+
+
+for_op <- just_beta %>% mutate(end = start, strand = "*", numCs = beta * coverage, numTs = coverage - numCs, chr = seqnames) %>% .[,c(10,2,6,7,4,8,9)]
+mr <- new(
+  "methylRaw",
+  for_op,
+  sample.id = "sample1",
+  assembly = "hg38",
+  context = "CpG",
+  resolution = "base"
+)
+
+length_region <- 300
+tiles <- methylKit::tileMethylCounts(mr,win.size=length_region,step.size=length_region,cov.bases = 0)
+
+regions_plus_merged_regions <- merging_consecutive_regions(mr, 
+                                                           tiles,
+                                                           da_thr = length_region,
+                                                           cb_thr = length_region)
+
+regions_plus_merged_regions <- regions_plus_merged_regions %>% mutate(width = end - start + 1)
+colnames(regions_plus_merged_regions)[1] <- "seqnames"
+```
+
+```{r}
+just_reads <- rrbs_alpha_beta %>% distinct(read_id, seqnames, read_start, read_end, alpha, total, num_meth)
+colnames(just_reads)[3:4] <- c("start", "end")
+```
+
+
+```{r}
+find_overlaps(as_granges(regions_plus_merged_regions), as_granges(filter(just_reads, total > 2))) %>% data.frame() %>% 
+  group_by(region_id) %>% summarise(n_reads = n(), mean_alpha = mean(alpha), var_alpha = var(alpha)) %>% 
+  .[order(.$n_reads, decreasing = TRUE),]
+
+find_overlaps(as_granges(regions_plus_merged_regions), as_granges(filter(just_reads, total > 2))) %>% data.frame() %>% 
+  group_by(region_id) %>% summarise(n_reads = n(), mean_alpha = mean(alpha), var_alpha = var(alpha)) %>% filter(n_reads > 30) %>%
+  .[order(.$var_alpha, decreasing = TRUE),]
+```
+
+```{r}
+#chr12:94944001-94944300
+
+reads <- rrbs_alpha_beta %>% filter(seqnames == "chr12", read_start >= 94944001, read_end <= 94944300) %>% distinct(read_id) %>% .$read_id
+
+rrbs_plot3(rrbs_alpha_beta, reads, cpgs = cg_sites, jit_amount = 0.05) +
+  theme_bw() +
+  theme(legend.position = "none") +
+  labs(x = "coordinate")
+```
+* highest var tile
+```{r}
+#chrX:149938322-149938621
+reads <- rrbs_alpha_beta %>% filter(seqnames == "chrX", read_start >= 149938322, read_end <= 149938621) %>% distinct(read_id) %>% .$read_id
+
+rrbs_plot3(rrbs_alpha_beta, reads, cpgs = cg_sites, jit_amount = 0.05) +
+  theme_bw() +
+  theme(legend.position = "none") +
+  labs(x = "coordinate")
+```
+*16th tile
+```{r}
+#chr22:23145601-23145900
+reads <- rrbs_alpha_beta %>% filter(seqnames == "chr22", read_start >= 23145601, read_end <= 23145900) %>% distinct(read_id) %>% .$read_id
+
+rrbs_plot3(rrbs_alpha_beta, reads, cpgs = cg_sites, jit_amount = 0.05) +
+  theme_bw() +
+  theme(legend.position = "none") +
+  labs(x = "coordinate")
+```
+
+
+```{r}
+rrbs_alpha_beta %>% filter(seqnames == "chr22", read_start >= 23145601, read_end <= 23145900, total > 2) %>% 
+  distinct(read_id, alpha) %>%
+  mutate(region = "a") %>%
+    ggplot(aes(x = region, fill = as.factor(alpha))) +
+    geom_bar(position = "fill") 
+
+```
 
