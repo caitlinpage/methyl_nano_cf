@@ -188,42 +188,35 @@ rrbs_plot <- function(long_data, read_ids, cpgs = cg_sites, count_instead = FALS
 }
 
 # plot only first cpg on read
-rrbs_plot2 <- function(long_data, read_ids, cpgs = cg_sites, read_width = FALSE, count_instead = FALSE) {
+rrbs_plot2 <- function(long_data, read_ids, cpgs = cg_sites, jit_amount = 0.1) {
   set.seed(42) # For reproducibility
   # Calculate a single jitter amount per row (segment)
-  jitter_amount <- runif(nrow(distinct(long_data, read_id)), -0.01, 0.01)
+  long_data <- long_data %>% dplyr::filter(read_id %in% read_ids)
+  just_reads <- long_data %>% distinct(read_id, read_start, read_end, alpha)
+  jitter_amount <- runif(nrow(just_reads), -jit_amount, jit_amount)
+  just_reads$alpha_jit <- just_reads$alpha + jitter_amount
+  just_reads <- data.frame(just_reads)
 
   # Add jittered coordinates to new columns in the data frame
-  overlap_bins_reads_5b$alpha_jit <- overlap_bins_reads_5b$alpha + jitter_amount
-  if(count_instead == FALSE) {
-    plot <- long_data %>% dplyr::filter(read_id %in% read_ids) %>%
-      distinct(read_id, read_start, read_end, alpha) %>%
-      ggplot() +
-      geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha), alpha = 0.2) +
-      geom_point(data = dplyr::filter(long_data, read_id %in% read_ids, start == read_start),
-                 aes(x = start, y = alpha, colour = meth_status)) +
-      geom_point(data = distinct(dplyr::filter(long_data, read_id %in% read_ids), start, beta),
-                 aes(x = start, y = beta), shape = 4, size = 3) +
-      geom_segment(data = filter(cg_sites, start >= min(dplyr::filter(long_data, read_id %in% read_ids)$start),
-                                 end <= max(dplyr::filter(long_data, read_id %in% read_ids)$end)),
-                   aes(x = start, xend = start, y = -0.15, yend = -0.05), colour = "green")
-  } else {
-    plot <- long_data %>% dplyr::filter(read_id %in% read_ids) %>%
-      distinct(read_id, read_start, read_end, alpha) %>%
-      ggplot() +
-      geom_segment(aes(x = read_start, xend = read_end, y = alpha, yend = alpha), alpha = 0.2) +
-      geom_count(data = dplyr::filter(long_data, read_id %in% read_ids, start == read_start),
-                 aes(x = start, y = alpha, colour = meth_status)) +
-      geom_point(data = distinct(dplyr::filter(long_data, read_id %in% read_ids), start, beta),
-                 aes(x = start, y = beta), shape = 4, size = 3) +
-      geom_segment(data = filter(cg_sites, start >= min(dplyr::filter(long_data, read_id %in% read_ids)$start),
-                                 end <= max(dplyr::filter(long_data, read_id %in% read_ids)$end)),
-                   aes(x = start, xend = start, y = -0.15, yend = -0.05), colour = "green")
-  }
+  long_data$alpha_jit <- just_reads[match(long_data$read_id, just_reads$read_id), "alpha_jit"]
+  long_data$alpha_jit <- as.double(long_data$alpha_jit)
+
+  plot <- long_data %>%
+    distinct(read_id, read_start, read_end, alpha_jit) %>%
+    ggplot() +
+    geom_segment(aes(x = read_start, xend = read_end, y = alpha_jit, yend = alpha_jit), alpha = 0.2) +
+    geom_point(data = dplyr::filter(long_data, read_id %in% read_ids, start == read_start),
+               aes(x = start, y = alpha_jit, fill = meth_status), shape = 21, color = "black") +
+    scale_fill_manual(values = c("U" = "white", "M" = "black")) +
+    geom_point(data = distinct(dplyr::filter(long_data, read_id %in% read_ids), start, beta),
+               aes(x = start, y = beta), shape = 4, size = 3) +
+    geom_segment(data = filter(cg_sites, start >= min(dplyr::filter(long_data, read_id %in% read_ids)$start),
+                               end <= max(dplyr::filter(long_data, read_id %in% read_ids)$end)),
+                 aes(x = start, xend = start, y = -0.15, yend = -0.05), colour = "green")
   plot
 }
 
-# spread of cpgs
+# spread of cpgs + all cpgs on read (v2 is just first cpg on read)
 rrbs_plot3 <- function(long_data, read_ids, cpgs = cg_sites, jit_amount = 0.1) {
   set.seed(42) # For reproducibility
   # Calculate a single jitter amount per row (segment)
