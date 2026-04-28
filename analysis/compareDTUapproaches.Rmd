@@ -1,0 +1,217 @@
+---
+title: "compareDTUapproaches"
+author: "caitlinpage"
+date: "2026-04-22"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+```{r}
+library(annotatr)
+library(data.table)
+library(plyranges)
+library(tidyr)
+library(stringr)
+library(dplyr)
+library(ggplot2)
+library(edgeR)
+```
+
+```{r}
+seqs <- seqnames(BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38)[1:22]
+
+cg_sites <- lapply(seqs, function(x) {
+        cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38[[x]])),
+            seqnames = x
+        )}) %>% bind_rows()
+```
+
+
+```{r}
+dtu.gene <- readRDS("/researchers/caitlin.page/cf_nano/r_output/ts.gene.gene.rds")
+```
+
+```{r}
+annots <- c("hg38_basicgenes", "hg38_genes_intergenic")
+
+annotations <- annotatr::build_annotations(genome = 'hg38', annotations = annots)
+seqs <- annotations %>% data.frame() %>% distinct(seqnames) %>% .[1:22,]
+annotations <- annotations %>% data.frame() %>% filter(seqnames %in% seqs)
+```
+
+```{r}
+dtu.gene
+annotations_simp <- annotations %>% group_by(seqnames, symbol, strand) %>% summarise(start = min(start), end = max(end)) %>% ungroup() %>% data.frame()
+a <- annotations_simp %>% filter(symbol %in% dtu.gene$gene_id) %>% .[order(.$symbol),] 
+```
+
+```{r}
+dtu.gene %>% .[order(dtu.gene$gene_id),] 
+```
+```{r}
+annotations %>% filter(symbol == "XLOC")
+```
+
+```{r}
+dtu.gene %>% filter(!gene_id %in% a$symbol)
+```
+```{r}
+dtu.gene_mod <- cbind(dtu.gene %>% filter(gene_id != "XLOC") %>% .[order(.$gene_id),], a)
+dtu.gene_mod <- dtu.gene_mod %>% .[order(.$FDR),] %>% mutate(rank = 1:n())
+```
+
+
+```{r}
+ts.gene_optile
+```
+
+```{r}
+overlap <- find_overlaps(as_granges(ts.gene_optile), as_granges(dtu.gene_mod)) %>% data.frame()
+```
+
+```{r}
+overlap %>% filter(gene_id == "LRRC4")
+```
+
+```{r}
+a %>% filter(symbol == "LRRC4") %>%
+  ggplot() +
+  geom_segment(aes(x = start, xend = end, y = 1, yend = 1)) +
+  geom_segment(data = filter(overlap, symbol == "LRRC4"),
+               aes(x = start, xend = end, y = 1.2, yend = 1.2, colour = as.factor(dtu_rank)))
+```
+* I like this: where the dtu tiles are on the gene
+
+* do for top 5 dtu genes
+
+```{r}
+overlap %>% filter(rank <= 5)
+dtu.gene_mod
+```
+```{r}
+g <- overlap %>% filter(rank <= 5) %>% .[order(.$rank),] %>% .$symbol %>% unique()
+a %>% filter(symbol %in% g)
+for(i in 1:5) {
+p <- a %>% filter(symbol == g[i]) %>%
+  ggplot() +
+  geom_segment(aes(x = start, xend = end, y = 1, yend = 1)) +
+  geom_segment(data = filter(overlap, symbol == g[i]),
+               aes(x = start, xend = end, y = 1.2, yend = 1.2, colour = as.factor(dtu_rank))) +
+  labs(title = paste0("Gene:", g[i], ", Rank:", i))
+print(p)
+}
+```
+
+* ok and now whatever genes include the top 5 DE tiles
+
+```{r}
+g <- overlap %>% filter(dtu_rank <= 5) %>% .[order(.$rank),] %>% .$symbol %>% unique()
+for(i in 1:5) {
+p <- a %>% filter(symbol == g[i]) %>%
+  ggplot() +
+  geom_segment(aes(x = start, xend = end, y = 1, yend = 1)) +
+  geom_segment(data = filter(overlap, symbol == g[i]),
+               aes(x = start, xend = end, y = 1.2, yend = 1.2, colour = as.factor(dtu_rank))) +
+  labs(title = paste0("Gene:", g[i], ", Rank:", filter(overlap, symbol == g[i])$rank))
+print(p)
+}
+```
+
+```{r}
+overlap %>% 
+  group_by(symbol, rank) %>%
+  summarise(n_tiles = n()) %>%
+  ggplot(aes(x = log2(n_tiles))) +
+  geom_histogram()
+overlap %>% 
+  group_by(symbol, rank) %>%
+  summarise(n_tiles = n()) %>%
+  ggplot(aes(x = n_tiles)) +
+  geom_histogram()
+```
+
+```{r}
+overlap %>% 
+  group_by(symbol, rank) %>%
+  summarise(n_tiles = n()) 
+```
+
+```{r}
+dtu.gene_mod
+dtu.gene
+```
+```{r}
+dtu.gene
+annotations_simp <- annotations %>% group_by(seqnames, symbol, strand) %>% summarise(start = min(start), end = max(end)) %>% ungroup() %>% data.frame()
+a <- annotations_simp %>% filter(symbol %in% dtu.gene$gene_id) %>% .[order(.$symbol),] 
+```
+
+```{r}
+aa <- annotations %>% mutate(type = ifelse(type == "hg38_genes_introns" | type == "hg38_genes_exons", "gene_body", type)) %>% group_by(seqnames, symbol, strand, type) %>% summarise(start = min(start), end = max(end)) %>% ungroup() %>% data.frame() 
+aa <- aa %>% filter(!is.na(symbol))
+aa %>% group_by(symbol) %>% summarise(n=n()) %>% distinct(n)
+```
+```{r}
+aa %>% group_by(symbol) %>% mutate(n=n()) %>% ungroup() %>% filter(n == 241)
+```
+
+```{r}
+# just match the gene and add the FDR
+dtu.gene_mod2 <- aa %>% mutate(FDR = dtu.gene[match(dtu.gene$gene_id, .$symbol), "FDR"])
+dtu.gene_mod2 <- dtu.gene_mod2 %>% .[order(.$FDR),] %>% mutate(rank = 1:n())
+```
+
+```{r}
+overlap2 <- find_overlaps(as_granges(ts.gene_optile), as_granges(aa)) %>% data.frame()
+```
+
+```{r}
+overlap2 %>%
+  group_by(type) %>%
+  summarise(n_tiles = n())
+
+overlap2 %>%
+  ggplot(aes(x = type, fill = type)) +
+  geom_bar() +
+  theme(legend.position = "none")
+```
+mjkmmm
+
+```{r}
+overlap3 <- pair_overlaps(as_granges(ts.gene_optile), as_granges(annotations)) %>% data.frame()
+```
+
+```{r}
+overlap %>% filter(rank <= 5) %>% .[order(.$rank),] %>% .$symbol %>% unique() # top 5 genes (LRRC4 also overlaps position of #3 tile)
+```
+
+```{r}
+overlap3 %>% filter(symbol == "LRRC4") %>%
+  ggplot(aes(x = as.factor(dtu_rank), fill = type)) +
+  geom_bar() +
+  scale_y_continuous(breaks = c(0, 1:10))
+```
+
+```{r}
+overlap3 %>% filter(dtu_rank <= 5) %>%
+  ggplot(aes(x = as.factor(dtu_rank), fill = type)) +
+  geom_bar() +
+  scale_y_continuous(breaks = c(0, 1:10))
+```
+
+
+```{r}
+library(ggVennDiagram)
+```
+
+```{r}
+ggVennDiagram(list(alpha = filter(de_res, FDR < 0.05)$transcript, beta = filter(de_res_beta, FDR < 0.05)$transcript))
+```
+
+
+```{r}
+dtu_optile
+```
+
+
