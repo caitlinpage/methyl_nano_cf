@@ -315,15 +315,14 @@ ds <- diffSpliceDGE(fit, coef = 2, geneid = "gene_id", exonid = "transcript")
 ```
 
 ```{r}
-ts.gene.simes <- topSpliceDGE(ds, test = "Simes", number = Inf)
-ts.gene.simes[1:10,]
 
-ts.gene.gene <- topSpliceDGE(ds, test = "gene", number = Inf)
-ts.gene.gene[1:10,]
+
+ts.gene_optile <- topSpliceDGE(ds, test = "gene", number = Inf)
+ts.gene_optile[1:10,]
 ```
 
 ```{r}
-ts.gene.gene
+tpm_mat
 ```
 
 
@@ -345,13 +344,20 @@ gene_cg <- find_overlaps(as_granges(regions_plus_merged_regions), as_granges(cg_
 
 fit$genes <- fit$genes %>% mutate(n_cg = gene_cg[match(.$gene_id, gene_cg$region_id), "n_cg"])
 ```
+```{r}
+fit$genes %>% filter(!is.na(n_cg))
+```
+
+```{r}
+gene_cg$region_id %in% fit$genes$gene_id %>% summary()
+```
 
 
 ```{r}
 rpk <- y$counts/rep(fit$genes$n_cg/1000, times = ncol(y$counts))
 tpm_mat <- sweep(rpk, 2, colSums(rpk)/1e6, "/")
 
-tpm_mat <- tpm_mat %>% data.frame() %>% mutate(id = dtu_optile$transcript, gene_id = dtu_optile$gene_id)
+tpm_mat <- tpm_mat %>% data.frame() %>% mutate(gene_id = ts.gene_optile$gene_id)
 tpm_mat[1:10,]
 ```
 
@@ -372,27 +378,12 @@ tpm_mat %>% .[order(.$gene_id),] %>% .[1:10,]
 ts.gene.gene %>% filter(FDR < 0.05)
 ```
 
-* heaps of significant regions like this
-* ok where are these regions
 
-```{r}
-ts.gene.simes[1:10,]
-tail(ts.gene.simes)
-c(signif = ts.gene.simes %>% filter(FDR < 0.05) %>% nrow(),
-  total = nrow(ts.gene.simes))
-```
-```{r}
-tpm_mat %>% filter(gene_id == ts.gene.simes$gene_id[1])
-```
-
-```{r}
-tpm_mat %>% filter(gene_id == ts.gene.simes$gene_id[643])
-```
 
 
 ```{r}
 tpm_mat %>% mutate(alpha_group = sub(".*_", "", id)) %>% .[,6:11] %>%
-  filter(gene_id %in% ts.gene.simes$gene_id[1:10]) %>%
+  filter(gene_id %in% ts.gene_optile$gene_id[1:10]) %>%
   reshape2::melt(id = c("alpha_group", "gene_id")) %>%
   ggplot(aes(x = variable, y = value, fill = alpha_group)) +
   geom_col() +
@@ -403,13 +394,13 @@ tpm_mat %>% mutate(alpha_group = sub(".*_", "", id)) %>% .[,6:11] %>%
 * overlap dtu regions
 
 ```{r}
-ts.gene.gene <- ts.gene.gene %>% 
+ts.gene_optile <- ts.gene_optile %>% 
   separate_wider_delim(gene_id, delim = ":", names = c("seqnames", "gene_id")) %>%
   mutate(seqnames = gsub("chrchr", "chr", seqnames)) %>%
   separate_wider_delim(gene_id, delim = "-", names = c("start", "end"))
-ts.gene.gene$start <- as.double(ts.gene.gene$start)
-ts.gene.gene$end <- as.double(ts.gene.gene$end)
-ts.gene.gene$dtu_rank <- 1:nrow(ts.gene.gene)
+ts.gene_optile$start <- as.double(ts.gene_optile$start)
+ts.gene_optile$end <- as.double(ts.gene_optile$end)
+ts.gene_optile$dtu_rank <- 1:nrow(ts.gene_optile)
 ```
 
 ```{r}
@@ -567,4 +558,26 @@ find_overlaps(as_granges(regions_plus_merged_regions), as_granges(all_samples_si
   geom_density()
 ```
 
-mn
+# more basic analysis of tiles
+
+```{r}
+regions_plus_merged_regions
+reads_simp <- rrbs_alpha_beta %>% distinct(read_id, seqnames, read_start, read_end, num_meth, total, alpha)
+colnames(reads_simp)[3:4] <- c("start", "end")
+```
+
+```{r}
+tile_overlap <- find_overlaps(as_granges(reads_simp), as_granges(regions_plus_merged_regions)) %>% data.frame()
+tile_overlap %>% group_by(read_id) %>% summarise(n_tile = n()) %>%
+  ggplot(aes(x = n_tile)) +
+  geom_histogram()
+```
+
+```{r}
+tile_overlap %>% group_by(read_id) %>% summarise(n_tile = n()) %>% filter(n_tile != 1) %>% distinct(read_id)
+```
+
+```{r}
+105517/nrow(just_reads) * 100
+```
+
