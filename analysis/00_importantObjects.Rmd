@@ -41,11 +41,10 @@ cg_sites$index <- 1:nrow(cg_sites)
 ```{r}
 seqs <- seqnames(BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38)[1:22]
 
-df <- lapply(seqs, function(x) {
+cg_sites <- lapply(seqs, function(x) {
         cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38[[x]])),
             seqnames = x
         )}) %>% bind_rows()
-cg_sites <- df
 ```
 
 
