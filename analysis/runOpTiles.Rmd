@@ -8,15 +8,15 @@ editor_options:
 ---
 
 ## Introduction
-```{r}
-seqnames(BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38)[1:22]
-BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38[[1:2]]
-```
+
 
 ```{r}
-cg_sites <- cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38)), seqnames = seqnames( BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38)[1:22]) %>% 
-  mutate(pos = paste0(seqnames, "-", start)) %>%
-  relocate(pos, seqnames)
+seqs <- seqnames(BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38)[1:22]
+
+cg_sites <- lapply(seqs, function(x) {
+        cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38[[x]])),
+            seqnames = x
+        )}) %>% bind_rows()
 cg_sites$index <- 1:nrow(cg_sites)
 ```
 ```{r}
@@ -45,9 +45,12 @@ library(OpTiles)
 
 ## Data Objects
 ```{r}
-cg_sites <- cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38[["chr22"]])), seqnames = "chr22") %>% 
-  mutate(pos = paste0(seqnames, "-", start)) %>%
-  relocate(pos, seqnames)
+seqs <- seqnames(BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38)[1:22]
+
+cg_sites <- lapply(seqs, function(x) {
+        cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38[[x]])),
+            seqnames = x
+        )}) %>% bind_rows()
 cg_sites$index <- 1:nrow(cg_sites)
 ```
 
@@ -579,5 +582,164 @@ tile_overlap %>% group_by(read_id) %>% summarise(n_tile = n()) %>% filter(n_tile
 
 ```{r}
 105517/nrow(just_reads) * 100
+```
+
+
+
+# how do tiles compare when using different sample as input??
+
+```{r}
+seqs <- seqnames(BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38)[1:22]
+
+cg_sites <- lapply(seqs, function(x) {
+        cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38[[x]])),
+            seqnames = x
+        )}) %>% bind_rows()
+cg_sites$index <- 1:nrow(cg_sites)
+```
+
+```{r}
+seqs <- seqnames(BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38)[1:22]
+```
+
+```{r}
+for_beta_all <- readRDS("/researchers/caitlin.page/cf_nano/r_output/rrbs_alpha_beta.rds")
+#for_beta <- readRDS("../output/cluster_files/rrbs_alpha_beta.rds")
+for_beta_all <- for_beta_all %>% filter(seqnames %in% seqs)
+for_beta_all <- for_beta_all %>% group_by(seqnames, start) %>% mutate(coverage = n(), mean_alpha = mean(alpha)) %>% ungroup() %>% data.frame()
+just_beta <- for_beta_all %>% distinct(seqnames, start, beta, coverage, mean_alpha)
+
+```
+
+```{r}
+#rrbs_alpha_beta <- readRDS("/researchers/caitlin.page/cf_nano/r_output/rrbs_alpha_beta.rds")
+
+gm12878_2 <- readRDS("/researchers/caitlin.page/cf_nano/r_output/rrbs_alpha_beta_rep2.rds")
+gm12878_2 <- gm12878_2 %>% filter(seqnames %in% seqs)
+gm12878_2 <- gm12878_2 %>% group_by(seqnames, start) %>% mutate(coverage = n(), mean_alpha = mean(alpha)) %>% ungroup() %>% data.frame()
+just_beta_gm2 <- gm12878_2 %>% distinct(seqnames, start, beta, coverage, mean_alpha)
+
+k562 <- readRDS("/researchers/caitlin.page/cf_nano/r_output/k562_rep1.rds")
+k562 <- k562 %>% filter(seqnames %in% seqs)
+k562 <- k562 %>% group_by(seqnames, start) %>% mutate(coverage = n(), mean_alpha = mean(alpha)) %>% ungroup() %>% data.frame()
+just_beta_k1 <- k562 %>% distinct(seqnames, start, beta, coverage, mean_alpha)
+
+k562_2 <- readRDS("/researchers/caitlin.page/cf_nano/r_output/k562_rep2.rds")
+k562_2 <- k562_2 %>% filter(seqnames %in% seqs)
+k562_2 <- k562_2 %>% group_by(seqnames, start) %>% mutate(coverage = n(), mean_alpha = mean(alpha)) %>% ungroup() %>% data.frame()
+just_beta_k2 <- k562_2 %>% distinct(seqnames, start, beta, coverage, mean_alpha)
+```
+
+
+```{r}
+for_op <- just_beta %>% mutate(end = start, strand = "*", numCs = beta * coverage, numTs = coverage - numCs, chr = seqnames) %>% .[,c(10,2,6,7,4,8,9)]
+mr <- new(
+  "methylRaw",
+  for_op,
+  sample.id = "sample1",
+  assembly = "hg38",
+  context = "CpG",
+  resolution = "base"
+)
+
+length_region <- 300
+tiles <- methylKit::tileMethylCounts(mr,win.size=length_region,step.size=length_region,cov.bases = 0)
+
+tilesdf <- methylKit::getData(tiles)
+
+regions_plus_merged_regions <- merging_consecutive_regions(mr, 
+                                                           tiles,
+                                                           da_thr = length_region,
+                                                           cb_thr = length_region)
+
+tilesdf <- tilesdf[,1:4] %>% mutate(width = end - start + 1) 
+colnames(tilesdf)[1] <- "seqnames"
+tilesdf$id <- 1:nrow(tilesdf)
+
+regions_plus_merged_regions <- regions_plus_merged_regions %>% mutate(width = end - start + 1)
+colnames(regions_plus_merged_regions)[1] <- "seqnames"
+```
+
+```{r}
+for_op <- just_beta_gm2 %>% mutate(end = start, strand = "*", numCs = beta * coverage, numTs = coverage - numCs, chr = seqnames) %>% .[,c(10,2,6,7,4,8,9)]
+mr <- new(
+  "methylRaw",
+  for_op,
+  sample.id = "sample1",
+  assembly = "hg38",
+  context = "CpG",
+  resolution = "base"
+)
+
+length_region <- 300
+tiles <- methylKit::tileMethylCounts(mr,win.size=length_region,step.size=length_region,cov.bases = 0)
+
+tilesdf_gm2 <- methylKit::getData(tiles)
+
+optiles_gm2 <- merging_consecutive_regions(mr, tiles, da_thr = length_region, cb_thr = length_region)
+
+tilesdf_gm2 <- tilesdf_gm2[,1:4] %>% mutate(width = end - start + 1) 
+colnames(tilesdf_gm2)[1] <- "seqnames"
+tilesdf_gm2$id <- 1:nrow(tilesdf_gm2)
+
+optiles_gm2 <- optiles_gm2 %>% mutate(width = end - start + 1)
+colnames(optiles_gm2)[1] <- "seqnames"
+```
+
+# compare the tiles from 2 diff samples
+```{r}
+regions_plus_merged_regions
+optiles_gm2
+```
+
+
+
+# run tiles on combined all samples
+
+```{r}
+for_op <- rbind(just_beta, just_beta_gm2, just_beta_k1, just_beta_k2) %>% distinct()
+for_op <- for_op %>% mutate(end = start, strand = "*", numCs = beta * coverage, numTs = coverage - numCs, chr = seqnames) %>% .[,c(10,2,6,7,4,8,9)]
+mr <- new(
+  "methylRaw",
+  for_op,
+  sample.id = "sample1",
+  assembly = "hg38",
+  context = "CpG",
+  resolution = "base"
+)
+
+length_region <- 300
+tiles <- methylKit::tileMethylCounts(mr,win.size=length_region,step.size=length_region,cov.bases = 0)
+
+tilesdf_gm2 <- methylKit::getData(tiles)
+
+optiles_gm2 <- merging_consecutive_regions(mr, tiles, da_thr = length_region, cb_thr = length_region)
+
+tilesdf_gm2 <- tilesdf_gm2[,1:4] %>% mutate(width = end - start + 1) 
+colnames(tilesdf_gm2)[1] <- "seqnames"
+tilesdf_gm2$id <- 1:nrow(tilesdf_gm2)
+
+optiles_gm2 <- optiles_gm2 %>% mutate(width = end - start + 1)
+colnames(optiles_gm2)[1] <- "seqnames"
+optiles_all <- optiles_gm2
+```
+
+# compare with all to just with one sample
+```{r}
+regions_plus_merged_regions
+optiles_all
+```
+* way more when you use all sites - which makes sense
+* also means that if you use the cpg positions (my ref based thing) - would get even more
+* so yeah basically should be doing it like this
+
+```{r}
+find_overlaps(as_granges(regions_plus_merged_regions), as_granges(optiles_all)) %>% data.frame() %>% distinct(region_id.x) %>% nrow()/nrow(regions_plus_merged_regions)
+find_overlaps(as_granges(regions_plus_merged_regions), as_granges(optiles_all)) %>% data.frame() %>% distinct(region_id.y) %>% nrow()/nrow(optiles_all)
+```
+* yeah 99% of the regions from sample 1 overlap with regions from the all
+
+```{r}
+for_op
 ```
 
