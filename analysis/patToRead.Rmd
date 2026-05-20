@@ -1,0 +1,48 @@
+---
+title: "patToRead"
+author: "caitlinpage"
+date: "2026-05-04"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+```{r}
+library(annotatr)
+library(data.table)
+library(plyranges)
+library(tidyr)
+library(stringr)
+library(dplyr)
+library(ggplot2)
+```
+
+# try to reverse the read info from the pat file
+* wgbs_tools has the reference available in hg19
+* and an ilmntoCpG file for hg38 - I think that means illumina file to cpg 
+* I think I just need the annotation file
+
+* so hg19
+
+## load in files
+```{r}
+anno <- fread("/researchers/caitlin.page/cf_nano/wgbs_tools_ref/hg19.annotations.bed.gz")
+colnames(anno) <- c("seqnames", "start", "end", "feature", "gene")
+```
+```{r}
+anno_cg <- fread("/researchers/caitlin.page/cf_nano/wgbs_tools_ref/hg19.ilmn2CpG.tsv.gz")
+
+```
+* damn - that's the microarray stuff - that's not what I want
+
+* and I'm really struggling to build the reference in the terminal with the program
+* also conda run_wgbs_tools
+* and I do have wgbs_tools installed
+and ./wgbstools so it will run
+mkm
+
+```{r}
+pat <- fread("/researchers/caitlin.page/atlas/GSM5652302_Blood-Monocytes-Z000000TP.pat.gz")
+colnames(pat) <- c("seqnames", "index", "pattern", "count")
+```
+
