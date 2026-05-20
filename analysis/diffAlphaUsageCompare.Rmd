@@ -23,11 +23,180 @@ ts.gene.simes <- readRDS("../output/cluster_files/dtu_res_simes.rds")
 ```
 
 ```{r}
-#dmrcate_seq_dmr <- readRDS("/researchers/caitlin.page/cf_nano/r_output/dmr_encode_gm12878_k562.rds")
-dmrcate_seq_dmr <- readRDS("../output/cluster_files/dmr_encode_gm12878_k562.rds")
+tpm_mat <- readRDS("/researchers/caitlin.page/cf_nano/r_output/dtu_prop.rds")
+ts.gene.gene <- readRDS("/researchers/caitlin.page/cf_nano/r_output/dtu_res_gene.rds")
+ts.gene.simes <- readRDS("/researchers/caitlin.page/cf_nano/r_output/dtu_res_simes.rds")
 ```
 
 
+```{r}
+dmrcate_seq_dmr <- readRDS("/researchers/caitlin.page/cf_nano/r_output/dmr_encode_gm12878_k562.rds")
+#dmrcate_seq_dmr <- readRDS("../output/cluster_files/dmr_encode_gm12878_k562.rds")
+```
+
+```{r}
+dtu.gene <- readRDS("/researchers/caitlin.page/cf_nano/r_output/ts.gene.gene.rds")
+dtu.optiles <- readRDS("/researchers/caitlin.page/cf_nano/r_output/ts.gene_optiles.rds")
+```
+
+# compare dmrs and dtu_tiles
+setdiff: ranges in first set that don't overlap to 2nd set
+```{r}
+saveRDS(all_samples, "/researchers/caitlin.page/cf_nano/r_output/all_rrbs_samples.rds")
+```
+
+* Q is: what alphas/betas are there in the dtu tiles not overlapping dmrs?
+* compared to the alphas in the overlapping ones
+* because dream is that betas are more 0.5 in the non-overlapping ones
+* and then alpha is picking up more nuanced signal
+```{r}
+dtu.optiles <- dtu.optiles %>% filter(FDR < 0.05)
+dmrcate_seq_dmr %>% tail()
+dmrcate_seq_dmr$rank <- 1:nrow(dmrcate_seq_dmr)
+```
+
+```{r}
+overlap <- find_overlaps(as_granges(dmrcate_seq_dmr), as_granges(dtu.optiles)) %>% data.frame()
+```
+
+```{r}
+all_samples_simp
+```
+
+```{r}
+all_samples_beta <- all_samples %>% distinct(seqnames, start, sample, beta)
+
+all_samples_beta <- all_samples_beta %>% pivot_wider(names_from = sample, values_from = beta)
+all_samples_beta$end <- all_samples_beta$start + 1
+```
+
+```{r}
+overlap_beta <- find_overlaps(as_granges(overlap), as_granges(all_samples_beta)) %>% data.frame()
+```
+
+```{r}
+overlap_beta %>% pivot_longer(cols = c(b1, b2, cml1, cml2), names_to = "sample", values_to = "beta") %>%
+  ggplot(aes(x = beta, colour = sample)) +
+  geom_density()
+
+overlap_beta %>% pivot_longer(cols = c(b1, b2, cml1, cml2), names_to = "sample", values_to = "beta") %>%
+  ggplot(aes(x = sample, y= beta, fill = sample)) +
+  geom_boxplot() +
+  theme(legend.position = "none")
+```
+```{r}
+c(prop_tiles_overlap = overlap_beta %>% distinct(region_id) %>% nrow()/nrow(dtu.optiles), 
+  prop_dmrs_overlap = overlap_beta %>% distinct(rank) %>% nrow()/nrow(dmrcate_seq_dmr))
+```
+
+
+
+* all the reads
+```{r}
+all_samples_beta %>% pivot_longer(cols = c(b1, b2, cml1, cml2), names_to = "sample", values_to = "beta") %>%
+  ggplot(aes(x = beta, colour = sample)) +
+  geom_density()
+
+all_samples_beta %>% pivot_longer(cols = c(b1, b2, cml1, cml2), names_to = "sample", values_to = "beta") %>%
+  ggplot(aes(x = sample, y= beta, fill = sample)) +
+  geom_boxplot() +
+  theme(legend.position = "none")
+```
+
+* all dtu
+```{r}
+find_overlaps(as_granges(dtu.optiles), as_granges(all_samples_beta)) %>% data.frame() %>%
+  pivot_longer(cols = c(b1, b2, cml1, cml2), names_to = "sample", values_to = "beta") %>%
+  ggplot(aes(x = beta, colour = sample)) +
+  geom_density()
+
+find_overlaps(as_granges(dtu.optiles), as_granges(all_samples_beta)) %>% data.frame() %>% 
+  pivot_longer(cols = c(b1, b2, cml1, cml2), names_to = "sample", values_to = "beta") %>%
+  ggplot(aes(x = sample, y= beta, fill = sample)) +
+  geom_boxplot() +
+  theme(legend.position = "none")
+```
+
+* only dtu (no overlap)
+```{r}
+find_overlaps(filter_by_non_overlaps(as_granges(dtu.optiles), as_granges(dmrcate_seq_dmr)), as_granges(all_samples_beta)) %>% data.frame() %>%
+  pivot_longer(cols = c(b1, b2, cml1, cml2), names_to = "sample", values_to = "beta") %>%
+  ggplot(aes(x = beta, colour = sample)) +
+  geom_density()
+
+find_overlaps(filter_by_non_overlaps(as_granges(dtu.optiles), as_granges(dmrcate_seq_dmr)), as_granges(all_samples_beta)) %>% data.frame() %>%
+  pivot_longer(cols = c(b1, b2, cml1, cml2), names_to = "sample", values_to = "beta") %>%
+  ggplot(aes(x = sample, y= beta, fill = sample)) +
+  geom_boxplot() +
+  theme(legend.position = "none")
+```
+
+
+* all dmr
+```{r}
+find_overlaps(as_granges(dmrcate_seq_dmr), as_granges(all_samples_beta)) %>% data.frame() %>%
+  pivot_longer(cols = c(b1, b2, cml1, cml2), names_to = "sample", values_to = "beta") %>%
+  ggplot(aes(x = beta, colour = sample)) +
+  geom_density()
+
+find_overlaps(as_granges(dmrcate_seq_dmr), as_granges(all_samples_beta)) %>% data.frame() %>% 
+  pivot_longer(cols = c(b1, b2, cml1, cml2), names_to = "sample", values_to = "beta") %>%
+  ggplot(aes(x = sample, y= beta, fill = sample)) +
+  geom_boxplot() +
+  theme(legend.position = "none")
+```
+
+* only in dmr
+
+```{r}
+find_overlaps(filter_by_non_overlaps(as_granges(dmrcate_seq_dmr), as_granges(dtu.optiles)), as_granges(all_samples_beta)) %>% data.frame() %>%
+  pivot_longer(cols = c(b1, b2, cml1, cml2), names_to = "sample", values_to = "beta") %>%
+  ggplot(aes(x = beta, colour = sample)) +
+  geom_density()
+
+find_overlaps(filter_by_non_overlaps(as_granges(dmrcate_seq_dmr), as_granges(dtu.optiles)), as_granges(all_samples_beta)) %>% data.frame() %>%
+  pivot_longer(cols = c(b1, b2, cml1, cml2), names_to = "sample", values_to = "beta") %>%
+  ggplot(aes(x = sample, y= beta, fill = sample)) +
+  geom_boxplot() +
+  theme(legend.position = "none")
+```
+
+# thoughts
+* not sure if this is showing what I want
+* think need to plot some of these regions
+
+
+* dtu region overlapping dmr
+```{r}
+overlap_beta %>% .[order(.$dtu_rank),] %>% distinct(region_id, dtu_rank)
+```
+
+```{r}
+find_overlaps(as_granges(all_samples_simp), as_granges(dtu.optiles[1,])) %>% data.frame()
+```
+
+```{r}
+source("../code/processData.R")
+reads <- find_overlaps(as_granges(all_samples_simp), as_granges(dtu.optiles[1,])) %>% data.frame() %>% distinct(read_id) %>% .$read_id
+
+rrbs_plot4(all_samples, reads, cpgs = cg_sites, jit_amount = 0.05) +
+  theme_bw() +
+  theme(legend.position = "none") +
+  labs(x = "coordinate")
+```
+
+```{r}
+source("../code/processData.R")
+reads <- find_overlaps(as_granges(all_samples_simp), as_granges(dtu.optiles[1,])) %>% data.frame() %>% distinct(read_id) %>% .$read_id
+
+rrbs_plot4(all_samples, reads, cpgs = cg_sites, jit_amount = 0.05) +
+  theme_bw() +
+  theme(legend.position = "none") +
+  labs(x = "coordinate")
+```
+
+
+####### old
 
 ```{r}
 dmrcate_seq_dmr
@@ -111,4 +280,109 @@ ts.gene.simes %>% filter(FDR < 0.05) %>% mutate(rank = 1:n(), overlap_dmr = ifel
 ```{r}
 tpm_mat
 ```
+
+####
+
+```{r}
+all
+```
+
+
+```{r}
+source("../code/processData.R")
+reads <- all_samples_simp %>% filter(seqnames == "chr22", start >= 10571810, start <= 10571840) %>% distinct(read_id) %>% .$read_id
+
+rrbs_plot4(all_samples, reads, cpgs = cg_sites, jit_amount = 0.05) +
+  theme_bw() +
+  theme(legend.position = "none") +
+  labs(x = "coordinate")
+```
+
+```{r}
+source("../code/processData.R")
+reads <- rrbs_alpha_beta %>% filter(seqnames == "chr22", start >= 10571810, start <= 10571840) %>% distinct(read_id) %>% .$read_id
+
+rrbs_plot4(mutate(rrbs_alpha_beta, sample = "b1"), reads, cpgs = cg_sites, jit_amount = 0.05) +
+  theme_bw() +
+  theme(legend.position = "none") +
+  labs(x = "coordinate")
+```
+
+```{r}
+overlap[1,] # top dmr - overlaps multiple dtu regions
+overlap %>% filter(rank == 1)
+```
+
+
+```{r}
+source("../code/processData.R")
+reads <- all_samples_simp %>% filter(seqnames == "chr10", start >= 132784117, start <= 132788846) %>% distinct(read_id) %>% .$read_id
+
+rrbs_plot4(all_samples, reads, cpgs = cg_sites, jit_amount = 0.05) +
+  theme_bw() +
+  theme(legend.position = "none") +
+  labs(x = "coordinate")
+
+all_samples_simp %>% filter(read_id %in% reads) %>%
+  ggplot(aes(x = alpha, colour = sample)) +
+  geom_density()
+```
+
+```{r}
+find_overlaps(genes_txdb, as_granges(overlap[1,])) %>% data.frame()
+```
+
+
+#
+
+```{r}
+only_in_dtu <- find_overlaps(filter_by_non_overlaps(as_granges(dtu.optiles), as_granges(dmrcate_seq_dmr)), as_granges(all_samples_simp)) %>% data.frame()
+only_in_dtu %>% distinct(dtu_rank) %>% .[order(.$dtu_rank),]
+```
+
+```{r}
+source("../code/processData.R")
+reads <- only_in_dtu %>% filter(dtu_rank == 17) %>% distinct(read_id) %>% .$read_id
+
+rrbs_plot4(all_samples, reads, cpgs = cg_sites, jit_amount = 0.05) +
+  theme_bw() +
+  theme(legend.position = "none") +
+  labs(x = "coordinate")
+```
+
+```{r}
+all_samples_simp %>% filter(read_id %in% reads) %>%
+  ggplot(aes(x = alpha, colour = sample)) +
+  geom_density()
+```
+
+
+```{r}
+find_overlaps(genes_txdb, as_granges(only_in_dtu[1,])) %>% data.frame()
+```
+
+# top dtu
+
+```{r}
+source("../code/processData.R")
+reads <- only_in_dtu %>% filter(dtu_rank == 17) %>% distinct(read_id) %>% .$read_id
+
+rrbs_plot4(all_samples, reads, cpgs = cg_sites, jit_amount = 0.05) +
+  theme_bw() +
+  theme(legend.position = "none") +
+  labs(x = "coordinate")
+```
+
+```{r}
+all_samples_simp %>% filter(read_id %in% reads) %>%
+  ggplot(aes(x = alpha, colour = sample)) +
+  geom_density()
+```
+
+
+```{r}
+only_in_dmr <- find_overlaps(filter_by_non_overlaps(as_granges(dmrcate_seq_dmr), as_granges(dtu.optiles)), as_granges(all_samples_simp)) %>% data.frame()
+only_in_dmr %>% distinct(dtu_rank) %>% .[order(.$dtu_rank),]
+```
+
 
