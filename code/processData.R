@@ -238,7 +238,7 @@ rrbs_plot3 <- function(long_data, read_ids, cpgs = cg_sites, jit_amount = 0.1) {
                aes(x = start, y = alpha_jit, fill = meth_status), shape = 21, color = "black") +
     scale_fill_manual(values = c("U" = "white", "M" = "black")) +
     geom_point(data = distinct(dplyr::filter(long_data, read_id %in% read_ids), start, beta),
-               aes(x = start, y = beta), shape = 4, size = 3) +
+               aes(x = start, y = beta), shape = 4, size = 3, colour = "red") +
     geom_segment(data = filter(cg_sites, start >= min(dplyr::filter(long_data, read_id %in% read_ids)$start),
                                end <= max(dplyr::filter(long_data, read_id %in% read_ids)$end)),
                  aes(x = start, xend = start, y = -0.15, yend = -0.05), colour = "green")
@@ -268,7 +268,7 @@ rrbs_plot4 <- function(long_data, read_ids, cpgs = cg_sites, jit_amount = 0.1) {
                aes(x = start, y = alpha_jit, fill = meth_status), shape = 21, color = "black") +
     scale_fill_manual(values = c("U" = "white", "M" = "black")) +
     geom_point(data = distinct(dplyr::filter(long_data, read_id %in% read_ids), start, beta, sample),
-               aes(x = start, y = beta), shape = 4, size = 3) +
+               aes(x = start, y = beta), shape = 4, size = 3, colour = "red") +
   #  geom_segment(data = filter(cg_sites, start >= min(dplyr::filter(long_data, read_id %in% read_ids)$start),
   #                             end <= max(dplyr::filter(long_data, read_id %in% read_ids)$end)),
   #               aes(x = start, xend = start, y = -0.15, yend = -0.05), colour = "green") +
