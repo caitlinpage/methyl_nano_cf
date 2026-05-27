@@ -194,4 +194,10 @@ metheor runs entropy, haplotype, epi-allele etc methods
 [plots but I ran things locally](reviewPlotsLocal.html)
 
 
+# DTU stuff taking off
+* we have approval from Belinda with dtu style approach
 
+
+How many groups to break alpha into
+And also GST to sense check results
+[group sizes](dtuDiffGroupsAndGst.html)
