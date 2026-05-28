@@ -390,7 +390,7 @@ class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span>
 <div class="tab-content">
 <div id="summary" class="tab-pane fade in active">
 <p>
-<strong>Last updated:</strong> 2026-05-27
+<strong>Last updated:</strong> 2026-05-28
 </p>
 <p>
 <strong>Checks:</strong> <span
@@ -521,15 +521,15 @@ project makes it easier to run your code on other machines.</p>
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpagemethylnanocftree279e7b881d71ade34a2fc2189e224e6bfa7daca2targetblank279e7b8a">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpagemethylnanocftree8353dab731184dc96acd551ea2f4a3a3239320a8targetblank8353daba">
 <span class="glyphicon glyphicon-ok text-success"
 aria-hidden="true"></span> <strong>Repository version:</strong>
-<a href="https://github.com/caitlinpage/methyl_nano_cf/tree/279e7b881d71ade34a2fc2189e224e6bfa7daca2" target="_blank">279e7b8</a>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/tree/8353dab731184dc96acd551ea2f4a3a3239320a8" target="_blank">8353dab</a>
 </a>
 </p>
 </div>
 <div
-id="strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpagemethylnanocftree279e7b881d71ade34a2fc2189e224e6bfa7daca2targetblank279e7b8a"
+id="strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpagemethylnanocftree8353dab731184dc96acd551ea2f4a3a3239320a8targetblank8353daba"
 class="panel-collapse collapse">
 <div class="panel-body">
 <p>
@@ -539,7 +539,7 @@ reproducibility.
 </p>
 <p>
 The results in this page were generated with repository version
-<a href="https://github.com/caitlinpage/methyl_nano_cf/tree/279e7b881d71ade34a2fc2189e224e6bfa7daca2" target="_blank">279e7b8</a>.
+<a href="https://github.com/caitlinpage/methyl_nano_cf/tree/8353dab731184dc96acd551ea2f4a3a3239320a8" target="_blank">8353dab</a>.
 See the <em>Past versions</em> tab to see a history of the changes made
 to the R Markdown and HTML files.
 </p>
@@ -556,7 +556,6 @@ were generated:
 Ignored files:
     Ignored:    .Rproj.user/
     Ignored:    analysis/.RData
-    Ignored:    analysis/figure/
 
 Untracked files:
     Untracked:  renv.lock
@@ -615,6 +614,40 @@ Message
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/8353dab731184dc96acd551ea2f4a3a3239320a8/analysis/dtuDiffGroupsAndGst.Rmd" target="_blank">8353dab</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-05-28
+</td>
+<td>
+wflow_publish("dtuDiffGroupsAndGst.Rmd")
+</td>
+</tr>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/caitlinpage/methyl_nano_cf/8e22e41264c26b410eda6982c8ec5e0e79568b37/docs/dtuDiffGroupsAndGst.html" target="_blank">8e22e41</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-05-27
+</td>
+<td>
+Build site.
+</td>
+</tr>
 <tr>
 <td>
 Rmd
@@ -1026,6 +1059,43 @@ Max number of exons in a gene:  4 </code></pre>
 <pre><code>Warning in geom_label(aes(label = .data[[label]]), data = region_label, :
 Ignoring unknown parameters: `linewidth`</code></pre>
 <p><img src="figure/dtuDiffGroupsAndGst.Rmd/unnamed-chunk-8-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-8-1">
+Past versions of unnamed-chunk-8-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-8-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/8e22e41264c26b410eda6982c8ec5e0e79568b37/docs/figure/dtuDiffGroupsAndGst.Rmd/unnamed-chunk-8-1.png" target="_blank">8e22e41</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-05-27
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>dmr_tiles &lt;- find_overlaps(as_granges(dmrcate_seq_dmr), as_granges(optiles_all)) %&gt;% data.frame() %&gt;% distinct(region_id)</code></pre>
 <pre class="r"><code>ggVennDiagram(list(alpha_5 = filter(dtu.optiles, FDR &lt; 0.05)$region_id, 
                    alpha_3 = filter(dtu_tiles_3, FDR &lt; 0.05)$region_id,
@@ -1034,6 +1104,43 @@ Ignoring unknown parameters: `linewidth`</code></pre>
 <pre><code>Warning in geom_label(aes(label = .data[[label]]), data = region_label, :
 Ignoring unknown parameters: `linewidth`</code></pre>
 <p><img src="figure/dtuDiffGroupsAndGst.Rmd/unnamed-chunk-10-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-10-1">
+Past versions of unnamed-chunk-10-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-10-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/8e22e41264c26b410eda6982c8ec5e0e79568b37/docs/figure/dtuDiffGroupsAndGst.Rmd/unnamed-chunk-10-1.png" target="_blank">8e22e41</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-05-27
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>library(UpSetR)</code></pre>
 <p><a href="https://github.com/hms-dbmi/UpSetR">documentation</a></p>
 <pre class="r"><code>upset(fromList(list(alpha_5 = filter(dtu.optiles, FDR &lt; 0.05)$region_id, 
@@ -1041,6 +1148,43 @@ Ignoring unknown parameters: `linewidth`</code></pre>
                    alpha_4 = filter(dtu_tiles_4, FDR &lt; 0.05)$region_id,
                    dmr_beta = dmr_tiles$region_id)), order.by = &quot;freq&quot;)</code></pre>
 <p><img src="figure/dtuDiffGroupsAndGst.Rmd/unnamed-chunk-12-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-12-1">
+Past versions of unnamed-chunk-12-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-12-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/8e22e41264c26b410eda6982c8ec5e0e79568b37/docs/figure/dtuDiffGroupsAndGst.Rmd/unnamed-chunk-12-1.png" target="_blank">8e22e41</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-05-27
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 </div>
 <div id="overlap-genes-to-regions" class="section level1">
 <h1>overlap genes to regions</h1>
@@ -1060,11 +1204,216 @@ genes_dmr &lt;- find_overlaps(txdb_genes, as_granges(dmrcate_seq_dmr)) %&gt;% da
 <pre><code>Warning in geom_label(aes(label = .data[[label]]), data = region_label, :
 Ignoring unknown parameters: `linewidth`</code></pre>
 <p><img src="figure/dtuDiffGroupsAndGst.Rmd/unnamed-chunk-15-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-15-1">
+Past versions of unnamed-chunk-15-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-15-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/8e22e41264c26b410eda6982c8ec5e0e79568b37/docs/figure/dtuDiffGroupsAndGst.Rmd/unnamed-chunk-15-1.png" target="_blank">8e22e41</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-05-27
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>upset(fromList(list(alpha_5 = filter(genes_5, FDR &lt; 0.05)$gene_id, 
                    alpha_3 = filter(genes_3, FDR &lt; 0.05)$gene_id,
                    alpha_4 = filter(genes_4, FDR &lt; 0.05)$gene_id,
                   dmr_beta = genes_dmr$gene_id)), order.by = &quot;freq&quot;)</code></pre>
 <p><img src="figure/dtuDiffGroupsAndGst.Rmd/unnamed-chunk-16-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-16-1">
+Past versions of unnamed-chunk-16-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-16-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/8e22e41264c26b410eda6982c8ec5e0e79568b37/docs/figure/dtuDiffGroupsAndGst.Rmd/unnamed-chunk-16-1.png" target="_blank">8e22e41</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-05-27
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<div id="visualise-tiles-and-compare-counts-in-tiles"
+class="section level1">
+<h1>visualise tiles and compare counts in tiles</h1>
+<pre class="r"><code>dtu_tiles_3</code></pre>
+<pre><code># A tibble: 170,628 × 9
+   seqnames    start    end NExons gene.F   P.Value       FDR region_id dtu_rank
+   &lt;chr&gt;       &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt; &lt;chr&gt;        &lt;int&gt;
+ 1 chr22      2.10e7 2.10e7      3   266. 1.15e-112 1.97e-107 chrchr22…        1
+ 2 chr7       1.28e8 1.28e8      3   262. 7.01e-111 5.98e-106 chrchr7:…        2
+ 3 chr10      7.92e7 7.92e7      3   242. 6.22e-103 3.35e- 98 chrchr10…        3
+ 4 chr8       9.83e7 9.83e7      3   242. 7.86e-103 3.35e- 98 chrchr8:…        4
+ 5 chr1       1.54e6 1.54e6      3   240. 7.65e-102 2.61e- 97 chrchr1:…        5
+ 6 chr9       3.76e7 3.76e7      3   235. 3.90e-100 1.11e- 95 chrchr9:…        6
+ 7 chr2       2.52e7 2.52e7      3   235. 4.61e-100 1.12e- 95 chrchr2:…        7
+ 8 chr1       6.73e7 6.73e7      3   231. 4.05e- 98 8.63e- 94 chrchr1:…        8
+ 9 chr6       4.29e7 4.29e7      3   229. 2.34e- 97 4.43e- 93 chrchr6:…        9
+10 chr15      7.63e7 7.63e7      3   225. 1.15e- 95 1.96e- 91 chrchr15…       10
+# ℹ 170,618 more rows</code></pre>
+<pre class="r"><code>dtu_groups_count &lt;- function(all_samples, optiles_all, num_groups = 5) {
+  dtu_optile &lt;- find_overlaps(as_granges(all_samples), as_granges(optiles_all)) %&gt;% data.frame() %&gt;%
+  distinct(sample, read_id, read_start, read_end, alpha, region_id) 
+  
+  if(num_groups == 5) {
+  dtu_optile &lt;- dtu_optile %&gt;% 
+    mutate(alpha_group = case_when(alpha &lt; 0.2 ~ &quot;a &lt; 0.2&quot;,
+                                alpha &gt; 0.8 ~ &quot;a &gt; 0.8&quot;,
+                                alpha &gt;= 0.2 &amp; alpha &lt;= 0.4 ~ &quot;0.2 &lt;= a &lt;= 0.4&quot;,
+                                alpha &gt; 0.4 &amp; alpha &lt; 0.6 ~ &quot;0.4 &lt; a &lt; 0.6&quot;,
+                                TRUE ~ &quot;0.6 &lt;= a &lt;= 0.8&quot;))
+  } else if(num_groups == 3) {
+  dtu_optile &lt;- dtu_optile %&gt;% 
+    mutate(alpha_group = case_when(alpha &lt; 0.34 ~ &quot;a &lt; 0.34&quot;,
+                                alpha &gt; 0.65 ~ &quot;a &gt; 0.65&quot;,
+                                TRUE ~ &quot;0.34 &lt;= a &lt;= 0.65&quot;))
+  } else if(num_groups == 4) {
+  dtu_optile &lt;- dtu_optile %&gt;% 
+    mutate(alpha_group = case_when(alpha &lt;= 0.25 ~ &quot;a &lt;= 0.25&quot;,
+                                alpha &gt;= 0.8 ~ &quot;a &gt;= 0.75&quot;,
+                                alpha &gt; 0.25 &amp; alpha &lt;= 0.5 ~ &quot;0.25 &lt;= a &lt;= 0.5&quot;,
+                                TRUE ~ &quot;0.5 &lt; a &lt; 0.75&quot;))
+}
+
+dtu_optile &lt;- dtu_optile %&gt;% 
+  mutate(transcript = paste0(region_id, &quot;_&quot;, alpha_group)) %&gt;%
+  group_by(sample, transcript) %&gt;%
+ summarise(transcript_count = n()) %&gt;% ungroup() %&gt;% data.frame()
+
+# build matrix of &quot;transcript&quot; counts - transcript rows, sample as columns
+dtu_optile &lt;- dtu_optile %&gt;% pivot_wider(names_from = sample, values_from = transcript_count)
+dtu_optile[is.na(dtu_optile)] &lt;- 0
+dtu_optile$gene_id &lt;- sub(&quot;_.*&quot;, &quot;&quot;, dtu_optile$transcript)
+dtu_optile$group &lt;- sub(&quot;.*_&quot;, &quot;&quot;, dtu_optile$transcript)
+  dtu_optile
+}
+counts_3 &lt;- dtu_groups_count(all_samples, optiles_all, num_groups = 3)</code></pre>
+<pre><code>`summarise()` has grouped output by &#39;sample&#39;. You can override using the
+`.groups` argument.</code></pre>
+<pre class="r"><code>counts_4 &lt;- dtu_groups_count(all_samples, optiles_all, num_groups = 4)</code></pre>
+<pre><code>`summarise()` has grouped output by &#39;sample&#39;. You can override using the
+`.groups` argument.</code></pre>
+<pre class="r"><code>counts_5 &lt;- dtu_groups_count(all_samples, optiles_all, num_groups = 5)</code></pre>
+<pre><code>`summarise()` has grouped output by &#39;sample&#39;. You can override using the
+`.groups` argument.</code></pre>
+<pre class="r"><code>counts_3 %&gt;% pivot_longer(cols = c(b1, b2, cml1, cml2)) %&gt;% .[1:500,] %&gt;%
+  ggplot(aes(x = group, y = value, fill = name)) +
+  geom_boxplot()</code></pre>
+<p><img src="figure/dtuDiffGroupsAndGst.Rmd/unnamed-chunk-19-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>counts_3 %&gt;% pivot_longer(cols = c(b1, b2, cml1, cml2)) %&gt;% 
+  ggplot(aes(x = group, y = value, fill = name)) +
+  geom_boxplot()</code></pre>
+<p><img src="figure/dtuDiffGroupsAndGst.Rmd/unnamed-chunk-19-2.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>counts_3 %&gt;% pivot_longer(cols = c(b1, b2, cml1, cml2)) %&gt;% filter(value &gt; 4000)</code></pre>
+<pre><code># A tibble: 2 × 5
+  transcript                                 gene_id           group name  value
+  &lt;chr&gt;                                      &lt;chr&gt;             &lt;chr&gt; &lt;chr&gt; &lt;int&gt;
+1 chrchr21:8260801-8261100_0.34 &lt;= a &lt;= 0.65 chrchr21:8260801… 0.34… cml1   4580
+2 chrchr21:8260801-8261100_a &lt; 0.34          chrchr21:8260801… a &lt; … cml1  18465</code></pre>
+<pre class="r"><code>all_samples %&gt;% filter(seqnames == &quot;chr21&quot;, start &gt;= 8260801, start &lt;= 8261100) %&gt;% distinct(read_id, meth_pattern, alpha) %&gt;% nrow()</code></pre>
+<pre><code>[1] 25327</code></pre>
+<pre class="r"><code>counts_3 %&gt;% pivot_longer(cols = c(b1, b2, cml1, cml2)) %&gt;% 
+  ggplot(aes(x = group, y = log2(value + 1), fill = name)) +
+  geom_boxplot()</code></pre>
+<p><img src="figure/dtuDiffGroupsAndGst.Rmd/unnamed-chunk-21-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>counts_4 %&gt;% pivot_longer(cols = c(b1, b2, cml1, cml2)) %&gt;% .[1:500,] %&gt;%
+  ggplot(aes(x = group, y = value, fill = name)) +
+  geom_boxplot()</code></pre>
+<p><img src="figure/dtuDiffGroupsAndGst.Rmd/unnamed-chunk-22-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>counts_4 %&gt;% pivot_longer(cols = c(b1, b2, cml1, cml2)) %&gt;% 
+  ggplot(aes(x = group, y = value, fill = name)) +
+  geom_boxplot()</code></pre>
+<p><img src="figure/dtuDiffGroupsAndGst.Rmd/unnamed-chunk-22-2.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>counts_4 %&gt;% pivot_longer(cols = c(b1, b2, cml1, cml2)) %&gt;% 
+  ggplot(aes(x = group, y = log2(value + 1), fill = name)) +
+  geom_boxplot()</code></pre>
+<p><img src="figure/dtuDiffGroupsAndGst.Rmd/unnamed-chunk-22-3.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>counts_5 %&gt;% pivot_longer(cols = c(b1, b2, cml1, cml2)) %&gt;% .[1:500,] %&gt;%
+  ggplot(aes(x = group, y = value, fill = name)) +
+  geom_boxplot()</code></pre>
+<p><img src="figure/dtuDiffGroupsAndGst.Rmd/unnamed-chunk-23-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>counts_5 %&gt;% pivot_longer(cols = c(b1, b2, cml1, cml2)) %&gt;% 
+  ggplot(aes(x = group, y = value, fill = name)) +
+  geom_boxplot()</code></pre>
+<p><img src="figure/dtuDiffGroupsAndGst.Rmd/unnamed-chunk-23-2.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>counts_5 %&gt;% pivot_longer(cols = c(b1, b2, cml1, cml2)) %&gt;% 
+  ggplot(aes(x = group, y = log2(value + 1), fill = name)) +
+  geom_boxplot()</code></pre>
+<p><img src="figure/dtuDiffGroupsAndGst.Rmd/unnamed-chunk-23-3.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>counts_3$group_size &lt;- &quot;Alpha_3&quot;
+counts_4$group_size &lt;- &quot;Alpha_4&quot;
+counts_5$group_size &lt;- &quot;Alpha_5&quot;</code></pre>
+<pre class="r"><code>rbind(counts_3, counts_4, counts_5) %&gt;% pivot_longer(cols = c(b1, b2, cml1, cml2)) %&gt;%
+  ggplot(aes(x = log2(value + 1), fill = group)) +
+  geom_density() +
+  facet_wrap(~name)</code></pre>
+<p><img src="figure/dtuDiffGroupsAndGst.Rmd/unnamed-chunk-25-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>counts_3 %&gt;% pivot_longer(cols = c(b1, b2, cml1, cml2)) %&gt;% 
+  ggplot(aes(x = group, y = log2(value + 1), fill = name)) +
+  geom_violin()</code></pre>
+<p><img src="figure/dtuDiffGroupsAndGst.Rmd/unnamed-chunk-26-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>counts_4 %&gt;% pivot_longer(cols = c(b1, b2, cml1, cml2)) %&gt;% 
+  ggplot(aes(x = group, y = log2(value + 1), fill = name)) +
+  geom_violin()</code></pre>
+<p><img src="figure/dtuDiffGroupsAndGst.Rmd/unnamed-chunk-26-2.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>counts_5 %&gt;% pivot_longer(cols = c(b1, b2, cml1, cml2)) %&gt;% 
+  ggplot(aes(x = group, y = log2(value + 1), fill = name)) +
+  geom_violin()</code></pre>
+<p><img src="figure/dtuDiffGroupsAndGst.Rmd/unnamed-chunk-26-3.png" width="672" style="display: block; margin: auto;" /></p>
+</div>
+<div id="gene-set-testing-time" class="section level1">
+<h1>gene set testing time</h1>
 <br>
 <p>
 <button type="button" class="btn btn-default btn-workflowr btn-workflowr-sessioninfo" data-toggle="collapse" data-target="#workflowr-sessioninfo" style="display: block;">
