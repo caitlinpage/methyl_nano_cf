@@ -212,5 +212,131 @@ upset(fromList(list(alpha_5 = filter(genes_5, FDR < 0.05)$gene_id,
                   dmr_beta = genes_dmr$gene_id)), order.by = "freq")
 ```
 
+# visualise tiles and compare counts in tiles
+```{r}
+dtu_tiles_3
+```
 
 
+```{r}
+dtu_groups_count <- function(all_samples, optiles_all, num_groups = 5) {
+  dtu_optile <- find_overlaps(as_granges(all_samples), as_granges(optiles_all)) %>% data.frame() %>%
+  distinct(sample, read_id, read_start, read_end, alpha, region_id) 
+  
+  if(num_groups == 5) {
+  dtu_optile <- dtu_optile %>% 
+    mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                alpha > 0.8 ~ "a > 0.8",
+                                alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                TRUE ~ "0.6 <= a <= 0.8"))
+  } else if(num_groups == 3) {
+  dtu_optile <- dtu_optile %>% 
+    mutate(alpha_group = case_when(alpha < 0.34 ~ "a < 0.34",
+                                alpha > 0.65 ~ "a > 0.65",
+                                TRUE ~ "0.34 <= a <= 0.65"))
+  } else if(num_groups == 4) {
+  dtu_optile <- dtu_optile %>% 
+    mutate(alpha_group = case_when(alpha <= 0.25 ~ "a <= 0.25",
+                                alpha >= 0.8 ~ "a >= 0.75",
+                                alpha > 0.25 & alpha <= 0.5 ~ "0.25 <= a <= 0.5",
+                                TRUE ~ "0.5 < a < 0.75"))
+}
+
+dtu_optile <- dtu_optile %>% 
+  mutate(transcript = paste0(region_id, "_", alpha_group)) %>%
+  group_by(sample, transcript) %>%
+ summarise(transcript_count = n()) %>% ungroup() %>% data.frame()
+
+# build matrix of "transcript" counts - transcript rows, sample as columns
+dtu_optile <- dtu_optile %>% pivot_wider(names_from = sample, values_from = transcript_count)
+dtu_optile[is.na(dtu_optile)] <- 0
+dtu_optile$gene_id <- sub("_.*", "", dtu_optile$transcript)
+dtu_optile$group <- sub(".*_", "", dtu_optile$transcript)
+  dtu_optile
+}
+counts_3 <- dtu_groups_count(all_samples, optiles_all, num_groups = 3)
+counts_4 <- dtu_groups_count(all_samples, optiles_all, num_groups = 4)
+counts_5 <- dtu_groups_count(all_samples, optiles_all, num_groups = 5)
+```
+
+
+```{r}
+counts_3 %>% pivot_longer(cols = c(b1, b2, cml1, cml2)) %>% .[1:500,] %>%
+  ggplot(aes(x = group, y = value, fill = name)) +
+  geom_boxplot()
+
+counts_3 %>% pivot_longer(cols = c(b1, b2, cml1, cml2)) %>% 
+  ggplot(aes(x = group, y = value, fill = name)) +
+  geom_boxplot()
+```
+
+```{r}
+counts_3 %>% pivot_longer(cols = c(b1, b2, cml1, cml2)) %>% filter(value > 4000)
+
+all_samples %>% filter(seqnames == "chr21", start >= 8260801, start <= 8261100) %>% distinct(read_id, meth_pattern, alpha) %>% nrow()
+```
+
+```{r}
+counts_3 %>% pivot_longer(cols = c(b1, b2, cml1, cml2)) %>% 
+  ggplot(aes(x = group, y = log2(value + 1), fill = name)) +
+  geom_boxplot()
+```
+
+
+```{r}
+counts_4 %>% pivot_longer(cols = c(b1, b2, cml1, cml2)) %>% .[1:500,] %>%
+  ggplot(aes(x = group, y = value, fill = name)) +
+  geom_boxplot()
+
+counts_4 %>% pivot_longer(cols = c(b1, b2, cml1, cml2)) %>% 
+  ggplot(aes(x = group, y = value, fill = name)) +
+  geom_boxplot()
+
+counts_4 %>% pivot_longer(cols = c(b1, b2, cml1, cml2)) %>% 
+  ggplot(aes(x = group, y = log2(value + 1), fill = name)) +
+  geom_boxplot()
+```
+
+```{r}
+counts_5 %>% pivot_longer(cols = c(b1, b2, cml1, cml2)) %>% .[1:500,] %>%
+  ggplot(aes(x = group, y = value, fill = name)) +
+  geom_boxplot()
+
+counts_5 %>% pivot_longer(cols = c(b1, b2, cml1, cml2)) %>% 
+  ggplot(aes(x = group, y = value, fill = name)) +
+  geom_boxplot()
+
+counts_5 %>% pivot_longer(cols = c(b1, b2, cml1, cml2)) %>% 
+  ggplot(aes(x = group, y = log2(value + 1), fill = name)) +
+  geom_boxplot()
+```
+
+
+```{r}
+counts_3$group_size <- "Alpha_3"
+counts_4$group_size <- "Alpha_4"
+counts_5$group_size <- "Alpha_5"
+```
+
+```{r}
+rbind(counts_3, counts_4, counts_5) %>% pivot_longer(cols = c(b1, b2, cml1, cml2)) %>%
+  ggplot(aes(x = log2(value + 1), fill = group)) +
+  geom_density() +
+  facet_wrap(~name)
+```
+
+```{r}
+counts_3 %>% pivot_longer(cols = c(b1, b2, cml1, cml2)) %>% 
+  ggplot(aes(x = group, y = log2(value + 1), fill = name)) +
+  geom_violin()
+counts_4 %>% pivot_longer(cols = c(b1, b2, cml1, cml2)) %>% 
+  ggplot(aes(x = group, y = log2(value + 1), fill = name)) +
+  geom_violin()
+counts_5 %>% pivot_longer(cols = c(b1, b2, cml1, cml2)) %>% 
+  ggplot(aes(x = group, y = log2(value + 1), fill = name)) +
+  geom_violin()
+```
+
+
+# gene set testing time
