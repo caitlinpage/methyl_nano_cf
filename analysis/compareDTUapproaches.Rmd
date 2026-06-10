@@ -30,6 +30,7 @@ cg_sites <- lapply(seqs, function(x) {
 
 ```{r}
 dtu.gene <- readRDS("/researchers/caitlin.page/cf_nano/r_output/ts.gene.gene.rds")
+dtu.optiles <- readRDS("/researchers/caitlin.page/cf_nano/r_output/ts.gene_optiles.rds")
 ```
 
 ```{r}
@@ -41,13 +42,13 @@ annotations <- annotations %>% data.frame() %>% filter(seqnames %in% seqs)
 ```
 
 ```{r}
-dtu.gene
+dtu.gene[1:10,]
 annotations_simp <- annotations %>% group_by(seqnames, symbol, strand) %>% summarise(start = min(start), end = max(end)) %>% ungroup() %>% data.frame()
 a <- annotations_simp %>% filter(symbol %in% dtu.gene$gene_id) %>% .[order(.$symbol),] 
 ```
 
 ```{r}
-dtu.gene %>% .[order(dtu.gene$gene_id),] 
+dtu.gene %>% .[order(dtu.gene$gene_id),] %>% .[1:10,]
 ```
 ```{r}
 annotations %>% filter(symbol == "XLOC")
@@ -62,9 +63,6 @@ dtu.gene_mod <- dtu.gene_mod %>% .[order(.$FDR),] %>% mutate(rank = 1:n())
 ```
 
 
-```{r}
-ts.gene_optile
-```
 
 ```{r}
 overlap <- find_overlaps(as_granges(ts.gene_optile), as_granges(dtu.gene_mod)) %>% data.frame()
