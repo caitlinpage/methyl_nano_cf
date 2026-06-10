@@ -46,3 +46,52 @@ pat <- fread("/researchers/caitlin.page/atlas/GSM5652302_Blood-Monocytes-Z000000
 colnames(pat) <- c("seqnames", "index", "pattern", "count")
 ```
 
+```{r}
+pat_1 <- pat %>% filter(seqnames == "chr1")
+```
+IDEA
+* pattern is sequence - get those indexes
+and turn it into like my cg_sites
+and see if numbers vaguely line up
+asked perplexity for help with code
+
+
+```{r}
+pat_1 <- pat_1 %>% mutate(pattern_length = nchar(pattern))
+```
+
+abcde
+```{r}
+pat_1$pat_index <- mapply(
+  function(index, pattern_length) seq(from = index, length.out = pattern_length),
+  pat_1$index,
+  pat_1$pattern_length,
+  SIMPLIFY = FALSE
+)
+```
+
+```{r}
+pat_1 <- pat_1 %>% mutate(pat_index2 = Map(function(index, pattern_length) seq(index, length.out = pattern_length), index, pattern_length)) %>% unnest(pat_index2)
+```
+
+```{r}
+pat_1_cg <- pat_1 %>% group_by(seqnames, pat_index2) %>% summarise(coverage = n())
+```
+
+```{r}
+cg_sites %>% filter(seqnames == "chr1")
+```
+
+
+* so it worked (eventually)
+* but only up to a point
+* because again I need the reference for the positions - because I don't know when things are supposed to not line up
+
+```{r}
+pat_1_cg %>% mutate(gap = lead(pat_index2 - pat_index2)) %>% distinct(gap)
+```
+* and my last idea is bust
+* I thought if it had gaps - then that could work around the mismatches if I treated the refernce cpgs same way
+
+
+* other workaround attempt - download the bed files to get genomic coordinates - only for positions with beta vals anyway
