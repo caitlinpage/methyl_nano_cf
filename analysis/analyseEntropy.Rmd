@@ -1,0 +1,254 @@
+---
+title: "analyseEntropy"
+author: "caitlinpage"
+date: "2026-05-28"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+## Introduction
+
+```{r}
+library(annotatr)
+library(data.table)
+library(plyranges)
+library(tidyr)
+library(stringr)
+library(dplyr)
+library(ggplot2)
+library(edgeR)
+library(OpTiles)
+library(ggVennDiagram)
+library(TxDb.Hsapiens.UCSC.hg19.knownGene)
+library(missMethyl)
+```
+
+
+* metheor ME [github](https://github.com/dohlee/metheor)
+* method they used is from Xie (2011), [paper](https://academic.oup.com/nar/article/39/10/4099/1303103?login=false&guestAccessKey=)
+
+```{r}
+seqs <- seqnames(BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38)[1:22]
+
+cg_sites <- lapply(seqs, function(x) {
+        cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38[[x]])),
+            seqnames = x
+        )}) %>% bind_rows()
+```
+
+```{r}
+all_samples <- readRDS("/researchers/caitlin.page/cf_nano/r_output/all_rrbs_samples.rds")
+optiles_all <- readRDS("/researchers/caitlin.page/cf_nano/r_output/optiles_all.rds")
+dtu.optiles <- readRDS("/researchers/caitlin.page/cf_nano/r_output/ts.gene_optiles.rds")
+dmrcate_seq_dmr <- readRDS("/researchers/caitlin.page/cf_nano/r_output/dmr_encode_gm12878_k562.rds")
+```
+
+```{r}
+all_samples_simp <- all_samples %>% distinct(seqnames, read_start, read_end, strand, sample, read_id, alpha, meth_pattern, num_meth, total)
+colnames(all_samples_simp)[2:3] <- c("start", "end")
+```
+
+```{r}
+entropy_gm1 <- read.table("/researchers/caitlin.page/cf_nano/run_metheor/me_ENCFF000LYO.tsv")
+colnames(entropy_gm1) <- c("seqnames", "start", "start_2", "start_3", "start_4", "ME")
+entropy_gm1$start <- entropy_gm1$start + 1
+entropy_gm1$start_2 <- entropy_gm1$start_2 + 1
+entropy_gm1$start_3 <- entropy_gm1$start_3 + 1
+entropy_gm1$start_4 <- entropy_gm1$start_4 + 1
+
+entropy_gm1 <- entropy_gm1 %>% filter(seqnames == "chr1") %>% .[order(.$start),]
+entropy_gm1
+```
+
+```{r}
+entropy_gm1 %>%
+  ggplot(aes(x = ME)) +
+  geom_density()
+```
+
+
+# calculate entropy
+
+* ooh there's a Bioconductor package that uses same definiton by Xie that metheor implements
+[MethTargetedNGS](https://www.bioconductor.org/packages/release/bioc/html/MethTargetedNGS.html)
+* can I just steal the code and figure out how to make it work in read based way?
+
+* potential read lengths
+```{r}
+all_samples_simp %>%
+  ggplot(aes(x = as.factor(total))) +
+  geom_bar()
+```
+
+```{r}
+all_samples_simp %>% filter(total > 2) %>%
+  ggplot(aes(x = as.factor(total))) +
+  geom_bar()
+```
+
+* methtargetedngs
+```{r}
+methEntropy <- function(x)
+{
+  t1 <- Sys.time()
+  entropy <- list()
+  ni_list <- list()
+  for (i in 1:(ncol(x)-3))
+  {
+    sum=0
+    entropy_list <- unlist(1:nrow(x))
+    for (j in 1:(nrow(x)-1))
+    {
+      ni_new=0
+      for (k in (j+1):length(entropy_list))
+      {
+        if (identical(x[j,i:(i+3)],x[entropy_list[k],i:(i+3)]))
+        { 
+          entropy_list <- entropy_list[-k]
+          ni_new=ni_new + 1
+        }
+      }
+      
+      if (ni_new > 0)
+      {
+        ni_list[j] <- ni_new
+        ni_for_sum <- (-((ni_new/nrow(x))*(log(ni_new/nrow(x)))))
+        sum= sum + ni_for_sum
+      }
+    }
+    entropy[i] <- sum/4
+  }
+  t2 <- Sys.time()
+  print (round(t2-t1,digits=2))
+  return(round(unlist(entropy),digits=2))
+}
+```
+** this method uses sliding windows
+** input is the hAlign object but not quite sure what that looks like
+
+
+* perplexity approach
+
+```{r}
+methylation_entropy <- function(patterns, base = 2) {
+  patterns <- patterns[!is.na(patterns)]
+  if (length(patterns) == 0) return(NA_real_)
+  
+  p <- prop.table(table(patterns))
+  -sum(p * log(p, base = base))
+}
+```
+
+```{r}
+patterns <- c("0000", "0000", "0010", "0010", "1111", "1010")
+methylation_entropy(patterns)
+```
+
+** with cpg matrix
+
+```{r}
+window_entropy <- function(mat) {
+  patterns <- apply(mat, 1, paste0, collapse = "")
+  methylation_entropy(patterns)
+}
+```
+
+```{r}
+mat <- matrix(
+  c(1,0,0,1,
+    1,0,0,1,
+    0,0,1,0,
+    1,1,1,1),
+  nrow = 4, byrow = TRUE
+)
+
+window_entropy(mat)
+```
+
+
+# [dnmtools (command lines)](https://dnmtools.readthedocs.io/en/latest/entropy/)
+
+* Can do entropy on different window sizes
+* but uses basically pat format (just not with the counts), chrom, start cpg index, meth pattern
+
+
+# the math
+
+entropy = -Sum[Prob(x) log2(Prob(x))].  Prob(x)
+
+meth entropy = e/numcpgs Sum[(- occ pattern i /total reads) Log(occ patt i/total reads)]
+
+(I think then it's about doing the sum for each meth pattern)
+
+```{r}
+entropy_gm1
+```
+
+
+```{r}
+all_samples %>% filter(sample == "b1", seqnames == "chr1", start >= 827517, end <= 827537) %>% distinct(start)
+```
+
+```{r}
+try_entropy <- all_samples %>% filter(sample == "b1", seqnames == "chr1", start >= 827517, end <= 827537)
+try_entropy %>% distinct(read_start)
+```
+```{r}
+format_entropy <- try_entropy %>% mutate(ent_pat = substr(meth_pattern, 1, 4)) %>% distinct(read_id, ent_pat) %>% 
+  mutate(ent_pat = gsub("U", 0, ent_pat)) %>% separate_wider_position(ent_pat, widths = c(cpg1 = 1, cpg2 = 1, cpg3 = 1, cpg4 = 1)) %>%
+  mutate(cpg1 = as.double(cpg1), cpg2 = as.double(cpg2), cpg3 = as.double(cpg3), cpg4 = as.double(cpg4))
+```
+
+meth entropy = e/numcpgs Sum[(- occ pattern i /total reads) Log(occ patt i/total reads)]
+```{r}
+format2 <- try_entropy %>% mutate(ent_pat = substr(meth_pattern, 1, 4)) %>% distinct(read_id, ent_pat) %>% 
+  mutate(ent_pat = gsub("U", 0, ent_pat)) %>% mutate(ent_pat = as.double(ent_pat))
+```
+```{r}
+?prop.table()
+```
+
+```{r}
+prop.table(table(format_entropy), margin = 2)
+prop.table(table(format_entropy[,2:5]))
+prop.table(table(format2))
+```
+
+
+```{r}
+methylation_entropy <- function(patterns, base = 2) {
+  patterns <- patterns[!is.na(patterns)]
+  if (length(patterns) == 0) return(NA_real_)
+  
+  p <- prop.table(table(patterns))
+  -sum(p * log(p, base = base))
+}
+```
+
+```{r}
+methylation_entropy(format2)
+```
+
+```{r}
+methEntropy(format_entropy)
+```
+* well the stolen code worked - but also why did it output 2 things
+
+```{r}
+methEntropy(format2)
+```
+```{r}
+entropy_gm1
+```
+
+```{r}
+try_entropy <- all_samples %>% filter(sample == "b1", seqnames == "chr1", start >= 827413, end <= 827445)
+try_entropy %>% distinct(read_start)
+
+format_entropy <- try_entropy %>% mutate(ent_pat = substr(meth_pattern, 1, 4)) %>% distinct(read_id, ent_pat) %>% mutate(ent_pat = str_replace_all(ent_pat, c("U" = "0", "M" = "1"))) %>% separate_wider_position(ent_pat, widths = c(cpg1 = 1, cpg2 = 1, cpg3 = 1, cpg4 = 1)) %>%
+  mutate(cpg1 = as.double(cpg1), cpg2 = as.double(cpg2), cpg3 = as.double(cpg3), cpg4 = as.double(cpg4))
+methEntropy(format_entropy)
+```
+
+* that is not correct
