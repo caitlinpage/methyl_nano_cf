@@ -10,7 +10,7 @@ editor_options:
 ## Introduction
 Description of methods
 Analysis can be found [here](otherReadStyleMethodsAnalysis.html)
-
+Use the terminal tool metheor, [github](https://github.com/dohlee/metheor)
 ```{r}
 
 ```
