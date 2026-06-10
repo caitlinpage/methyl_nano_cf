@@ -1,0 +1,214 @@
+---
+title: "dtuMeanAlpha"
+author: "caitlinpage"
+date: "2026-05-28"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+## Introduction
+
+```{r}
+library(annotatr)
+library(data.table)
+library(plyranges)
+library(tidyr)
+library(stringr)
+library(dplyr)
+library(ggplot2)
+library(edgeR)
+library(OpTiles)
+library(ggVennDiagram)
+library(TxDb.Hsapiens.UCSC.hg19.knownGene)
+library(missMethyl)
+```
+
+```{r}
+seqs <- seqnames(BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38)[1:22]
+
+cg_sites <- lapply(seqs, function(x) {
+        cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38[[x]])),
+            seqnames = x
+        )}) %>% bind_rows()
+```
+
+```{r}
+all_samples <- readRDS("/researchers/caitlin.page/cf_nano/r_output/all_rrbs_samples.rds")
+optiles_all <- readRDS("/researchers/caitlin.page/cf_nano/r_output/optiles_all.rds")
+dtu.optiles <- readRDS("/researchers/caitlin.page/cf_nano/r_output/ts.gene_optiles.rds")
+dmrcate_seq_dmr <- readRDS("/researchers/caitlin.page/cf_nano/r_output/dmr_encode_gm12878_k562.rds")
+```
+
+```{r}
+all_samples_simp <- all_samples %>% distinct(seqnames, read_start, read_end, strand, sample, read_id, alpha, meth_pattern, num_meth, total)
+colnames(all_samples_simp)[2:3] <- c("start", "end")
+```
+
+
+
+# Analysis
+
+```{r}
+dtu_function2 <- function(all_samples, optiles_all, num_groups = 5, analysis = c("alpha", "beta", "mean_alpha"), cg_sites = cg_sites) {
+  
+  type <- analysis[1]
+  
+  if(type == "alpha") {
+    dtu_optile <- find_overlaps(as_granges(all_samples), as_granges(optiles_all)) %>% data.frame() %>%
+  distinct(sample, read_id, read_start, read_end, alpha, region_id) %>% mutate(value = alpha)
+  } else if(type == "beta") {
+    dtu_optile <- find_overlaps(as_granges(all_samples), as_granges(optiles_all)) %>% data.frame() %>%
+  distinct(sample, seqnames, start, beta, region_id) %>% mutate(value = beta)
+  } else if(type == "mean_alpha") {
+    dtu_optile <- find_overlaps(as_granges(all_samples), as_granges(optiles_all)) %>% data.frame() %>% 
+      group_by(seqnames, start) %>% mutate(mean_alpha = mean(alpha)) %>% ungroup() %>% 
+      distinct(sample, seqnames, start, mean_alpha, region_id) %>% mutate(value = mean_alpha)
+  }
+  
+  
+  if(num_groups == 5) {
+  dtu_optile <- dtu_optile %>% 
+    mutate(group = case_when(value < 0.2 ~ "x < 0.2",
+                                value > 0.8 ~ "x > 0.8",
+                                value >= 0.2 & value <= 0.4 ~ "0.2 <= x <= 0.4",
+                                value > 0.4 & value < 0.6 ~ "0.4 < x < 0.6",
+                                TRUE ~ "0.6 <= x <= 0.8"))
+  } else if(num_groups == 3) {
+  dtu_optile <- dtu_optile %>% 
+    mutate(group = case_when(value < 0.34 ~ "x < 0.34",
+                                value > 0.65 ~ "x > 0.65",
+                                TRUE ~ "0.34 <= x <= 0.65"))
+  } else if(num_groups == 4) {
+  dtu_optile <- dtu_optile %>% 
+    mutate(group = case_when(value <= 0.25 ~ "x <= 0.25",
+                                value >= 0.8 ~ "x >= 0.75",
+                                value > 0.25 & value <= 0.5 ~ "0.25 <= x <= 0.5",
+                                TRUE ~ "0.5 < x < 0.75"))
+  }
+
+dtu_optile <- dtu_optile %>% 
+  mutate(transcript = paste0(region_id, "_", group)) %>%
+  group_by(sample, transcript) %>%
+ summarise(transcript_count = n()) %>% ungroup() %>% data.frame()
+
+# build matrix of "transcript" counts - transcript rows, sample as columns
+dtu_optile <- dtu_optile %>% pivot_wider(names_from = sample, values_from = transcript_count)
+dtu_optile[is.na(dtu_optile)] <- 0
+dtu_optile$gene_id <- sub("_.*", "", dtu_optile$transcript)
+
+# DTU analysis with edgeR
+## Alicia prefers gene method over Simes method (documentation slightly confusing about difference)
+y <- DGEList(as.matrix(dtu_optile[,2:5]), group = c(1,1,2,2), genes = dtu_optile[,c("gene_id", "transcript")])
+design <- model.matrix(~ c(1,1,2,2), data = y$samples)
+fit <- glmQLFit(y, design, robust=TRUE)
+ds <- diffSpliceDGE(fit, coef = 2, geneid = "gene_id", exonid = "transcript")
+ts.gene_optiles <- topSpliceDGE(ds, test = "gene", number = Inf)
+
+# add locations back in so compatible with plyranges stuff
+## this bit only applicable to OPTILES because of the way it structures the ID
+ts.gene_optiles <- ts.gene_optiles %>%
+  mutate(region_id = gene_id) %>%
+  separate_wider_delim(gene_id, delim = ":", names = c("seqnames", "gene_id")) %>%
+  mutate(seqnames = gsub("chrchr", "chr", seqnames)) %>%
+  separate_wider_delim(gene_id, delim = "-", names = c("start", "end"))
+ts.gene_optiles$start <- as.double(ts.gene_optiles$start)
+ts.gene_optiles$end <- as.double(ts.gene_optiles$end)
+ts.gene_optiles$dtu_rank <- 1:nrow(ts.gene_optiles)
+ts.gene_optiles
+}
+```
+
+```{r}
+dtu.optiles
+dtu_tiles_3_mean_alpha
+# bit that got cut out of function - was messing with it
+# add info to results: get proportion counts
+gene_cg <- find_overlaps(as_granges(optiles_all), as_granges(cg_sites)) %>% data.frame() %>%
+  group_by(region_id) %>%
+  summarise(n_cg = n()) %>%
+  ungroup() %>% data.frame()
+fit$genes <- fit$genes %>% mutate(n_cg = gene_cg[match(.$gene_id, gene_cg$region_id), "n_cg"])
+rpk <- y$counts/rep(fit$genes$n_cg/1000, times = ncol(y$counts))
+tpm_mat <- sweep(rpk, 2, colSums(rpk)/1e6, "/")
+tpm_mat <- tpm_mat %>% data.frame() %>% mutate(id = dtu_optile$transcript, gene_id = dtu_optile$gene_id)
+
+#tpm_mat <- tpm_mat %>%
+#  group_by(gene_id) %>%
+#  mutate(prop_S1_gm = b1/sum(b1),
+#        prop_S2_gm = b2/sum(b2),
+#         prop_S3_k = cml1/sum(cml1),
+#         prop_S4_k = cml2/sum(cml2)) %>%
+#  ungroup() %>% data.frame()
+
+```
+
+```{r}
+dtu_tiles_3_beta <- dtu_function2(all_samples, optiles_all, num_groups = 3, analysis = "beta")
+dtu_tiles_4_beta <- dtu_function2(all_samples, optiles_all, num_groups = 4, analysis = "beta")
+dtu_tiles_5_beta <- dtu_function2(all_samples, optiles_all, num_groups = 5, analysis = "beta")
+```
+
+```{r}
+dtu_tiles_3_mean_alpha <- dtu_function2(all_samples, optiles_all, num_groups = 3, analysis = "mean_alpha")
+dtu_tiles_4_mean_alpha <- dtu_function2(all_samples, optiles_all, num_groups = 4, analysis = "mean_alpha")
+dtu_tiles_5_mean_alpha <- dtu_function2(all_samples, optiles_all, num_groups = 5, analysis = "mean_alpha")
+```
+
+# compare results
+* mean_alpha
+```{r}
+filter(dtu_tiles_3_mean_alpha, FDR < 0.05)
+```
+
+```{r}
+ggVennDiagram(list(mean_alpha_5 = filter(dtu_tiles_5_mean_alpha, FDR < 0.05)$region_id, 
+                   mean_alpha_3 = filter(dtu_tiles_3_mean_alpha, FDR < 0.05)$region_id,
+                   mean_alpha_4 = filter(dtu_tiles_4_mean_alpha, FDR < 0.05)$region_id))
+```
+* something went wrong in here because all the fdrs are the same and no significant dtu
+
+
+* beta
+```{r}
+ggVennDiagram(list(beta_5 = filter(dtu_tiles_5_beta, FDR < 0.05)$region_id, 
+                   beta_3 = filter(dtu_tiles_3_beta, FDR < 0.05)$region_id,
+                   beta_4 = filter(dtu_tiles_4_beta, FDR < 0.05)$region_id))
+```
+* interesting that's it's 3 with the most this time
+```{r}
+optiles_all
+```
+
+```{r}
+upset(fromList(list(alpha_5 = filter(dtu.optiles, FDR < 0.05)$region_id, 
+                   alpha_3 = filter(dtu_tiles_3, FDR < 0.05)$region_id,
+                   alpha_4 = filter(dtu_tiles_4, FDR < 0.05)$region_id,
+                   beta_5 = filter(dtu_tiles_5_beta, FDR < 0.05)$region_id, 
+                   beta_3 = filter(dtu_tiles_3_beta, FDR < 0.05)$region_id,
+                   beta_4 = filter(dtu_tiles_4_beta, FDR < 0.05)$region_id)), order.by = "freq")
+```
+
+```{r}
+upset(fromList(list(alpha_5 = filter(dtu.optiles, FDR < 0.05)$region_id, 
+                   alpha_3 = filter(dtu_tiles_3, FDR < 0.05)$region_id,
+                   alpha_4 = filter(dtu_tiles_4, FDR < 0.05)$region_id,
+                   beta_5 = filter(dtu_tiles_5_beta, FDR < 0.05)$region_id, 
+                   beta_3 = filter(dtu_tiles_3_beta, FDR < 0.05)$region_id)), order.by = "freq")
+```
+
+# basic plot review
+* cpgs on reads
+```{r}
+all_samples_simp %>%
+  ggplot(aes(x = sample, y = total)) +
+  geom_boxplot()
+```
+
+```{r}
+all_samples_simp %>%
+  ggplot(aes(x = as.factor(total))) +
+  geom_bar() +
+  facet_wrap(~ sample)
+```
+
