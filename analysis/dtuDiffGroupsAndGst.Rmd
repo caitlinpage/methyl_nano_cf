@@ -106,7 +106,6 @@ fit <- glmQLFit(y, design, robust=TRUE)
 ds <- diffSpliceDGE(fit, coef = 2, geneid = "gene_id", exonid = "transcript")
 ts.gene_optiles <- topSpliceDGE(ds, test = "gene", number = Inf)
 
-
 # add info to results: get proportion counts
 gene_cg <- find_overlaps(as_granges(optiles_all), as_granges(cg_sites)) %>% data.frame() %>%
   group_by(region_id) %>%
@@ -338,5 +337,512 @@ counts_5 %>% pivot_longer(cols = c(b1, b2, cml1, cml2)) %>%
   geom_violin()
 ```
 
+* redo the plots but remove the 0s?
+
+* just remove the group from the tile with a 0
+```{r}
+counts_3 %>% pivot_longer(cols = c(b1, b2, cml1, cml2)) %>% filter(value != 0) %>%
+  ggplot(aes(x = group, y = log2(value + 1), fill = name)) +
+  geom_violin()
+counts_4 %>% pivot_longer(cols = c(b1, b2, cml1, cml2)) %>% filter(value != 0) %>%
+  ggplot(aes(x = group, y = log2(value + 1), fill = name)) +
+  geom_violin()
+counts_5 %>% pivot_longer(cols = c(b1, b2, cml1, cml2)) %>% filter(value != 0) %>%
+  ggplot(aes(x = group, y = log2(value + 1), fill = name)) +
+  geom_violin()
+
+counts_3 %>% pivot_longer(cols = c(b1, b2, cml1, cml2)) %>% filter(value != 0) %>%
+  ggplot(aes(x = group, y = log2(value + 1), fill = name)) +
+  geom_boxplot()
+counts_4 %>% pivot_longer(cols = c(b1, b2, cml1, cml2)) %>% filter(value != 0) %>%
+  ggplot(aes(x = group, y = log2(value + 1), fill = name)) +
+  geom_boxplot()
+counts_5 %>% pivot_longer(cols = c(b1, b2, cml1, cml2)) %>% filter(value != 0) %>%
+  ggplot(aes(x = group, y = log2(value + 1), fill = name)) +
+  geom_boxplot()
+```
+* remove the tile that has any 0s
+```{r}
+counts_3 %>% filter(b1 != 0, b2 != 0, cml1 != 0, cml2 != 0) %>% 
+  pivot_longer(cols = c(b1, b2, cml1, cml2)) %>%
+  ggplot(aes(x = group, y = log2(value + 1), fill = name)) +
+  geom_violin()
+counts_4 %>% filter(b1 != 0, b2 != 0, cml1 != 0, cml2 != 0) %>% 
+  pivot_longer(cols = c(b1, b2, cml1, cml2)) %>%
+  ggplot(aes(x = group, y = log2(value + 1), fill = name)) +
+  geom_violin()
+counts_5 %>% filter(b1 != 0, b2 != 0, cml1 != 0, cml2 != 0) %>% 
+  pivot_longer(cols = c(b1, b2, cml1, cml2)) %>%
+  ggplot(aes(x = group, y = log2(value + 1), fill = name)) +
+  geom_violin()
+
+counts_3 %>% filter(b1 != 0, b2 != 0, cml1 != 0, cml2 != 0) %>% 
+  pivot_longer(cols = c(b1, b2, cml1, cml2)) %>%
+  ggplot(aes(x = group, y = log2(value + 1), fill = name)) +
+  geom_boxplot()
+counts_4 %>% filter(b1 != 0, b2 != 0, cml1 != 0, cml2 != 0) %>% 
+  pivot_longer(cols = c(b1, b2, cml1, cml2)) %>%
+  ggplot(aes(x = group, y = log2(value + 1), fill = name)) +
+  geom_boxplot()
+counts_5 %>% filter(b1 != 0, b2 != 0, cml1 != 0, cml2 != 0) %>% 
+  pivot_longer(cols = c(b1, b2, cml1, cml2)) %>%
+  ggplot(aes(x = group, y = log2(value + 1), fill = name)) +
+  geom_boxplot()
+```
+
 
 # gene set testing time
+* been avoiding this coz gross
+
+* need the genes - txdb object
+* which ones de - the ones overlapping
+* and the bias - cpgs on genes
+
+```{r}
+txdb_genes <- find_overlaps(txdb_genes, as_granges(cg_sites)) %>% data.frame() %>%
+  group_by(gene_id) %>% mutate(num_cg = n()) %>% ungroup() %>% distinct()
+```
+
+```{r}
+genes_3
+```
+
+
+```{r}
+source("../code/runGST.R")
+gene_try <- genes_3 %>% filter(FDR < 0.05)
+gene_info <- txdb_genes %>% mutate(is_de = ifelse(gene_id %in% gene_try$gene_id, 1, 0)) %>% distinct(gene_id, num_cg, is_de, width)
+
+run_test <- list(
+  sig.eg = gene_info %>% filter(is_de == 1) %>% .$gene_id,
+  universe = gene_info$gene_id,
+  freq = gene_info$num_cg,
+  de = gene_info$is_de,
+  equiv = gene_info$num_cg
+)
+
+gst_3 <- run_miss_methyl_b(run_test, method = "Wallenius")
+```
+
+
+```{r}
+source("../code/runGST.R")
+gene_try <- genes_4 %>% filter(FDR < 0.05)
+gene_info <- txdb_genes %>% mutate(is_de = ifelse(gene_id %in% gene_try$gene_id, 1, 0)) %>% distinct(gene_id, num_cg, is_de, width)
+
+run_test <- list(
+  sig.eg = gene_info %>% filter(is_de == 1) %>% .$gene_id,
+  universe = gene_info$gene_id,
+  freq = gene_info$num_cg,
+  de = gene_info$is_de,
+  equiv = gene_info$num_cg
+)
+
+gst_4 <- run_miss_methyl_b(run_test, method = "Wallenius")
+```
+* shouldn't have tried to run with everything - dumb old mistake
+```{r}
+gst_4
+```
+
+```{r}
+source("../code/runGST.R")
+gene_try <- genes_5 %>% filter(FDR < 0.05)
+gene_info <- txdb_genes %>% mutate(is_de = ifelse(gene_id %in% gene_try$gene_id, 1, 0)) %>% distinct(gene_id, num_cg, is_de, width)
+
+run_test <- list(
+  sig.eg = gene_info %>% filter(is_de == 1) %>% .$gene_id,
+  universe = gene_info$gene_id,
+  freq = gene_info$num_cg,
+  de = gene_info$is_de,
+  equiv = gene_info$num_cg
+)
+
+gst_5 <- run_miss_methyl_b(run_test, method = "Wallenius")
+```
+
+
+```{r}
+gene_info %>% distinct(is_de)
+```
+
+* try grab top 1k genes: order by dtu then get top 1k 
+```{r}
+gene_info %>% filter(is_de == 1)
+genes_5 %>% filter(FDR < 0.05) %>% distinct(gene_id)
+```
+
+```{r}
+source("../code/runGST.R")
+gene_try <- genes_3 %>% filter(FDR < 0.05) %>% .[order(.$dtu_rank),] %>% distinct(gene_id)
+gene_info <- txdb_genes %>% mutate(is_de = ifelse(gene_id %in% gene_try$gene_id, 1, 0)) %>% distinct(gene_id, num_cg, is_de, width)
+run_test <- list(
+  sig.eg = gene_info %>% filter(is_de == 1) %>% .$gene_id,
+  universe = gene_info$gene_id,
+  freq = gene_info$num_cg,
+  de = gene_info$is_de,
+  equiv = gene_info$num_cg
+)
+gst_3 <- run_miss_methyl_b(run_test, method = "Wallenius")
+
+gene_try <- genes_4 %>% filter(FDR < 0.05) %>% .[order(.$dtu_rank),] %>% distinct(gene_id)
+gene_info <- txdb_genes %>% mutate(is_de = ifelse(gene_id %in% gene_try$gene_id, 1, 0)) %>% distinct(gene_id, num_cg, is_de, width)
+run_test <- list(
+  sig.eg = gene_info %>% filter(is_de == 1) %>% .$gene_id,
+  universe = gene_info$gene_id,
+  freq = gene_info$num_cg,
+  de = gene_info$is_de,
+  equiv = gene_info$num_cg
+)
+gst_4 <- run_miss_methyl_b(run_test, method = "Wallenius")
+
+
+gene_try <- genes_5 %>% filter(FDR < 0.05) %>% .[order(.$dtu_rank),] %>% distinct(gene_id) 
+gene_info <- txdb_genes %>% mutate(is_de = ifelse(gene_id %in% gene_try$gene_id, 1, 0)) %>% distinct(gene_id, num_cg, is_de, width)
+run_test <- list(
+  sig.eg = gene_info %>% filter(is_de == 1) %>% .$gene_id,
+  universe = gene_info$gene_id,
+  freq = gene_info$num_cg,
+  de = gene_info$is_de,
+  equiv = gene_info$num_cg
+)
+gst_5 <- run_miss_methyl_b(run_test, method = "Wallenius")
+```
+
+```{r}
+gene_info %>% distinct(is_de)
+```
+
+
+```{r}
+source("../code/runGST.R")
+gene_try <- genes_3 %>% filter(FDR < 0.05) %>% .[order(.$dtu_rank),] %>% distinct(gene_id) %>% .[1:1000,]
+gene_info <- txdb_genes %>% mutate(is_de = ifelse(gene_id %in% gene_try, 1, 0)) %>% distinct(gene_id, num_cg, is_de, width)
+run_test <- list(
+  sig.eg = gene_info %>% filter(is_de == 1) %>% .$gene_id,
+  universe = gene_info$gene_id,
+  freq = gene_info$num_cg,
+  de = gene_info$is_de,
+  equiv = gene_info$num_cg
+)
+gst_3_2k <- run_miss_methyl_b(run_test, method = "Wallenius")
+
+gene_try <- genes_4 %>% filter(FDR < 0.05) %>% .[order(.$dtu_rank),] %>% distinct(gene_id) %>% .[1:1000,]
+gene_info <- txdb_genes %>% mutate(is_de = ifelse(gene_id %in% gene_try, 1, 0)) %>% distinct(gene_id, num_cg, is_de, width)
+run_test <- list(
+  sig.eg = gene_info %>% filter(is_de == 1) %>% .$gene_id,
+  universe = gene_info$gene_id,
+  freq = gene_info$num_cg,
+  de = gene_info$is_de,
+  equiv = gene_info$num_cg
+)
+gst_4_2k <- run_miss_methyl_b(run_test, method = "Wallenius")
+
+
+gene_try <- genes_5 %>% filter(FDR < 0.05) %>% .[order(.$dtu_rank),] %>% distinct(gene_id) %>% .[1:1000,]
+gene_info <- txdb_genes %>% mutate(is_de = ifelse(gene_id %in% gene_try, 1, 0)) %>% distinct(gene_id, num_cg, is_de, width)
+run_test <- list(
+  sig.eg = gene_info %>% filter(is_de == 1) %>% .$gene_id,
+  universe = gene_info$gene_id,
+  freq = gene_info$num_cg,
+  de = gene_info$is_de,
+  equiv = gene_info$num_cg
+)
+gst_5_2k <- run_miss_methyl_b(run_test, method = "Wallenius")
+```
+
+```{r}
+gst_3_2k
+```
+
+
+* gst for dmr
+```{r}
+source("../code/runGST.R")
+gene_try <- genes_dmr %>% filter(FDR < 0.05) %>% .[order(.$dtu_rank),] %>% distinct(gene_id) %>% .[1:1000,]
+gene_info <- txdb_genes %>% mutate(is_de = ifelse(gene_id %in% gene_try, 1, 0)) %>% distinct(gene_id, num_cg, is_de, width)
+run_test <- list(
+  sig.eg = gene_info %>% filter(is_de == 1) %>% .$gene_id,
+  universe = gene_info$gene_id,
+  freq = gene_info$num_cg,
+  de = gene_info$is_de,
+  equiv = gene_info$num_cg
+)
+gst_3_2k <- run_miss_methyl_b(run_test, method = "Wallenius")
+```
+
+
+
+```{r}
+gst_3_2k[[1]]
+```
+
+
+```{r}
+ggVennDiagram(list(gst_5 = gst_5_2k[[1]][1:100,]$GOID, 
+                   gst_3 = gst_3_2k[[1]][1:100,]$GOID,
+                   gst_4 = gst_4_2k[[1]][1:100,]$GOID))
+```
+
+
+## individual group level testing for dtu
+
+
+```{r}
+dtu_function_exon <- function(all_samples, optiles_all, num_groups = 5) {
+  dtu_optile <- find_overlaps(as_granges(all_samples), as_granges(optiles_all)) %>% data.frame() %>%
+  distinct(sample, read_id, read_start, read_end, alpha, region_id) 
+  
+  if(num_groups == 5) {
+  dtu_optile <- dtu_optile %>% 
+    mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                alpha > 0.8 ~ "a > 0.8",
+                                alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                TRUE ~ "0.6 <= a <= 0.8"))
+  } else if(num_groups == 3) {
+  dtu_optile <- dtu_optile %>% 
+    mutate(alpha_group = case_when(alpha < 0.34 ~ "a < 0.34",
+                                alpha > 0.65 ~ "a > 0.65",
+                                TRUE ~ "0.34 <= a <= 0.65"))
+  } else if(num_groups == 4) {
+  dtu_optile <- dtu_optile %>% 
+    mutate(alpha_group = case_when(alpha <= 0.25 ~ "a <= 0.25",
+                                alpha >= 0.8 ~ "a >= 0.75",
+                                alpha > 0.25 & alpha <= 0.5 ~ "0.25 <= a <= 0.5",
+                                TRUE ~ "0.5 < a < 0.75"))
+}
+
+dtu_optile <- dtu_optile %>% 
+  mutate(transcript = paste0(region_id, "_", alpha_group)) %>%
+  group_by(sample, transcript) %>%
+ summarise(transcript_count = n()) %>% ungroup() %>% data.frame()
+
+# build matrix of "transcript" counts - transcript rows, sample as columns
+dtu_optile <- dtu_optile %>% pivot_wider(names_from = sample, values_from = transcript_count)
+dtu_optile[is.na(dtu_optile)] <- 0
+dtu_optile$gene_id <- sub("_.*", "", dtu_optile$transcript)
+
+# DTU analysis with edgeR
+## Alicia prefers gene method over Simes method (documentation slightly confusing about difference)
+y <- DGEList(as.matrix(dtu_optile[,2:5]), group = c(1,1,2,2), genes = dtu_optile[,c("gene_id", "transcript")])
+design <- model.matrix(~ c(1,1,2,2), data = y$samples)
+fit <- glmQLFit(y, design, robust=TRUE)
+ds <- diffSpliceDGE(fit, coef = 2, geneid = "gene_id", exonid = "transcript")
+ts.gene_optiles <- topSpliceDGE(ds, test = "exon", number = Inf)
+
+# add locations back in so compatible with plyranges stuff
+## this bit only applicable to OPTILES because of the way it structures the ID
+ts.gene_optiles <- ts.gene_optiles %>%
+  mutate(region_id = gene_id) %>%
+  separate_wider_delim(gene_id, delim = ":", names = c("seqnames", "gene_id")) %>%
+  mutate(seqnames = gsub("chrchr", "chr", seqnames)) %>%
+  separate_wider_delim(gene_id, delim = "-", names = c("start", "end")) %>% 
+  mutate(region_and_transcript = transcript, transcript = sub(".*_", "", transcript))
+  
+ts.gene_optiles$start <- as.double(ts.gene_optiles$start)
+ts.gene_optiles$end <- as.double(ts.gene_optiles$end)
+ts.gene_optiles$dtu_rank <- 1:nrow(ts.gene_optiles)
+ts.gene_optiles <- data.frame(ts.gene_optiles)
+ts.gene_optiles
+}
+```
+
+```{r}
+dtu_tiles_3_exon <- dtu_function_exon(all_samples, optiles_all, num_groups = 3)
+dtu_tiles_4_exon <- dtu_function_exon(all_samples, optiles_all, num_groups = 4)
+dtu_tiles_5_exon <- dtu_function_exon(all_samples, optiles_all, num_groups = 5)
+```
+
+```{r}
+dtu_tiles_5_exon
+```
+
+```{r}
+ggVennDiagram(list(alpha_5 = filter(dtu_tiles_5_exon, FDR < 0.05)$region_and_transcript, 
+                   alpha_3 = filter(dtu_tiles_3_exon, FDR < 0.05)$region_and_transcript,
+                   alpha_4 = filter(dtu_tiles_4_exon, FDR < 0.05)$region_and_transcript))
+```
+
+```{r}
+ggVennDiagram(list(alpha_5 = filter(dtu_tiles_5_exon, FDR < 0.05)$region_id, 
+                   alpha_3 = filter(dtu_tiles_3_exon, FDR < 0.05)$region_id,
+                   alpha_4 = filter(dtu_tiles_4_exon, FDR < 0.05)$region_id))
+```
+
+```{r}
+dtu_tiles_3_exon %>% filter(FDR < 0.05) %>% 
+  ggplot(aes(x = transcript, fill = transcript)) +
+  geom_bar() +
+  theme(legend.position = "none")
+
+dtu_tiles_4_exon %>% filter(FDR < 0.05) %>% 
+  ggplot(aes(x = transcript, fill = transcript)) +
+  geom_bar() +
+  theme(legend.position = "none")
+
+dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% 
+  ggplot(aes(x = transcript, fill = transcript)) +
+  geom_bar() +
+  theme(legend.position = "none")
+```
+
+```{r}
+dtu_tiles_3_exon %>% filter(FDR < 0.05) %>% group_by(region_id) %>% summarise(n_groups = n()) %>%
+  ggplot(aes(x = n_groups, fill = as.factor(n_groups))) +
+  geom_bar() +
+  theme(legend.position = "none")
+
+dtu_tiles_4_exon %>% filter(FDR < 0.05) %>% group_by(region_id) %>% summarise(n_groups = n()) %>%
+  ggplot(aes(x = n_groups, fill = as.factor(n_groups))) +
+  geom_bar() +
+  theme(legend.position = "none")
+
+dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% group_by(region_id) %>% summarise(n_groups = n()) %>%
+  ggplot(aes(x = n_groups, fill = as.factor(n_groups))) +
+  geom_bar() +
+  theme(legend.position = "none")
+```
+```{r}
+dtu_tiles_3_exon <- data.frame(dtu_tiles_3_exon)
+```
+
+
+```{r}
+genes_5_exon <- find_overlaps(as_granges(txdb_genes), as_granges(dtu_tiles_5_exon)) %>% data.frame()
+genes_4_exon <- find_overlaps(as_granges(txdb_genes), as_granges(dtu_tiles_4_exon)) %>% data.frame()
+genes_3_exon <- find_overlaps(as_granges(txdb_genes), as_granges(dtu_tiles_3_exon)) %>% data.frame()
+```
+
+```{r}
+genes_3_exon %>% filter(FDR < 0.05) %>% 
+  ggplot(aes(x = transcript, fill = transcript)) +
+  geom_bar() +
+  theme(legend.position = "none")
+
+genes_4_exon %>% filter(FDR < 0.05) %>% 
+  ggplot(aes(x = transcript, fill = transcript)) +
+  geom_bar() +
+  theme(legend.position = "none")
+
+genes_5_exon %>% filter(FDR < 0.05) %>% 
+  ggplot(aes(x = transcript, fill = transcript)) +
+  geom_bar() +
+  theme(legend.position = "none")
+
+```
+
+```{r}
+dtu_tiles_3_exon %>% mutate(overlap_gene = ifelse(region_and_transcript %in% genes_3_exon$region_and_transcript, TRUE, FALSE)) %>% 
+  filter(FDR < 0.05) %>% 
+  ggplot(aes(x = transcript, fill = overlap_gene)) +
+  geom_bar() 
+
+dtu_tiles_4_exon %>% mutate(overlap_gene = ifelse(region_and_transcript %in% genes_4_exon$region_and_transcript, TRUE, FALSE)) %>% 
+  filter(FDR < 0.05) %>% 
+  ggplot(aes(x = transcript, fill = overlap_gene)) +
+  geom_bar() 
+
+dtu_tiles_5_exon %>% mutate(overlap_gene = ifelse(region_and_transcript %in% genes_5_exon$region_and_transcript, TRUE, FALSE)) %>% 
+  filter(FDR < 0.05) %>% 
+  ggplot(aes(x = transcript, fill = overlap_gene)) +
+  geom_bar() 
+```
+
+```{r}
+dtu_tiles_3_exon %>% mutate(overlap_gene = ifelse(region_and_transcript %in% genes_3_exon$region_and_transcript, TRUE, FALSE)) %>% 
+  filter(FDR < 0.05) %>% 
+  ggplot(aes(x = transcript, fill = overlap_gene)) +
+  geom_bar(position = "fill") 
+
+dtu_tiles_4_exon %>% mutate(overlap_gene = ifelse(region_and_transcript %in% genes_4_exon$region_and_transcript, TRUE, FALSE)) %>% 
+  filter(FDR < 0.05) %>% 
+  ggplot(aes(x = transcript, fill = overlap_gene)) +
+  geom_bar(position = "fill") 
+
+dtu_tiles_5_exon %>% mutate(overlap_gene = ifelse(region_and_transcript %in% genes_5_exon$region_and_transcript, TRUE, FALSE)) %>% 
+  filter(FDR < 0.05) %>% 
+  ggplot(aes(x = transcript, fill = overlap_gene)) +
+  geom_bar(position = "fill") 
+```
+
+* no groups are more likely to be overlapping gene than others
+
+
+* are the big/small more likely to overlap dmr??
+```{r}
+dmrcate_seq_dmr$dmr_rank <- 1:nrow(dmrcate_seq_dmr)
+```
+
+```{r}
+dmr_5_exon <- find_overlaps(as_granges(dmrcate_seq_dmr), as_granges(dtu_tiles_5_exon)) %>% data.frame()
+dmr_4_exon <- find_overlaps(as_granges(dmrcate_seq_dmr), as_granges(dtu_tiles_4_exon)) %>% data.frame()
+dmr_3_exon <- find_overlaps(as_granges(dmrcate_seq_dmr), as_granges(dtu_tiles_3_exon)) %>% data.frame()
+```
+
+
+```{r}
+dtu_tiles_3_exon %>% mutate(overlap_dmr = ifelse(region_and_transcript %in% dmr_3_exon$region_and_transcript, TRUE, FALSE)) %>% 
+  filter(FDR < 0.05) %>% 
+  ggplot(aes(x = transcript, fill = overlap_dmr)) +
+  geom_bar() 
+
+dtu_tiles_4_exon %>% mutate(overlap_dmr = ifelse(region_and_transcript %in% dmr_4_exon$region_and_transcript, TRUE, FALSE)) %>% 
+  filter(FDR < 0.05) %>% 
+  ggplot(aes(x = transcript, fill = overlap_dmr)) +
+  geom_bar() 
+
+dtu_tiles_5_exon %>% mutate(overlap_dmr = ifelse(region_and_transcript %in% dmr_5_exon$region_and_transcript, TRUE, FALSE)) %>% 
+  filter(FDR < 0.05) %>% 
+  ggplot(aes(x = transcript, fill = overlap_dmr)) +
+  geom_bar() 
+```
+
+```{r}
+dtu_tiles_3_exon %>% mutate(overlap_dmr = ifelse(region_and_transcript %in% dmr_3_exon$region_and_transcript, TRUE, FALSE)) %>% 
+  filter(FDR < 0.05) %>% 
+  ggplot(aes(x = transcript, fill = overlap_dmr)) +
+  geom_bar(position = "fill") 
+
+dtu_tiles_4_exon %>% mutate(overlap_dmr = ifelse(region_and_transcript %in% dmr_4_exon$region_and_transcript, TRUE, FALSE)) %>% 
+  filter(FDR < 0.05) %>% 
+  ggplot(aes(x = transcript, fill = overlap_dmr)) +
+  geom_bar(position = "fill") 
+
+dtu_tiles_5_exon %>% mutate(overlap_dmr = ifelse(region_and_transcript %in% dmr_5_exon$region_and_transcript, TRUE, FALSE)) %>% 
+  filter(FDR < 0.05) %>% 
+  ggplot(aes(x = transcript, fill = overlap_dmr)) +
+  geom_bar(position = "fill") 
+```
+
+* interesting, the smaller changes have a higher proportion of overlap to dmrs than the bigger changes
+* expected the opposite
+* but also it's not that much of a signal
+
+
+
+
+# dmrs that don't overlap dtu
+
+```{r}
+dmrcate_seq_dmr %>% filter(!dmr_rank %in% dmr_5_exon$dmr_rank)
+```
+
+
+# add info to results: get proportion counts
+gene_cg <- find_overlaps(as_granges(optiles_all), as_granges(cg_sites)) %>% data.frame() %>%
+  group_by(region_id) %>%
+  summarise(n_cg = n()) %>%
+  ungroup() %>% data.frame()
+fit$genes <- fit$genes %>% mutate(n_cg = gene_cg[match(.$gene_id, gene_cg$region_id), "n_cg"])
+rpk <- y$counts/rep(fit$genes$n_cg/1000, times = ncol(y$counts))
+tpm_mat <- sweep(rpk, 2, colSums(rpk)/1e6, "/")
+tpm_mat <- tpm_mat %>% data.frame() %>% mutate(id = dtu_optile$transcript, gene_id = dtu_optile$gene_id)
+
+tpm_mat <- tpm_mat %>%
+  group_by(gene_id) %>%
+  mutate(prop_S1_gm = b1/sum(b1),
+         prop_S2_gm = b2/sum(b2),
+         prop_S3_k = cml1/sum(cml1),
+         prop_S4_k = cml2/sum(cml2)) %>%
+  ungroup() %>% data.frame()
