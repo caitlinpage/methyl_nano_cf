@@ -8,7 +8,180 @@ editor_options:
   chunk_output_type: console
 ---
 
-Welcome to my research website.
+Analysis for PhD aim 2.
+
+
+# Project description
+
+I aim to analyse alpha values and develop methods to add value to methylation analysis.
+
+## Project Aims
+
+1. Structure the data
+
+2. Develop differential analysis method
+
+3. Evaluate method - novel biological findings
+
+
+# Overview of data and data files
+
+[Data](00_ObtainData.html)
+I have used a mix of publicly available methylation sequencing data for this project.
+Primarily data analysis has been conducted using ENCODE RRBS data.
+
+[Overview of data files and their features](overviewFiles.html)
+Describes the data structures I have come up with
+
+
+# 1. Structuring the data
+
+Alpha is a new concept - only existing compatible file format is pat
+
+Questions:
+* How to extract alpha from BAM files?
+* How to format alpha (manage file size)?
+* How to display alpha and beta together?
+
+More nuanced questions:
+* What filtering metrics should be used for alpha and beta?
+** number of CpGs on read, number of reads covering position
+
+[how I get the alphas](modkitOutputToReadFormat.html)
+
+[analysis of alpha values](alphaAnalysis.html)
+
+[what reads should be filtered out?](filteringReads.html)
+
+[trying to plot alpha and beta together](plotAlphaAndBeta.html)
+
+* discovered a problem - expanded on in next 2
+
+[something weird happening with alpha and beta - mostly beta](checkAlphaAndBetaMatch.html)
+
+[how I'm getting the beta values](bedFileBetas.html)
+
+[How I'm going to join alpha and beta together](joinAlphaAndBeta.html)
+
+
+## 1.ish Workflow example
+[workflow](workflow.html)
+[whole genome analysis of RRBS data](wholeGenomeRrbs.html)
+
+## 1.ish Visualising the data
+
+[inspired by DameFinder](vizDamfinder.html)
+
+
+## 1.ish Exploring the data
+
+[exploratory plots](exploratory_plots.html)
+
+[explore relationship with genes](exploratory_plots_genes.html)
+
+[same plots with cancer sample](healthyVsLuad.html)
+
+[analysis conducted in 2 day research sprint](researchSprint.html)
+[analysis continued (bins, genes, cpg features)](researchSprintB.html)
+
+[binning the genome](binningGenome.html)
+
+[coverage and beta distrib](coverageAndSummaryAnalysis.html)
+
+
+[plot with IQR of alpha](IQRVisualise.html)
+GOAL:
+* use IQR to identify regions where data is more spread and less spread
+* if more spread, expect more var in alphas, vice versa
+LEARNINGS
+* can now overlay IQR onto region plot
+* plotting just IQR is messy
+* IQR is metric for middle spread of data, might need more than that
+
+[annotate to genes/promoters](biologicalFeatures.html)
+GOAL:
+* what is alpha and beta in different biological features
+LEARNINGS:
+* Plotting IQR still looks bad haha
+* Distribution of beta much lower in sites overlapping promoters (rrbs)
+* Meth pattern does not consistently change at promoter boundary when read overlaps promoter and non promoter (rrbs)
+
+* just like promoters will have different methylation profile to intergenic regions
+* so will CpG islands to intergenic regions
+
+[annotate to CpG features](cpgFeatures.html)
+* conduct similar analysis to that in biologicalFeatures.html 
+
+
+## ANALYSIS INSPIRED BY PETE HICKEY
+
+[comethylation](distNextCpG.html)
+* distance between neighbouring cpgs and methylation status
+* mantel-haenszel odds ratio
+
+[comethylation step 2](distAlphaByDistance.html)
+* if 2 cpgs, distance should be smaller when alpha 0,1 
+* larger distance when alpha 0.5
+* cpg density
+* this does occur
+
+[TBD: mantel-haensz with NIL > 0](comethNILGrZero.html)
+* in Pete's work - OR was high in Islands
+
+[TBD: apply to all chrom](comethAllReads.html)
+
+** wanted a way to model and predict if next cpg will share methylation state
+[logistic regression](comethLogRegress.html)
+
+## 1.ish Grouping the data
+[initial analysis (some copied from alphaAnalysis)](mp1_methPattern.html)
+* developed function to identify region with similar beta values
+* region is then extracted and alpha values are plotted
+
+[medium methylation](mp2_betaGroups.html)
+
+[high methylation](mp3_betaGroupsHighBeta.html)
+
+[low methylation](mp3_betaGroupsLowBeta.html)
+
+
+[correlation of Alphas](correlationOfAlphas.html)
+
+[sliding windows of alpha](slidingWindowAlpha.html)
+[optimised tiles](runOpTiles.html)
+
+## 1.ish - tangent - alpha/beta = 0.5
+[beta = 0.5](compareAlphaWhenBetaHalf.html)
+
+
+# 2. Develop differential alpha approach
+
+## Overview of current methods
+
+metheor runs entropy, haplotype, epi-allele etc methods
+[method description](otherReadStyleMethods.html)
+[exploratory analysis](otherReadStyleMethodsAnalysis.html)
+
+## DTU development
+
+[proportions of alpha and beta](alphaProportions.html)
+[attemmpt DTU but for alpha](differentialAlphaUsage.html)
+
+[group sizes](dtuDiffGroupsAndGst.html)
+
+## DTU analysis
+[DTU on DMRs](diffAlphaUsageDiffMeth.html)
+
+[whole genome DTU](diffAlphaUsageAll.html)
+
+[de analysis with DTU regions](deAnalysisWithDtuRegion.html)
+
+
+
+
+####################################################
+
+# OLD FILE ORGANISATION
 
 [Data](00_ObtainData.html)
 
