@@ -48,6 +48,9 @@ cg_sites <- lapply(seqs, function(x) {
 ```
 
 
+
+
+
 # Nanopore processed file
 
 
@@ -222,3 +225,134 @@ k562_2 <- process_wgbs(bis)
 ```{r}
 saveRDS(k562_2, "/researchers/caitlin.page/cf_nano/r_output/k562_rep2.rds")
 ```
+
+```{r}
+cols <- c("read_id", "seqnames", "start", "end", "strand", "meth_pattern", "meth_status", "num_meth", "total", "alpha", "read_start", "read_end", "beta", "sample")
+
+all_samples <- rbind(rrbs_alpha_beta %>% mutate(sample = "b1") %>% .[,cols], gm12878_2 %>% mutate(sample = "b2") %>% .[,cols], 
+                     k562 %>% mutate(sample = "cml1") %>% .[,cols], k562_2 %>% mutate(sample = "cml2") %>% .[,cols])
+all_samples_simp <- all_samples %>% distinct(seqnames, read_start, read_end, strand, sample, read_id, alpha, meth_pattern, num_meth, total)
+colnames(all_samples_simp)[2:3] <- c("start", "end")
+```
+
+```{r}
+saveRDS(all_samples, "/researchers/caitlin.page/cf_nano/r_output/all_rrbs_samples.rds")
+```
+
+
+# genome tiles
+```{r, eval=FALSE}
+for_op <- rbind(just_beta, just_beta_gm2, just_beta_k1, just_beta_k2) %>% distinct()
+for_op <- for_op %>% mutate(end = start, strand = "*", numCs = beta * coverage, numTs = coverage - numCs, chr = seqnames) %>% .[,c(10,2,6,7,4,8,9)]
+mr <- new(
+  "methylRaw",
+  for_op,
+  sample.id = "sample1",
+  assembly = "hg38",
+  context = "CpG",
+  resolution = "base"
+)
+
+length_region <- 300
+tiles <- methylKit::tileMethylCounts(mr,win.size=length_region,step.size=length_region,cov.bases = 0)
+
+tilesdf_all <- methylKit::getData(tiles)
+
+optiles_all <- merging_consecutive_regions(mr, tiles, da_thr = length_region, cb_thr = length_region)
+
+tilesdf_all <- tilesdf_all[,1:4] %>% mutate(width = end - start + 1) 
+colnames(tilesdf_all)[1] <- "seqnames"
+tilesdf_all$id <- 1:nrow(tilesdf_all)
+
+optiles_all <- optiles_all %>% mutate(width = end - start + 1)
+colnames(optiles_all)[1] <- "seqnames"
+optiles_all$index <- 1:nrow(optiles_all)
+saveRDS(optiles_all, "/researchers/caitlin.page/cf_nano/r_output/optiles_all.rds")
+```
+
+
+
+```{r}
+optiles_all <- readRDS("/researchers/caitlin.page/cf_nano/r_output/optiles_all.rds")
+```
+
+## results
+
+# dmrs
+```{r}
+dmrcate_seq_dmr <- readRDS("/researchers/caitlin.page/cf_nano/r_output/dmr_encode_gm12878_k562.rds")
+```
+
+
+# dtu tiles
+```{r, eval=FALSE}
+dtu_optile <- find_overlaps(as_granges(all_samples), as_granges(optiles_all)) %>% data.frame() %>%
+  distinct(sample, read_id, read_start, read_end, alpha, region_id) %>% 
+  mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                alpha > 0.8 ~ "a > 0.8",
+                                alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                TRUE ~ "0.6 <= a <= 0.8"))
+
+dtu_optile <- dtu_optile %>% 
+  mutate(transcript = paste0(region_id, "_", alpha_group)) %>%
+  group_by(sample, transcript) %>%
+ summarise(transcript_count = n()) %>% ungroup() %>% data.frame()
+
+# build matrix of "transcript" counts - transcript rows, sample as columns
+dtu_optile <- dtu_optile %>% pivot_wider(names_from = sample, values_from = transcript_count)
+dtu_optile[is.na(dtu_optile)] <- 0
+dtu_optile$gene_id <- sub("_.*", "", dtu_optile$transcript)
+
+# DTU analysis with edgeR
+## Alicia prefers gene method over Simes method (documentation slightly confusing about difference)
+y <- DGEList(as.matrix(dtu_optile[,2:5]), group = c(1,1,2,2), genes = dtu_optile[,c("gene_id", "transcript")])
+design <- model.matrix(~ c(1,1,2,2), data = y$samples)
+fit <- glmQLFit(y, design, robust=TRUE)
+ds <- diffSpliceDGE(fit, coef = 2, geneid = "gene_id", exonid = "transcript")
+ts.gene_optiles <- topSpliceDGE(ds, test = "gene", number = Inf)
+
+
+# add info to results: get proportion counts
+gene_cg <- find_overlaps(as_granges(optiles_all), as_granges(cg_sites)) %>% data.frame() %>%
+  group_by(region_id) %>%
+  summarise(n_cg = n()) %>%
+  ungroup() %>% data.frame()
+fit$genes <- fit$genes %>% mutate(n_cg = gene_cg[match(.$gene_id, gene_cg$region_id), "n_cg"])
+rpk <- y$counts/rep(fit$genes$n_cg/1000, times = ncol(y$counts))
+tpm_mat <- sweep(rpk, 2, colSums(rpk)/1e6, "/")
+tpm_mat <- tpm_mat %>% data.frame() %>% mutate(id = dtu_optile$transcript, gene_id = dtu_optile$gene_id)
+
+tpm_mat <- tpm_mat %>%
+  group_by(gene_id) %>%
+  mutate(prop_S1_gm = b1/sum(b1),
+         prop_S2_gm = b2/sum(b2),
+         prop_S3_k = cml1/sum(cml1),
+         prop_S4_k = cml2/sum(cml2)) %>%
+  ungroup() %>% data.frame()
+
+
+# add locations back in so compatible with plyranges stuff
+## this bit only applicable to OPTILES because of the way it structures the ID
+ts.gene_optiles <- ts.gene_optiles %>%
+  mutate(region_id = gene_id) %>%
+  separate_wider_delim(gene_id, delim = ":", names = c("seqnames", "gene_id")) %>%
+  mutate(seqnames = gsub("chrchr", "chr", seqnames)) %>%
+  separate_wider_delim(gene_id, delim = "-", names = c("start", "end"))
+ts.gene_optiles$start <- as.double(ts.gene_optiles$start)
+ts.gene_optiles$end <- as.double(ts.gene_optiles$end)
+ts.gene_optiles$dtu_rank <- 1:nrow(ts.gene_optiles)
+saveRDS(dtu.optiles, "/researchers/caitlin.page/cf_nano/r_output/ts.gene_optiles.rds")
+```
+
+
+```{r}
+dtu.optiles <- readRDS("/researchers/caitlin.page/cf_nano/r_output/ts.gene_optiles.rds")
+```
+
+# dtu genes
+
+```{r}
+dtu.gene <- readRDS("/researchers/caitlin.page/cf_nano/r_output/ts.gene.gene.rds")
+```
+
