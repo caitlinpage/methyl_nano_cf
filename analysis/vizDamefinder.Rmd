@@ -54,7 +54,7 @@ k562 <- readRDS("/researchers/caitlin.page/cf_nano/r_output/k562_rep1.rds")
 k562_2 <- readRDS("/researchers/caitlin.page/cf_nano/r_output/k562_rep2.rds")
 
 # same columns and group samples
-cols <- c("read_id", "seqnames", "start", "end", "strand", "meth_pattern", "num_meth", "total", "alpha", "read_start", "read_end", "beta", "sample")
+cols <- c("read_id", "seqnames", "start", "end", "strand", "meth_status", "meth_pattern", "num_meth", "total", "alpha", "read_start", "read_end", "beta", "sample")
 
 all_samples <- rbind(rrbs_alpha_beta %>% mutate(sample = "b1") %>% .[,cols],
                      gm12878_2 %>% mutate(sample = "b2") %>% .[,cols],
