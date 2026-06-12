@@ -390,7 +390,7 @@ class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span>
 <div class="tab-content">
 <div id="summary" class="tab-pane fade in active">
 <p>
-<strong>Last updated:</strong> 2025-09-24
+<strong>Last updated:</strong> 2026-06-12
 </p>
 <p>
 <strong>Checks:</strong> <span
@@ -399,8 +399,8 @@ class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 7
 aria-hidden="true"></span> 0
 </p>
 <p>
-<strong>Knit directory:</strong> <code>methyl_nano_cf/</code> <span
-class="glyphicon glyphicon-question-sign" aria-hidden="true"
+<strong>Knit directory:</strong> <code>methyl_nano_cf/analysis/</code>
+<span class="glyphicon glyphicon-question-sign" aria-hidden="true"
 title="This is the local directory in which the code in this file was executed.">
 </span>
 </p>
@@ -521,15 +521,15 @@ project makes it easier to run your code on other machines.</p>
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpagemethylnanocftreec79fa139e71c3906cf47923a5ebfcce5d76463d5targetblankc79fa13a">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpagemethylnanocftreeafc76a2410ef28288de8acba58cd93e75141e858targetblankafc76a2a">
 <span class="glyphicon glyphicon-ok text-success"
 aria-hidden="true"></span> <strong>Repository version:</strong>
-<a href="https://github.com/caitlinpage/methyl_nano_cf/tree/c79fa139e71c3906cf47923a5ebfcce5d76463d5" target="_blank">c79fa13</a>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/tree/afc76a2410ef28288de8acba58cd93e75141e858" target="_blank">afc76a2</a>
 </a>
 </p>
 </div>
 <div
-id="strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpagemethylnanocftreec79fa139e71c3906cf47923a5ebfcce5d76463d5targetblankc79fa13a"
+id="strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpagemethylnanocftreeafc76a2410ef28288de8acba58cd93e75141e858targetblankafc76a2a"
 class="panel-collapse collapse">
 <div class="panel-body">
 <p>
@@ -539,7 +539,7 @@ reproducibility.
 </p>
 <p>
 The results in this page were generated with repository version
-<a href="https://github.com/caitlinpage/methyl_nano_cf/tree/c79fa139e71c3906cf47923a5ebfcce5d76463d5" target="_blank">c79fa13</a>.
+<a href="https://github.com/caitlinpage/methyl_nano_cf/tree/afc76a2410ef28288de8acba58cd93e75141e858" target="_blank">afc76a2</a>.
 See the <em>Past versions</em> tab to see a history of the changes made
 to the R Markdown and HTML files.
 </p>
@@ -554,17 +554,22 @@ were generated:
 </p>
 <pre><code>
 Ignored files:
-    Ignored:    .Rhistory
     Ignored:    .Rproj.user/
-    Ignored:    renv.lock
-    Ignored:    renv/
+    Ignored:    analysis/.RData
+
+Untracked files:
+    Untracked:  analysis/dtuResultsWhichGroupSignif.Rmd
+    Untracked:  renv.lock
+    Untracked:  renv/
 
 Unstaged changes:
     Modified:   .Rprofile
-    Modified:   .gitignore
-    Modified:   analysis/binningGenome.Rmd
-    Modified:   analysis/checkAlphaAndBetaMatch.Rmd
-    Modified:   analysis/index.Rmd
+    Modified:   _workflowr.yml
+    Modified:   analysis/00_bugFixes.Rmd
+    Modified:   analysis/00_importantObjects.Rmd
+    Modified:   analysis/deAnalysisWithDtuRegion.Rmd
+    Modified:   analysis/dtuDiffGroupsAndGst.Rmd
+    Modified:   analysis/workflow.Rmd
 
 </code></pre>
 <p>
@@ -614,6 +619,40 @@ Message
 Rmd
 </td>
 <td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/afc76a2410ef28288de8acba58cd93e75141e858/analysis/filteringReads.Rmd" target="_blank">afc76a2</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-06-12
+</td>
+<td>
+wflow_publish("filteringReads.Rmd")
+</td>
+</tr>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/caitlinpage/methyl_nano_cf/7b26a6a65431ea468284db98297d6a34260222fd/docs/filteringReads.html" target="_blank">7b26a6a</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-09-24
+</td>
+<td>
+Build site.
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
 <a href="https://github.com/caitlinpage/methyl_nano_cf/blob/c79fa139e71c3906cf47923a5ebfcce5d76463d5/analysis/filteringReads.Rmd" target="_blank">c79fa13</a>
 </td>
 <td>
@@ -633,9 +672,11 @@ wflow_publish("analysis/filteringReads.Rmd")
 </div>
 </div>
 </div>
-<div id="introduction" class="section level2">
-<h2>Introduction</h2>
-<pre class="r"><code>library(plyranges)</code></pre>
+<pre class="r"><code>library(annotatr)</code></pre>
+<pre><code>Warning: replacing previous import &#39;S4Arrays::makeNindexFromArrayViewport&#39; by
+&#39;DelayedArray::makeNindexFromArrayViewport&#39; when loading &#39;SummarizedExperiment&#39;</code></pre>
+<pre class="r"><code>library(data.table)
+library(plyranges)</code></pre>
 <pre><code>Loading required package: BiocGenerics</code></pre>
 <pre><code>
 Attaching package: &#39;BiocGenerics&#39;</code></pre>
@@ -655,25 +696,41 @@ Attaching package: &#39;BiocGenerics&#39;</code></pre>
 <pre><code>Loading required package: stats4</code></pre>
 <pre><code>
 Attaching package: &#39;S4Vectors&#39;</code></pre>
+<pre><code>The following objects are masked from &#39;package:data.table&#39;:
+
+    first, second</code></pre>
 <pre><code>The following object is masked from &#39;package:utils&#39;:
 
     findMatches</code></pre>
 <pre><code>The following objects are masked from &#39;package:base&#39;:
 
     expand.grid, I, unname</code></pre>
+<pre><code>
+Attaching package: &#39;IRanges&#39;</code></pre>
+<pre><code>The following object is masked from &#39;package:data.table&#39;:
+
+    shift</code></pre>
 <pre><code>Loading required package: GenomicRanges</code></pre>
 <pre><code>Loading required package: GenomeInfoDb</code></pre>
-<pre><code>Warning: replacing previous import &#39;S4Arrays::makeNindexFromArrayViewport&#39; by
-&#39;DelayedArray::makeNindexFromArrayViewport&#39; when loading &#39;SummarizedExperiment&#39;</code></pre>
 <pre><code>
 Attaching package: &#39;plyranges&#39;</code></pre>
 <pre><code>The following object is masked from &#39;package:IRanges&#39;:
 
     slice</code></pre>
+<pre><code>The following object is masked from &#39;package:data.table&#39;:
+
+    between</code></pre>
 <pre><code>The following object is masked from &#39;package:stats&#39;:
 
     filter</code></pre>
-<pre class="r"><code>library(dplyr)</code></pre>
+<pre class="r"><code>library(tidyr)</code></pre>
+<pre><code>
+Attaching package: &#39;tidyr&#39;</code></pre>
+<pre><code>The following object is masked from &#39;package:S4Vectors&#39;:
+
+    expand</code></pre>
+<pre class="r"><code>library(stringr)
+library(dplyr)</code></pre>
 <pre><code>
 Attaching package: &#39;dplyr&#39;</code></pre>
 <pre><code>The following objects are masked from &#39;package:plyranges&#39;:
@@ -694,198 +751,796 @@ Attaching package: &#39;dplyr&#39;</code></pre>
 <pre><code>The following objects are masked from &#39;package:BiocGenerics&#39;:
 
     combine, intersect, setdiff, union</code></pre>
+<pre><code>The following objects are masked from &#39;package:data.table&#39;:
+
+    between, first, last</code></pre>
 <pre><code>The following objects are masked from &#39;package:stats&#39;:
 
     filter, lag</code></pre>
 <pre><code>The following objects are masked from &#39;package:base&#39;:
 
     intersect, setdiff, setequal, union</code></pre>
-<pre class="r"><code>library(ggplot2)</code></pre>
-<pre class="r"><code>all_samples &lt;- readRDS(&quot;/researchers/caitlin.page/cf_nano/r_output/all_samples.rds&quot;)</code></pre>
-<pre class="r"><code>all_samples %&gt;% filter(alpha == 0) %&gt;% .$total %&gt;% summary()</code></pre>
-<pre><code>   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-  1.000   1.000   1.000   1.897   2.000  70.000 </code></pre>
-<pre class="r"><code>all_samples %&gt;% filter(alpha == 1) %&gt;% .$total %&gt;% summary()</code></pre>
-<pre><code>   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-  1.000   1.000   2.000   2.704   3.000  68.000 </code></pre>
-<pre class="r"><code>all_samples %&gt;% filter(alpha == 0, total &gt;= 3) %&gt;% .$total %&gt;% summary()</code></pre>
-<pre><code>   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-  3.000   3.000   4.000   5.036   5.000  70.000 </code></pre>
-<pre class="r"><code>all_samples %&gt;% filter(alpha == 1, total &gt;= 3) %&gt;% .$total %&gt;% summary()</code></pre>
-<pre><code>   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-  3.000   3.000   4.000   4.705   5.000  68.000 </code></pre>
-<pre class="r"><code>all_samples %&gt;% filter(alpha &lt;= 0.2) %&gt;% .$total %&gt;% summary()</code></pre>
-<pre><code>   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-  1.000   1.000   1.000   3.188   3.000 321.000 </code></pre>
-<pre class="r"><code>all_samples %&gt;% filter(alpha &gt;= 0.8) %&gt;% .$total %&gt;% summary()</code></pre>
-<pre><code>   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-   1.00    1.00    2.00    3.77    5.00  524.00 </code></pre>
-<pre class="r"><code>all_samples %&gt;% filter(alpha &lt;= 0.2, total &gt;= 3) %&gt;% .$total %&gt;% summary()</code></pre>
-<pre><code>   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-   3.00    3.00    5.00    8.87    9.00  321.00 </code></pre>
-<pre class="r"><code>all_samples %&gt;% filter(alpha &gt;= 0.8, total &gt;= 3) %&gt;% .$total %&gt;% summary()</code></pre>
-<pre><code>   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-  3.000   3.000   5.000   6.258   7.000 524.000 </code></pre>
-<pre class="r"><code>all_samples %&gt;% filter(alpha %in% c(0,1)) %&gt;%
-  ggplot(aes(x = log2(total), colour = as.factor(alpha))) +
-  geom_density()</code></pre>
+<pre class="r"><code>library(ggplot2)
+library(edgeR)</code></pre>
+<pre><code>Loading required package: limma</code></pre>
+<pre><code>
+Attaching package: &#39;limma&#39;</code></pre>
+<pre><code>The following object is masked from &#39;package:BiocGenerics&#39;:
+
+    plotMA</code></pre>
+<pre class="r"><code>library(OpTiles)</code></pre>
+<pre><code>Warning: replacing previous import &#39;GenomicRanges::shift&#39; by
+&#39;data.table::shift&#39; when loading &#39;OpTiles&#39;</code></pre>
+<pre><code>Warning: replacing previous import &#39;data.table::first&#39; by &#39;dplyr::first&#39; when
+loading &#39;OpTiles&#39;</code></pre>
+<pre><code>Warning: replacing previous import &#39;biomaRt::select&#39; by &#39;dplyr::select&#39; when
+loading &#39;OpTiles&#39;</code></pre>
+<pre><code>Warning: replacing previous import &#39;GenomicRanges::intersect&#39; by
+&#39;dplyr::intersect&#39; when loading &#39;OpTiles&#39;</code></pre>
+<pre><code>Warning: replacing previous import &#39;data.table::last&#39; by &#39;dplyr::last&#39; when
+loading &#39;OpTiles&#39;</code></pre>
+<pre><code>Warning: replacing previous import &#39;GenomicRanges::union&#39; by &#39;dplyr::union&#39;
+when loading &#39;OpTiles&#39;</code></pre>
+<pre><code>Warning: replacing previous import &#39;data.table::between&#39; by &#39;dplyr::between&#39;
+when loading &#39;OpTiles&#39;</code></pre>
+<pre><code>Warning: replacing previous import &#39;GenomicRanges::setdiff&#39; by &#39;dplyr::setdiff&#39;
+when loading &#39;OpTiles&#39;</code></pre>
+<pre><code>Warning: replacing previous import &#39;dplyr::combine&#39; by &#39;gridExtra::combine&#39;
+when loading &#39;OpTiles&#39;</code></pre>
+<pre><code>Warning: replacing previous import &#39;stringr::str_wrap&#39; by &#39;xfun::str_wrap&#39; when
+loading &#39;OpTiles&#39;</code></pre>
+<pre><code>Warning: replacing previous import &#39;tidyr::unite&#39; by &#39;methylKit::unite&#39; when
+loading &#39;OpTiles&#39;</code></pre>
+<pre class="r"><code>library(ggVennDiagram)</code></pre>
+<pre><code>
+Attaching package: &#39;ggVennDiagram&#39;</code></pre>
+<pre><code>The following object is masked from &#39;package:tidyr&#39;:
+
+    unite</code></pre>
+<pre class="r"><code>library(TxDb.Hsapiens.UCSC.hg19.knownGene)</code></pre>
+<pre><code>Loading required package: GenomicFeatures</code></pre>
+<pre><code>Loading required package: AnnotationDbi</code></pre>
+<pre><code>Loading required package: Biobase</code></pre>
+<pre><code>Welcome to Bioconductor
+
+    Vignettes contain introductory material; view with
+    &#39;browseVignettes()&#39;. To cite Bioconductor, see
+    &#39;citation(&quot;Biobase&quot;)&#39;, and for packages &#39;citation(&quot;pkgname&quot;)&#39;.</code></pre>
+<pre><code>
+Attaching package: &#39;AnnotationDbi&#39;</code></pre>
+<pre><code>The following object is masked from &#39;package:dplyr&#39;:
+
+    select</code></pre>
+<pre><code>The following object is masked from &#39;package:plyranges&#39;:
+
+    select</code></pre>
+<pre class="r"><code>library(missMethyl)</code></pre>
+<pre><code>Loading required package: IlluminaHumanMethylation450kanno.ilmn12.hg19</code></pre>
+<pre><code>Loading required package: minfi</code></pre>
+<pre><code>Loading required package: SummarizedExperiment</code></pre>
+<pre><code>Loading required package: MatrixGenerics</code></pre>
+<pre><code>Loading required package: matrixStats</code></pre>
+<pre><code>
+Attaching package: &#39;matrixStats&#39;</code></pre>
+<pre><code>The following objects are masked from &#39;package:Biobase&#39;:
+
+    anyMissing, rowMedians</code></pre>
+<pre><code>The following object is masked from &#39;package:dplyr&#39;:
+
+    count</code></pre>
+<pre><code>
+Attaching package: &#39;MatrixGenerics&#39;</code></pre>
+<pre><code>The following objects are masked from &#39;package:matrixStats&#39;:
+
+    colAlls, colAnyNAs, colAnys, colAvgsPerRowSet, colCollapse,
+    colCounts, colCummaxs, colCummins, colCumprods, colCumsums,
+    colDiffs, colIQRDiffs, colIQRs, colLogSumExps, colMadDiffs,
+    colMads, colMaxs, colMeans2, colMedians, colMins, colOrderStats,
+    colProds, colQuantiles, colRanges, colRanks, colSdDiffs, colSds,
+    colSums2, colTabulates, colVarDiffs, colVars, colWeightedMads,
+    colWeightedMeans, colWeightedMedians, colWeightedSds,
+    colWeightedVars, rowAlls, rowAnyNAs, rowAnys, rowAvgsPerColSet,
+    rowCollapse, rowCounts, rowCummaxs, rowCummins, rowCumprods,
+    rowCumsums, rowDiffs, rowIQRDiffs, rowIQRs, rowLogSumExps,
+    rowMadDiffs, rowMads, rowMaxs, rowMeans2, rowMedians, rowMins,
+    rowOrderStats, rowProds, rowQuantiles, rowRanges, rowRanks,
+    rowSdDiffs, rowSds, rowSums2, rowTabulates, rowVarDiffs, rowVars,
+    rowWeightedMads, rowWeightedMeans, rowWeightedMedians,
+    rowWeightedSds, rowWeightedVars</code></pre>
+<pre><code>The following object is masked from &#39;package:Biobase&#39;:
+
+    rowMedians</code></pre>
+<pre><code>Loading required package: Biostrings</code></pre>
+<pre><code>Loading required package: XVector</code></pre>
+<pre><code>
+Attaching package: &#39;Biostrings&#39;</code></pre>
+<pre><code>The following object is masked from &#39;package:base&#39;:
+
+    strsplit</code></pre>
+<pre><code>Loading required package: bumphunter</code></pre>
+<pre><code>Loading required package: foreach</code></pre>
+<pre><code>Loading required package: iterators</code></pre>
+<pre><code>Loading required package: parallel</code></pre>
+<pre><code>Loading required package: locfit</code></pre>
+<pre><code>locfit 1.5-9.12      2025-03-05</code></pre>
+<pre><code>Warning: replacing previous import &#39;S4Arrays::makeNindexFromArrayViewport&#39; by
+&#39;DelayedArray::makeNindexFromArrayViewport&#39; when loading &#39;HDF5Array&#39;</code></pre>
+<pre><code>Setting options(&#39;download.file.method.GEOquery&#39;=&#39;auto&#39;)</code></pre>
+<pre><code>Setting options(&#39;GEOquery.inmemory.gpl&#39;=FALSE)</code></pre>
+<pre><code>Loading required package: IlluminaHumanMethylationEPICanno.ilm10b4.hg19</code></pre>
+<pre><code>
+Attaching package: &#39;IlluminaHumanMethylationEPICanno.ilm10b4.hg19&#39;</code></pre>
+<pre><code>The following objects are masked from &#39;package:IlluminaHumanMethylation450kanno.ilmn12.hg19&#39;:
+
+    Islands.UCSC, Locations, Manifest, Other, SNPs.132CommonSingle,
+    SNPs.135CommonSingle, SNPs.137CommonSingle, SNPs.138CommonSingle,
+    SNPs.141CommonSingle, SNPs.142CommonSingle, SNPs.144CommonSingle,
+    SNPs.146CommonSingle, SNPs.147CommonSingle, SNPs.Illumina</code></pre>
+<pre><code>Loading required package: IlluminaHumanMethylationEPICv2anno.20a1.hg38</code></pre>
+<pre><code>
+Attaching package: &#39;IlluminaHumanMethylationEPICv2anno.20a1.hg38&#39;</code></pre>
+<pre><code>The following objects are masked from &#39;package:IlluminaHumanMethylationEPICanno.ilm10b4.hg19&#39;:
+
+    Islands.UCSC, Locations, Manifest, Other, SNPs.141CommonSingle,
+    SNPs.142CommonSingle, SNPs.144CommonSingle, SNPs.146CommonSingle,
+    SNPs.147CommonSingle, SNPs.Illumina</code></pre>
+<pre><code>The following objects are masked from &#39;package:IlluminaHumanMethylation450kanno.ilmn12.hg19&#39;:
+
+    Islands.UCSC, Locations, Manifest, Other, SNPs.141CommonSingle,
+    SNPs.142CommonSingle, SNPs.144CommonSingle, SNPs.146CommonSingle,
+    SNPs.147CommonSingle, SNPs.Illumina</code></pre>
+<pre><code></code></pre>
+<pre class="r"><code>seqs &lt;- seqnames(BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38)[1:22]
+
+cg_sites &lt;- lapply(seqs, function(x) {
+        cbind(data.frame(Biostrings::matchPattern(&quot;CG&quot;, BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38[[x]])),
+            seqnames = x
+        )}) %&gt;% bind_rows()</code></pre>
+<pre><code>Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored</code></pre>
+<pre class="r"><code>all_samples &lt;- readRDS(&quot;/researchers/caitlin.page/cf_nano/r_output/all_rrbs_samples.rds&quot;)
+optiles_all &lt;- readRDS(&quot;/researchers/caitlin.page/cf_nano/r_output/optiles_all.rds&quot;)
+dtu.optiles &lt;- readRDS(&quot;/researchers/caitlin.page/cf_nano/r_output/ts.gene_optiles.rds&quot;)
+dmrcate_seq_dmr &lt;- readRDS(&quot;/researchers/caitlin.page/cf_nano/r_output/dmr_encode_gm12878_k562.rds&quot;)
+
+all_samples_simp &lt;- all_samples %&gt;% distinct(seqnames, read_start, read_end, strand, sample, read_id, alpha, meth_pattern, num_meth, total)
+colnames(all_samples_simp)[2:3] &lt;- c(&quot;start&quot;, &quot;end&quot;)
+
+dtu_tiles_5_exon &lt;- readRDS(&quot;/researchers/caitlin.page/cf_nano/r_output/dtu_tiles_5_exon.rds&quot;)</code></pre>
+<div id="section" class="section level2">
+<h2></h2>
+<p>NEW ANALYSIS</p>
+<pre class="r"><code>all_samples_simp %&gt;%
+  ggplot(aes(x = as.factor(total), fill = as.factor(total))) +
+  geom_bar() +
+  theme(legend.position = &quot;none&quot;) +
+  theme_bw()</code></pre>
+<p><img src="figure/filteringReads.Rmd/unnamed-chunk-4-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>all_samples_simp %&gt;%
+  ggplot(aes(x = total)) +
+  geom_histogram()</code></pre>
+<pre><code>`stat_bin()` using `bins = 30`. Pick better value with `binwidth`.</code></pre>
 <p><img src="figure/filteringReads.Rmd/unnamed-chunk-5-1.png" width="672" style="display: block; margin: auto;" /></p>
-<pre class="r"><code>all_samples %&gt;% filter(alpha %in% c(0,1)) %&gt;%
-  ggplot(aes(x = as.factor(alpha), y= total, colour = as.factor(alpha))) +
-  geom_boxplot()</code></pre>
-<p><img src="figure/filteringReads.Rmd/unnamed-chunk-5-2.png" width="672" style="display: block; margin: auto;" /></p>
-<pre class="r"><code>all_samples %&gt;% filter(alpha %in% c(0,1)) %&gt;%
-  ggplot(aes(x = as.factor(alpha), y= log2(total), colour = as.factor(alpha))) +
-  geom_boxplot()</code></pre>
-<p><img src="figure/filteringReads.Rmd/unnamed-chunk-5-3.png" width="672" style="display: block; margin: auto;" /></p>
-<pre class="r"><code>all_samples %&gt;% filter(alpha %in% c(0,1), total &gt;= 3) %&gt;%
-  ggplot(aes(x = log2(total), colour = as.factor(alpha))) +
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-5-1">
+Past versions of unnamed-chunk-5-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-5-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/7b26a6a65431ea468284db98297d6a34260222fd/docs/figure/filteringReads.Rmd/unnamed-chunk-5-1.png" target="_blank">7b26a6a</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-09-24
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<pre class="r"><code>all_samples_simp %&gt;%
+  ggplot(aes(x = alpha)) +
   geom_density()</code></pre>
 <p><img src="figure/filteringReads.Rmd/unnamed-chunk-6-1.png" width="672" style="display: block; margin: auto;" /></p>
-<pre class="r"><code>all_samples %&gt;% filter(alpha %in% c(0,1), total &gt;= 3) %&gt;%
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-6-1">
+Past versions of unnamed-chunk-6-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-6-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/7b26a6a65431ea468284db98297d6a34260222fd/docs/figure/filteringReads.Rmd/unnamed-chunk-6-1.png" target="_blank">7b26a6a</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-09-24
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<pre class="r"><code>all_samples_simp %&gt;% filter(total &gt;= 3) %&gt;%
+  ggplot(aes(x = alpha)) +
+  geom_density() +
+  theme_bw()</code></pre>
+<p><img src="figure/filteringReads.Rmd/unnamed-chunk-7-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-7-1">
+Past versions of unnamed-chunk-7-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-7-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/7b26a6a65431ea468284db98297d6a34260222fd/docs/figure/filteringReads.Rmd/unnamed-chunk-7-1.png" target="_blank">7b26a6a</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-09-24
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<pre class="r"><code>all_samples_simp %&gt;% mutate(min_3 = ifelse(total &gt;= 3, TRUE, FALSE)) %&gt;%
+  ggplot(aes(x = alpha, colour = min_3)) +
+  geom_density() +
+  theme_bw()</code></pre>
+<p><img src="figure/filteringReads.Rmd/unnamed-chunk-8-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-8-1">
+Past versions of unnamed-chunk-8-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-8-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/7b26a6a65431ea468284db98297d6a34260222fd/docs/figure/filteringReads.Rmd/unnamed-chunk-8-1.png" target="_blank">7b26a6a</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-09-24
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<pre class="r"><code>all_samples_simp %&gt;% mutate(min_3 = ifelse(total &gt;= 3, TRUE, FALSE)) %&gt;%
+  ggplot(aes(x = alpha, fill = min_3)) +
+  geom_histogram(alpha = 0.2) +
+  theme_bw()</code></pre>
+<pre><code>`stat_bin()` using `bins = 30`. Pick better value with `binwidth`.</code></pre>
+<p><img src="figure/filteringReads.Rmd/unnamed-chunk-9-1.png" width="672" style="display: block; margin: auto;" />
+* don’t like plot</p>
+<pre class="r"><code>all_samples_simp %&gt;% mutate(min_3 = ifelse(total &gt;= 3, TRUE, FALSE)) %&gt;% filter(alpha %in% c(0, 0.5, 1)) %&gt;%
+  group_by(min_3, alpha) %&gt;% summarise(n=n()) %&gt;% ungroup() %&gt;% group_by(alpha) %&gt;% mutate(prop_alpha_filt = n/sum(n))</code></pre>
+<pre><code>`summarise()` has grouped output by &#39;min_3&#39;. You can override using the
+`.groups` argument.</code></pre>
+<pre><code># A tibble: 6 × 4
+# Groups:   alpha [3]
+  min_3 alpha       n prop_alpha_filt
+  &lt;lgl&gt; &lt;dbl&gt;   &lt;int&gt;           &lt;dbl&gt;
+1 FALSE   0   4867168           0.381
+2 FALSE   0.5 2172126           0.820
+3 FALSE   1   4765092           0.634
+4 TRUE    0   7923057           0.619
+5 TRUE    0.5  477644           0.180
+6 TRUE    1   2755592           0.366</code></pre>
+<pre class="r"><code>all_samples_simp %&gt;% mutate(min_3 = ifelse(total &gt;= 3, TRUE, FALSE)) %&gt;%
+  ggplot(aes(x = as.factor(total), fill = min_3)) +
+  geom_bar() +
+  theme_bw()</code></pre>
+<p><img src="figure/filteringReads.Rmd/unnamed-chunk-11-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>all_samples_simp %&gt;% mutate(min_3 = ifelse(total &gt;= 3, TRUE, FALSE)) %&gt;%
+  ggplot(aes(x = as.factor(alpha), fill = min_3)) +
+  geom_bar() +
+  theme_bw()</code></pre>
+<p><img src="figure/filteringReads.Rmd/unnamed-chunk-12-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-12-1">
+Past versions of unnamed-chunk-12-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-12-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/7b26a6a65431ea468284db98297d6a34260222fd/docs/figure/filteringReads.Rmd/unnamed-chunk-12-1.png" target="_blank">7b26a6a</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-09-24
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<div id="dtu-on-filtered-to-compare" class="section level1">
+<h1>DTU on filtered to compare</h1>
+<ul>
+<li>also add to function to have the delta</li>
+</ul>
+<pre class="r"><code>optiles_all[1:5,]</code></pre>
+<pre><code>  seqnames  start    end             region_id width
+1     chr1  10497  10796   chrchr1:10497-10796   300
+2     chr1 586197 586496 chrchr1:586197-586496   300
+3     chr1 629882 630181 chrchr1:629882-630181   300
+4     chr1 634613 634912 chrchr1:634613-634912   300
+5     chr1 779661 779960 chrchr1:779661-779960   300</code></pre>
+<pre class="r"><code>all_samples_simp %&gt;% distinct(sample)</code></pre>
+<pre><code>  sample
+1     b1
+2     b2
+3   cml1
+4   cml2</code></pre>
+<pre class="r"><code>bin_delta &lt;- find_overlaps(as_granges(all_samples), as_granges(optiles_all)) %&gt;% data.frame() %&gt;%
+  distinct(sample, read_id, read_start, read_end, alpha, region_id) %&gt;% 
+    mutate(alpha_group = case_when(alpha &lt; 0.2 ~ &quot;a &lt; 0.2&quot;,
+                                alpha &gt; 0.8 ~ &quot;a &gt; 0.8&quot;,
+                                alpha &gt;= 0.2 &amp; alpha &lt;= 0.4 ~ &quot;0.2 &lt;= a &lt;= 0.4&quot;,
+                                alpha &gt; 0.4 &amp; alpha &lt; 0.6 ~ &quot;0.4 &lt; a &lt; 0.6&quot;,
+                                TRUE ~ &quot;0.6 &lt;= a &lt;= 0.8&quot;)) %&gt;%
+  mutate(transcript = paste0(region_id, &quot;_&quot;, alpha_group)) %&gt;% mutate(sample_type = ifelse(sample %in% c(&quot;b1&quot;, &quot;b2&quot;), &quot;B&quot;, &quot;CML&quot;)) %&gt;%
+  group_by(region_id, sample_type) %&gt;% mutate(mean_alpha = mean(alpha)) %&gt;% ungroup() %&gt;% distinct(region_id, sample_type, mean_alpha) %&gt;% .[order(.$region_id),]
+
+bin_delta &lt;- bin_delta %&gt;% pivot_wider(names_from = sample_type, values_from = mean_alpha) %&gt;% mutate(delta_b_minus_cml = B - CML)</code></pre>
+<ul>
+<li>wait there are bins that don’t have data in both?? - I thought I
+fixed my bins??</li>
+</ul>
+<p>(later problem)</p>
+<pre class="r"><code>bin_delta_min3 &lt;- find_overlaps(as_granges(filter(all_samples, total &gt;= 3)), as_granges(optiles_all)) %&gt;% data.frame() %&gt;%
+  distinct(sample, read_id, read_start, read_end, alpha, region_id) %&gt;% 
+    mutate(alpha_group = case_when(alpha &lt; 0.2 ~ &quot;a &lt; 0.2&quot;,
+                                alpha &gt; 0.8 ~ &quot;a &gt; 0.8&quot;,
+                                alpha &gt;= 0.2 &amp; alpha &lt;= 0.4 ~ &quot;0.2 &lt;= a &lt;= 0.4&quot;,
+                                alpha &gt; 0.4 &amp; alpha &lt; 0.6 ~ &quot;0.4 &lt; a &lt; 0.6&quot;,
+                                TRUE ~ &quot;0.6 &lt;= a &lt;= 0.8&quot;)) %&gt;%
+  mutate(transcript = paste0(region_id, &quot;_&quot;, alpha_group)) %&gt;% mutate(sample_type = ifelse(sample %in% c(&quot;b1&quot;, &quot;b2&quot;), &quot;B&quot;, &quot;CML&quot;)) %&gt;%
+  group_by(region_id, sample_type) %&gt;% mutate(mean_alpha = mean(alpha)) %&gt;% ungroup() %&gt;% distinct(region_id, sample_type, mean_alpha) %&gt;% .[order(.$region_id),]
+
+bin_delta_min3 &lt;- bin_delta_min3 %&gt;% pivot_wider(names_from = sample_type, values_from = mean_alpha) %&gt;% mutate(delta_b_minus_cml = B - CML)</code></pre>
+<pre class="r"><code>dtu_function &lt;- function(all_samples, optiles_all, num_groups = 5) {
+  dtu_optile &lt;- find_overlaps(as_granges(all_samples), as_granges(optiles_all)) %&gt;% data.frame() %&gt;%
+  distinct(sample, read_id, read_start, read_end, alpha, region_id) 
+  
+  if(num_groups == 5) {
+  dtu_optile &lt;- dtu_optile %&gt;% 
+    mutate(alpha_group = case_when(alpha &lt; 0.2 ~ &quot;a &lt; 0.2&quot;,
+                                alpha &gt; 0.8 ~ &quot;a &gt; 0.8&quot;,
+                                alpha &gt;= 0.2 &amp; alpha &lt;= 0.4 ~ &quot;0.2 &lt;= a &lt;= 0.4&quot;,
+                                alpha &gt; 0.4 &amp; alpha &lt; 0.6 ~ &quot;0.4 &lt; a &lt; 0.6&quot;,
+                                TRUE ~ &quot;0.6 &lt;= a &lt;= 0.8&quot;))
+  } else if(num_groups == 3) {
+  dtu_optile &lt;- dtu_optile %&gt;% 
+    mutate(alpha_group = case_when(alpha &lt; 0.34 ~ &quot;a &lt; 0.34&quot;,
+                                alpha &gt; 0.65 ~ &quot;a &gt; 0.65&quot;,
+                                TRUE ~ &quot;0.34 &lt;= a &lt;= 0.65&quot;))
+  } else if(num_groups == 4) {
+  dtu_optile &lt;- dtu_optile %&gt;% 
+    mutate(alpha_group = case_when(alpha &lt;= 0.25 ~ &quot;a &lt;= 0.25&quot;,
+                                alpha &gt;= 0.8 ~ &quot;a &gt;= 0.75&quot;,
+                                alpha &gt; 0.25 &amp; alpha &lt;= 0.5 ~ &quot;0.25 &lt;= a &lt;= 0.5&quot;,
+                                TRUE ~ &quot;0.5 &lt; a &lt; 0.75&quot;))
+}
+
+dtu_optile &lt;- dtu_optile %&gt;% 
+  mutate(transcript = paste0(region_id, &quot;_&quot;, alpha_group)) %&gt;%
+  group_by(sample, transcript) %&gt;%
+ summarise(transcript_count = n()) %&gt;% ungroup() %&gt;% data.frame()
+
+# build matrix of &quot;transcript&quot; counts - transcript rows, sample as columns
+dtu_optile &lt;- dtu_optile %&gt;% pivot_wider(names_from = sample, values_from = transcript_count)
+dtu_optile[is.na(dtu_optile)] &lt;- 0
+dtu_optile$gene_id &lt;- sub(&quot;_.*&quot;, &quot;&quot;, dtu_optile$transcript)
+
+# DTU analysis with edgeR
+## Alicia prefers gene method over Simes method (documentation slightly confusing about difference)
+y &lt;- DGEList(as.matrix(dtu_optile[,2:5]), group = c(1,1,2,2), genes = dtu_optile[,c(&quot;gene_id&quot;, &quot;transcript&quot;)])
+design &lt;- model.matrix(~ c(1,1,2,2), data = y$samples)
+fit &lt;- glmQLFit(y, design, robust=TRUE)
+ds &lt;- diffSpliceDGE(fit, coef = 2, geneid = &quot;gene_id&quot;, exonid = &quot;transcript&quot;)
+ts.gene_optiles &lt;- topSpliceDGE(ds, test = &quot;gene&quot;, number = Inf)
+
+# add info to results: get proportion counts
+gene_cg &lt;- find_overlaps(as_granges(optiles_all), as_granges(cg_sites)) %&gt;% data.frame() %&gt;%
+  group_by(region_id) %&gt;%
+  summarise(n_cg = n()) %&gt;%
+  ungroup() %&gt;% data.frame()
+fit$genes &lt;- fit$genes %&gt;% mutate(n_cg = gene_cg[match(.$gene_id, gene_cg$region_id), &quot;n_cg&quot;])
+rpk &lt;- y$counts/rep(fit$genes$n_cg/1000, times = ncol(y$counts))
+tpm_mat &lt;- sweep(rpk, 2, colSums(rpk)/1e6, &quot;/&quot;)
+tpm_mat &lt;- tpm_mat %&gt;% data.frame() %&gt;% mutate(id = dtu_optile$transcript, gene_id = dtu_optile$gene_id)
+
+tpm_mat &lt;- tpm_mat %&gt;%
+  group_by(gene_id) %&gt;%
+  mutate(prop_S1_gm = b1/sum(b1),
+         prop_S2_gm = b2/sum(b2),
+         prop_S3_k = cml1/sum(cml1),
+         prop_S4_k = cml2/sum(cml2)) %&gt;%
+  ungroup() %&gt;% data.frame()
+
+
+# add locations back in so compatible with plyranges stuff
+## this bit only applicable to OPTILES because of the way it structures the ID
+ts.gene_optiles &lt;- ts.gene_optiles %&gt;%
+  mutate(region_id = gene_id) %&gt;%
+  separate_wider_delim(gene_id, delim = &quot;:&quot;, names = c(&quot;seqnames&quot;, &quot;gene_id&quot;)) %&gt;%
+  mutate(seqnames = gsub(&quot;chrchr&quot;, &quot;chr&quot;, seqnames)) %&gt;%
+  separate_wider_delim(gene_id, delim = &quot;-&quot;, names = c(&quot;start&quot;, &quot;end&quot;))
+ts.gene_optiles$start &lt;- as.double(ts.gene_optiles$start)
+ts.gene_optiles$end &lt;- as.double(ts.gene_optiles$end)
+ts.gene_optiles$dtu_rank &lt;- 1:nrow(ts.gene_optiles)
+ts.gene_optiles
+}
+
+dtu_tiles_filt_min3 &lt;- dtu_function(filter(all_samples, total &gt;= 3), optiles_all, 5)</code></pre>
+<pre><code>`summarise()` has grouped output by &#39;sample&#39;. You can override using the
+`.groups` argument.</code></pre>
+<pre><code>Total number of exons:  326261 
+Total number of genes:  164678 
+Number of genes with 1 exon:  89450 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 </code></pre>
+<pre class="r"><code>dtu_tiles_filt_min3[1:5,]</code></pre>
+<pre><code># A tibble: 5 × 9
+  seqnames     start      end NExons gene.F  P.Value      FDR region_id dtu_rank
+  &lt;chr&gt;        &lt;dbl&gt;    &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;    &lt;dbl&gt;    &lt;dbl&gt; &lt;chr&gt;        &lt;int&gt;
+1 chr8      98293689   9.83e7      5   199. 4.99e-23 3.75e-18 chrchr8:…        1
+2 chr19      1749606   1.75e6      5   179. 2.83e-22 8.57e-18 chrchr19…        2
+3 chr7     128031118   1.28e8      5   195. 3.42e-22 8.57e-18 chrchr7:…        3
+4 chr2      25215999   2.52e7      5   199. 5.17e-22 9.73e-18 chrchr2:…        4
+5 chr5     132825736   1.33e8      5   154. 1.11e-21 1.68e-17 chrchr5:…        5</code></pre>
+<pre class="r"><code>ggVennDiagram(list(all = filter(dtu.optiles, FDR &lt; 0.05)$region_id, 
+                   min_3 = filter(dtu_tiles_filt_min3, FDR &lt; 0.05)$region_id))</code></pre>
+<pre><code>Warning in geom_label(aes(label = .data[[label]]), data = region_label, :
+Ignoring unknown parameters: `linewidth`</code></pre>
+<p><img src="figure/filteringReads.Rmd/unnamed-chunk-19-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>rbind(filter(dtu.optiles, FDR &lt; 0.05) %&gt;% mutate(type = &quot;all&quot;), filter(dtu_tiles_filt_min3, FDR &lt; 0.05) %&gt;% mutate(type = &quot;min_3&quot;)) %&gt;% distinct(region_id, type, dtu_rank) %&gt;%
+  pivot_wider(names_from = type, values_from = dtu_rank) %&gt;%
+  ggplot(aes(x = all, y = min_3)) +
+  geom_point(alpha = 0.3)</code></pre>
+<pre><code>Warning: Removed 21229 rows containing missing values or values outside the scale range
+(`geom_point()`).</code></pre>
+<p><img src="figure/filteringReads.Rmd/unnamed-chunk-20-1.png" width="672" style="display: block; margin: auto;" />
+* I’m happy to say that those are correlated, which is good it’s not
+pulling out crazy stuff</p>
+<pre class="r"><code>txdb_genes &lt;- genes(TxDb.Hsapiens.UCSC.hg19.knownGene)</code></pre>
+<pre><code>  403 genes were dropped because they have exons located on both strands
+  of the same reference sequence or on more than one reference sequence,
+  so cannot be represented by a single genomic range.
+  Use &#39;single.strand.genes.only=FALSE&#39; to get all the genes in a
+  GRangesList object, or use suppressMessages() to suppress this message.</code></pre>
+<pre class="r"><code>bin_delta &lt;- data.frame(bin_delta)
+bin_delta_min3 &lt;- data.frame(bin_delta_min3)</code></pre>
+<pre class="r"><code>dtu_filt_and_all &lt;- rbind(dtu.optiles %&gt;% mutate(type = &quot;all&quot;, delta_b_minus_cml = bin_delta[match(.$region_id, bin_delta$region_id), &quot;delta_b_minus_cml&quot;]), 
+                          dtu_tiles_filt_min3 %&gt;% 
+                            filter(FDR &lt; 0.05) %&gt;% mutate(type = &quot;min_3&quot;, delta_b_minus_cml = bin_delta_min3[match(.$region_id, bin_delta_min3$region_id), &quot;delta_b_minus_cml&quot;]))</code></pre>
+<pre class="r"><code>dtu_filt_and_all %&gt;%
+  ggplot(aes(x = delta_b_minus_cml, y = -log10(FDR), colour = type)) +
+  geom_point(alpha = 0.3)</code></pre>
+<pre><code>Warning: Removed 30612 rows containing missing values or values outside the scale range
+(`geom_point()`).</code></pre>
+<p><img src="figure/filteringReads.Rmd/unnamed-chunk-24-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>dtu_filt_and_all %&gt;% filter(type == &quot;all&quot;) %&gt;%
+  ggplot(aes(x = delta_b_minus_cml, y = -log10(FDR))) +
+  geom_point(alpha = 0.3)</code></pre>
+<pre><code>Warning: Removed 30612 rows containing missing values or values outside the scale range
+(`geom_point()`).</code></pre>
+<p><img src="figure/filteringReads.Rmd/unnamed-chunk-25-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>dtu_filt_and_all %&gt;% filter(type == &quot;min_3&quot;) %&gt;%
+  ggplot(aes(x = delta_b_minus_cml, y = -log10(FDR))) +
+  geom_point(alpha = 0.3) +
+  geom_hline(yintercept = 2, colour = &quot;red&quot;, linetype = &quot;dashed&quot;)</code></pre>
+<p><img src="figure/filteringReads.Rmd/unnamed-chunk-26-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>dtu_filt_and_all %&gt;% filter(type == &quot;all&quot;) %&gt;%
+  ggplot(aes(x = delta_b_minus_cml)) +
+  geom_density()</code></pre>
+<pre><code>Warning: Removed 30612 rows containing non-finite outside the scale range
+(`stat_density()`).</code></pre>
+<p><img src="figure/filteringReads.Rmd/unnamed-chunk-27-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>dtu_filt_and_all %&gt;% filter(type == &quot;all&quot;) %&gt;%
+  ggplot(aes(x = delta_b_minus_cml)) +
+  geom_histogram(bins = 50)</code></pre>
+<pre><code>Warning: Removed 30612 rows containing non-finite outside the scale range
+(`stat_bin()`).</code></pre>
+<p><img src="figure/filteringReads.Rmd/unnamed-chunk-27-2.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>dtu_filt_and_all %&gt;% filter(type == &quot;all&quot;) %&gt;% filter(FDR &lt; 0.05) %&gt;%
+  ggplot(aes(x = delta_b_minus_cml)) +
+  geom_density()</code></pre>
+<p><img src="figure/filteringReads.Rmd/unnamed-chunk-28-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>dtu_filt_and_all %&gt;% filter(type == &quot;all&quot;) %&gt;% filter(FDR &lt; 0.05) %&gt;%
+  ggplot(aes(x = delta_b_minus_cml)) +
+  geom_histogram(bins = 50)</code></pre>
+<p><img src="figure/filteringReads.Rmd/unnamed-chunk-28-2.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>dtu_filt_and_all %&gt;% filter(type == &quot;min_3&quot;) %&gt;% 
+  ggplot(aes(x = delta_b_minus_cml)) +
+  geom_density()</code></pre>
+<p><img src="figure/filteringReads.Rmd/unnamed-chunk-29-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>dtu_filt_and_all %&gt;% filter(type == &quot;min_3&quot;) %&gt;%
+  ggplot(aes(x = delta_b_minus_cml)) +
+  geom_histogram(bins = 50)</code></pre>
+<p><img src="figure/filteringReads.Rmd/unnamed-chunk-29-2.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>dtu_filt_and_all %&gt;% filter(type == &quot;min_3&quot;) %&gt;% filter(FDR &lt; 0.05) %&gt;%
+  ggplot(aes(x = delta_b_minus_cml)) +
+  geom_density()</code></pre>
+<p><img src="figure/filteringReads.Rmd/unnamed-chunk-30-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>dtu_filt_and_all %&gt;% filter(type == &quot;min_3&quot;) %&gt;% filter(FDR &lt; 0.05) %&gt;%
+  ggplot(aes(x = delta_b_minus_cml)) +
+  geom_histogram(bins = 50)</code></pre>
+<p><img src="figure/filteringReads.Rmd/unnamed-chunk-30-2.png" width="672" style="display: block; margin: auto;" /></p>
+<div id="section-1" class="section level7">
+<p class="heading"></p>
+</div>
+</div>
+<div id="old-analysis" class="section level1">
+<h1>OLD ANALYSIS</h1>
+<ul>
+<li>this was originally done on the cell free data</li>
+<li>hence extra code about read length and healthy/cancer</li>
+</ul>
+<p>*rest can rerun with rrbs data</p>
+<div id="introduction" class="section level2">
+<h2>Introduction</h2>
+<pre class="r"><code>all_samples_simp %&gt;% filter(alpha == 0) %&gt;% .$total %&gt;% summary()</code></pre>
+<pre><code>   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+  1.000   2.000   3.000   3.548   5.000  25.000 </code></pre>
+<pre class="r"><code>all_samples_simp %&gt;% filter(alpha == 1) %&gt;% .$total %&gt;% summary()</code></pre>
+<pre><code>   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+  1.000   1.000   2.000   2.346   3.000  25.000 </code></pre>
+<pre class="r"><code>all_samples_simp %&gt;% filter(alpha == 0, total &gt;= 3) %&gt;% .$total %&gt;% summary()</code></pre>
+<pre><code>   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+   3.00    3.00    5.00    4.82    6.00   25.00 </code></pre>
+<pre class="r"><code>all_samples_simp %&gt;% filter(alpha == 1, total &gt;= 3) %&gt;% .$total %&gt;% summary()</code></pre>
+<pre><code>   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+  3.000   3.000   3.000   3.878   4.000  25.000 </code></pre>
+<pre class="r"><code>all_samples_simp %&gt;% filter(alpha &lt;= 0.2) %&gt;% .$total %&gt;% summary()</code></pre>
+<pre><code>   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+  1.000   2.000   3.000   3.752   5.000  25.000 </code></pre>
+<pre class="r"><code>all_samples_simp %&gt;% filter(alpha &gt;= 0.8) %&gt;% .$total %&gt;% summary()</code></pre>
+<pre><code>   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+  1.000   1.000   2.000   2.634   3.000  25.000 </code></pre>
+<pre class="r"><code>all_samples_simp %&gt;% filter(alpha &lt;= 0.2, total &gt;= 3) %&gt;% .$total %&gt;% summary()</code></pre>
+<pre><code>   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+  3.000   4.000   5.000   4.983   6.000  25.000 </code></pre>
+<pre class="r"><code>all_samples_simp %&gt;% filter(alpha &gt;= 0.8, total &gt;= 3) %&gt;% .$total %&gt;% summary()</code></pre>
+<pre><code>   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+  3.000   3.000   4.000   4.276   5.000  25.000 </code></pre>
+<pre class="r"><code>all_samples_simp %&gt;% filter(alpha %in% c(0,1)) %&gt;%
+  ggplot(aes(x = log2(total), colour = as.factor(alpha))) +
+  geom_density()</code></pre>
+<p><img src="figure/filteringReads.Rmd/unnamed-chunk-33-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>all_samples_simp %&gt;% filter(alpha %in% c(0,1)) %&gt;%
   ggplot(aes(x = as.factor(alpha), y= total, colour = as.factor(alpha))) +
   geom_boxplot()</code></pre>
-<p><img src="figure/filteringReads.Rmd/unnamed-chunk-6-2.png" width="672" style="display: block; margin: auto;" /></p>
-<pre class="r"><code>all_samples %&gt;% filter(alpha %in% c(0,1), total &gt;= 3) %&gt;%
+<p><img src="figure/filteringReads.Rmd/unnamed-chunk-33-2.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>all_samples_simp %&gt;% filter(alpha %in% c(0,1)) %&gt;%
   ggplot(aes(x = as.factor(alpha), y= log2(total), colour = as.factor(alpha))) +
   geom_boxplot()</code></pre>
-<p><img src="figure/filteringReads.Rmd/unnamed-chunk-6-3.png" width="672" style="display: block; margin: auto;" />
+<p><img src="figure/filteringReads.Rmd/unnamed-chunk-33-3.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>all_samples_simp %&gt;% filter(alpha %in% c(0,1), total &gt;= 3) %&gt;%
+  ggplot(aes(x = log2(total), colour = as.factor(alpha))) +
+  geom_density()</code></pre>
+<p><img src="figure/filteringReads.Rmd/unnamed-chunk-34-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>all_samples_simp %&gt;% filter(alpha %in% c(0,1), total &gt;= 3) %&gt;%
+  ggplot(aes(x = as.factor(alpha), y= total, colour = as.factor(alpha))) +
+  geom_boxplot()</code></pre>
+<p><img src="figure/filteringReads.Rmd/unnamed-chunk-34-2.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>all_samples_simp %&gt;% filter(alpha %in% c(0,1), total &gt;= 3) %&gt;%
+  ggplot(aes(x = as.factor(alpha), y= log2(total), colour = as.factor(alpha))) +
+  geom_boxplot()</code></pre>
+<p><img src="figure/filteringReads.Rmd/unnamed-chunk-34-3.png" width="672" style="display: block; margin: auto;" />
 * filtering to reads with at least 3 cpgs evens out the median in the
 log2 boxplot for alpha groups</p>
-<pre class="r"><code>all_samples %&gt;% filter(alpha &gt;= 0.8 | alpha &lt;= 0.2) %&gt;% filter(total &gt;= 3) %&gt;% mutate(alpha_group = ifelse(alpha &gt;= 0.8, &quot;&gt;=0.8&quot;, &quot;&lt;=0.2&quot;)) %&gt;%
+<pre class="r"><code>all_samples_simp %&gt;% filter(alpha &gt;= 0.8 | alpha &lt;= 0.2) %&gt;% filter(total &gt;= 3) %&gt;% mutate(alpha_group = ifelse(alpha &gt;= 0.8, &quot;&gt;=0.8&quot;, &quot;&lt;=0.2&quot;)) %&gt;%
   ggplot(aes(x = log2(total), colour = as.factor(alpha_group))) +
   geom_density()</code></pre>
-<p><img src="figure/filteringReads.Rmd/unnamed-chunk-7-1.png" width="672" style="display: block; margin: auto;" /></p>
-<pre class="r"><code>all_samples %&gt;% filter(alpha &gt;= 0.8 | alpha &lt;= 0.2) %&gt;% filter(total &gt;= 3) %&gt;% mutate(alpha_group = ifelse(alpha &gt;= 0.8, &quot;&gt;=0.8&quot;, &quot;&lt;=0.2&quot;)) %&gt;%
+<p><img src="figure/filteringReads.Rmd/unnamed-chunk-35-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>all_samples_simp %&gt;% filter(alpha &gt;= 0.8 | alpha &lt;= 0.2) %&gt;% filter(total &gt;= 3) %&gt;% mutate(alpha_group = ifelse(alpha &gt;= 0.8, &quot;&gt;=0.8&quot;, &quot;&lt;=0.2&quot;)) %&gt;%
   ggplot(aes(x = as.factor(alpha_group), y= total, colour = as.factor(alpha_group))) +
   geom_boxplot()</code></pre>
-<p><img src="figure/filteringReads.Rmd/unnamed-chunk-7-2.png" width="672" style="display: block; margin: auto;" /></p>
-<pre class="r"><code>all_samples %&gt;% filter(alpha &gt;= 0.8 | alpha &lt;= 0.2) %&gt;% filter(total &gt;= 3) %&gt;% mutate(alpha_group = ifelse(alpha &gt;= 0.8, &quot;&gt;=0.8&quot;, &quot;&lt;=0.2&quot;)) %&gt;%
+<p><img src="figure/filteringReads.Rmd/unnamed-chunk-35-2.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>all_samples_simp %&gt;% filter(alpha &gt;= 0.8 | alpha &lt;= 0.2) %&gt;% filter(total &gt;= 3) %&gt;% mutate(alpha_group = ifelse(alpha &gt;= 0.8, &quot;&gt;=0.8&quot;, &quot;&lt;=0.2&quot;)) %&gt;%
   ggplot(aes(x = as.factor(alpha_group), y= log2(total), colour = as.factor(alpha_group))) +
   geom_boxplot()</code></pre>
-<p><img src="figure/filteringReads.Rmd/unnamed-chunk-7-3.png" width="672" style="display: block; margin: auto;" /></p>
-<pre class="r"><code>all_samples %&gt;% filter(alpha &gt;= 0.8 | alpha &lt;= 0.2) %&gt;% mutate(alpha_group = ifelse(alpha &gt;= 0.8, &quot;&gt;=0.8&quot;, &quot;&lt;=0.2&quot;)) %&gt;%
+<p><img src="figure/filteringReads.Rmd/unnamed-chunk-35-3.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>all_samples_simp %&gt;% filter(alpha &gt;= 0.8 | alpha &lt;= 0.2) %&gt;% mutate(alpha_group = ifelse(alpha &gt;= 0.8, &quot;&gt;=0.8&quot;, &quot;&lt;=0.2&quot;)) %&gt;%
   ggplot(aes(x = log2(total), colour = as.factor(alpha_group))) +
   geom_density()</code></pre>
-<p><img src="figure/filteringReads.Rmd/unnamed-chunk-8-1.png" width="672" style="display: block; margin: auto;" /></p>
-<pre class="r"><code>all_samples %&gt;% filter(alpha &gt;= 0.8 | alpha &lt;= 0.2) %&gt;% mutate(alpha_group = ifelse(alpha &gt;= 0.8, &quot;&gt;=0.8&quot;, &quot;&lt;=0.2&quot;)) %&gt;%
+<p><img src="figure/filteringReads.Rmd/unnamed-chunk-36-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>all_samples_simp %&gt;% filter(alpha &gt;= 0.8 | alpha &lt;= 0.2) %&gt;% mutate(alpha_group = ifelse(alpha &gt;= 0.8, &quot;&gt;=0.8&quot;, &quot;&lt;=0.2&quot;)) %&gt;%
   ggplot(aes(x = as.factor(alpha_group), y= total, colour = as.factor(alpha_group))) +
   geom_boxplot()</code></pre>
-<p><img src="figure/filteringReads.Rmd/unnamed-chunk-8-2.png" width="672" style="display: block; margin: auto;" /></p>
-<pre class="r"><code>all_samples %&gt;% filter(alpha &gt;= 0.8 | alpha &lt;= 0.2) %&gt;% mutate(alpha_group = ifelse(alpha &gt;= 0.8, &quot;&gt;=0.8&quot;, &quot;&lt;=0.2&quot;)) %&gt;%
+<p><img src="figure/filteringReads.Rmd/unnamed-chunk-36-2.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>all_samples_simp %&gt;% filter(alpha &gt;= 0.8 | alpha &lt;= 0.2) %&gt;% mutate(alpha_group = ifelse(alpha &gt;= 0.8, &quot;&gt;=0.8&quot;, &quot;&lt;=0.2&quot;)) %&gt;%
   ggplot(aes(x = as.factor(alpha_group), y= log2(total), colour = as.factor(alpha_group))) +
   geom_boxplot()</code></pre>
-<p><img src="figure/filteringReads.Rmd/unnamed-chunk-8-3.png" width="672" style="display: block; margin: auto;" />
+<p><img src="figure/filteringReads.Rmd/unnamed-chunk-36-3.png" width="672" style="display: block; margin: auto;" />
 * same thing with lower cutoff alpha: median num cpgs higher in 0.8 - is
 not present when you filter to min cpg = 3</p>
 <ul>
 <li>anyway this isn’t really saying anything - except I guess reads that
 are alpha = 0 are more likely to have less cpgs</li>
 </ul>
-<pre class="r"><code>t.test(filter(all_samples, alpha == 0)$total, filter(all_samples, alpha == 1)$total)</code></pre>
+<pre class="r"><code>t.test(filter(all_samples_simp, alpha == 0)$total, filter(all_samples_simp, alpha == 1)$total)</code></pre>
 <pre><code>
     Welch Two Sample t-test
 
-data:  filter(all_samples, alpha == 0)$total and filter(all_samples, alpha == 1)$total
-t = -100.32, df = 154826, p-value &lt; 2.2e-16
+data:  filter(all_samples_simp, alpha == 0)$total and filter(all_samples_simp, alpha == 1)$total
+t = 1532.5, df = 19922095, p-value &lt; 2.2e-16
 alternative hypothesis: true difference in means is not equal to 0
 95 percent confidence interval:
- -0.8228950 -0.7913578
+ 1.201154 1.204231
 sample estimates:
 mean of x mean of y 
- 1.897142  2.704268 </code></pre>
+ 3.548204  2.345511 </code></pre>
 <ul>
 <li>and to be shorter in length</li>
 </ul>
-<pre class="r"><code>t.test(filter(all_samples, alpha == 0)$read_length, filter(all_samples, alpha == 1)$read_length)</code></pre>
-<pre><code>
-    Welch Two Sample t-test
-
-data:  filter(all_samples, alpha == 0)$read_length and filter(all_samples, alpha == 1)$read_length
-t = -29.457, df = 187803, p-value &lt; 2.2e-16
-alternative hypothesis: true difference in means is not equal to 0
-95 percent confidence interval:
- -8.887748 -7.778797
-sample estimates:
-mean of x mean of y 
- 187.9531  196.2864 </code></pre>
+<pre class="r"><code>#t.test(filter(all_samples_simp, alpha == 0)$read_length, filter(all_samples_simp, alpha == 1)$read_length)</code></pre>
 <ul>
 <li>however the differences are small</li>
 </ul>
-<pre class="r"><code>t.test(filter(all_samples, alpha == 0, total &gt;= 3)$total, filter(all_samples, alpha == 1, total &gt;= 3)$total)</code></pre>
+<pre class="r"><code>t.test(filter(all_samples_simp, alpha == 0, total &gt;= 3)$total, filter(all_samples_simp, alpha == 1, total &gt;= 3)$total)</code></pre>
 <pre><code>
     Welch Two Sample t-test
 
-data:  filter(all_samples, alpha == 0, total &gt;= 3)$total and filter(all_samples, alpha == 1, total &gt;= 3)$total
-t = 10.345, df = 18281, p-value &lt; 2.2e-16
+data:  filter(all_samples_simp, alpha == 0, total &gt;= 3)$total and filter(all_samples_simp, alpha == 1, total &gt;= 3)$total
+t = 1019.1, df = 6723813, p-value &lt; 2.2e-16
 alternative hypothesis: true difference in means is not equal to 0
 95 percent confidence interval:
- 0.2676133 0.3927256
+ 0.9396258 0.9432471
 sample estimates:
 mean of x mean of y 
- 5.035558  4.705389 </code></pre>
-<pre class="r"><code>t.test(filter(all_samples, alpha == 0, total &gt;= 3)$read_length, filter(all_samples, alpha == 1, total &gt;= 3)$read_length)</code></pre>
-<pre><code>
-    Welch Two Sample t-test
-
-data:  filter(all_samples, alpha == 0, total &gt;= 3)$read_length and filter(all_samples, alpha == 1, total &gt;= 3)$read_length
-t = -7.208, df = 22498, p-value = 5.857e-13
-alternative hypothesis: true difference in means is not equal to 0
-95 percent confidence interval:
- -7.982804 -4.569466
-sample estimates:
-mean of x mean of y 
- 213.5701  219.8462 </code></pre>
+ 4.819737  3.878301 </code></pre>
+<pre class="r"><code>#t.test(filter(all_samples_simp, alpha == 0, total &gt;= 3)$read_length, filter(all_samples_simp, alpha == 1, total &gt;= 3)$read_length)</code></pre>
 <ul>
 <li>but because there’s so many reads - it’s significant even when
 filtering and the differences are even smaller</li>
 </ul>
 </div>
+</div>
 <div id="add-in-cancer-info" class="section level1">
 <h1>add in cancer info</h1>
-<pre class="r"><code>all_samples %&gt;% filter(alpha %in% c(0,1)) %&gt;%
-  ggplot(aes(x = as.factor(alpha), y= total, colour = type)) +
-  geom_boxplot()</code></pre>
-<p><img src="figure/filteringReads.Rmd/unnamed-chunk-12-1.png" width="672" style="display: block; margin: auto;" /></p>
-<pre class="r"><code>all_samples %&gt;% filter(alpha %in% c(0,1)) %&gt;%
-  ggplot(aes(x = as.factor(alpha), y= log2(total), colour = type)) +
-  geom_boxplot()</code></pre>
-<p><img src="figure/filteringReads.Rmd/unnamed-chunk-12-2.png" width="672" style="display: block; margin: auto;" /></p>
-<pre class="r"><code>all_samples %&gt;% filter(alpha %in% c(0,1), total &gt;= 3) %&gt;%
-  ggplot(aes(x = as.factor(alpha), y= total, colour = type)) +
-  geom_boxplot()</code></pre>
-<p><img src="figure/filteringReads.Rmd/unnamed-chunk-13-1.png" width="672" style="display: block; margin: auto;" /></p>
-<pre class="r"><code>all_samples %&gt;% filter(alpha %in% c(0,1), total &gt;= 3) %&gt;%
-  ggplot(aes(x = as.factor(alpha), y= log2(total), colour = type)) +
-  geom_boxplot()</code></pre>
-<p><img src="figure/filteringReads.Rmd/unnamed-chunk-13-2.png" width="672" style="display: block; margin: auto;" />
-* with all the data, alpha = 1 has a bigger distrib but that goes away
-when min cpg = 3 * healthy bigger distrib than luad - but median is
-basically the same (still might be stat sig)</p>
-<pre class="r"><code>t.test(filter(all_samples, alpha == 0, type == &quot;healthy&quot;)$total, filter(all_samples, alpha == 0, type == &quot;luad&quot;)$total)</code></pre>
-<pre><code>
-    Welch Two Sample t-test
-
-data:  filter(all_samples, alpha == 0, type == &quot;healthy&quot;)$total and filter(all_samples, alpha == 0, type == &quot;luad&quot;)$total
-t = 7.768, df = 45542, p-value = 8.142e-15
-alternative hypothesis: true difference in means is not equal to 0
-95 percent confidence interval:
- 0.1002490 0.1679114
-sample estimates:
-mean of x mean of y 
- 1.990812  1.856732 </code></pre>
-<pre class="r"><code>t.test(filter(all_samples, alpha == 1, type == &quot;healthy&quot;)$total, filter(all_samples, alpha == 1, type == &quot;luad&quot;)$total)</code></pre>
-<pre><code>
-    Welch Two Sample t-test
-
-data:  filter(all_samples, alpha == 1, type == &quot;healthy&quot;)$total and filter(all_samples, alpha == 1, type == &quot;luad&quot;)$total
-t = 17.451, df = 236345, p-value &lt; 2.2e-16
-alternative hypothesis: true difference in means is not equal to 0
-95 percent confidence interval:
- 0.1233577 0.1545725
-sample estimates:
-mean of x mean of y 
- 2.795723  2.656758 </code></pre>
+<p>all_samples %&gt;% filter(alpha %in% c(0,1)) %&gt;% ggplot(aes(x =
+as.factor(alpha), y= total, colour = type)) + geom_boxplot()</p>
+<p>all_samples %&gt;% filter(alpha %in% c(0,1)) %&gt;% ggplot(aes(x =
+as.factor(alpha), y= log2(total), colour = type)) + geom_boxplot()</p>
+<p>all_samples %&gt;% filter(alpha %in% c(0,1), total &gt;= 3) %&gt;%
+ggplot(aes(x = as.factor(alpha), y= total, colour = type)) +
+geom_boxplot()</p>
+<p>all_samples %&gt;% filter(alpha %in% c(0,1), total &gt;= 3) %&gt;%
+ggplot(aes(x = as.factor(alpha), y= log2(total), colour = type)) +
+geom_boxplot()</p>
+<ul>
+<li>with all the data, alpha = 1 has a bigger distrib but that goes away
+when min cpg = 3</li>
+<li>healthy bigger distrib than luad - but median is basically the same
+(still might be stat sig)</li>
+</ul>
+<p>t.test(filter(all_samples, alpha == 0, type == “healthy”)<span
+class="math inline">\(total, filter(all_samples, alpha == 0, type ==
+&quot;luad&quot;)\)</span>total)</p>
+<p>t.test(filter(all_samples, alpha == 1, type == “healthy”)<span
+class="math inline">\(total, filter(all_samples, alpha == 1, type ==
+&quot;luad&quot;)\)</span>total)</p>
 <br>
 <p>
 <button type="button" class="btn btn-default btn-workflowr btn-workflowr-sessioninfo" data-toggle="collapse" data-target="#workflowr-sessioninfo" style="display: block;">
@@ -897,7 +1552,7 @@ Session information
 <pre class="r"><code>sessionInfo()</code></pre>
 <pre><code>R version 4.4.1 (2024-06-14)
 Platform: x86_64-pc-linux-gnu
-Running under: Red Hat Enterprise Linux 9.5 (Plow)
+Running under: Red Hat Enterprise Linux 9.6 (Plow)
 
 Matrix products: default
 BLAS/LAPACK: FlexiBLAS OPENBLAS-OPENMP;  LAPACK version 3.9.0
@@ -914,56 +1569,121 @@ time zone: Australia/Melbourne
 tzcode source: system (glibc)
 
 attached base packages:
-[1] stats4    stats     graphics  grDevices datasets  utils     methods  
-[8] base     
+[1] parallel  stats4    stats     graphics  grDevices utils     datasets 
+[8] methods   base     
 
 other attached packages:
-[1] ggplot2_3.5.2        dplyr_1.1.4          plyranges_1.26.0    
-[4] GenomicRanges_1.58.0 GenomeInfoDb_1.42.3  IRanges_2.40.1      
-[7] S4Vectors_0.44.0     BiocGenerics_0.52.0  workflowr_1.7.1     
+ [1] missMethyl_1.40.3                                  
+ [2] IlluminaHumanMethylationEPICv2anno.20a1.hg38_1.0.0 
+ [3] IlluminaHumanMethylationEPICanno.ilm10b4.hg19_0.6.0
+ [4] IlluminaHumanMethylation450kanno.ilmn12.hg19_0.6.1 
+ [5] minfi_1.52.1                                       
+ [6] bumphunter_1.48.0                                  
+ [7] locfit_1.5-9.12                                    
+ [8] iterators_1.0.14                                   
+ [9] foreach_1.5.2                                      
+[10] Biostrings_2.74.1                                  
+[11] XVector_0.46.0                                     
+[12] SummarizedExperiment_1.36.0                        
+[13] MatrixGenerics_1.18.1                              
+[14] matrixStats_1.5.0                                  
+[15] TxDb.Hsapiens.UCSC.hg19.knownGene_3.2.2            
+[16] GenomicFeatures_1.58.0                             
+[17] AnnotationDbi_1.68.0                               
+[18] Biobase_2.66.0                                     
+[19] ggVennDiagram_1.5.7                                
+[20] OpTiles_0.1.0                                      
+[21] edgeR_4.4.2                                        
+[22] limma_3.62.2                                       
+[23] ggplot2_3.5.2                                      
+[24] dplyr_1.1.4                                        
+[25] stringr_1.5.1                                      
+[26] tidyr_1.3.1                                        
+[27] plyranges_1.26.0                                   
+[28] GenomicRanges_1.58.0                               
+[29] GenomeInfoDb_1.42.3                                
+[30] IRanges_2.40.1                                     
+[31] S4Vectors_0.44.0                                   
+[32] BiocGenerics_0.52.0                                
+[33] data.table_1.17.8                                  
+[34] annotatr_1.32.0                                    
 
 loaded via a namespace (and not attached):
- [1] SummarizedExperiment_1.36.0 gtable_0.3.6               
- [3] rjson_0.2.23                xfun_0.52                  
- [5] bslib_0.9.0                 processx_3.8.6             
- [7] Biobase_2.66.0              lattice_0.22-6             
- [9] callr_3.7.6                 generics_0.1.4             
-[11] vctrs_0.6.5                 tools_4.4.1                
-[13] ps_1.9.1                    bitops_1.0-9               
-[15] curl_6.4.0                  parallel_4.4.1             
-[17] tibble_3.3.0                pkgconfig_2.0.3            
-[19] Matrix_1.7-0                RColorBrewer_1.1-3         
-[21] lifecycle_1.0.4             GenomeInfoDbData_1.2.13    
-[23] farver_2.1.2                compiler_4.4.1             
-[25] stringr_1.5.1               git2r_0.36.2               
-[27] Rsamtools_2.22.0            Biostrings_2.74.1          
-[29] codetools_0.2-20            getPass_0.2-4              
-[31] httpuv_1.6.16               htmltools_0.5.8.1          
-[33] sass_0.4.10                 RCurl_1.98-1.17            
-[35] yaml_2.3.10                 later_1.4.2                
-[37] pillar_1.11.0               crayon_1.5.3               
-[39] jquerylib_0.1.4             whisker_0.4.1              
-[41] BiocParallel_1.40.2         cachem_1.1.0               
-[43] DelayedArray_0.32.0         abind_1.4-8                
-[45] tidyselect_1.2.1            digest_0.6.37              
-[47] stringi_1.8.7               restfulr_0.0.16            
-[49] labeling_0.4.3              rprojroot_2.1.0            
-[51] fastmap_1.2.0               grid_4.4.1                 
-[53] cli_3.6.5                   SparseArray_1.6.2          
-[55] magrittr_2.0.3              S4Arrays_1.6.0             
-[57] XML_3.99-0.18               withr_3.0.2                
-[59] scales_1.4.0                UCSC.utils_1.2.0           
-[61] promises_1.3.3              rmarkdown_2.29             
-[63] XVector_0.46.0              httr_1.4.7                 
-[65] matrixStats_1.5.0           evaluate_1.0.4             
-[67] knitr_1.50                  BiocIO_1.16.0              
-[69] rtracklayer_1.66.0          rlang_1.1.6                
-[71] Rcpp_1.1.0                  glue_1.8.0                 
-[73] BiocManager_1.30.26         renv_1.1.5                 
-[75] rstudioapi_0.17.1           jsonlite_2.0.0             
-[77] R6_2.6.1                    MatrixGenerics_1.18.1      
-[79] GenomicAlignments_1.42.0    fs_1.6.6                   
-[81] zlibbioc_1.52.0            </code></pre>
+  [1] splines_4.4.1                     later_1.4.2                      
+  [3] BiocIO_1.16.0                     bitops_1.0-9                     
+  [5] filelock_1.0.3                    tibble_3.3.0                     
+  [7] R.oo_1.27.1                       cellranger_1.1.0                 
+  [9] preprocessCore_1.68.0             XML_3.99-0.18                    
+ [11] lifecycle_1.0.4                   httr2_1.2.1                      
+ [13] rprojroot_2.1.0                   base64_2.0.2                     
+ [15] lattice_0.22-6                    MASS_7.3-60.2                    
+ [17] scrime_1.3.7                      magrittr_2.0.3                   
+ [19] sass_0.4.10                       rmarkdown_2.29                   
+ [21] BSgenome.Hsapiens.UCSC.hg38_1.4.5 jquerylib_0.1.4                  
+ [23] yaml_2.3.10                       httpuv_1.6.16                    
+ [25] askpass_1.2.1                     doRNG_1.8.6.3                    
+ [27] DBI_1.2.3                         RColorBrewer_1.1-3               
+ [29] abind_1.4-8                       zlibbioc_1.52.0                  
+ [31] quadprog_1.5-8                    purrr_1.1.0                      
+ [33] R.utils_2.13.0                    RCurl_1.98-1.17                  
+ [35] rappdirs_0.3.3                    git2r_0.36.2                     
+ [37] GenomeInfoDbData_1.2.13           rentrez_1.2.4                    
+ [39] genefilter_1.88.0                 annotate_1.84.0                  
+ [41] DelayedMatrixStats_1.28.1         codetools_0.2-20                 
+ [43] DelayedArray_0.32.0               xml2_1.4.0                       
+ [45] tidyselect_1.2.1                  UCSC.utils_1.2.0                 
+ [47] farver_2.1.2                      beanplot_1.3.1                   
+ [49] BiocFileCache_2.14.0              illuminaio_0.48.0                
+ [51] GenomicAlignments_1.42.0          jsonlite_2.0.0                   
+ [53] multtest_2.62.0                   survival_3.6-4                   
+ [55] bbmle_1.0.25.1                    tools_4.4.1                      
+ [57] progress_1.2.3                    Rcpp_1.1.0                       
+ [59] glue_1.8.0                        gridExtra_2.3                    
+ [61] SparseArray_1.6.2                 xfun_0.52                        
+ [63] qvalue_2.38.0                     HDF5Array_1.34.0                 
+ [65] withr_3.0.2                       numDeriv_2016.8-1.1              
+ [67] BiocManager_1.30.26               fastmap_1.2.0                    
+ [69] rhdf5filters_1.18.1               openssl_2.3.3                    
+ [71] digest_0.6.37                     R6_2.6.1                         
+ [73] gtools_3.9.5                      dichromat_2.0-0.1                
+ [75] biomaRt_2.62.1                    RSQLite_2.4.2                    
+ [77] R.methodsS3_1.8.2                 utf8_1.2.6                       
+ [79] generics_0.1.4                    rtracklayer_1.66.0               
+ [81] prettyunits_1.2.0                 httr_1.4.7                       
+ [83] S4Arrays_1.6.0                    whisker_0.4.1                    
+ [85] regioneR_1.38.0                   pkgconfig_2.0.3                  
+ [87] gtable_0.3.6                      blob_1.2.4                       
+ [89] siggenes_1.80.0                   workflowr_1.7.1                  
+ [91] htmltools_0.5.8.1                 scales_1.4.0                     
+ [93] png_0.1-8                         knitr_1.50                       
+ [95] rstudioapi_0.17.1                 tzdb_0.5.0                       
+ [97] reshape2_1.4.4                    rjson_0.2.23                     
+ [99] nlme_3.1-164                      coda_0.19-4.1                    
+[101] curl_6.4.0                        org.Hs.eg.db_3.20.0              
+[103] bdsmatrix_1.3-7                   cachem_1.1.0                     
+[105] rhdf5_2.50.2                      BiocVersion_3.20.0               
+[107] restfulr_0.0.16                   GEOquery_2.74.0                  
+[109] pillar_1.11.0                     grid_4.4.1                       
+[111] reshape_0.8.10                    vctrs_0.6.5                      
+[113] promises_1.3.3                    dbplyr_2.5.0                     
+[115] xtable_1.8-8                      evaluate_1.0.4                   
+[117] readr_2.1.5                       mvtnorm_1.3-6                    
+[119] cli_3.6.5                         compiler_4.4.1                   
+[121] Rsamtools_2.22.0                  rlang_1.1.6                      
+[123] crayon_1.5.3                      rngtools_1.5.2                   
+[125] labeling_0.4.3                    nor1mix_1.3-3                    
+[127] mclust_6.1.2                      emdbook_1.3.14                   
+[129] plyr_1.8.9                        fs_1.6.6                         
+[131] stringi_1.8.7                     BiocParallel_1.40.2              
+[133] Matrix_1.7-0                      BSgenome_1.74.0                  
+[135] hms_1.1.3                         easyGgplot2_1.0.0.9000           
+[137] patchwork_1.3.2                   sparseMatrixStats_1.18.0         
+[139] bit64_4.6.0-1                     Rhdf5lib_1.28.0                  
+[141] KEGGREST_1.46.0                   methylKit_1.32.1                 
+[143] statmod_1.5.1                     fastseg_1.52.0                   
+[145] AnnotationHub_3.14.0              memoise_2.0.1                    
+[147] bslib_0.9.0                       bit_4.6.0                        
+[149] readxl_1.4.5                     </code></pre>
 </div>
 </div>
 </div>
