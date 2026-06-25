@@ -356,3 +356,13 @@ dtu.optiles <- readRDS("/researchers/caitlin.page/cf_nano/r_output/ts.gene_optil
 dtu.gene <- readRDS("/researchers/caitlin.page/cf_nano/r_output/ts.gene.gene.rds")
 ```
 
+
+
+# more dtu objects
+
+```{r}
+saveRDS(dtu_tiles_5_beta, "/researchers/caitlin.page/cf_nano/r_output/dtu_tiles_5_beta.rds")
+saveRDS(dtu_tiles_5_exon, "/researchers/caitlin.page/cf_nano/r_output/dtu_tiles_5_exon.rds")
+saveRDS(dtu_tiles_5_mean_alpha, "/researchers/caitlin.page/cf_nano/r_output/dtu_tiles_5_mean_alpha.rds")
+```
+
