@@ -34,3 +34,7 @@ editor_options:
 * run git config pull.rebase false
 * then was able to pull 
 * and then push
+
+
+# 2026
+* pivot_wider/longer has replaced melt
