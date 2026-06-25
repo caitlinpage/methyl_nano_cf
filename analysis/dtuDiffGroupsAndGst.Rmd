@@ -190,10 +190,14 @@ txdb_genes <- genes(TxDb.Hsapiens.UCSC.hg19.knownGene)
 
 
 ```{r}
-genes_5 <- find_overlaps(txdb_genes, as_granges(dtu.optiles)) %>% data.frame()
+genes_5 <- find_overlaps(as_granges(txdb_genes), as_granges(dtu.optiles)) %>% data.frame()
 genes_4 <- find_overlaps(txdb_genes, as_granges(dtu_tiles_4)) %>% data.frame()
 genes_3 <- find_overlaps(txdb_genes, as_granges(dtu_tiles_3)) %>% data.frame()
 genes_dmr <- find_overlaps(txdb_genes, as_granges(dmrcate_seq_dmr)) %>% data.frame()
+```
+
+```{r}
+genes_5_filt <- find_overlaps(as_granges(txdb_genes), as_granges(dtu_tiles_filt_min3))
 ```
 
 
@@ -460,6 +464,24 @@ run_test <- list(
 
 gst_5 <- run_miss_methyl_b(run_test, method = "Wallenius")
 ```
+abc
+
+```{r}
+source("../code/runGST.R")
+gene_try <- genes_5_filt %>% filter(FDR < 0.05)
+gene_info <- txdb_genes %>% mutate(is_de = ifelse(gene_id %in% gene_try$gene_id, 1, 0)) %>% distinct(gene_id, num_cg, is_de, width)
+
+run_test <- list(
+  sig.eg = gene_info %>% filter(is_de == 1) %>% .$gene_id,
+  universe = gene_info$gene_id,
+  freq = gene_info$num_cg,
+  de = gene_info$is_de,
+  equiv = gene_info$num_cg
+)
+
+gst_5_filt <- run_miss_methyl_b(run_test, method = "Wallenius")
+```
+
 
 
 ```{r}
