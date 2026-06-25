@@ -18,6 +18,377 @@ library(dplyr)
 library(ggplot2)
 ```
 
+# NEW ANALYSIS
+
+* coverage in tiles
+
+```{r}
+optiles_all <- optiles_all %>% group_by(seqnames) %>% mutate(num = 1:n()) %>% ungroup() %>% mutate(t_num = 1:n())
+```
+
+```{r}
+all_samples_simp
+```
+
+
+```{r}
+tiles_reads <- find_overlaps(as_granges(optiles_all), as_granges(all_samples_simp)) %>% data.frame()
+```
+
+```{r}
+optiles_all %>% filter(seqnames == "chr2")
+```
+
+
+```{r}
+tiles_reads %>% filter(t_num < 6671) %>% group_by(region_id, t_num, sample) %>% summarise(coverage = n()) %>% ungroup() %>% 
+  ggplot(aes(x = t_num, y = coverage)) +
+  geom_line()
+```
+* tile coverage in chrom1
+
+```{r}
+tiles_reads %>% filter(t_num < 6671) %>% group_by(region_id, t_num, sample) %>% summarise(coverage = n()) %>% ungroup() %>% 
+  ggplot(aes(x = t_num, y = coverage)) +
+  geom_line() +
+  facet_wrap(~ sample)
+```
+
+
+```{r}
+tiles_reads_summary <- tiles_reads %>% group_by(region_id, t_num, sample) %>% summarise(coverage = n()) %>% ungroup()
+tiles_reads_summary <- data.frame(tiles_reads_summary)
+```
+
+```{r}
+dtu.optiles %>% filter(FDR < 0.05)
+```
+
+```{r}
+tiles_reads_summary %>% mutate(sig_fdr = ifelse(region_id %in% filter(dtu.optiles, FDR < 0.05)$region_id, TRUE, FALSE)) %>%
+  group_by(region_id, t_num, sig_fdr) %>% summarise(cov = sum(coverage)) %>%
+  ggplot(aes(x = log2(cov), colour = sig_fdr)) +
+  geom_density()
+```
+
+```{r}
+tiles_reads_summary %>% mutate(sig_fdr = ifelse(region_id %in% filter(dtu.optiles, FDR < 0.05)$region_id, TRUE, FALSE)) %>%
+  group_by(region_id, t_num, sig_fdr) %>% summarise(cov = sum(coverage)) %>%
+  ggplot(aes(x = log2(cov), colour = sig_fdr)) +
+  geom_histogram(bins = 50) +
+  facet_wrap(~sig_fdr)
+```
+* so significant tiles have more coverage
+* makes sense
+
+* but is it higher coverage or lower coverage comparative to dmr??
+```{r}
+dmrcate_seq_dmr$rank <- 1:nrow(dmrcate_seq_dmr)
+```
+
+
+```{r}
+tiles_dmr <- find_overlaps(as_granges(optiles_all), as_granges(dmrcate_seq_dmr)) %>% data.frame()
+```
+
+```{r}
+tiles_reads_summary %>% mutate(sig_fdr = ifelse(region_id %in% filter(dtu.optiles, FDR < 0.05)$region_id, TRUE, FALSE),
+                               sig_dmr = ifelse(region_id %in% tiles_dmr$region_id, TRUE, FALSE)) %>%
+  group_by(region_id, t_num, sig_fdr, sig_dmr) %>% summarise(cov = sum(coverage)) %>%
+  ggplot(aes(x = sig_fdr, y = log2(cov), fill = sig_fdr)) +
+  geom_boxplot()
+```
+
+```{r}
+tiles_reads_summary %>% mutate(sig_fdr = ifelse(region_id %in% filter(dtu.optiles, FDR < 0.05)$region_id, TRUE, FALSE),
+                               sig_dmr = ifelse(region_id %in% tiles_dmr$region_id, TRUE, FALSE)) %>%
+  group_by(region_id, t_num, sig_fdr, sig_dmr) %>% summarise(cov = sum(coverage)) %>%
+  ggplot(aes(x = sig_dmr, y = log2(cov), fill = sig_dmr)) +
+  geom_boxplot()
+```
+* damn this does not look promising
+
+```{r}
+tiles_reads_summary %>% mutate(sig_fdr = ifelse(region_id %in% filter(dtu.optiles, FDR < 0.05)$region_id, TRUE, FALSE),
+                               sig_dmr = ifelse(region_id %in% tiles_dmr$region_id, TRUE, FALSE)) %>%
+  group_by(region_id, t_num, sig_fdr, sig_dmr) %>% summarise(cov = sum(coverage)) %>%
+  pivot_longer(cols = c(sig_fdr, sig_dmr), names_to = "method", values_to = "signif") %>%
+  ggplot(aes(x = method, y = log2(cov), fill = signif)) +
+  geom_boxplot()
+```
+
+* a lot smaller of a difference than expected
+* yes mean is slightly smaller - but tail is bigger in dmr
+* maybe would look better combining filtering with the delta???
+
+
+* try with exon as well first though
+
+```{r}
+dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% distinct(region_id)
+```
+
+```{r}
+tiles_reads_summary %>% mutate(sig_fdr = ifelse(region_id %in% filter(dtu.optiles, FDR < 0.05)$region_id, TRUE, FALSE),
+                               sig_fdr_exon = ifelse(region_id %in% distinct(filter(dtu_tiles_5_exon, FDR < 0.05), region_id)$region_id, TRUE, FALSE),
+                               sig_dmr = ifelse(region_id %in% tiles_dmr$region_id, TRUE, FALSE)) %>%
+  group_by(region_id, t_num, sig_fdr, sig_fdr_exon, sig_dmr) %>% summarise(cov = sum(coverage)) %>%
+  pivot_longer(cols = c(sig_fdr, sig_fdr_exon, sig_dmr), names_to = "method", values_to = "signif") %>%
+  ggplot(aes(x = method, y = log2(cov), fill = signif)) +
+  geom_boxplot()
+```
+
+```{r}
+bin_delta <- find_overlaps(as_granges(all_samples_simp), as_granges(optiles_all)) %>% data.frame() %>%
+  distinct(sample, read_id, start, end, alpha, region_id) %>% 
+    mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                alpha > 0.8 ~ "a > 0.8",
+                                alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                TRUE ~ "0.6 <= a <= 0.8")) %>%
+  mutate(transcript = paste0(region_id, "_", alpha_group)) %>% mutate(sample_type = ifelse(sample %in% c("b1", "b2"), "B", "CML")) %>%
+  group_by(region_id, sample_type) %>% mutate(mean_alpha = mean(alpha)) %>% ungroup() %>% distinct(region_id, sample_type, mean_alpha) %>% .[order(.$region_id),]
+
+bin_delta <- bin_delta %>% pivot_wider(names_from = sample_type, values_from = mean_alpha) %>% mutate(delta_b_minus_cml = B - CML)
+bin_delta <- data.frame(bin_delta)
+```
+
+```{r}
+dtu.optiles <- dtu.optiles %>% mutate(delta = bin_delta[match(.$region_id, bin_delta$region_id), "delta_b_minus_cml"])
+dtu.optiles %>%
+  ggplot(aes(x = delta, y = -log10(FDR))) +
+  geom_point(alpha = 0.2)
+```
+* let's say abs(delta) > 0.2
+
+```{r}
+dtu.optiles %>% filter(FDR < 0.05) %>%
+  ggplot(aes(x = abs(delta))) +
+  geom_density()
+
+dtu.optiles %>% filter(FDR < 0.05) %>%
+  ggplot(aes(x = abs(delta))) +
+  geom_histogram(bins = 50) +
+  geom_vline(xintercept = 0.2, colour = "red")
+```
+* as a prop
+```{r}
+dtu.optiles %>% mutate(fdr_sig = ifelse(FDR < 0.05, TRUE, FALSE), delta_gr_0.2 = ifelse(abs(delta) > 0.2, TRUE, FALSE)) %>%
+  ggplot(aes(x = fdr_sig, fill = delta_gr_0.2)) +
+  geom_bar()
+
+dtu.optiles %>% mutate(fdr_sig = ifelse(FDR < 0.05, TRUE, FALSE), delta_gr_0.2 = ifelse(abs(delta) > 0.2, TRUE, FALSE)) %>% filter(fdr_sig == TRUE) %>%
+  ggplot(aes(x = fdr_sig, fill = delta_gr_0.2)) +
+  geom_bar(position = "fill")
+```
+
+
+```{r}
+dtu.optiles %>% filter(FDR < 0.05, abs(delta) > 0.2)
+```
+
+
+```{r}
+tiles_reads_summary %>% mutate(delta = bin_delta[match(.$region_id, bin_delta$region_id), "delta_b_minus_cml"]) %>% 
+  mutate(sig_fdr = ifelse(region_id %in% filter(dtu.optiles, FDR < 0.05)$region_id, TRUE, FALSE),
+        sig_fdr_exon = ifelse(region_id %in% distinct(filter(dtu_tiles_5_exon, FDR < 0.05), region_id)$region_id, TRUE, FALSE),
+        sig_fdr_delta = ifelse(region_id %in% filter(dtu.optiles, FDR < 0.05, abs(delta) > 0.2)$region_id, TRUE, FALSE),
+        sig_dmr = ifelse(region_id %in% tiles_dmr$region_id, TRUE, FALSE)) %>%
+  group_by(region_id, t_num, sig_fdr, sig_fdr_delta, sig_fdr_exon, sig_dmr) %>% summarise(cov = sum(coverage)) %>%
+  pivot_longer(cols = c(sig_fdr, sig_fdr_delta, sig_fdr_exon, sig_dmr), names_to = "method", values_to = "signif") %>%
+  ggplot(aes(x = method, y = log2(cov), fill = signif)) +
+  geom_boxplot()
+```
+```{r}
+tiles_reads_summary %>% mutate(delta = bin_delta[match(.$region_id, bin_delta$region_id), "delta_b_minus_cml"]) %>% 
+  mutate(sig_fdr = ifelse(region_id %in% filter(dtu.optiles, FDR < 0.05)$region_id, TRUE, FALSE),
+        sig_fdr_exon = ifelse(region_id %in% distinct(filter(dtu_tiles_5_exon, FDR < 0.05), region_id)$region_id, TRUE, FALSE),
+        sig_fdr_delta = ifelse(region_id %in% filter(dtu.optiles, FDR < 0.05, abs(delta) > 0.2)$region_id, TRUE, FALSE),
+        sig_dmr = ifelse(region_id %in% tiles_dmr$region_id, TRUE, FALSE)) %>%
+  group_by(region_id, t_num, sig_fdr, sig_fdr_delta, sig_fdr_exon, sig_dmr) %>% summarise(cov = sum(coverage)) %>%
+  pivot_longer(cols = c(sig_fdr, sig_fdr_delta, sig_fdr_exon, sig_dmr), names_to = "method", values_to = "signif") %>%
+  ggplot(aes(x = method, y = log2(cov), fill = signif)) +
+  geom_violin()
+```
+
+* but yeah - damn
+
+* ok let's look at the tail dmrs
+* cov < 32
+```{r}
+log2(32)
+2^5
+```
+
+
+
+```{r}
+tiles_reads_summary <- tiles_reads_summary %>% mutate(sig_fdr = ifelse(region_id %in% filter(dtu.optiles, FDR < 0.05)$region_id, TRUE, FALSE),
+        sig_fdr_exon = ifelse(region_id %in% distinct(filter(dtu_tiles_5_exon, FDR < 0.05), region_id)$region_id, TRUE, FALSE),
+        sig_fdr_delta = ifelse(region_id %in% filter(dtu.optiles, FDR < 0.05, abs(delta) > 0.2)$region_id, TRUE, FALSE),
+        sig_dmr = ifelse(region_id %in% tiles_dmr$region_id, TRUE, FALSE))
+```
+
+```{r}
+tiles_reads_summary %>%
+  group_by(region_id, t_num, sig_fdr, sig_fdr_delta, sig_fdr_exon, sig_dmr) %>% summarise(cov = sum(coverage)) %>%
+  filter(sig_dmr == TRUE, cov < 32) # %>%
+ # mutate(delta = bin_delta[match(.$region_id, bin_delta$region_id), "delta_b_minus_cml"])
+```
+* at least it's not many 
+* hopefully they aren't ranked very high - like if delta is tiny that would be good
+```{r}
+reg <- tiles_reads_summary %>%
+  group_by(region_id, t_num, sig_fdr, sig_fdr_delta, sig_fdr_exon, sig_dmr) %>% summarise(cov = sum(coverage)) %>%
+  filter(sig_dmr == TRUE, cov < 32) %>% .$region_id
+```
+
+```{r}
+tiles_dmr %>% filter(region_id %in% reg) %>% distinct(rank, no.cpgs, min_smoothed_fdr, maxdiff, meandiff)
+```
+
+```{r}
+tiles_dmr %>% mutate(low_cov_signif = ifelse(region_id %in% reg, TRUE, FALSE)) %>%
+group_by(rank, low_cov_signif) %>% summarise(n=n()) %>% filter(n > 1)
+```
+
+# will the coverage thing look better with 3 alpha categories??
+
+* Logic: 5 groups is a lot - unclear if the method requires counts in each etc
+* Using 3 may mean it doesn't have to work as hard
+
+```{r}
+dtu_tiles_3 <- dtu_tiles_3 %>% mutate(delta_b_minus_cml = bin_delta[match(.$region_id, bin_delta$region_id), "delta_b_minus_cml"])
+```
+
+
+```{r}
+ggVennDiagram(list(alpha_5 = filter(dtu.optiles, FDR < 0.05, abs(delta_b_minus_cml) > 0.2)$region_id, 
+                   alpha_3 = filter(dtu_tiles_3, FDR < 0.05, abs(delta_b_minus_cml) > 0.2)$region_id))
+```
+* of course 3 groups makes even more significance
+* but what does it do to coverage??
+
+
+```{r}
+tiles_reads_summary %>% mutate(delta = bin_delta[match(.$region_id, bin_delta$region_id), "delta_b_minus_cml"]) %>% 
+  mutate(sig_dtu_3 = ifelse(region_id %in% filter(dtu_tiles_3, FDR < 0.05, abs(delta_b_minus_cml) > 0.2)$region_id, TRUE, FALSE),
+        sig_dtu = ifelse(region_id %in% filter(dtu.optiles, FDR < 0.05, abs(delta_b_minus_cml) > 0.2)$region_id, TRUE, FALSE),
+        sig_dmr = ifelse(region_id %in% tiles_dmr$region_id, TRUE, FALSE)) %>%
+  group_by(region_id, t_num, sig_dtu, sig_dtu_3, sig_dmr) %>% summarise(cov = sum(coverage)) %>%
+  pivot_longer(cols = c(sig_dtu, sig_dtu_3, sig_dmr), names_to = "method", values_to = "signif") %>%
+  ggplot(aes(x = method, y = log2(cov), fill = signif)) +
+  geom_boxplot()
+```
+* huh no change in dtu vs dtu with 3 groups - ok
+* again this was actually coverage in the tile - not the dmr itself
+
+```{r}
+find_overlaps(as_granges(dmrcate_seq_dmr), as_granges(all_samples_simp)) %>% data.frame() %>% 
+  group_by(rank, sample) %>% summarise(coverage = n()) %>% ungroup() %>% data.frame() %>%
+  group_by(rank) %>% summarise(cov = sum(coverage)) %>% ungroup() %>% mutate(a = "a") %>%
+  ggplot(aes(x = a, y = log2(cov))) +
+  geom_boxplot()
+```
+* ok this does make the mean a bit higher, tail is still longer though
+
+```{r}
+tiles_reads <- find_overlaps(as_granges(optiles_all), as_granges(all_samples_simp)) %>% data.frame()
+tiles_reads_summary <- tiles_reads %>% group_by(region_id, t_num, sample) %>% summarise(coverage = n()) %>% ungroup()
+tiles_reads_summary <- data.frame(tiles_reads_summary)
+```
+
+* ok is it the least significant dmrs with low coverage???? -please let me have something
+
+* oh wait it's same as before where mid beta was for tile instead of dmr - not the actual length
+(fixing it other time didn't actually change the plot but we can only hope)
+
+```{r}
+dmr_cov <- find_overlaps(as_granges(dmrcate_seq_dmr), as_granges(all_samples_simp)) %>% data.frame() %>% 
+  group_by(rank, sample) %>% summarise(coverage = n()) %>% ungroup() %>% data.frame()
+dmr_cov %>% group_by(rank) %>% summarise(cov = sum(coverage)) %>% ungroup() %>% mutate(dmr = "dmr") %>%
+  ggplot(aes(x = dmr, y = cov)) +
+  geom_boxplot()
+
+dmr_cov %>% group_by(rank) %>% summarise(cov = sum(coverage)) %>% ungroup() %>% mutate(dmr = "dmr") %>%
+  ggplot(aes(x = dmr, y = log2(cov))) +
+  geom_boxplot()
+```
+* and again looks exact same boo
+```{r}
+dmr_cov %>% group_by(rank) %>% summarise(cov = sum(coverage)) %>% ungroup() %>%
+  ggplot(aes(x = rank, y = cov)) +
+  geom_point(alpha = 0.3)
+```
+
+* kinda - least significant have less coverage
+
+```{r}
+dmr_cov %>% group_by(rank) %>% summarise(cov = sum(coverage)) %>% ungroup() %>%
+  ggplot(aes(x = rank, y = cov)) +
+  geom_point(alpha = 0.1) +
+  scale_y_continuous(limits = c(0,5000))
+```
+
+```{r}
+dmr_cov %>% group_by(rank) %>% summarise(cov = sum(coverage)) %>% ungroup() %>%
+  ggplot(aes(x = rank, y = log2(cov))) +
+  geom_point(alpha = 0.1)
+```
+* ok this does show it
+
+* except same thing with dtu
+
+```{r}
+tiles_reads_summary %>% mutate(rank = dtu.optiles[match(.$region_id, dtu.optiles$region_id), "dtu_rank"]) %>% 
+  group_by(rank) %>% summarise(cov = sum(coverage)) %>% ungroup() %>%
+  ggplot(aes(x = rank, y = cov)) +
+  geom_point(alpha = 0.1)
+
+tiles_reads_summary %>% mutate(rank = dtu.optiles[match(.$region_id, dtu.optiles$region_id), "dtu_rank"]) %>% 
+  group_by(rank) %>% summarise(cov = sum(coverage)) %>% ungroup() %>%
+  ggplot(aes(x = rank, y = log2(cov))) +
+  geom_point(alpha = 0.1)
+```
+* well huh
+* this is weird and unnatural looking and wrong
+* but at least it worked in dmrs
+```{r}
+tiles_reads_summary %>% mutate(rank = dtu.optiles[match(.$region_id, dtu.optiles$region_id), "dtu_rank"]) %>% 
+  group_by(rank, region_id) %>% summarise(cov = sum(coverage)) %>% ungroup() %>% .[order(.$cov, decreasing = TRUE),] 
+```
+
+```{r}
+tiles_reads_summary %>% mutate(rank = dtu.optiles[match(.$region_id, dtu.optiles$region_id), "dtu_rank"]) %>% 
+  group_by(rank) %>% summarise(cov = sum(coverage)) %>% ungroup() %>%
+  ggplot(aes(x = rank, y = cov)) +
+  geom_point(alpha = 0.1) +
+  scale_y_continuous(limits = c(0, 25000))
+```
+
+```{r}
+dtu.optiles
+```
+
+```{r}
+betas
+```
+
+
+tiles_reads_summary %>% mutate(delta = bin_delta[match(.$region_id, bin_delta$region_id), "delta_b_minus_cml"]) %>% 
+  mutate(sig_dtu_3 = ifelse(region_id %in% filter(dtu_tiles_3, FDR < 0.05, abs(delta_b_minus_cml) > 0.2)$region_id, TRUE, FALSE),
+        sig_dtu = ifelse(region_id %in% filter(dtu.optiles, FDR < 0.05, abs(delta_b_minus_cml) > 0.2)$region_id, TRUE, FALSE),
+        sig_dmr = ifelse(region_id %in% tiles_dmr$region_id, TRUE, FALSE)) %>%
+```{r}
+tiles_reads_summary
+```
+
+
+###################################################
+nmnmnmn
+
+# OLD ANALYSIS
+
 # alpha values from [modkit output to read format](modkitOutputToreadFormat.html)
 ```{r}
 all_samples <- readRDS("/researchers/caitlin.page/cf_nano/r_output/all_samples.rds")
