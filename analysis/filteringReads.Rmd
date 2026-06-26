@@ -93,7 +93,7 @@ all_samples_simp %>% mutate(min_3 = ifelse(total >= 3, TRUE, FALSE)) %>%
 
 ```{r}
 all_samples_simp %>% mutate(min_3 = ifelse(total >= 3, TRUE, FALSE)) %>% filter(alpha %in% c(0, 0.5, 1)) %>%
-  group_by(min_3, alpha) %>% summarise(n=n()) %>% ungroup() %>% group_by(alpha) %>% mutate(prop_alpha_filt = n/sum(n))
+  group_by(min_3, alpha) %>% summarise(n=n()) %>% ungroup() %>% group_by(alpha) %>% mutate(prop_alpha_filt = n/sum(n)) %>% .[1:5,]
 ```
 
 
