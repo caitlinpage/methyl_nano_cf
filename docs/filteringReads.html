@@ -390,7 +390,7 @@ class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span>
 <div class="tab-content">
 <div id="summary" class="tab-pane fade in active">
 <p>
-<strong>Last updated:</strong> 2026-06-12
+<strong>Last updated:</strong> 2026-06-26
 </p>
 <p>
 <strong>Checks:</strong> <span
@@ -521,15 +521,15 @@ project makes it easier to run your code on other machines.</p>
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpagemethylnanocftreeafc76a2410ef28288de8acba58cd93e75141e858targetblankafc76a2a">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpagemethylnanocftree480faef02fa0b3c9effeeb4bd5558f61d3b4a9ebtargetblank480faefa">
 <span class="glyphicon glyphicon-ok text-success"
 aria-hidden="true"></span> <strong>Repository version:</strong>
-<a href="https://github.com/caitlinpage/methyl_nano_cf/tree/afc76a2410ef28288de8acba58cd93e75141e858" target="_blank">afc76a2</a>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/tree/480faef02fa0b3c9effeeb4bd5558f61d3b4a9eb" target="_blank">480faef</a>
 </a>
 </p>
 </div>
 <div
-id="strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpagemethylnanocftreeafc76a2410ef28288de8acba58cd93e75141e858targetblankafc76a2a"
+id="strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpagemethylnanocftree480faef02fa0b3c9effeeb4bd5558f61d3b4a9ebtargetblank480faefa"
 class="panel-collapse collapse">
 <div class="panel-body">
 <p>
@@ -539,7 +539,7 @@ reproducibility.
 </p>
 <p>
 The results in this page were generated with repository version
-<a href="https://github.com/caitlinpage/methyl_nano_cf/tree/afc76a2410ef28288de8acba58cd93e75141e858" target="_blank">afc76a2</a>.
+<a href="https://github.com/caitlinpage/methyl_nano_cf/tree/480faef02fa0b3c9effeeb4bd5558f61d3b4a9eb" target="_blank">480faef</a>.
 See the <em>Past versions</em> tab to see a history of the changes made
 to the R Markdown and HTML files.
 </p>
@@ -554,21 +554,19 @@ were generated:
 </p>
 <pre><code>
 Ignored files:
+    Ignored:    .RData
     Ignored:    .Rproj.user/
     Ignored:    analysis/.RData
 
 Untracked files:
-    Untracked:  analysis/dtuResultsWhichGroupSignif.Rmd
     Untracked:  renv.lock
     Untracked:  renv/
 
 Unstaged changes:
     Modified:   .Rprofile
     Modified:   _workflowr.yml
-    Modified:   analysis/00_bugFixes.Rmd
-    Modified:   analysis/00_importantObjects.Rmd
     Modified:   analysis/deAnalysisWithDtuRegion.Rmd
-    Modified:   analysis/dtuDiffGroupsAndGst.Rmd
+    Modified:   analysis/index.Rmd
     Modified:   analysis/workflow.Rmd
 
 </code></pre>
@@ -614,6 +612,40 @@ Message
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/480faef02fa0b3c9effeeb4bd5558f61d3b4a9eb/analysis/filteringReads.Rmd" target="_blank">480faef</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-06-26
+</td>
+<td>
+wflow_publish("filteringReads.Rmd")
+</td>
+</tr>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/caitlinpage/methyl_nano_cf/11f7165660d5089f4b3cce944f007e0356c17208/docs/filteringReads.html" target="_blank">11f7165</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-06-12
+</td>
+<td>
+Build site.
+</td>
+</tr>
 <tr>
 <td>
 Rmd
@@ -936,6 +968,43 @@ dtu_tiles_5_exon &lt;- readRDS(&quot;/researchers/caitlin.page/cf_nano/r_output/
   theme(legend.position = &quot;none&quot;) +
   theme_bw()</code></pre>
 <p><img src="figure/filteringReads.Rmd/unnamed-chunk-4-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-4-1">
+Past versions of unnamed-chunk-4-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-4-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/11f7165660d5089f4b3cce944f007e0356c17208/docs/figure/filteringReads.Rmd/unnamed-chunk-4-1.png" target="_blank">11f7165</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-06-12
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>all_samples_simp %&gt;%
   ggplot(aes(x = total)) +
   geom_histogram()</code></pre>
@@ -963,6 +1032,17 @@ Date
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/11f7165660d5089f4b3cce944f007e0356c17208/docs/figure/filteringReads.Rmd/unnamed-chunk-5-1.png" target="_blank">11f7165</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-06-12
+</td>
+</tr>
 <tr>
 <td>
 <a href="https://github.com/caitlinpage/methyl_nano_cf/blob/7b26a6a65431ea468284db98297d6a34260222fd/docs/figure/filteringReads.Rmd/unnamed-chunk-5-1.png" target="_blank">7b26a6a</a>
@@ -1004,6 +1084,17 @@ Date
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/11f7165660d5089f4b3cce944f007e0356c17208/docs/figure/filteringReads.Rmd/unnamed-chunk-6-1.png" target="_blank">11f7165</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-06-12
+</td>
+</tr>
 <tr>
 <td>
 <a href="https://github.com/caitlinpage/methyl_nano_cf/blob/7b26a6a65431ea468284db98297d6a34260222fd/docs/figure/filteringReads.Rmd/unnamed-chunk-6-1.png" target="_blank">7b26a6a</a>
@@ -1048,6 +1139,17 @@ Date
 <tbody>
 <tr>
 <td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/11f7165660d5089f4b3cce944f007e0356c17208/docs/figure/filteringReads.Rmd/unnamed-chunk-7-1.png" target="_blank">11f7165</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-06-12
+</td>
+</tr>
+<tr>
+<td>
 <a href="https://github.com/caitlinpage/methyl_nano_cf/blob/7b26a6a65431ea468284db98297d6a34260222fd/docs/figure/filteringReads.Rmd/unnamed-chunk-7-1.png" target="_blank">7b26a6a</a>
 </td>
 <td>
@@ -1090,6 +1192,17 @@ Date
 <tbody>
 <tr>
 <td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/11f7165660d5089f4b3cce944f007e0356c17208/docs/figure/filteringReads.Rmd/unnamed-chunk-8-1.png" target="_blank">11f7165</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-06-12
+</td>
+</tr>
+<tr>
+<td>
 <a href="https://github.com/caitlinpage/methyl_nano_cf/blob/7b26a6a65431ea468284db98297d6a34260222fd/docs/figure/filteringReads.Rmd/unnamed-chunk-8-1.png" target="_blank">7b26a6a</a>
 </td>
 <td>
@@ -1108,13 +1221,52 @@ caitlinpage
   geom_histogram(alpha = 0.2) +
   theme_bw()</code></pre>
 <pre><code>`stat_bin()` using `bins = 30`. Pick better value with `binwidth`.</code></pre>
-<p><img src="figure/filteringReads.Rmd/unnamed-chunk-9-1.png" width="672" style="display: block; margin: auto;" />
-* don’t like plot</p>
+<p><img src="figure/filteringReads.Rmd/unnamed-chunk-9-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-9-1">
+Past versions of unnamed-chunk-9-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-9-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/11f7165660d5089f4b3cce944f007e0356c17208/docs/figure/filteringReads.Rmd/unnamed-chunk-9-1.png" target="_blank">11f7165</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-06-12
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<ul>
+<li>don’t like plot</li>
+</ul>
 <pre class="r"><code>all_samples_simp %&gt;% mutate(min_3 = ifelse(total &gt;= 3, TRUE, FALSE)) %&gt;% filter(alpha %in% c(0, 0.5, 1)) %&gt;%
-  group_by(min_3, alpha) %&gt;% summarise(n=n()) %&gt;% ungroup() %&gt;% group_by(alpha) %&gt;% mutate(prop_alpha_filt = n/sum(n))</code></pre>
+  group_by(min_3, alpha) %&gt;% summarise(n=n()) %&gt;% ungroup() %&gt;% group_by(alpha) %&gt;% mutate(prop_alpha_filt = n/sum(n)) %&gt;% .[1:5,]</code></pre>
 <pre><code>`summarise()` has grouped output by &#39;min_3&#39;. You can override using the
 `.groups` argument.</code></pre>
-<pre><code># A tibble: 6 × 4
+<pre><code># A tibble: 5 × 4
 # Groups:   alpha [3]
   min_3 alpha       n prop_alpha_filt
   &lt;lgl&gt; &lt;dbl&gt;   &lt;int&gt;           &lt;dbl&gt;
@@ -1122,13 +1274,49 @@ caitlinpage
 2 FALSE   0.5 2172126           0.820
 3 FALSE   1   4765092           0.634
 4 TRUE    0   7923057           0.619
-5 TRUE    0.5  477644           0.180
-6 TRUE    1   2755592           0.366</code></pre>
+5 TRUE    0.5  477644           0.180</code></pre>
 <pre class="r"><code>all_samples_simp %&gt;% mutate(min_3 = ifelse(total &gt;= 3, TRUE, FALSE)) %&gt;%
   ggplot(aes(x = as.factor(total), fill = min_3)) +
   geom_bar() +
   theme_bw()</code></pre>
 <p><img src="figure/filteringReads.Rmd/unnamed-chunk-11-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-11-1">
+Past versions of unnamed-chunk-11-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-11-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/11f7165660d5089f4b3cce944f007e0356c17208/docs/figure/filteringReads.Rmd/unnamed-chunk-11-1.png" target="_blank">11f7165</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-06-12
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>all_samples_simp %&gt;% mutate(min_3 = ifelse(total &gt;= 3, TRUE, FALSE)) %&gt;%
   ggplot(aes(x = as.factor(alpha), fill = min_3)) +
   geom_bar() +
@@ -1156,6 +1344,17 @@ Date
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/11f7165660d5089f4b3cce944f007e0356c17208/docs/figure/filteringReads.Rmd/unnamed-chunk-12-1.png" target="_blank">11f7165</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-06-12
+</td>
+</tr>
 <tr>
 <td>
 <a href="https://github.com/caitlinpage/methyl_nano_cf/blob/7b26a6a65431ea468284db98297d6a34260222fd/docs/figure/filteringReads.Rmd/unnamed-chunk-12-1.png" target="_blank">7b26a6a</a>
@@ -1313,15 +1512,91 @@ Max number of exons in a gene:  5 </code></pre>
 <pre><code>Warning in geom_label(aes(label = .data[[label]]), data = region_label, :
 Ignoring unknown parameters: `linewidth`</code></pre>
 <p><img src="figure/filteringReads.Rmd/unnamed-chunk-19-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-19-1">
+Past versions of unnamed-chunk-19-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-19-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/11f7165660d5089f4b3cce944f007e0356c17208/docs/figure/filteringReads.Rmd/unnamed-chunk-19-1.png" target="_blank">11f7165</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-06-12
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>rbind(filter(dtu.optiles, FDR &lt; 0.05) %&gt;% mutate(type = &quot;all&quot;), filter(dtu_tiles_filt_min3, FDR &lt; 0.05) %&gt;% mutate(type = &quot;min_3&quot;)) %&gt;% distinct(region_id, type, dtu_rank) %&gt;%
   pivot_wider(names_from = type, values_from = dtu_rank) %&gt;%
   ggplot(aes(x = all, y = min_3)) +
   geom_point(alpha = 0.3)</code></pre>
 <pre><code>Warning: Removed 21229 rows containing missing values or values outside the scale range
 (`geom_point()`).</code></pre>
-<p><img src="figure/filteringReads.Rmd/unnamed-chunk-20-1.png" width="672" style="display: block; margin: auto;" />
-* I’m happy to say that those are correlated, which is good it’s not
-pulling out crazy stuff</p>
+<p><img src="figure/filteringReads.Rmd/unnamed-chunk-20-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-20-1">
+Past versions of unnamed-chunk-20-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-20-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/11f7165660d5089f4b3cce944f007e0356c17208/docs/figure/filteringReads.Rmd/unnamed-chunk-20-1.png" target="_blank">11f7165</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-06-12
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<ul>
+<li>I’m happy to say that those are correlated, which is good it’s not
+pulling out crazy stuff</li>
+</ul>
 <pre class="r"><code>txdb_genes &lt;- genes(TxDb.Hsapiens.UCSC.hg19.knownGene)</code></pre>
 <pre><code>  403 genes were dropped because they have exons located on both strands
   of the same reference sequence or on more than one reference sequence,
@@ -1339,53 +1614,460 @@ bin_delta_min3 &lt;- data.frame(bin_delta_min3)</code></pre>
 <pre><code>Warning: Removed 30612 rows containing missing values or values outside the scale range
 (`geom_point()`).</code></pre>
 <p><img src="figure/filteringReads.Rmd/unnamed-chunk-24-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-24-1">
+Past versions of unnamed-chunk-24-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-24-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/11f7165660d5089f4b3cce944f007e0356c17208/docs/figure/filteringReads.Rmd/unnamed-chunk-24-1.png" target="_blank">11f7165</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-06-12
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>dtu_filt_and_all %&gt;% filter(type == &quot;all&quot;) %&gt;%
   ggplot(aes(x = delta_b_minus_cml, y = -log10(FDR))) +
   geom_point(alpha = 0.3)</code></pre>
 <pre><code>Warning: Removed 30612 rows containing missing values or values outside the scale range
 (`geom_point()`).</code></pre>
 <p><img src="figure/filteringReads.Rmd/unnamed-chunk-25-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-25-1">
+Past versions of unnamed-chunk-25-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-25-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/11f7165660d5089f4b3cce944f007e0356c17208/docs/figure/filteringReads.Rmd/unnamed-chunk-25-1.png" target="_blank">11f7165</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-06-12
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>dtu_filt_and_all %&gt;% filter(type == &quot;min_3&quot;) %&gt;%
   ggplot(aes(x = delta_b_minus_cml, y = -log10(FDR))) +
   geom_point(alpha = 0.3) +
   geom_hline(yintercept = 2, colour = &quot;red&quot;, linetype = &quot;dashed&quot;)</code></pre>
 <p><img src="figure/filteringReads.Rmd/unnamed-chunk-26-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-26-1">
+Past versions of unnamed-chunk-26-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-26-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/11f7165660d5089f4b3cce944f007e0356c17208/docs/figure/filteringReads.Rmd/unnamed-chunk-26-1.png" target="_blank">11f7165</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-06-12
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>dtu_filt_and_all %&gt;% filter(type == &quot;all&quot;) %&gt;%
   ggplot(aes(x = delta_b_minus_cml)) +
   geom_density()</code></pre>
 <pre><code>Warning: Removed 30612 rows containing non-finite outside the scale range
 (`stat_density()`).</code></pre>
 <p><img src="figure/filteringReads.Rmd/unnamed-chunk-27-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-27-1">
+Past versions of unnamed-chunk-27-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-27-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/11f7165660d5089f4b3cce944f007e0356c17208/docs/figure/filteringReads.Rmd/unnamed-chunk-27-1.png" target="_blank">11f7165</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-06-12
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>dtu_filt_and_all %&gt;% filter(type == &quot;all&quot;) %&gt;%
   ggplot(aes(x = delta_b_minus_cml)) +
   geom_histogram(bins = 50)</code></pre>
 <pre><code>Warning: Removed 30612 rows containing non-finite outside the scale range
 (`stat_bin()`).</code></pre>
 <p><img src="figure/filteringReads.Rmd/unnamed-chunk-27-2.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-27-2">
+Past versions of unnamed-chunk-27-2.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-27-2" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/11f7165660d5089f4b3cce944f007e0356c17208/docs/figure/filteringReads.Rmd/unnamed-chunk-27-2.png" target="_blank">11f7165</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-06-12
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>dtu_filt_and_all %&gt;% filter(type == &quot;all&quot;) %&gt;% filter(FDR &lt; 0.05) %&gt;%
   ggplot(aes(x = delta_b_minus_cml)) +
   geom_density()</code></pre>
 <p><img src="figure/filteringReads.Rmd/unnamed-chunk-28-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-28-1">
+Past versions of unnamed-chunk-28-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-28-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/11f7165660d5089f4b3cce944f007e0356c17208/docs/figure/filteringReads.Rmd/unnamed-chunk-28-1.png" target="_blank">11f7165</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-06-12
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>dtu_filt_and_all %&gt;% filter(type == &quot;all&quot;) %&gt;% filter(FDR &lt; 0.05) %&gt;%
   ggplot(aes(x = delta_b_minus_cml)) +
   geom_histogram(bins = 50)</code></pre>
 <p><img src="figure/filteringReads.Rmd/unnamed-chunk-28-2.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-28-2">
+Past versions of unnamed-chunk-28-2.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-28-2" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/11f7165660d5089f4b3cce944f007e0356c17208/docs/figure/filteringReads.Rmd/unnamed-chunk-28-2.png" target="_blank">11f7165</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-06-12
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>dtu_filt_and_all %&gt;% filter(type == &quot;min_3&quot;) %&gt;% 
   ggplot(aes(x = delta_b_minus_cml)) +
   geom_density()</code></pre>
 <p><img src="figure/filteringReads.Rmd/unnamed-chunk-29-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-29-1">
+Past versions of unnamed-chunk-29-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-29-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/11f7165660d5089f4b3cce944f007e0356c17208/docs/figure/filteringReads.Rmd/unnamed-chunk-29-1.png" target="_blank">11f7165</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-06-12
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>dtu_filt_and_all %&gt;% filter(type == &quot;min_3&quot;) %&gt;%
   ggplot(aes(x = delta_b_minus_cml)) +
   geom_histogram(bins = 50)</code></pre>
 <p><img src="figure/filteringReads.Rmd/unnamed-chunk-29-2.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-29-2">
+Past versions of unnamed-chunk-29-2.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-29-2" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/11f7165660d5089f4b3cce944f007e0356c17208/docs/figure/filteringReads.Rmd/unnamed-chunk-29-2.png" target="_blank">11f7165</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-06-12
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>dtu_filt_and_all %&gt;% filter(type == &quot;min_3&quot;) %&gt;% filter(FDR &lt; 0.05) %&gt;%
   ggplot(aes(x = delta_b_minus_cml)) +
   geom_density()</code></pre>
 <p><img src="figure/filteringReads.Rmd/unnamed-chunk-30-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-30-1">
+Past versions of unnamed-chunk-30-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-30-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/11f7165660d5089f4b3cce944f007e0356c17208/docs/figure/filteringReads.Rmd/unnamed-chunk-30-1.png" target="_blank">11f7165</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-06-12
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>dtu_filt_and_all %&gt;% filter(type == &quot;min_3&quot;) %&gt;% filter(FDR &lt; 0.05) %&gt;%
   ggplot(aes(x = delta_b_minus_cml)) +
   geom_histogram(bins = 50)</code></pre>
 <p><img src="figure/filteringReads.Rmd/unnamed-chunk-30-2.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-30-2">
+Past versions of unnamed-chunk-30-2.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-30-2" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/11f7165660d5089f4b3cce944f007e0356c17208/docs/figure/filteringReads.Rmd/unnamed-chunk-30-2.png" target="_blank">11f7165</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-06-12
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <div id="section-1" class="section level7">
 <p class="heading"></p>
 </div>
@@ -1427,57 +2109,503 @@ bin_delta_min3 &lt;- data.frame(bin_delta_min3)</code></pre>
   ggplot(aes(x = log2(total), colour = as.factor(alpha))) +
   geom_density()</code></pre>
 <p><img src="figure/filteringReads.Rmd/unnamed-chunk-33-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-33-1">
+Past versions of unnamed-chunk-33-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-33-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/11f7165660d5089f4b3cce944f007e0356c17208/docs/figure/filteringReads.Rmd/unnamed-chunk-33-1.png" target="_blank">11f7165</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-06-12
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>all_samples_simp %&gt;% filter(alpha %in% c(0,1)) %&gt;%
   ggplot(aes(x = as.factor(alpha), y= total, colour = as.factor(alpha))) +
   geom_boxplot()</code></pre>
 <p><img src="figure/filteringReads.Rmd/unnamed-chunk-33-2.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-33-2">
+Past versions of unnamed-chunk-33-2.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-33-2" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/11f7165660d5089f4b3cce944f007e0356c17208/docs/figure/filteringReads.Rmd/unnamed-chunk-33-2.png" target="_blank">11f7165</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-06-12
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>all_samples_simp %&gt;% filter(alpha %in% c(0,1)) %&gt;%
   ggplot(aes(x = as.factor(alpha), y= log2(total), colour = as.factor(alpha))) +
   geom_boxplot()</code></pre>
 <p><img src="figure/filteringReads.Rmd/unnamed-chunk-33-3.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-33-3">
+Past versions of unnamed-chunk-33-3.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-33-3" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/11f7165660d5089f4b3cce944f007e0356c17208/docs/figure/filteringReads.Rmd/unnamed-chunk-33-3.png" target="_blank">11f7165</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-06-12
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>all_samples_simp %&gt;% filter(alpha %in% c(0,1), total &gt;= 3) %&gt;%
   ggplot(aes(x = log2(total), colour = as.factor(alpha))) +
   geom_density()</code></pre>
 <p><img src="figure/filteringReads.Rmd/unnamed-chunk-34-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-34-1">
+Past versions of unnamed-chunk-34-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-34-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/11f7165660d5089f4b3cce944f007e0356c17208/docs/figure/filteringReads.Rmd/unnamed-chunk-34-1.png" target="_blank">11f7165</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-06-12
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>all_samples_simp %&gt;% filter(alpha %in% c(0,1), total &gt;= 3) %&gt;%
   ggplot(aes(x = as.factor(alpha), y= total, colour = as.factor(alpha))) +
   geom_boxplot()</code></pre>
 <p><img src="figure/filteringReads.Rmd/unnamed-chunk-34-2.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-34-2">
+Past versions of unnamed-chunk-34-2.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-34-2" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/11f7165660d5089f4b3cce944f007e0356c17208/docs/figure/filteringReads.Rmd/unnamed-chunk-34-2.png" target="_blank">11f7165</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-06-12
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>all_samples_simp %&gt;% filter(alpha %in% c(0,1), total &gt;= 3) %&gt;%
   ggplot(aes(x = as.factor(alpha), y= log2(total), colour = as.factor(alpha))) +
   geom_boxplot()</code></pre>
-<p><img src="figure/filteringReads.Rmd/unnamed-chunk-34-3.png" width="672" style="display: block; margin: auto;" />
-* filtering to reads with at least 3 cpgs evens out the median in the
-log2 boxplot for alpha groups</p>
+<p><img src="figure/filteringReads.Rmd/unnamed-chunk-34-3.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-34-3">
+Past versions of unnamed-chunk-34-3.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-34-3" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/11f7165660d5089f4b3cce944f007e0356c17208/docs/figure/filteringReads.Rmd/unnamed-chunk-34-3.png" target="_blank">11f7165</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-06-12
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<ul>
+<li>filtering to reads with at least 3 cpgs evens out the median in the
+log2 boxplot for alpha groups</li>
+</ul>
 <pre class="r"><code>all_samples_simp %&gt;% filter(alpha &gt;= 0.8 | alpha &lt;= 0.2) %&gt;% filter(total &gt;= 3) %&gt;% mutate(alpha_group = ifelse(alpha &gt;= 0.8, &quot;&gt;=0.8&quot;, &quot;&lt;=0.2&quot;)) %&gt;%
   ggplot(aes(x = log2(total), colour = as.factor(alpha_group))) +
   geom_density()</code></pre>
 <p><img src="figure/filteringReads.Rmd/unnamed-chunk-35-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-35-1">
+Past versions of unnamed-chunk-35-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-35-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/11f7165660d5089f4b3cce944f007e0356c17208/docs/figure/filteringReads.Rmd/unnamed-chunk-35-1.png" target="_blank">11f7165</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-06-12
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>all_samples_simp %&gt;% filter(alpha &gt;= 0.8 | alpha &lt;= 0.2) %&gt;% filter(total &gt;= 3) %&gt;% mutate(alpha_group = ifelse(alpha &gt;= 0.8, &quot;&gt;=0.8&quot;, &quot;&lt;=0.2&quot;)) %&gt;%
   ggplot(aes(x = as.factor(alpha_group), y= total, colour = as.factor(alpha_group))) +
   geom_boxplot()</code></pre>
 <p><img src="figure/filteringReads.Rmd/unnamed-chunk-35-2.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-35-2">
+Past versions of unnamed-chunk-35-2.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-35-2" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/11f7165660d5089f4b3cce944f007e0356c17208/docs/figure/filteringReads.Rmd/unnamed-chunk-35-2.png" target="_blank">11f7165</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-06-12
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>all_samples_simp %&gt;% filter(alpha &gt;= 0.8 | alpha &lt;= 0.2) %&gt;% filter(total &gt;= 3) %&gt;% mutate(alpha_group = ifelse(alpha &gt;= 0.8, &quot;&gt;=0.8&quot;, &quot;&lt;=0.2&quot;)) %&gt;%
   ggplot(aes(x = as.factor(alpha_group), y= log2(total), colour = as.factor(alpha_group))) +
   geom_boxplot()</code></pre>
 <p><img src="figure/filteringReads.Rmd/unnamed-chunk-35-3.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-35-3">
+Past versions of unnamed-chunk-35-3.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-35-3" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/11f7165660d5089f4b3cce944f007e0356c17208/docs/figure/filteringReads.Rmd/unnamed-chunk-35-3.png" target="_blank">11f7165</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-06-12
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>all_samples_simp %&gt;% filter(alpha &gt;= 0.8 | alpha &lt;= 0.2) %&gt;% mutate(alpha_group = ifelse(alpha &gt;= 0.8, &quot;&gt;=0.8&quot;, &quot;&lt;=0.2&quot;)) %&gt;%
   ggplot(aes(x = log2(total), colour = as.factor(alpha_group))) +
   geom_density()</code></pre>
 <p><img src="figure/filteringReads.Rmd/unnamed-chunk-36-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-36-1">
+Past versions of unnamed-chunk-36-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-36-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/11f7165660d5089f4b3cce944f007e0356c17208/docs/figure/filteringReads.Rmd/unnamed-chunk-36-1.png" target="_blank">11f7165</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-06-12
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>all_samples_simp %&gt;% filter(alpha &gt;= 0.8 | alpha &lt;= 0.2) %&gt;% mutate(alpha_group = ifelse(alpha &gt;= 0.8, &quot;&gt;=0.8&quot;, &quot;&lt;=0.2&quot;)) %&gt;%
   ggplot(aes(x = as.factor(alpha_group), y= total, colour = as.factor(alpha_group))) +
   geom_boxplot()</code></pre>
 <p><img src="figure/filteringReads.Rmd/unnamed-chunk-36-2.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-36-2">
+Past versions of unnamed-chunk-36-2.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-36-2" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/11f7165660d5089f4b3cce944f007e0356c17208/docs/figure/filteringReads.Rmd/unnamed-chunk-36-2.png" target="_blank">11f7165</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-06-12
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>all_samples_simp %&gt;% filter(alpha &gt;= 0.8 | alpha &lt;= 0.2) %&gt;% mutate(alpha_group = ifelse(alpha &gt;= 0.8, &quot;&gt;=0.8&quot;, &quot;&lt;=0.2&quot;)) %&gt;%
   ggplot(aes(x = as.factor(alpha_group), y= log2(total), colour = as.factor(alpha_group))) +
   geom_boxplot()</code></pre>
-<p><img src="figure/filteringReads.Rmd/unnamed-chunk-36-3.png" width="672" style="display: block; margin: auto;" />
-* same thing with lower cutoff alpha: median num cpgs higher in 0.8 - is
-not present when you filter to min cpg = 3</p>
+<p><img src="figure/filteringReads.Rmd/unnamed-chunk-36-3.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-36-3">
+Past versions of unnamed-chunk-36-3.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-36-3" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/11f7165660d5089f4b3cce944f007e0356c17208/docs/figure/filteringReads.Rmd/unnamed-chunk-36-3.png" target="_blank">11f7165</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-06-12
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <ul>
-<li>anyway this isn’t really saying anything - except I guess reads that
-are alpha = 0 are more likely to have less cpgs</li>
+<li><p>same thing with lower cutoff alpha: median num cpgs higher in 0.8
+- is not present when you filter to min cpg = 3</p></li>
+<li><p>anyway this isn’t really saying anything - except I guess reads
+that are alpha = 0 are more likely to have less cpgs</p></li>
 </ul>
 <pre class="r"><code>t.test(filter(all_samples_simp, alpha == 0)$total, filter(all_samples_simp, alpha == 1)$total)</code></pre>
 <pre><code>
