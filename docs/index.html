@@ -310,7 +310,7 @@ class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span>
 <div class="tab-content">
 <div id="summary" class="tab-pane fade in active">
 <p>
-<strong>Last updated:</strong> 2026-05-27
+<strong>Last updated:</strong> 2026-06-29
 </p>
 <p>
 <strong>Checks:</strong> <span
@@ -357,15 +357,15 @@ results.</p>
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpagemethylnanocftree95960f8634ebd4278d994f805aeca749422c4e13targetblank95960f8a">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpagemethylnanocftreecc9980946dc36f8a0431735090833964680d1baftargetblankcc99809a">
 <span class="glyphicon glyphicon-ok text-success"
 aria-hidden="true"></span> <strong>Repository version:</strong>
-<a href="https://github.com/caitlinpage/methyl_nano_cf/tree/95960f8634ebd4278d994f805aeca749422c4e13" target="_blank">95960f8</a>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/tree/cc9980946dc36f8a0431735090833964680d1baf" target="_blank">cc99809</a>
 </a>
 </p>
 </div>
 <div
-id="strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpagemethylnanocftree95960f8634ebd4278d994f805aeca749422c4e13targetblank95960f8a"
+id="strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpagemethylnanocftreecc9980946dc36f8a0431735090833964680d1baftargetblankcc99809a"
 class="panel-collapse collapse">
 <div class="panel-body">
 <p>
@@ -375,7 +375,7 @@ reproducibility.
 </p>
 <p>
 The results in this page were generated with repository version
-<a href="https://github.com/caitlinpage/methyl_nano_cf/tree/95960f8634ebd4278d994f805aeca749422c4e13" target="_blank">95960f8</a>.
+<a href="https://github.com/caitlinpage/methyl_nano_cf/tree/cc9980946dc36f8a0431735090833964680d1baf" target="_blank">cc99809</a>.
 See the <em>Past versions</em> tab to see a history of the changes made
 to the R Markdown and HTML files.
 </p>
@@ -390,8 +390,10 @@ were generated:
 </p>
 <pre><code>
 Ignored files:
+    Ignored:    .RData
     Ignored:    .Rproj.user/
     Ignored:    analysis/.RData
+    Ignored:    analysis/figure/
 
 Untracked files:
     Untracked:  renv.lock
@@ -400,11 +402,8 @@ Untracked files:
 Unstaged changes:
     Modified:   .Rprofile
     Modified:   _workflowr.yml
-    Modified:   analysis/00_importantObjects.Rmd
-    Modified:   analysis/compareDTUapproaches.Rmd
     Modified:   analysis/deAnalysisWithDtuRegion.Rmd
-    Modified:   analysis/patToRead.Rmd
-    Modified:   analysis/vizDamefinder.Rmd
+    Modified:   analysis/dtuResultsWhichGroupSignif.Rmd
     Modified:   analysis/workflow.Rmd
 
 </code></pre>
@@ -449,6 +448,57 @@ Message
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/cc9980946dc36f8a0431735090833964680d1baf/analysis/index.Rmd" target="_blank">cc99809</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-06-29
+</td>
+<td>
+wflow_publish("index.Rmd")
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/be95db43fe70a01a7579c1fa4a14e9acaaed4c17/analysis/index.Rmd" target="_blank">be95db4</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-06-10
+</td>
+<td>
+index semi restructure to be more project focussed
+</td>
+</tr>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/caitlinpage/methyl_nano_cf/774bad737b9d06f2d0545e6d523b47b46dcc1516/docs/index.html" target="_blank">774bad7</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-05-27
+</td>
+<td>
+Build site.
+</td>
+</tr>
 <tr>
 <td>
 Rmd
@@ -1273,10 +1323,166 @@ Start workflowr project.
 </div>
 </div>
 </div>
-<p>Welcome to my research website.</p>
+<p>Analysis for PhD aim 2.</p>
+<div id="project-description" class="section level1">
+<h1>Project description</h1>
+<p>I aim to analyse alpha values and develop methods to add value to
+methylation analysis.</p>
+<div id="project-aims" class="section level2">
+<h2>Project Aims</h2>
+<ol style="list-style-type: decimal">
+<li><p>Structure the data</p></li>
+<li><p>Develop differential analysis method</p></li>
+<li><p>Evaluate method - novel biological findings</p></li>
+</ol>
+</div>
+</div>
+<div id="overview-of-data-and-data-files" class="section level1">
+<h1>Overview of data and data files</h1>
+<p><a href="00_ObtainData.html">Data</a> I have used a mix of publicly
+available methylation sequencing data for this project. Primarily data
+analysis has been conducted using ENCODE RRBS data.</p>
+<p><a href="overviewFiles.html">Overview of data files and their
+features</a> Describes the data structures I have come up with</p>
+</div>
+<div id="structuring-the-data" class="section level1">
+<h1>1. Structuring the data</h1>
+<p>Alpha is a new concept - only existing compatible file format is
+pat</p>
+<p>Questions: * How to extract alpha from BAM files? * How to format
+alpha (manage file size)? * How to display alpha and beta together?</p>
+<p>More nuanced questions: * What filtering metrics should be used for
+alpha and beta? ** number of CpGs on read, number of reads covering
+position</p>
+<p><a href="modkitOutputToReadFormat.html">how I get the alphas</a></p>
+<p><a href="alphaAnalysis.html">analysis of alpha values</a></p>
+<p><a href="filteringReads.html">what reads should be filtered
+out?</a></p>
+<p><a href="plotAlphaAndBeta.html">trying to plot alpha and beta
+together</a></p>
+<ul>
+<li>discovered a problem - expanded on in next 2</li>
+</ul>
+<p><a href="checkAlphaAndBetaMatch.html">something weird happening with
+alpha and beta - mostly beta</a></p>
+<p><a href="bedFileBetas.html">how I’m getting the beta values</a></p>
+<p><a href="joinAlphaAndBeta.html">How I’m going to join alpha and beta
+together</a></p>
+<div id="ish-workflow-example" class="section level2">
+<h2>1.ish Workflow example</h2>
+<p><a href="workflow.html">workflow</a> <a
+href="wholeGenomeRrbs.html">whole genome analysis of RRBS data</a></p>
+</div>
+<div id="ish-visualising-the-data" class="section level2">
+<h2>1.ish Visualising the data</h2>
+<p><a href="vizDamfinder.html">inspired by DameFinder</a></p>
+</div>
+<div id="ish-exploring-the-data" class="section level2">
+<h2>1.ish Exploring the data</h2>
+<p><a href="exploratory_plots.html">exploratory plots</a></p>
+<p><a href="exploratory_plots_genes.html">explore relationship with
+genes</a></p>
+<p><a href="healthyVsLuad.html">same plots with cancer sample</a></p>
+<p><a href="researchSprint.html">analysis conducted in 2 day research
+sprint</a> <a href="researchSprintB.html">analysis continued (bins,
+genes, cpg features)</a></p>
+<p><a href="binningGenome.html">binning the genome</a></p>
+<p><a href="coverageAndSummaryAnalysis.html">coverage and beta
+distrib</a></p>
+<p><a href="IQRVisualise.html">plot with IQR of alpha</a> GOAL: * use
+IQR to identify regions where data is more spread and less spread * if
+more spread, expect more var in alphas, vice versa LEARNINGS * can now
+overlay IQR onto region plot * plotting just IQR is messy * IQR is
+metric for middle spread of data, might need more than that</p>
+<p><a href="biologicalFeatures.html">annotate to genes/promoters</a>
+GOAL: * what is alpha and beta in different biological features
+LEARNINGS: * Plotting IQR still looks bad haha * Distribution of beta
+much lower in sites overlapping promoters (rrbs) * Meth pattern does not
+consistently change at promoter boundary when read overlaps promoter and
+non promoter (rrbs)</p>
+<ul>
+<li>just like promoters will have different methylation profile to
+intergenic regions</li>
+<li>so will CpG islands to intergenic regions</li>
+</ul>
+<p><a href="cpgFeatures.html">annotate to CpG features</a> * conduct
+similar analysis to that in biologicalFeatures.html</p>
+</div>
+<div id="analysis-inspired-by-pete-hickey" class="section level2">
+<h2>ANALYSIS INSPIRED BY PETE HICKEY</h2>
+<p><a href="distNextCpG.html">comethylation</a> * distance between
+neighbouring cpgs and methylation status * mantel-haenszel odds
+ratio</p>
+<p><a href="distAlphaByDistance.html">comethylation step 2</a> * if 2
+cpgs, distance should be smaller when alpha 0,1 * larger distance when
+alpha 0.5 * cpg density * this does occur</p>
+<p><a href="comethNILGrZero.html">TBD: mantel-haensz with NIL &gt; 0</a>
+* in Pete’s work - OR was high in Islands</p>
+<p><a href="comethAllReads.html">TBD: apply to all chrom</a></p>
+<p>** wanted a way to model and predict if next cpg will share
+methylation state <a href="comethLogRegress.html">logistic
+regression</a></p>
+</div>
+<div id="ish-grouping-the-data" class="section level2">
+<h2>1.ish Grouping the data</h2>
+<p><a href="mp1_methPattern.html">initial analysis (some copied from
+alphaAnalysis)</a> * developed function to identify region with similar
+beta values * region is then extracted and alpha values are plotted</p>
+<p><a href="mp2_betaGroups.html">medium methylation</a></p>
+<p><a href="mp3_betaGroupsHighBeta.html">high methylation</a></p>
+<p><a href="mp3_betaGroupsLowBeta.html">low methylation</a></p>
+<p><a href="correlationOfAlphas.html">correlation of Alphas</a></p>
+<p><a href="slidingWindowAlpha.html">sliding windows of alpha</a> <a
+href="runOpTiles.html">optimised tiles</a></p>
+</div>
+<div id="ish---tangent---alphabeta-0.5" class="section level2">
+<h2>1.ish - tangent - alpha/beta = 0.5</h2>
+<p><a href="compareAlphaWhenBetaHalf.html">beta = 0.5</a></p>
+</div>
+</div>
+<div id="develop-differential-alpha-approach" class="section level1">
+<h1>2. Develop differential alpha approach</h1>
+<div id="overview-of-current-methods" class="section level2">
+<h2>Overview of current methods</h2>
+<p>metheor runs entropy, haplotype, epi-allele etc methods <a
+href="otherReadStyleMethods.html">method description</a> <a
+href="otherReadStyleMethodsAnalysis.html">exploratory analysis</a></p>
+<p><a href="analyseEntropy.html">entropy</a></p>
+</div>
+<div id="dtu-development" class="section level2">
+<h2>DTU development</h2>
+<p><a href="alphaProportions.html">proportions of alpha and beta</a> <a
+href="differentialAlphaUsage.html">attemmpt DTU but for alpha</a></p>
+<p><a href="dtuDiffGroupsAndGst.html">group sizes</a></p>
+</div>
+<div id="dtu-analysis" class="section level2">
+<h2>DTU analysis</h2>
+<p><a href="diffAlphaUsageDiffMeth.html">DTU on DMRs</a></p>
+<p><a href="diffAlphaUsageAll.html">whole genome DTU</a></p>
+<p><a href="deAnalysisWithDtuRegion.html">de analysis with DTU
+regions</a></p>
+</div>
+</div>
+<div id="analysevalidate-differential-alpha-approach"
+class="section level1">
+<h1>3. Analyse/Validate differential alpha approach</h1>
+<p>Which alpha groups are identified as significant? (Is it just
+switching from low to high?) <a
+href="dtuResultsWhichGroupSignif.html">what makes alpha
+significant</a></p>
+<p>How does the coverage compare in DTU and DMR? <a
+href="coverageInResults.html">coverage in (non)significant
+regions</a></p>
+<div id="section" class="section level52">
+<p class="heading"></p>
+</div>
+</div>
+<div id="old-file-organisation" class="section level1">
+<h1>OLD FILE ORGANISATION</h1>
 <p><a href="00_ObtainData.html">Data</a></p>
 <p><a href="overviewFiles.html">Overview of data files and their
 features</a></p>
+</div>
 <div id="exploratory-initial-work" class="section level1">
 <h1>exploratory initial work</h1>
 <p><a href="exploratory_plots.html">exploratory plots</a></p>
@@ -1381,7 +1587,7 @@ intergenic regions</li>
 <p><a href="cpgFeatures.html">annotate to CpG features</a> * conduct
 similar analysis to that in biologicalFeatures.html</p>
 </div>
-<div id="analysis-inspired-by-pete-hickey" class="section level2">
+<div id="analysis-inspired-by-pete-hickey-1" class="section level2">
 <h2>ANALYSIS INSPIRED BY PETE HICKEY</h2>
 <p><a href="distNextCpG.html">comethylation</a> * distance between
 neighbouring cpgs and methylation status * mantel-haenszel odds
