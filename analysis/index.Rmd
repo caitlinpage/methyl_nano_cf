@@ -162,6 +162,8 @@ metheor runs entropy, haplotype, epi-allele etc methods
 [method description](otherReadStyleMethods.html)
 [exploratory analysis](otherReadStyleMethodsAnalysis.html)
 
+[entropy](analyseEntropy.html)
+
 ## DTU development
 
 [proportions of alpha and beta](alphaProportions.html)
@@ -175,6 +177,20 @@ metheor runs entropy, haplotype, epi-allele etc methods
 [whole genome DTU](diffAlphaUsageAll.html)
 
 [de analysis with DTU regions](deAnalysisWithDtuRegion.html)
+
+
+
+# 3. Analyse/Validate differential alpha approach
+
+Which alpha groups are identified as significant?
+(Is it just switching from low to high?)
+[what makes alpha significant](dtuResultsWhichGroupSignif.html)
+
+How does the coverage compare in DTU and DMR?
+[coverage in (non)significant regions](coverageInResults.html)
+
+
+
 
 
 
