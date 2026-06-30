@@ -21,6 +21,7 @@ library(OpTiles)
 library(ggVennDiagram)
 library(TxDb.Hsapiens.UCSC.hg19.knownGene)
 library(missMethyl)
+library(UpSetR)
 ```
 
 ```{r}
@@ -215,7 +216,7 @@ dtu_tiles_5_exon %>% filter(FDR < 0.05) %>%
 # counts per alpha group for the bins
 
 * maybe as boxplots?
-* build off the delta bin thing
+* build off the delta_b_minus_cml bin thing
 
 
 ```{r}
@@ -340,7 +341,7 @@ bin_delta %>%
   geom_density()
 ```
 
-* do plot again but say signif id abs(delta) > 0.2
+* do plot again but say signif id abs(delta_b_minus_cml) > 0.2
 
 
 ```{r}
@@ -430,11 +431,21 @@ rrbs_plot4(all_samples, reads, cg_sites)
 # need to repeat all of this with the minimum 3 cpgs on read - because these plots aren't that pretty
 
 * boo boring and irritating
-
 ```{r}
-dtu_tiles_filt_min3
-bin_delta_min3
+bin_delta_min3 <- find_overlaps(as_granges(filter(all_samples, total >= 3)), as_granges(optiles_all)) %>% data.frame() %>%
+  distinct(sample, read_id, read_start, read_end, alpha, region_id) %>% 
+    mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                alpha > 0.8 ~ "a > 0.8",
+                                alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                TRUE ~ "0.6 <= a <= 0.8")) %>%
+  mutate(transcript = paste0(region_id, "_", alpha_group)) %>% mutate(sample_type = ifelse(sample %in% c("b1", "b2"), "B", "CML")) %>%
+  group_by(region_id, sample_type) %>% mutate(mean_alpha = mean(alpha)) %>% ungroup() %>% distinct(region_id, sample_type, mean_alpha) %>% .[order(.$region_id),]
+
+bin_delta_min3 <- bin_delta_min3 %>% pivot_wider(names_from = sample_type, values_from = mean_alpha) %>% mutate(delta_b_minus_cml = B - CML)
 ```
+
+
 
 ```{r}
 alpha_counts_filt <- find_overlaps(as_granges(filter(all_samples_simp, total >= 3)), as_granges(optiles_all)) %>% data.frame() %>%
@@ -469,7 +480,85 @@ bin_delta_min3 <- bin_delta_min3 %>% mutate(num_cg = optiles_all_cpg[match(.$reg
 ```
 
 ```{r}
-bin_delta_min3 %>% mutate(abs_delta = abs(delta_b_minus_cml)) %>% filter(coverage > 50, num_cg > 5) %>% .[order(.$abs_delta, decreasing = TRUE),]
+dtu_function <- function(all_samples, optiles_all, num_groups = 5) {
+  dtu_optile <- find_overlaps(as_granges(all_samples), as_granges(optiles_all)) %>% data.frame() %>%
+  distinct(sample, read_id, read_start, read_end, alpha, region_id) 
+  
+  if(num_groups == 5) {
+  dtu_optile <- dtu_optile %>% 
+    mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                alpha > 0.8 ~ "a > 0.8",
+                                alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                TRUE ~ "0.6 <= a <= 0.8"))
+  } else if(num_groups == 3) {
+  dtu_optile <- dtu_optile %>% 
+    mutate(alpha_group = case_when(alpha < 0.34 ~ "a < 0.34",
+                                alpha > 0.65 ~ "a > 0.65",
+                                TRUE ~ "0.34 <= a <= 0.65"))
+  } else if(num_groups == 4) {
+  dtu_optile <- dtu_optile %>% 
+    mutate(alpha_group = case_when(alpha <= 0.25 ~ "a <= 0.25",
+                                alpha >= 0.8 ~ "a >= 0.75",
+                                alpha > 0.25 & alpha <= 0.5 ~ "0.25 <= a <= 0.5",
+                                TRUE ~ "0.5 < a < 0.75"))
+}
+
+dtu_optile <- dtu_optile %>% 
+  mutate(transcript = paste0(region_id, "_", alpha_group)) %>%
+  group_by(sample, transcript) %>%
+ summarise(transcript_count = n()) %>% ungroup() %>% data.frame()
+
+# build matrix of "transcript" counts - transcript rows, sample as columns
+dtu_optile <- dtu_optile %>% pivot_wider(names_from = sample, values_from = transcript_count)
+dtu_optile[is.na(dtu_optile)] <- 0
+dtu_optile$gene_id <- sub("_.*", "", dtu_optile$transcript)
+
+# DTU analysis with edgeR
+## Alicia prefers gene method over Simes method (documentation slightly confusing about difference)
+y <- DGEList(as.matrix(dtu_optile[,2:5]), group = c(1,1,2,2), genes = dtu_optile[,c("gene_id", "transcript")])
+design <- model.matrix(~ c(1,1,2,2), data = y$samples)
+fit <- glmQLFit(y, design, robust=TRUE)
+ds <- diffSpliceDGE(fit, coef = 2, geneid = "gene_id", exonid = "transcript")
+ts.gene_optiles <- topSpliceDGE(ds, test = "gene", number = Inf)
+
+# add info to results: get proportion counts
+gene_cg <- find_overlaps(as_granges(optiles_all), as_granges(cg_sites)) %>% data.frame() %>%
+  group_by(region_id) %>%
+  summarise(n_cg = n()) %>%
+  ungroup() %>% data.frame()
+fit$genes <- fit$genes %>% mutate(n_cg = gene_cg[match(.$gene_id, gene_cg$region_id), "n_cg"])
+rpk <- y$counts/rep(fit$genes$n_cg/1000, times = ncol(y$counts))
+tpm_mat <- sweep(rpk, 2, colSums(rpk)/1e6, "/")
+tpm_mat <- tpm_mat %>% data.frame() %>% mutate(id = dtu_optile$transcript, gene_id = dtu_optile$gene_id)
+
+tpm_mat <- tpm_mat %>%
+  group_by(gene_id) %>%
+  mutate(prop_S1_gm = b1/sum(b1),
+         prop_S2_gm = b2/sum(b2),
+         prop_S3_k = cml1/sum(cml1),
+         prop_S4_k = cml2/sum(cml2)) %>%
+  ungroup() %>% data.frame()
+
+
+# add locations back in so compatible with plyranges stuff
+## this bit only applicable to OPTILES because of the way it structures the ID
+ts.gene_optiles <- ts.gene_optiles %>%
+  mutate(region_id = gene_id) %>%
+  separate_wider_delim(gene_id, delim = ":", names = c("seqnames", "gene_id")) %>%
+  mutate(seqnames = gsub("chrchr", "chr", seqnames)) %>%
+  separate_wider_delim(gene_id, delim = "-", names = c("start", "end"))
+ts.gene_optiles$start <- as.double(ts.gene_optiles$start)
+ts.gene_optiles$end <- as.double(ts.gene_optiles$end)
+ts.gene_optiles$dtu_rank <- 1:nrow(ts.gene_optiles)
+ts.gene_optiles
+}
+
+dtu_tiles_filt_min3 <- dtu_function(filter(all_samples, total >= 3), optiles_all, 5)
+```
+
+```{r}
+bin_delta_min3 %>% mutate(abs_delta = abs(delta_b_minus_cml)) %>% filter(coverage > 50, num_cg > 5) %>% .[order(.$abs_delta, decreasing = TRUE),] %>% .[1:5,]
 ```
 
 ```{r}
@@ -505,9 +594,7 @@ rrbs_plot4(all_samples_min3, reads, cg_sites)
 ```
 
 # top fdr regions
-```{r}
-dtu_tiles_filt_min3
-```
+
 
 ```{r}
 regions <- dtu_tiles_filt_min3 %>% .[1:10,] %>% .$region_id
@@ -542,7 +629,7 @@ rrbs_plot4(all_samples_min3, reads, cg_sites)
 
 ```{r}
 regions <- dtu_tiles_5_exon_sig %>% .[1:10,] %>% .$region_id
-dtu_tiles_5_exon_sig
+dtu_tiles_5_exon_sig[1:5,]
 ```
 
 ```{r}
@@ -576,7 +663,7 @@ rrbs_plot4(all_samples, reads, cg_sites)
 
 ```{r}
 regions <- dtu_tiles_5_exon %>% mutate(abs_fc = abs(logFC)) %>% .[order(.$abs_fc, decreasing = TRUE),] %>% .[1:10,] %>% .$region_id
-dtu_tiles_5_exon_sig
+dtu_tiles_5_exon_sig[1:5,]
 ```
 
 ```{r}
@@ -611,30 +698,30 @@ dtu_tiles_5_exon %>%
   geom_point(alpha = 0.4)
 ```
 
-# overlap of region ids - top 200 delta, and top 200 fdr (except low fdr obv)
+# overlap of region ids - top 200 delta_b_minus_cml, and top 200 fdr (except low fdr obv)
 
 filter(coverage > 50, num_cg > 5)
 ```{r}
-ggVennDiagram(list(delta = bin_delta_min3 %>% mutate(abs_delta = abs(delta_b_minus_cml)) %>% filter(coverage > 50, num_cg > 5) %>% .[order(.$abs_delta, decreasing = TRUE),] %>% .[1:200,] %>% .$region_id,
+ggVennDiagram(list(delta_b_minus_cml = bin_delta_min3 %>% mutate(abs_delta = abs(delta_b_minus_cml)) %>% filter(coverage > 50, num_cg > 5) %>% .[order(.$abs_delta, decreasing = TRUE),] %>% .[1:200,] %>% .$region_id,
                    fdr = dtu_tiles_filt_min3[1:200,]$region_id))
 
-ggVennDiagram(list(delta = bin_delta_min3 %>% mutate(abs_delta = abs(delta_b_minus_cml)) %>% .[order(.$abs_delta, decreasing = TRUE),] %>% .[1:200,] %>% .$region_id,
+ggVennDiagram(list(delta_b_minus_cml = bin_delta_min3 %>% mutate(abs_delta = abs(delta_b_minus_cml)) %>% .[order(.$abs_delta, decreasing = TRUE),] %>% .[1:200,] %>% .$region_id,
                    fdr = dtu_tiles_filt_min3[1:200,]$region_id))
 ```
 
 ```{r}
-ggVennDiagram(list(delta = bin_delta_min3 %>% mutate(abs_delta = abs(delta_b_minus_cml)) %>% filter(coverage > 50, num_cg > 5) %>% .[order(.$abs_delta, decreasing = TRUE),] %>% .[1:1000,] %>% .$region_id,
+ggVennDiagram(list(delta_b_minus_cml = bin_delta_min3 %>% mutate(abs_delta = abs(delta_b_minus_cml)) %>% filter(coverage > 50, num_cg > 5) %>% .[order(.$abs_delta, decreasing = TRUE),] %>% .[1:1000,] %>% .$region_id,
                    fdr = dtu_tiles_filt_min3[1:1000,]$region_id))
 
-ggVennDiagram(list(delta = bin_delta_min3 %>% mutate(abs_delta = abs(delta_b_minus_cml)) %>% filter(coverage > 50, num_cg > 5) %>% .[order(.$abs_delta, decreasing = TRUE),] %>% .[1:500,] %>% .$region_id,
+ggVennDiagram(list(delta_b_minus_cml = bin_delta_min3 %>% mutate(abs_delta = abs(delta_b_minus_cml)) %>% filter(coverage > 50, num_cg > 5) %>% .[order(.$abs_delta, decreasing = TRUE),] %>% .[1:500,] %>% .$region_id,
                    fdr = dtu_tiles_filt_min3[1:500,]$region_id))
 ```
 
 ```{r}
-ggVennDiagram(list(delta = bin_delta_min3 %>% mutate(abs_delta = abs(delta_b_minus_cml)) %>% filter(coverage > 50, num_cg > 5) %>% .[order(.$abs_delta, decreasing = TRUE),] %>% .[1:5000,] %>% .$region_id,
+ggVennDiagram(list(delta_b_minus_cml = bin_delta_min3 %>% mutate(abs_delta = abs(delta_b_minus_cml)) %>% filter(coverage > 50, num_cg > 5) %>% .[order(.$abs_delta, decreasing = TRUE),] %>% .[1:5000,] %>% .$region_id,
                    fdr = dtu_tiles_filt_min3[1:5000,]$region_id))
 
-ggVennDiagram(list(delta = bin_delta_min3 %>% mutate(abs_delta = abs(delta_b_minus_cml)) %>% filter(coverage > 50, num_cg > 5) %>% .[order(.$abs_delta, decreasing = TRUE),] %>% .[1:10000,] %>% .$region_id,
+ggVennDiagram(list(delta_b_minus_cml = bin_delta_min3 %>% mutate(abs_delta = abs(delta_b_minus_cml)) %>% filter(coverage > 50, num_cg > 5) %>% .[order(.$abs_delta, decreasing = TRUE),] %>% .[1:10000,] %>% .$region_id,
                    fdr = dtu_tiles_filt_min3[1:10000,]$region_id))
 ```
 
@@ -654,25 +741,21 @@ dtu_optile$gene_id <- sub("_.*", "", dtu_optile$transcript)
 
 # are there strings of significant tiles???
 
-```{r}
-dtu.optiles
-```
 
 ```{r}
-try <- optiles_all %>% mutate(sig_tile = ifelse(region_id %in% filter(dtu.optiles, FDR < 0.05, abs(delta) > 0.2)$region_id, TRUE, FALSE)) %>%
-  mutate(which_tile_sig = ifelse(sig_tile == TRUE, row_number(), NA))
-  mutate(seq_sig = rle(!is.na(which_tile_sig))$values)
-  mutate(string_sig = ifelse(sig_tile == TRUE & !is.na(lag(sig_tile)), lag(which_tile_sig), NA))
+try <- optiles_all %>% mutate(sig_tile = ifelse(region_id %in% filter(dtu.optiles, FDR < 0.05, abs(delta_b_minus_cml) > 0.2)$region_id, TRUE, FALSE)) %>%
+  mutate(which_tile_sig = ifelse(sig_tile == TRUE, row_number(), NA)) 
+ # mutate(seq_sig = rle(!is.na(which_tile_sig))$values)
+#  mutate(string_sig = ifelse(sig_tile == TRUE & !is.na(lag(sig_tile)), lag(which_tile_sig), NA))
 ```
 
-```{r}
-r <- rle(!is.na(try$which_tile_sig))
-r$lengths[r$values]
-```
+
 
 ```{r}
 try$grp <- cumsum(!is.na(try$which_tile_sig) & c(TRUE, is.na(head(try$which_tile_sig, -1))))
 try$run_len <- ifelse(is.na(try$which_tile_sig), NA, ave(!is.na(try$which_tile_sig), try$grp, FUN = sum))
+
+r <- rle(!is.na(try$which_tile_sig))
 ```
 
 ```{r}
@@ -682,12 +765,17 @@ try %>% filter(!is.na(run_len)) %>% distinct(grp, run_len) %>%
 ```
 
 ```{r}
-try %>% filter(!is.na(run_len)) %>% distinct(grp, run_len) %>% group_by(run_len) %>% summarise(n=n()) %>% ungroup() %>% mutate(prop = n/sum(n))
+try %>% filter(!is.na(run_len)) %>% distinct(grp, run_len) %>% group_by(run_len) %>% summarise(n=n()) %>% ungroup() %>% mutate(prop = n/sum(n)) %>% .[1:5,]
 ```
 
 * ok now it's where are they?
 
 * also how many tiles do dmrs overlap?
+
+```{r}
+tiles_dmr <- find_overlaps(as_granges(optiles_all), as_granges(dmrcate_seq_dmr)) %>% data.frame()
+```
+
 
 ```{r}
 tiles_dmr %>%
@@ -698,7 +786,7 @@ tiles_dmr %>%
 
 ```{r}
 tiles_dmr %>%
-  group_by(rank) %>% summarise(n=n()) %>% ungroup() %>% group_by(n) %>% summarise(count = n()) %>% ungroup() %>% mutate(prop = count/sum(count))
+  group_by(rank) %>% summarise(n=n()) %>% ungroup() %>% group_by(n) %>% summarise(count = n()) %>% ungroup() %>% mutate(prop = count/sum(count)) %>% .[1:5,]
 ```
 
 * only about half of dmrs are 1 tile, as opposed to 86% of dtu results
@@ -721,8 +809,8 @@ find_overlaps(txdb_genes, as_granges(try)) %>% data.frame() %>%
 
 
 ```{r}
-optiles_all %>% mutate(sig_tile = ifelse(region_id %in% filter(dtu.optiles, FDR < 0.05, abs(delta) > 0.2)$region_id, TRUE, FALSE)) %>%
-  mutate(which_tile_sig = ifelse(sig_tile == TRUE, row_number(), NA)) %>%
+#optiles_all %>% mutate(sig_tile = ifelse(region_id %in% filter(dtu.optiles, FDR < 0.05, abs(delta_b_minus_cml) > 0.2)$region_id, TRUE, FALSE)) %>%
+#  mutate(which_tile_sig = ifelse(sig_tile == TRUE, row_number(), NA)) %>%
 ```
 
 
@@ -745,21 +833,21 @@ betas$end <- betas$start
 
 ```{r}
 dtu.optiles %>% filter(FDR >= 0.05) %>%
-  ggplot(aes(x = delta)) +
+  ggplot(aes(x = delta_b_minus_cml)) +
   geom_density()
 
 dtu.optiles %>% filter(FDR >= 0.05) %>%
-  ggplot(aes(x = abs(delta))) +
+  ggplot(aes(x = abs(delta_b_minus_cml))) +
   geom_density()
 ```
 
 ```{r}
 dtu.optiles %>% mutate(fdr_sig = ifelse(FDR < 0.05, TRUE, FALSE)) %>%
-  ggplot(aes(x = delta, colour = fdr_sig)) +
+  ggplot(aes(x = delta_b_minus_cml, colour = fdr_sig)) +
   geom_density()
 
 dtu.optiles %>% mutate(fdr_sig = ifelse(FDR < 0.05, TRUE, FALSE)) %>%
-  ggplot(aes(x = abs(delta), colour = fdr_sig)) +
+  ggplot(aes(x = abs(delta_b_minus_cml), colour = fdr_sig)) +
   geom_density()
 ```
 
@@ -792,7 +880,7 @@ find_overlaps(as_granges(dmrcate_seq_dmr[1:10,]), as_granges(betas)) %>% data.fr
 * oh important is the ones that don't overlap in signif
 
 ```{r}
-ggVennDiagram(list(dtu = filter(dtu.optiles, FDR < 0.05, abs(delta) > 0.2)$region_id, dmr = tiles_dmr$region_id))
+ggVennDiagram(list(dtu = filter(dtu.optiles, FDR < 0.05, abs(delta_b_minus_cml) > 0.2)$region_id, dmr = tiles_dmr$region_id))
 ```
 * oh - why did I think the overlap was way better???
 (maybe it was in gene???)
@@ -814,33 +902,19 @@ optiles_all_beta <- optiles_all_beta %>% mutate(alpha_b = bin_delta[match(.$regi
 
 ```{r}
 optiles_all_beta %>% mutate(sig_dmr = ifelse(region_id %in% tiles_dmr$region_id, TRUE, FALSE), 
-                            sig_dtu = ifelse(region_id %in% filter(dtu.optiles, FDR < 0.05, abs(delta) > 0.2)$region_id, TRUE, FALSE)) 
+                            sig_dtu = ifelse(region_id %in% filter(dtu.optiles, FDR < 0.05, abs(delta_b_minus_cml) > 0.2)$region_id, TRUE, FALSE)) %>% .[1:5,]
 # want distrib of betas in tiles that are signif in both, indiv, none - where do we get the medium betas
 ```
 
-* also the alpha delta I have is a mean for the tile
+* also the alpha delta_b_minus_cml I have is a mean for the tile
 * does that compare at all if I do that for beta? - compare
 
-```{r}
-bin_delta
-```
 
 
-```{r}
-tiles_dmr %>% filter(min_smoothed_fdr > 0.05)
-```
-
-
-```{r}
-dmrcate_seq_dmr
-```
-
-
-
-```{r}
-optiles_all %>% mutate(sig_tile = ifelse(region_id %in% filter(dtu.optiles, FDR < 0.05, abs(delta) > 0.2)$region_id, TRUE, FALSE)) %>%
+```{r, eval=FALSE}
+optiles_all %>% mutate(sig_tile = ifelse(region_id %in% filter(dtu.optiles, FDR < 0.05, abs(delta_b_minus_cml) > 0.2)$region_id, TRUE, FALSE)) %>%
   mutate(which_tile_sig = ifelse(sig_tile == TRUE, row_number(), NA)) %>%
-  mutate(seq_sig = rle(!is.na(which_tile_sig))$lengths[rle(!is.na(which_tile_sig))$values])
+  mutate(seq_sig = rle(!is.na(which_tile_sig))$lengths[rle(!is.na(which_tile_sig))$values]) %>% .[1:5,]
 ```
 
 Qs
@@ -911,12 +985,15 @@ find_overlaps(as_granges(dmrcate_seq_dmr), as_granges(betas)) %>% data.frame() %
 ```
 * ok so it is definitely higher in dmrs
 
-```{r}
+```{r, eval=FALSE}
 find_overlaps(as_granges(dmrcate_seq_dmr), as_granges(betas)) %>% data.frame() %>% 
   filter(!is.na(mean_b), !is.na(mean_cml)) %>%
   mutate(mid_beta = ifelse(mean_b >= 0.4 & mean_b <= 0.6 | mean_cml >= 0.4 & mean_cml <= 0.6, TRUE, FALSE)) %>%
   group_by(rank) %>% mutate(has_mid_beta = any(mid_beta == TRUE)) %>% ungroup() %>% distinct(rank, has_mid_beta)
+```
 
+
+```{r}
 optiles_all_beta %>% mutate(sig_dmr = ifelse(region_id %in% tiles_dmr$region_id, TRUE, FALSE), 
                             sig_dtu = ifelse(region_id %in% filter(dtu.optiles, FDR < 0.05, abs(delta_b_minus_cml) > 0.2)$region_id, TRUE, FALSE)) %>%
   filter(!is.na(mean_b), !is.na(mean_cml)) %>%
@@ -928,11 +1005,8 @@ optiles_all_beta %>% mutate(sig_dmr = ifelse(region_id %in% tiles_dmr$region_id,
   geom_bar(position = "fill")
 ```
 
-```{r}
-dtu.optiles
-```
 
-```{r}
+```{r, eval=FALSE}
 rbind(optiles_all_beta %>% filter(region_id %in% filter(dtu.optiles, FDR < 0.05, abs(delta_b_minus_cml) > 0.2)$region_id) %>%
   filter(!is.na(mean_b), !is.na(mean_cml)) %>% mutate(mid_beta = ifelse(mean_b >= 0.4 & mean_b <= 0.6 | mean_cml >= 0.4 & mean_cml <= 0.6, TRUE, FALSE)) %>%
   group_by(region_id) %>% mutate(has_mid_beta = any(mid_beta == TRUE)) %>% ungroup() %>% 
@@ -961,7 +1035,7 @@ rbind(optiles_all_beta %>% filter(region_id %in% filter(dtu.optiles, FDR < 0.05,
 * it can be for either
 * oh wait if doing either - need to separate - coz low in one might be medium in the other
 
-```{r}
+```{r, eval=FALSE}
 rbind(optiles_all_beta %>% filter(region_id %in% filter(dtu.optiles, FDR < 0.05, abs(delta_b_minus_cml) > 0.2)$region_id) %>%
   filter(!is.na(mean_b), !is.na(mean_cml)) %>% 
     mutate(beta_b = case_when(mean_b < 0.2 ~ "x < 0.2",
@@ -973,7 +1047,7 @@ rbind(optiles_all_beta %>% filter(region_id %in% filter(dtu.optiles, FDR < 0.05,
                                 mean_cml > 0.8 ~ "x > 0.8",
                                 mean_cml >= 0.2 & mean_cml <= 0.4 ~ "0.2 <= x <= 0.4",
                                 mean_cml > 0.4 & mean_cml < 0.6 ~ "0.4 < x < 0.6",
-                                TRUE ~ "0.6 <= x <= 0.8"))
+                                TRUE ~ "0.6 <= x <= 0.8")) %>%
   group_by(region_id) %>% mutate(has_mid_beta = any(mid_beta == TRUE)) %>% ungroup() %>% 
   mutate(type = "dtu") %>% distinct(region_id, has_mid_beta, type),
   find_overlaps(as_granges(dmrcate_seq_dmr), as_granges(betas)) %>% data.frame() %>% 
@@ -985,7 +1059,7 @@ rbind(optiles_all_beta %>% filter(region_id %in% filter(dtu.optiles, FDR < 0.05,
   geom_bar()
 ```
 
-```{r}
+```{r, eval=FALSE}
 optiles_all_beta %>% filter(region_id %in% filter(dtu.optiles, FDR < 0.05, abs(delta_b_minus_cml) > 0.2)$region_id) %>%
   filter(!is.na(mean_b), !is.na(mean_cml)) %>% 
     mutate(beta_b = case_when(mean_b < 0.2 ~ "x < 0.2",
@@ -1014,7 +1088,7 @@ mutate(beta_b = case_when(mean_b < 0.2 ~ "x < 0.2",
 
 * what proportion of each dmr / dtu? - like what fraction of the length?
 
-```{r}
+```{r, eval=FALSE}
 find_overlaps(as_granges(dmrcate_seq_dmr), as_granges(betas)) %>% data.frame() %>% 
   filter(!is.na(mean_b), !is.na(mean_cml)) %>%
   mutate(mid_beta = ifelse(mean_b >= 0.4 & mean_b <= 0.6 | mean_cml >= 0.4 & mean_cml <= 0.6, TRUE, FALSE)) %>%
@@ -1029,7 +1103,7 @@ find_overlaps(as_granges(dmrcate_seq_dmr), as_granges(betas)) %>% data.frame() %
   geom_bar()
 ```
 
-```{r}
+```{r, eval=FALSE}
 find_overlaps(as_granges(dmrcate_seq_dmr), as_granges(betas)) %>% data.frame() %>% 
   filter(!is.na(mean_b), !is.na(mean_cml)) %>%
   mutate(mid_beta = ifelse(mean_b >= 0.4 & mean_b <= 0.6 | mean_cml >= 0.4 & mean_cml <= 0.6, TRUE, FALSE)) %>%
@@ -1055,7 +1129,7 @@ find_overlaps(as_granges(dmrcate_seq_dmr), as_granges(betas)) %>% data.frame() %
 
 * now do for dtu - would be cool if get more in a higher prop 
 
-```{r}
+```{r, eval=FALSE}
 find_overlaps(as_granges(filter(dtu.optiles, FDR < 0.05, abs(delta_b_minus_cml) > 0.2)), as_granges(betas)) %>% data.frame() %>% 
   filter(!is.na(mean_b), !is.na(mean_cml)) %>%
   mutate(mid_beta = ifelse(mean_b >= 0.4 & mean_b <= 0.6 | mean_cml >= 0.4 & mean_cml <= 0.6, TRUE, FALSE)) %>%
@@ -1081,7 +1155,7 @@ find_overlaps(as_granges(filter(dtu.optiles, FDR < 0.05, abs(delta_b_minus_cml) 
 
 * do this again but for all the group ranges
 
-```{r}
+```{r, eval=FALSE}
 find_overlaps(as_granges(filter(dtu.optiles, FDR < 0.05, abs(delta_b_minus_cml) > 0.2)), as_granges(betas)) %>% data.frame() %>% 
   filter(!is.na(mean_b), !is.na(mean_cml)) %>%
   mutate(mid_beta = ifelse(mean_b >= 0.4 & mean_b <= 0.6 | mean_cml >= 0.4 & mean_cml <= 0.6, TRUE, FALSE)) %>%
@@ -1091,36 +1165,7 @@ find_overlaps(as_granges(filter(dtu.optiles, FDR < 0.05, abs(delta_b_minus_cml) 
 ```
 
 
-
-
-```{r}
-df <- data.frame(
-  group = c("A","A","A","B","B"),
-  situation = c("s1","s1","s2","s1","s3"),
-  flag = c(TRUE, FALSE, TRUE, FALSE, FALSE)
-)
-
-out <- df %>%
-  group_by(group, situation) %>%
-  summarise(prop_true = mean(flag), .groups = "drop") %>%
-  complete(group, situation, fill = list(prop_true = 0))
-
-```
-```{r}
-out
-```
-
-
-```{r}
-tiles_dmr
-```
-
-```{r}
-dmrcate_seq_dmr
-```
-
-
-```{r}
+```{r, eval=FALSE}
 optiles_all_beta %>% mutate(sig_dmr = ifelse(region_id %in% tiles_dmr$region_id, TRUE, FALSE), 
                             sig_dtu = ifelse(region_id %in% filter(dtu.optiles, FDR < 0.05, abs(delta_b_minus_cml) > 0.2)$region_id, TRUE, FALSE)) %>%
   filter(!is.na(mean_b), !is.na(mean_cml)) %>%
