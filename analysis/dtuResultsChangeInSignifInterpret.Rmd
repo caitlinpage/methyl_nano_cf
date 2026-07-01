@@ -84,6 +84,8 @@ dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% mutate(overlap_dmr = ifelse(region_i
   filter(transcript == "0.4 < a < 0.6", overlap_dmr == FALSE)  
 ```
 
+## dmrs and alpha significance
+
 ```{r}
 dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% mutate(overlap_dmr = ifelse(region_id %in% overlap2$region_id, TRUE, FALSE)) %>%
   ggplot(aes(x = dtu_rank, y = transcript, colour = overlap_dmr)) +
@@ -217,22 +219,6 @@ dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% group_by(region_id) %>% mutate(n_tra
   group_by(region_id) %>% mutate(has_mid = ifelse(any(transcript == "0.4 < a < 0.6"), TRUE, FALSE)) %>%
   ggplot(aes(x = has_mid, fill = transcript)) +
   geom_bar()
-```
-
-
-
-```{r}
-dtu_tiles_5_exon %>%
-  distinct(region_id, transcript) %>%
-  group_by(region_id) %>%
-  summarise(cat_list = list(unique(transcript)), .groups = "drop") %>%
-  mutate(pairs = purrr::map(cat_list, ~ {
-    if (length(.x) < 2) return(NULL)
-    t(combn(sort(.x), 2))
-  })) %>%
-  select(pairs) %>%
-  unnest(pairs) %>%
-  count(V1, V2, name = "n")
 ```
 
 ```{r}
@@ -402,7 +388,7 @@ filter(!is.na(mean_b), !is.na(mean_cml)) %>%
 
 
 ```{r}
-overlap
+overlap2
 ```
 
 
@@ -411,6 +397,138 @@ dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% mutate(overlap_dmr = ifelse(region_i
 ```
 
 
+## sense check
+* Do the regions look how I think they should? - if 2 groups signif, is it each condition has 1 of those inflated?
+* Visualise region, and do proportion plot of counts
+
+
+* want a region that is significant in mid range + significant in an extreme
+
+
+```{r}
+dtu_tiles_5_exon %>% group_by(region_id) %>% filter(setequal(unique(transcript), c("a < 0.2", "0.4 < a < 0.6"))) %>% .[order(.$region_id),]
+```
+
+* this is all of them
+```{r}
+dtu_tiles_5_exon %>% group_by(region_id) %>% filter(setequal(unique(transcript), c("a < 0.2", "0.4 < a < 0.6"))) %>% .[order(.$region_id),] %>% .[1,]
+```
+
+```{r}
+reads <- find_overlaps(dtu_tiles_5_exon %>% group_by(region_id) %>% filter(setequal(unique(transcript), c("a < 0.2", "0.4 < a < 0.6"))) %>% .[order(.$region_id),] %>% .[1,] %>% as_granges(), as_granges(all_samples_simp)) %>% data.frame() %>% .$read_id
+```
+
+
+```{r}
+source("../code/processData.R")
+
+rrbs_plot4(all_samples, reads)
+```
+* ok oops need a minimum sample situation
+
+* oh wait are any of these significant in FDR?
+
+```{r}
+dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% group_by(region_id) %>% filter(setequal(unique(transcript), c("a < 0.2", "0.4 < a < 0.6"))) %>% .[order(.$dtu_rank, decreasing = FALSE),] 
+```
+# Question
+
+Can I identify a change in signal -> noise, low -> high and visualise it?
+
+Why do I want to do that? 
+Because it would add detail to the results, and knowing direction of change is good
+And means summarise things a lot
+So it would be like delta - but more descriptive
+
+## visualise top 5 ranked regions where mid range and low are the only significant categories
+
+```{r}
+source("../code/processData.R")
+reads <- find_overlaps(dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% group_by(region_id) %>% filter(setequal(unique(transcript), c("a < 0.2", "0.4 < a < 0.6"))) %>% .[order(.$dtu_rank, decreasing = FALSE),] %>% .[1,] %>% as_granges(), as_granges(all_samples_simp)) %>% data.frame() %>% .$read_id
+rrbs_plot4(all_samples, reads)
+
+reads <- find_overlaps(dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% group_by(region_id) %>% filter(setequal(unique(transcript), c("a < 0.2", "0.4 < a < 0.6"))) %>% .[order(.$dtu_rank, decreasing = FALSE),] %>% .[2,] %>% as_granges(), as_granges(all_samples_simp)) %>% data.frame() %>% .$read_id
+rrbs_plot4(all_samples, reads)
+
+reads <- find_overlaps(dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% group_by(region_id) %>% filter(setequal(unique(transcript), c("a < 0.2", "0.4 < a < 0.6"))) %>% .[order(.$dtu_rank, decreasing = FALSE),] %>% .[3,] %>% as_granges(), as_granges(all_samples_simp)) %>% data.frame() %>% .$read_id
+rrbs_plot4(all_samples, reads)
+
+reads <- find_overlaps(dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% group_by(region_id) %>% filter(setequal(unique(transcript), c("a < 0.2", "0.4 < a < 0.6"))) %>% .[order(.$dtu_rank, decreasing = FALSE),] %>% .[4,] %>% as_granges(), as_granges(all_samples_simp)) %>% data.frame() %>% .$read_id
+rrbs_plot4(all_samples, reads)
+
+reads <- find_overlaps(dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% group_by(region_id) %>% filter(setequal(unique(transcript), c("a < 0.2", "0.4 < a < 0.6"))) %>% .[order(.$dtu_rank, decreasing = FALSE),] %>% .[5,] %>% as_granges(), as_granges(all_samples_simp)) %>% data.frame() %>% .$read_id
+rrbs_plot4(all_samples, reads)
+```
+
+* ok so some are visually clearer
+* 4 is very visually clear
+* but in the others you can see a change in density from a mix to a lower alpha - in most this is lower in cml, in the first its lower in b
+
+```{r}
+dtu_tiles_5_exon %>% distinct(transcript)
+```
+
+* may need coverage involved as well
+
+## visualise top 5 where mid range and high are only significant categories
+```{r}
+dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% group_by(region_id) %>% filter(setequal(unique(transcript), c("a > 0.8", "0.4 < a < 0.6"))) %>% .[order(.$dtu_rank, decreasing = FALSE),] %>% .[1:10,]
+```
+
+```{r}
+source("../code/processData.R")
+reads <- find_overlaps(dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% group_by(region_id) %>% filter(setequal(unique(transcript), c("a > 0.8", "0.4 < a < 0.6"))) %>% .[order(.$dtu_rank, decreasing = FALSE),] %>% .[1,] %>% as_granges(), as_granges(all_samples_simp)) %>% data.frame() %>% .$read_id
+rrbs_plot4(all_samples, reads)
+
+reads <- find_overlaps(dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% group_by(region_id) %>% filter(setequal(unique(transcript), c("a > 0.8", "0.4 < a < 0.6"))) %>% .[order(.$dtu_rank, decreasing = FALSE),] %>% .[2,] %>% as_granges(), as_granges(all_samples_simp)) %>% data.frame() %>% .$read_id
+rrbs_plot4(all_samples, reads)
+
+reads <- find_overlaps(dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% group_by(region_id) %>% filter(setequal(unique(transcript), c("a > 0.8", "0.4 < a < 0.6"))) %>% .[order(.$dtu_rank, decreasing = FALSE),] %>% .[3,] %>% as_granges(), as_granges(all_samples_simp)) %>% data.frame() %>% .$read_id
+rrbs_plot4(all_samples, reads)
+
+reads <- find_overlaps(dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% group_by(region_id) %>% filter(setequal(unique(transcript), c("a > 0.8", "0.4 < a < 0.6"))) %>% .[order(.$dtu_rank, decreasing = FALSE),] %>% .[4,] %>% as_granges(), as_granges(all_samples_simp)) %>% data.frame() %>% .$read_id
+rrbs_plot4(all_samples, reads)
+
+reads <- find_overlaps(dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% group_by(region_id) %>% filter(setequal(unique(transcript), c("a > 0.8", "0.4 < a < 0.6"))) %>% .[order(.$dtu_rank, decreasing = FALSE),] %>% .[5,] %>% as_granges(), as_granges(all_samples_simp)) %>% data.frame() %>% .$read_id
+rrbs_plot4(all_samples, reads)
+```
+
+* here 4 and 1 are super visually clear, really nice
+
+## visualise top 5 where low and high are only significant categories
+```{r}
+dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% group_by(region_id) %>% filter(setequal(unique(transcript), c("a < 0.2", "a > 0.8"))) %>% .[order(.$dtu_rank, decreasing = FALSE),] %>% .[1:10,]
+```
+
+```{r}
+source("../code/processData.R")
+reads <- find_overlaps(dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% group_by(region_id) %>% filter(setequal(unique(transcript), c("a < 0.2", "a > 0.8"))) %>% .[order(.$dtu_rank, decreasing = FALSE),] %>% .[1,] %>% as_granges(), as_granges(all_samples_simp)) %>% data.frame() %>% .$read_id
+rrbs_plot4(all_samples, reads)
+
+reads <- find_overlaps(dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% group_by(region_id) %>% filter(setequal(unique(transcript), c("a < 0.2", "a > 0.8"))) %>% .[order(.$dtu_rank, decreasing = FALSE),] %>% .[2,] %>% as_granges(), as_granges(all_samples_simp)) %>% data.frame() %>% .$read_id
+rrbs_plot4(all_samples, reads)
+
+reads <- find_overlaps(dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% group_by(region_id) %>% filter(setequal(unique(transcript), c("a < 0.2", "a > 0.8"))) %>% .[order(.$dtu_rank, decreasing = FALSE),] %>% .[3,] %>% as_granges(), as_granges(all_samples_simp)) %>% data.frame() %>% .$read_id
+rrbs_plot4(all_samples, reads)
+
+reads <- find_overlaps(dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% group_by(region_id) %>% filter(setequal(unique(transcript), c("a < 0.2", "a > 0.8"))) %>% .[order(.$dtu_rank, decreasing = FALSE),] %>% .[4,] %>% as_granges(), as_granges(all_samples_simp)) %>% data.frame() %>% .$read_id
+rrbs_plot4(all_samples, reads)
+
+reads <- find_overlaps(dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% group_by(region_id) %>% filter(setequal(unique(transcript), c("a < 0.2", "a > 0.8"))) %>% .[order(.$dtu_rank, decreasing = FALSE),] %>% .[5,] %>% as_granges(), as_granges(all_samples_simp)) %>% data.frame() %>% .$read_id
+rrbs_plot4(all_samples, reads)
+```
+
+* these are nice and clear
+
+## summary
+
+Yes, can visualise change in signal from noise -> signal
+And signal -> signal
+And in a much simpler way than what you could get from beta
+So this is a distinct value point for the method
+Which I guess is a bit like the proportion plots
+Need to do that for these regions
+And also will need to filter CpGs, and possibly coverage
 
 
 
