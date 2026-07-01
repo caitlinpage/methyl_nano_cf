@@ -1,0 +1,417 @@
+---
+title: "dtuResultsChangeInSignifInterpret"
+author: "caitlinpage"
+date: "2026-07-01"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+## Introduction
+```{r}
+library(annotatr)
+library(data.table)
+library(plyranges)
+library(tidyr)
+library(stringr)
+library(dplyr)
+library(ggplot2)
+library(edgeR)
+library(OpTiles)
+library(ggVennDiagram)
+library(TxDb.Hsapiens.UCSC.hg19.knownGene)
+library(missMethyl)
+library(UpSetR)
+```
+
+```{r}
+seqs <- seqnames(BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38)[1:22]
+
+cg_sites <- lapply(seqs, function(x) {
+        cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38[[x]])),
+            seqnames = x
+        )}) %>% bind_rows()
+```
+
+
+```{r}
+all_samples <- readRDS("/researchers/caitlin.page/cf_nano/r_output/all_rrbs_samples.rds")
+optiles_all <- readRDS("/researchers/caitlin.page/cf_nano/r_output/optiles_all.rds")
+dtu.optiles <- readRDS("/researchers/caitlin.page/cf_nano/r_output/ts.gene_optiles.rds")
+dmrcate_seq_dmr <- readRDS("/researchers/caitlin.page/cf_nano/r_output/dmr_encode_gm12878_k562.rds")
+```
+
+```{r}
+all_samples_simp <- all_samples %>% distinct(seqnames, read_start, read_end, strand, sample, read_id, alpha, meth_pattern, num_meth, total)
+colnames(all_samples_simp)[2:3] <- c("start", "end")
+```
+
+```{r}
+dtu_tiles_5_exon <- readRDS("/researchers/caitlin.page/cf_nano/r_output/dtu_tiles_5_exon.rds")
+```
+
+####
+
+# Analysis
+
+
+```{r}
+overlap2 <- find_overlaps(as_granges(filter(dtu_tiles_5_exon, FDR < 0.05)), as_granges(dmrcate_seq_dmr)) %>% data.frame()
+```
+
+```{r}
+dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% mutate(overlap_dmr = ifelse(region_id %in% overlap2$region_id, TRUE, FALSE)) %>%
+  ggplot(aes(x = overlap_dmr, fill = transcript)) +
+  geom_bar()
+
+dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% mutate(overlap_dmr = ifelse(region_id %in% overlap2$region_id, TRUE, FALSE)) %>%
+  ggplot(aes(x = overlap_dmr, fill = transcript)) +
+  geom_bar(position = "fill")
+```
+
+```{r}
+dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% mutate(overlap_dmr = ifelse(region_id %in% overlap2$region_id, TRUE, FALSE)) %>%
+  ggplot(aes(x = transcript, fill = overlap_dmr)) +
+  geom_bar()
+
+dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% mutate(overlap_dmr = ifelse(region_id %in% overlap2$region_id, TRUE, FALSE)) %>%
+  ggplot(aes(x = transcript, fill = overlap_dmr)) +
+  geom_bar(position = "fill")
+```
+
+```{r}
+dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% mutate(overlap_dmr = ifelse(region_id %in% overlap2$region_id, TRUE, FALSE)) %>%
+  filter(transcript == "0.4 < a < 0.6", overlap_dmr == FALSE)  
+```
+
+```{r}
+dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% mutate(overlap_dmr = ifelse(region_id %in% overlap2$region_id, TRUE, FALSE)) %>%
+  ggplot(aes(x = dtu_rank, y = transcript, colour = overlap_dmr)) +
+  geom_jitter(alpha = 0.3)
+```
+
+```{r}
+dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% mutate(overlap_dmr = ifelse(region_id %in% overlap2$region_id, TRUE, FALSE)) %>%
+  ggplot(aes(x = dtu_rank, y = transcript, colour = overlap_dmr)) +
+  geom_jitter(alpha = 0.3) +
+  scale_x_continuous(limits = c(0, 20000))
+```
+
+```{r}
+dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% mutate(overlap_dmr = ifelse(region_id %in% overlap2$region_id, TRUE, FALSE)) %>%
+  filter(transcript == "0.4 < a < 0.6", overlap_dmr == FALSE, dtu_rank <= 20000) 
+```
+
+```{r}
+
+```
+
+
+* ok what are the betas for these regions
+
+```{r}
+dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% mutate(overlap_dmr = ifelse(region_id %in% overlap2$region_id, TRUE, FALSE)) %>%
+  filter(transcript == "0.4 < a < 0.6", overlap_dmr == FALSE)  
+```
+
+```{r}
+find_overlaps(dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% mutate(overlap_dmr = ifelse(region_id %in% overlap2$region_id, TRUE, FALSE)) %>%
+  filter(transcript == "0.4 < a < 0.6", overlap_dmr == FALSE) %>% as_granges(), as_granges(betas)) %>% data.frame() %>%
+  ggplot(aes(x = mean_b)) +
+  geom_density() +
+  geom_density(aes(x = mean_cml), colour = "red")
+```
+
+```{r}
+find_overlaps(dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% mutate(overlap_dmr = ifelse(region_id %in% overlap2$region_id, TRUE, FALSE)) %>%
+  filter(overlap_dmr == FALSE) %>% as_granges(), as_granges(betas)) %>% data.frame() %>%
+  ggplot(aes(x = mean_b)) +
+  geom_density() +
+  geom_density(aes(x = mean_cml), colour = "red")
+
+# beta distrib of tiles that are signif +  overlap dmr 
+find_overlaps(dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% mutate(overlap_dmr = ifelse(region_id %in% overlap2$region_id, TRUE, FALSE)) %>%
+  filter(overlap_dmr == TRUE) %>% as_granges(), as_granges(betas)) %>% data.frame() %>%
+  ggplot(aes(x = mean_b)) +
+  geom_density() +
+  geom_density(aes(x = mean_cml), colour = "red")
+```
+
+
+
+* not sure what this says
+
+```{r}
+overlap_beta <- find_overlaps(dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% mutate(overlap_dmr = ifelse(region_id %in% overlap2$region_id, TRUE, FALSE)) %>% as_granges(), as_granges(betas)) %>% data.frame()
+
+betas %>% mutate(signif = ifelse(pos %in% overlap_beta$pos, TRUE, FALSE)) %>%
+  ggplot(aes(x = mean_b, colour = signif)) +
+  geom_density() +
+  geom_density(aes(x = mean_cml, colour = signif), linetype = "dashed")
+```
+
+```{r}
+find_overlaps(dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% mutate(overlap_dmr = ifelse(region_id %in% overlap2$region_id, TRUE, FALSE)) %>% as_granges(), as_granges(betas)) %>% data.frame() %>% mutate(mid_alpha = ifelse(transcript == "0.4 < a < 0.6", TRUE, FALSE)) %>%
+  ggplot(aes(x = mean_b, colour = mid_alpha)) +
+  geom_density() +
+  facet_wrap(~overlap_dmr)
+```
+
+```{r}
+find_overlaps(dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% mutate(overlap_dmr = ifelse(region_id %in% overlap2$region_id, TRUE, FALSE)) %>% as_granges(), as_granges(betas)) %>% data.frame() %>% mutate(mid_alpha = ifelse(transcript == "0.4 < a < 0.6", TRUE, FALSE)) %>%
+  ggplot(aes(x = mean_b, y = mean_cml, colour = transcript)) +
+  geom_point(alpha = 0.1)
+```
+
+```{r}
+find_overlaps(dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% mutate(overlap_dmr = ifelse(region_id %in% overlap2$region_id, TRUE, FALSE)) %>% as_granges(), as_granges(betas)) %>% data.frame() %>% mutate(mid_alpha = ifelse(transcript == "0.4 < a < 0.6", TRUE, FALSE)) %>%
+  ggplot(aes(x = mean_b, y = mean_cml, colour = transcript)) +
+  geom_point(alpha = 0.1) +
+  facet_wrap(~ transcript)
+```
+
+```{r}
+dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% group_by(region_id) %>% mutate(n_trans = n()) %>% ungroup() %>%
+  ggplot(aes(x = transcript, y = n_trans)) +
+  geom_boxplot() +
+  geom_violin()
+```
+
+```{r}
+dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% group_by(region_id) %>% mutate(n_trans = n(), prop = 1/n()) %>% ungroup() %>% .[order(.$region_id),] 
+```
+
+* I want how common is each like transcript combo - like if low is sig - what prop of that has the others as sig - in same 
+* ok not quite there - but got the proportion in a region of the thing
+
+```{r}
+dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% group_by(region_id) %>% mutate(n_trans = n(), prop = 1/n()) %>% ungroup() %>% .[order(.$region_id),] %>%
+  ggplot(aes(x = transcript, fill = as.factor(prop))) +
+  geom_bar()
+
+dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% group_by(region_id) %>% mutate(n_trans = n(), prop = 1/n()) %>% ungroup() %>% .[order(.$region_id),] %>%
+  ggplot(aes(x = transcript, fill = as.factor(prop))) +
+  geom_bar(position = "fill")
+```
+
+```{r}
+dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% group_by(region_id) %>% mutate(n_trans = n(), prop = 1/n()) %>% ungroup() %>% .[order(.$region_id),] %>% 
+  group_by(region_id) %>% filter(any(transcript == "0.4 < a < 0.6"))
+  mutate()
+```
+
+```{r}
+dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% group_by(region_id) %>% mutate(n_trans = n(), prop = 1/n()) %>% ungroup() %>% .[order(.$region_id),] %>% 
+  group_by(region_id) %>% filter(any(transcript == "0.4 < a < 0.6")) %>%
+  ggplot(aes(x = transcript)) +
+  geom_bar()
+```
+nbm
+```{r}
+dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% group_by(region_id) %>% mutate(n_trans = n(), prop = 1/n()) %>% ungroup() %>% .[order(.$region_id),] %>% 
+  group_by(region_id) %>% mutate(has_mid = ifelse(any(transcript == "0.4 < a < 0.6"), TRUE, FALSE)) %>%
+  ggplot(aes(x = transcript, fill = has_mid)) +
+  geom_bar()
+  
+dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% group_by(region_id) %>% mutate(n_trans = n(), prop = 1/n()) %>% ungroup() %>% .[order(.$region_id),] %>% 
+  group_by(region_id) %>% mutate(has_mid = ifelse(any(transcript == "0.4 < a < 0.6"), TRUE, FALSE)) %>%
+  ggplot(aes(x = has_mid, fill = transcript)) +
+  geom_bar()
+```
+
+
+
+```{r}
+dtu_tiles_5_exon %>%
+  distinct(region_id, transcript) %>%
+  group_by(region_id) %>%
+  summarise(cat_list = list(unique(transcript)), .groups = "drop") %>%
+  mutate(pairs = purrr::map(cat_list, ~ {
+    if (length(.x) < 2) return(NULL)
+    t(combn(sort(.x), 2))
+  })) %>%
+  select(pairs) %>%
+  unnest(pairs) %>%
+  count(V1, V2, name = "n")
+```
+
+```{r}
+dtu_tiles_5_exon %>% distinct(region_id, transcript) %>%
+  count(transcript, name = "group_count")
+```
+
+
+```{r}
+betas %>%
+  ggplot(aes(x = mean_b)) +
+  geom_density()
+
+betas %>% filter(mean_b == 0.5)
+```
+
+
+```{r}
+betas <- all_samples %>% distinct(seqnames, start, sample, beta) %>% pivot_wider(names_from = sample, values_from = beta)
+
+betas <- betas %>% mutate(mean_b = rowMeans(across(c(b1, b2)), na.rm = TRUE), 
+                 mean_cml = rowMeans(across(c(cml1, cml2)), na.rm = TRUE),
+                 beta_delta_b_minus_cml = mean_b - mean_cml) %>% data.frame()
+betas$end <- betas$start
+
+betas$pos <- paste0(betas$seqnames, "-", betas$start)
+```
+
+```{r}
+optiles_all_beta <- find_overlaps(as_granges(optiles_all), as_granges(betas)) %>% data.frame()
+optiles_all_beta <- optiles_all_beta %>% mutate(alpha_b = bin_delta[match(.$region_id, bin_delta$region_id), "B"],
+                                                alpha_cml = bin_delta[match(.$region_id, bin_delta$region_id), "CML"],
+                                                alpha_delta_b_minus_cml = bin_delta[match(.$region_id, bin_delta$region_id), "delta_b_minus_cml"],
+                                                alpha_b = as.double(alpha_b), alpha_cml = as.double(alpha_cml), alpha_delta_b_minus_cml = as.double(alpha_delta_b_minus_cml))
+```
+
+```{r}
+interest <- dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% mutate(overlap_dmr = ifelse(region_id %in% overlap2$region_id, TRUE, FALSE)) %>%
+  filter(transcript == "0.4 < a < 0.6", overlap_dmr == FALSE) %>% .$region_id
+```
+
+```{r}
+optiles_all_beta %>% mutate(mid_not_sig_in_dmr = ifelse(region_id %in% interest, TRUE, FALSE)) %>%
+  filter(mid_not_sig_in_dmr == TRUE) %>%
+  ggplot(aes(x = mean_b, y = mean_cml)) +
+  geom_point(alpha = 0.2)
+
+optiles_all_beta %>% mutate(mid_not_sig_in_dmr = ifelse(region_id %in% interest, TRUE, FALSE)) %>%
+  filter(mid_not_sig_in_dmr == FALSE) %>%
+  ggplot(aes(x = mean_b, y = mean_cml)) +
+  geom_point(alpha = 0.2)
+```
+
+```{r}
+optiles_all_beta %>% mutate(mid_not_sig_in_dmr = ifelse(region_id %in% interest, TRUE, FALSE)) %>%
+  filter(!is.na(mean_b), !is.na(mean_cml)) %>%
+  mutate(mid_beta = ifelse(mean_b >= 0.4 & mean_b <= 0.6 | mean_cml >= 0.4 & mean_cml <= 0.6, TRUE, FALSE)) %>%
+  ggplot(aes(x = mid_not_sig_in_dmr, fill = mid_beta)) +
+  geom_bar()
+
+optiles_all_beta %>% mutate(mid_not_sig_in_dmr = ifelse(region_id %in% interest, TRUE, FALSE)) %>%
+  filter(!is.na(mean_b), !is.na(mean_cml)) %>%
+  mutate(mid_beta = ifelse(mean_b >= 0.4 & mean_b <= 0.6 | mean_cml >= 0.4 & mean_cml <= 0.6, TRUE, FALSE)) %>%
+  ggplot(aes(x = mid_not_sig_in_dmr, fill = mid_beta)) +
+  geom_bar(position = "fill")
+```
+
+```{r}
+optiles_all_beta %>% mutate(mid_not_sig_in_dmr = ifelse(region_id %in% interest, TRUE, FALSE)) %>%
+  filter(!is.na(mean_b), !is.na(mean_cml)) %>%
+  mutate(beta_group_b = case_when(mean_b > 0.4 & mean_b < 0.6 ~ "mid:0.4-0.6", 
+                                mean_b < 0.2 ~ "low:<0.2",
+                                mean_b > 0.8 ~ "high:>0.8",
+                                mean_b >= 0.2 & mean_b <= 0.4 ~ "low-med:0.2-0.4",
+                                TRUE ~ "med-high:0.6-0.8")) %>%
+  mutate(beta_group_cml = case_when(mean_cml > 0.4 & mean_cml < 0.6 ~ "mid:0.4-0.6", 
+                                mean_cml < 0.2 ~ "low:<0.2",
+                                mean_cml > 0.8 ~ "high:>0.8",
+                                mean_cml >= 0.2 & mean_cml <= 0.4 ~ "low-med:0.2-0.4",
+                                TRUE ~ "med-high:0.6-0.8")) %>%
+  ggplot(aes(x = beta_group_b, y = beta_group_cml, colour = mid_not_sig_in_dmr)) +
+  geom_count()
+```
+
+```{r}
+optiles_all_beta %>% mutate(mid_not_sig_in_dmr = ifelse(region_id %in% interest, TRUE, FALSE)) %>%
+  filter(!is.na(mean_b), !is.na(mean_cml)) %>%
+  mutate(beta_group_b = case_when(mean_b > 0.4 & mean_b < 0.6 ~ "mid:0.4-0.6", 
+                                mean_b < 0.2 ~ "low:<0.2",
+                                mean_b > 0.8 ~ "high:>0.8",
+                                mean_b >= 0.2 & mean_b <= 0.4 ~ "low-med:0.2-0.4",
+                                TRUE ~ "med-high:0.6-0.8")) %>%
+  mutate(beta_group_cml = case_when(mean_cml > 0.4 & mean_cml < 0.6 ~ "mid:0.4-0.6", 
+                                mean_cml < 0.2 ~ "low:<0.2",
+                                mean_cml > 0.8 ~ "high:>0.8",
+                                mean_cml >= 0.2 & mean_cml <= 0.4 ~ "low-med:0.2-0.4",
+                                TRUE ~ "med-high:0.6-0.8")) %>%
+  pivot_longer(cols = c(beta_group_b, beta_group_cml), names_to = "type", values_to = "beta_group") %>%
+  ggplot(aes(x = mid_not_sig_in_dmr, fill = beta_group)) +
+  geom_bar()
+
+optiles_all_beta %>% mutate(mid_not_sig_in_dmr = ifelse(region_id %in% interest, TRUE, FALSE)) %>%
+  filter(!is.na(mean_b), !is.na(mean_cml)) %>%
+  mutate(beta_group_b = case_when(mean_b > 0.4 & mean_b < 0.6 ~ "mid:0.4-0.6", 
+                                mean_b < 0.2 ~ "low:<0.2",
+                                mean_b > 0.8 ~ "high:>0.8",
+                                mean_b >= 0.2 & mean_b <= 0.4 ~ "low-med:0.2-0.4",
+                                TRUE ~ "med-high:0.6-0.8")) %>%
+  mutate(beta_group_cml = case_when(mean_cml > 0.4 & mean_cml < 0.6 ~ "mid:0.4-0.6", 
+                                mean_cml < 0.2 ~ "low:<0.2",
+                                mean_cml > 0.8 ~ "high:>0.8",
+                                mean_cml >= 0.2 & mean_cml <= 0.4 ~ "low-med:0.2-0.4",
+                                TRUE ~ "med-high:0.6-0.8")) %>%
+  pivot_longer(cols = c(beta_group_b, beta_group_cml), names_to = "type", values_to = "beta_group") %>%
+  ggplot(aes(x = mid_not_sig_in_dmr, fill = beta_group)) +
+  geom_bar(position = "fill")
+```
+
+```{r}
+optiles_all_beta %>% mutate(mid_not_sig_in_dmr = ifelse(region_id %in% interest, TRUE, FALSE)) %>%
+  filter(!is.na(mean_b), !is.na(mean_cml)) %>%
+  mutate(beta_group_b = case_when(mean_b > 0.4 & mean_b < 0.6 ~ "mid:0.4-0.6", 
+                                mean_b < 0.2 ~ "low:<0.2",
+                                mean_b > 0.8 ~ "high:>0.8",
+                                mean_b >= 0.2 & mean_b <= 0.4 ~ "low-med:0.2-0.4",
+                                TRUE ~ "med-high:0.6-0.8")) %>%
+  mutate(beta_group_cml = case_when(mean_cml > 0.4 & mean_cml < 0.6 ~ "mid:0.4-0.6", 
+                                mean_cml < 0.2 ~ "low:<0.2",
+                                mean_cml > 0.8 ~ "high:>0.8",
+                                mean_cml >= 0.2 & mean_cml <= 0.4 ~ "low-med:0.2-0.4",
+                                TRUE ~ "med-high:0.6-0.8")) %>%
+  pivot_longer(cols = c(beta_group_b, beta_group_cml), names_to = "type", values_to = "beta_group") %>%
+  ggplot(aes(x = beta_group, fill = mid_not_sig_in_dmr)) +
+  geom_bar()
+
+optiles_all_beta %>% mutate(mid_not_sig_in_dmr = ifelse(region_id %in% interest, TRUE, FALSE)) %>%
+  filter(!is.na(mean_b), !is.na(mean_cml)) %>%
+  mutate(beta_group_b = case_when(mean_b > 0.4 & mean_b < 0.6 ~ "mid:0.4-0.6", 
+                                mean_b < 0.2 ~ "low:<0.2",
+                                mean_b > 0.8 ~ "high:>0.8",
+                                mean_b >= 0.2 & mean_b <= 0.4 ~ "low-med:0.2-0.4",
+                                TRUE ~ "med-high:0.6-0.8")) %>%
+  mutate(beta_group_cml = case_when(mean_cml > 0.4 & mean_cml < 0.6 ~ "mid:0.4-0.6", 
+                                mean_cml < 0.2 ~ "low:<0.2",
+                                mean_cml > 0.8 ~ "high:>0.8",
+                                mean_cml >= 0.2 & mean_cml <= 0.4 ~ "low-med:0.2-0.4",
+                                TRUE ~ "med-high:0.6-0.8")) %>%
+  pivot_longer(cols = c(beta_group_b, beta_group_cml), names_to = "type", values_to = "beta_group") %>%
+  ggplot(aes(x = beta_group, fill = mid_not_sig_in_dmr)) +
+  geom_bar(position = "fill")
+```
+
+mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                alpha > 0.8 ~ "a > 0.8",
+                                alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                TRUE ~ "0.6 <= a <= 0.8"))
+
+
+filter(!is.na(mean_b), !is.na(mean_cml)) %>%
+  mutate(mid_beta = ifelse(mean_b >= 0.4 & mean_b <= 0.6 | mean_cml >= 0.4 & mean_cml <= 0.6, TRUE, FALSE)) %>%
+  group_by(region_id) %>% mutate(has_mid_beta = any(mid_beta == TRUE)) %>% ungroup() %>% distinct(region_id, sig_dmr, sig_dtu, has_mid_beta) %>%
+  mutate(sig_dmr = ifelse(sig_dmr == TRUE, "dmr_sig", "dmr_not_sig"), sig_dtu = ifelse(sig_dtu == TRUE, "dtu_sig", "dtu_not_sig")) %>%
+  pivot_longer(cols = c(sig_dmr, sig_dtu), names_to = "sig", values_to = "is_sig") %>% .[,c(1,2,4)] %>% distinct() %>%
+  ggplot(aes(x = is_sig, fill = has_mid_beta)) +
+  geom_bar(position = "fill")
+
+
+```{r}
+overlap
+```
+
+
+```{r}
+dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% mutate(overlap_dmr = ifelse(region_id %in% overlap2$region_id, TRUE, FALSE))
+```
+
+
+
+
+
+
