@@ -496,5 +496,97 @@ tiles_reads_summary %>% mutate(delta = bin_delta[match(.$region_id, bin_delta$re
 
 
 
+## new
+
+```{r}
+dmrcate_seq_dmr$rank <- 1:nrow(dmrcate_seq_dmr)
+```
+
+```{r}
+overlap <- find_overlaps(as_granges(optiles_all), as_granges(dmrcate_seq_dmr)) %>% data.frame()
+```
+
+```{r}
+bin_delta <- find_overlaps(as_granges(all_samples_simp), as_granges(optiles_all)) %>% data.frame() %>%
+  distinct(sample, read_id, start, end, alpha, region_id) %>% 
+    mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                alpha > 0.8 ~ "a > 0.8",
+                                alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                TRUE ~ "0.6 <= a <= 0.8")) %>%
+  mutate(transcript = paste0(region_id, "_", alpha_group)) %>% mutate(sample_type = ifelse(sample %in% c("b1", "b2"), "B", "CML")) %>%
+  group_by(region_id, sample_type) %>% mutate(mean_alpha = mean(alpha)) %>% ungroup() %>% distinct(region_id, sample_type, mean_alpha) %>% .[order(.$region_id),]
+
+bin_delta <- bin_delta %>% pivot_wider(names_from = sample_type, values_from = mean_alpha) %>% mutate(delta_b_minus_cml = B - CML)
+bin_delta <- data.frame(bin_delta)
+```
+
+```{r}
+optiles_all <- optiles_all %>% group_by(seqnames) %>% mutate(num = 1:n()) %>% ungroup() %>% mutate(t_num = 1:n())
+
+tiles_reads <- find_overlaps(as_granges(optiles_all), as_granges(all_samples_simp)) %>% data.frame()
+
+tiles_reads_summary <- tiles_reads %>% group_by(region_id, t_num, sample) %>% summarise(coverage = n()) %>% ungroup()
+tiles_reads_summary <- data.frame(tiles_reads_summary)
+```
+
+```{r}
+tiles_reads_summary %>% 
+  mutate(signif_tile = ifelse(region_id %in% filter(dtu.optiles, FDR < 0.05)$region_id, TRUE, FALSE),
+         dmr = ifelse(region_id %in% overlap$region_id, TRUE, FALSE)) %>%
+  mutate(signif = case_when(signif_tile == TRUE & dmr == TRUE ~ "both",
+                            signif_tile == TRUE & dmr == FALSE ~ "tile",
+                            signif_tile == FALSE & dmr == TRUE ~ "dmr",
+                            TRUE ~ "not_signif")) %>%
+  group_by(region_id, signif) %>% summarise(cov = sum(coverage)) %>%
+  ggplot(aes(x = signif, y = log2(cov), fill = signif)) +
+  geom_boxplot()
+
+tiles_reads_summary %>% 
+  mutate(signif_tile = ifelse(region_id %in% filter(dtu.optiles, FDR < 0.05)$region_id, TRUE, FALSE),
+         dmr = ifelse(region_id %in% overlap$region_id, TRUE, FALSE)) %>%
+  mutate(signif = case_when(signif_tile == TRUE & dmr == TRUE ~ "both",
+                            signif_tile == TRUE & dmr == FALSE ~ "tile",
+                            signif_tile == FALSE & dmr == TRUE ~ "dmr",
+                            TRUE ~ "not_signif")) %>%
+  group_by(region_id, signif) %>% summarise(cov = sum(coverage)) %>%
+  ggplot(aes(x = signif, y = cov, fill = signif)) +
+  geom_boxplot()
+```
+
+
+```{r}
+tiles_reads_summary %>% mutate(sig_fdr = ifelse(region_id %in% filter(dtu.optiles, FDR < 0.05)$region_id, TRUE, FALSE)) %>%
+  group_by(region_id, t_num, sig_fdr) %>% summarise(cov = sum(coverage)) %>%
+  ggplot(aes(x = log2(cov), colour = sig_fdr)) +
+  geom_density()
+```
+
+```{r}
+tiles_reads_summary %>% mutate(sig_fdr = ifelse(region_id %in% filter(dtu.optiles, FDR < 0.05)$region_id, TRUE, FALSE)) %>%
+  group_by(region_id, t_num, sig_fdr) %>% summarise(cov = sum(coverage)) %>%
+  ggplot(aes(x = log2(cov), colour = sig_fdr)) +
+  geom_histogram(bins = 50) +
+  facet_wrap(~sig_fdr)
+```
+
+
+
+```{r}
+tiles_dmr <- find_overlaps(as_granges(optiles_all), as_granges(dmrcate_seq_dmr)) %>% data.frame()
+```
+
+```{r}
+tiles_reads_summary %>% mutate(sig_fdr = ifelse(region_id %in% filter(dtu.optiles, FDR < 0.05)$region_id, TRUE, FALSE),
+                               sig_dmr = ifelse(region_id %in% tiles_dmr$region_id, TRUE, FALSE)) %>%
+  group_by(region_id, t_num, sig_fdr, sig_dmr) %>% summarise(cov = sum(coverage)) %>%
+  ggplot(aes(x = sig_fdr, y = log2(cov), fill = sig_fdr)) +
+  geom_boxplot()
+```
+
+
+```{r}
+dtu.optiles %>% mutate()
+```
 
 
