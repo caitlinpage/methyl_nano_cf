@@ -50,6 +50,23 @@ colnames(all_samples_simp)[2:3] <- c("start", "end")
 dtu_tiles_5_exon <- readRDS("/researchers/caitlin.page/cf_nano/r_output/dtu_tiles_5_exon.rds")
 ```
 
+
+```{r}
+bin_delta <- find_overlaps(as_granges(all_samples_simp), as_granges(optiles_all)) %>% data.frame() %>%
+  distinct(sample, read_id, start, end, alpha, region_id) %>% 
+    mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                alpha > 0.8 ~ "a > 0.8",
+                                alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                TRUE ~ "0.6 <= a <= 0.8")) %>%
+  mutate(transcript = paste0(region_id, "_", alpha_group)) %>% mutate(sample_type = ifelse(sample %in% c("b1", "b2"), "B", "CML")) %>%
+  group_by(region_id, sample_type) %>% mutate(mean_alpha = mean(alpha)) %>% ungroup() %>% distinct(region_id, sample_type, mean_alpha) %>% .[order(.$region_id),]
+
+bin_delta <- bin_delta %>% pivot_wider(names_from = sample_type, values_from = mean_alpha) %>% mutate(delta_b_minus_cml = B - CML)
+bin_delta <- data.frame(bin_delta)
+```
+
+
 ####
 
 # Analysis
@@ -101,11 +118,12 @@ dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% mutate(overlap_dmr = ifelse(region_i
 
 ```{r}
 dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% mutate(overlap_dmr = ifelse(region_id %in% overlap2$region_id, TRUE, FALSE)) %>%
-  filter(transcript == "0.4 < a < 0.6", overlap_dmr == FALSE, dtu_rank <= 20000) 
+  filter(transcript == "0.4 < a < 0.6", overlap_dmr == FALSE, dtu_rank <= 20000) %>% nrow()
 ```
 
 ```{r}
-
+dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% mutate(overlap_dmr = ifelse(region_id %in% overlap2$region_id, TRUE, FALSE)) %>%
+  filter(transcript == "0.4 < a < 0.6", overlap_dmr == FALSE, dtu_rank <= 20000) %>% .[1:5,]
 ```
 
 
@@ -113,7 +131,19 @@ dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% mutate(overlap_dmr = ifelse(region_i
 
 ```{r}
 dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% mutate(overlap_dmr = ifelse(region_id %in% overlap2$region_id, TRUE, FALSE)) %>%
-  filter(transcript == "0.4 < a < 0.6", overlap_dmr == FALSE)  
+  filter(transcript == "0.4 < a < 0.6", overlap_dmr == FALSE) %>% .[1:5,]
+```
+
+
+```{r}
+betas <- all_samples %>% distinct(seqnames, start, sample, beta) %>% pivot_wider(names_from = sample, values_from = beta)
+
+betas <- betas %>% mutate(mean_b = rowMeans(across(c(b1, b2)), na.rm = TRUE), 
+                 mean_cml = rowMeans(across(c(cml1, cml2)), na.rm = TRUE),
+                 beta_delta_b_minus_cml = mean_b - mean_cml) %>% data.frame()
+betas$end <- betas$start
+
+betas$pos <- paste0(betas$seqnames, "-", betas$start)
 ```
 
 ```{r}
@@ -180,7 +210,7 @@ dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% group_by(region_id) %>% mutate(n_tra
 ```
 
 ```{r}
-dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% group_by(region_id) %>% mutate(n_trans = n(), prop = 1/n()) %>% ungroup() %>% .[order(.$region_id),] 
+dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% group_by(region_id) %>% mutate(n_trans = n(), prop = 1/n()) %>% ungroup() %>% .[order(.$region_id),] %>% .[1:5,]
 ```
 
 * I want how common is each like transcript combo - like if low is sig - what prop of that has the others as sig - in same 
@@ -196,11 +226,6 @@ dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% group_by(region_id) %>% mutate(n_tra
   geom_bar(position = "fill")
 ```
 
-```{r}
-dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% group_by(region_id) %>% mutate(n_trans = n(), prop = 1/n()) %>% ungroup() %>% .[order(.$region_id),] %>% 
-  group_by(region_id) %>% filter(any(transcript == "0.4 < a < 0.6"))
-  mutate()
-```
 
 ```{r}
 dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% group_by(region_id) %>% mutate(n_trans = n(), prop = 1/n()) %>% ungroup() %>% .[order(.$region_id),] %>% 
@@ -222,8 +247,8 @@ dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% group_by(region_id) %>% mutate(n_tra
 ```
 
 ```{r}
-dtu_tiles_5_exon %>% distinct(region_id, transcript) %>%
-  count(transcript, name = "group_count")
+#dtu_tiles_5_exon %>% distinct(region_id, transcript) %>%
+#  count(transcript, name = "group_count")
 ```
 
 
@@ -232,20 +257,9 @@ betas %>%
   ggplot(aes(x = mean_b)) +
   geom_density()
 
-betas %>% filter(mean_b == 0.5)
+betas %>% filter(mean_b == 0.5) %>% nrow()
 ```
 
-
-```{r}
-betas <- all_samples %>% distinct(seqnames, start, sample, beta) %>% pivot_wider(names_from = sample, values_from = beta)
-
-betas <- betas %>% mutate(mean_b = rowMeans(across(c(b1, b2)), na.rm = TRUE), 
-                 mean_cml = rowMeans(across(c(cml1, cml2)), na.rm = TRUE),
-                 beta_delta_b_minus_cml = mean_b - mean_cml) %>% data.frame()
-betas$end <- betas$start
-
-betas$pos <- paste0(betas$seqnames, "-", betas$start)
-```
 
 ```{r}
 optiles_all_beta <- find_overlaps(as_granges(optiles_all), as_granges(betas)) %>% data.frame()
@@ -388,12 +402,12 @@ filter(!is.na(mean_b), !is.na(mean_cml)) %>%
 
 
 ```{r}
-overlap2
+overlap2[1:5,]
 ```
 
 
 ```{r}
-dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% mutate(overlap_dmr = ifelse(region_id %in% overlap2$region_id, TRUE, FALSE))
+dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% mutate(overlap_dmr = ifelse(region_id %in% overlap2$region_id, TRUE, FALSE)) %>% .[1:5,]
 ```
 
 
@@ -406,7 +420,7 @@ dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% mutate(overlap_dmr = ifelse(region_i
 
 
 ```{r}
-dtu_tiles_5_exon %>% group_by(region_id) %>% filter(setequal(unique(transcript), c("a < 0.2", "0.4 < a < 0.6"))) %>% .[order(.$region_id),]
+dtu_tiles_5_exon %>% group_by(region_id) %>% filter(setequal(unique(transcript), c("a < 0.2", "0.4 < a < 0.6"))) %>% .[order(.$region_id),] %>% .[1:5,]
 ```
 
 * this is all of them
@@ -429,7 +443,7 @@ rrbs_plot4(all_samples, reads)
 * oh wait are any of these significant in FDR?
 
 ```{r}
-dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% group_by(region_id) %>% filter(setequal(unique(transcript), c("a < 0.2", "0.4 < a < 0.6"))) %>% .[order(.$dtu_rank, decreasing = FALSE),] 
+dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% group_by(region_id) %>% filter(setequal(unique(transcript), c("a < 0.2", "0.4 < a < 0.6"))) %>% .[order(.$dtu_rank, decreasing = FALSE),] %>% .[1:5,]
 ```
 # Question
 
@@ -465,7 +479,7 @@ rrbs_plot4(all_samples, reads)
 * but in the others you can see a change in density from a mix to a lower alpha - in most this is lower in cml, in the first its lower in b
 
 ```{r}
-dtu_tiles_5_exon %>% distinct(transcript)
+dtu_tiles_5_exon %>% distinct(transcript) %>% .[1:5,]
 ```
 
 * may need coverage involved as well
