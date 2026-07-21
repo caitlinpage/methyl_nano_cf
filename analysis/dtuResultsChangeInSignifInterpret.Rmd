@@ -24,6 +24,17 @@ library(missMethyl)
 library(UpSetR)
 ```
 
+
+```{r}
+dtu.optiles
+```
+
+```{r}
+dtu_tiles_5_exon
+```
+
+
+
 ```{r}
 seqs <- seqnames(BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38)[1:22]
 
@@ -98,7 +109,7 @@ dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% mutate(overlap_dmr = ifelse(region_i
 
 ```{r}
 dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% mutate(overlap_dmr = ifelse(region_id %in% overlap2$region_id, TRUE, FALSE)) %>%
-  filter(transcript == "0.4 < a < 0.6", overlap_dmr == FALSE)  
+  filter(transcript == "0.4 < a < 0.6", overlap_dmr == FALSE) %>% .[1:5,]
 ```
 
 ## dmrs and alpha significance
@@ -546,4 +557,309 @@ And also will need to filter CpGs, and possibly coverage
 
 
 
+```{r}
+source("../code/processData.R")
+reads <- find_overlaps(dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% group_by(region_id) %>% filter(setequal(unique(transcript), c("a < 0.2", "a > 0.8"))) %>% .[order(.$dtu_rank, decreasing = FALSE),] %>% .[4,] %>% as_granges(), as_granges(all_samples_simp)) %>% data.frame() %>% .$read_id
+rrbs_plot4(all_samples, reads)
+```
+
+
+* just need the transcript counts
+
+```{r}
+dtu_counts <- function(all_samples, optiles_all, num_groups = 5) {
+  dtu_optile <- find_overlaps(as_granges(all_samples), as_granges(optiles_all)) %>% data.frame() %>%
+    distinct(sample, read_id, read_start, read_end, alpha, region_id) 
+  
+  if(num_groups == 5) {
+    dtu_optile <- dtu_optile %>% 
+      mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                     alpha > 0.8 ~ "a > 0.8",
+                                     alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                     alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                     TRUE ~ "0.6 <= a <= 0.8"))
+  } else if(num_groups == 3) {
+    dtu_optile <- dtu_optile %>% 
+      mutate(alpha_group = case_when(alpha < 0.34 ~ "a < 0.34",
+                                     alpha > 0.65 ~ "a > 0.65",
+                                     TRUE ~ "0.34 <= a <= 0.65"))
+  } else if(num_groups == 4) {
+    dtu_optile <- dtu_optile %>% 
+      mutate(alpha_group = case_when(alpha <= 0.25 ~ "a <= 0.25",
+                                     alpha >= 0.8 ~ "a >= 0.75",
+                                     alpha > 0.25 & alpha <= 0.5 ~ "0.25 <= a <= 0.5",
+                                     TRUE ~ "0.5 < a < 0.75"))
+  }
+  
+  dtu_optile <- dtu_optile %>% 
+    mutate(transcript = paste0(region_id, "_", alpha_group)) %>%
+    group_by(sample, transcript) %>%
+    summarise(transcript_count = n()) %>% ungroup() %>% data.frame()
+  
+  # build matrix of "transcript" counts - transcript rows, sample as columns
+  dtu_optile <- dtu_optile %>% pivot_wider(names_from = sample, values_from = transcript_count)
+  dtu_optile[is.na(dtu_optile)] <- 0
+  dtu_optile$gene_id <- sub("_.*", "", dtu_optile$transcript)
+  dtu_optile
+}
+
+a <- dtu_counts(all_samples, optiles_all, num_groups = 5)
+```
+
+
+```{r}
+dtu_counts2 <- function(all_samples, optiles_all, num_groups = 5) {
+  dtu_optile <- find_overlaps(as_granges(all_samples), as_granges(optiles_all)) %>% data.frame() %>%
+    distinct(sample, read_id, read_start, read_end, alpha, region_id) 
+  
+  if(num_groups == 5) {
+    dtu_optile <- dtu_optile %>% 
+      mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                     alpha > 0.8 ~ "a > 0.8",
+                                     alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                     alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                     TRUE ~ "0.6 <= a <= 0.8"))
+  } else if(num_groups == 3) {
+    dtu_optile <- dtu_optile %>% 
+      mutate(alpha_group = case_when(alpha < 0.34 ~ "a < 0.34",
+                                     alpha > 0.65 ~ "a > 0.65",
+                                     TRUE ~ "0.34 <= a <= 0.65"))
+  } else if(num_groups == 4) {
+    dtu_optile <- dtu_optile %>% 
+      mutate(alpha_group = case_when(alpha <= 0.25 ~ "a <= 0.25",
+                                     alpha >= 0.8 ~ "a >= 0.75",
+                                     alpha > 0.25 & alpha <= 0.5 ~ "0.25 <= a <= 0.5",
+                                     TRUE ~ "0.5 < a < 0.75"))
+  }
+  
+  dtu_optile <- dtu_optile %>% 
+    mutate(transcript = paste0(region_id, "_", alpha_group)) %>%
+    group_by(sample, transcript) %>%
+    summarise(transcript_count = n()) %>% ungroup() %>% data.frame()
+  
+  # build matrix of "transcript" counts - transcript rows, sample as columns
+  dtu_optile <- dtu_optile %>% pivot_wider(names_from = sample, values_from = transcript_count)
+  dtu_optile[is.na(dtu_optile)] <- 0
+  dtu_optile$gene_id <- sub("_.*", "", dtu_optile$transcript)
+  
+  # DTU analysis with edgeR
+  ## Alicia prefers gene method over Simes method (documentation slightly confusing about difference)
+  y <- DGEList(as.matrix(dtu_optile[,2:5]), group = c(1,1,2,2), genes = dtu_optile[,c("gene_id", "transcript")])
+  design <- model.matrix(~ c(1,1,2,2), data = y$samples)
+  fit <- glmQLFit(y, design, robust=TRUE)
+  ds <- diffSpliceDGE(fit, coef = 2, geneid = "gene_id", exonid = "transcript")
+  ts.gene_optiles <- topSpliceDGE(ds, test = "gene", number = Inf)
+  
+  # add info to results: get proportion counts
+  gene_cg <- find_overlaps(as_granges(optiles_all), as_granges(cg_sites)) %>% data.frame() %>%
+    group_by(region_id) %>%
+    summarise(n_cg = n()) %>%
+    ungroup() %>% data.frame()
+  fit$genes <- fit$genes %>% mutate(n_cg = gene_cg[match(.$gene_id, gene_cg$region_id), "n_cg"])
+  rpk <- y$counts/rep(fit$genes$n_cg/1000, times = ncol(y$counts))
+  tpm_mat <- sweep(rpk, 2, colSums(rpk)/1e6, "/")
+  tpm_mat 
+}
+
+aa <- dtu_counts2(all_samples, optiles_all, num_groups = 5)
+```
+  tpm_mat <- tpm_mat %>% data.frame() %>% mutate(id = dtu_optile$transcript, gene_id = dtu_optile$gene_id)
+  
+  tpm_mat <- tpm_mat %>%
+    group_by(gene_id) %>%
+    mutate(prop_S1_gm = b1/sum(b1),
+           prop_S2_gm = b2/sum(b2),
+           prop_S3_k = cml1/sum(cml1),
+           prop_S4_k = cml2/sum(cml2)) %>%
+    ungroup() %>% data.frame()
+  tpm_mat
+don't know why this isn't working
+also so not how to calc the proportions I was interested in
+```{r}
+a %>% mutate(alpha_group = sub(".*_", "", .$transcript)) %>%
+  group_by(gene_id) %>%
+    mutate(prop_S1_gm = b1/sum(b1),
+           prop_S2_gm = b2/sum(b2),
+           prop_S3_k = cml1/sum(cml1),
+           prop_S4_k = cml2/sum(cml2)) %>%
+    ungroup() %>% data.frame()
+```
+
+
+```{r}
+source("../code/processData.R")
+reads <- find_overlaps(dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% group_by(region_id) %>% filter(setequal(unique(transcript), c("a < 0.2", "a > 0.8"))) %>% .[order(.$dtu_rank, decreasing = FALSE),] %>% .[4,] %>% as_granges(), as_granges(all_samples_simp)) %>% data.frame() %>% .$read_id
+rrbs_plot4(all_samples, reads)
+
+dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% group_by(region_id) %>% filter(setequal(unique(transcript), c("a < 0.2", "a > 0.8"))) %>% .[order(.$dtu_rank, decreasing = FALSE),] %>% .[4,]
+```
+
+
+```{r}
+a %>% mutate(alpha_group = sub(".*_", "", .$transcript)) %>% filter(gene_id == "chrchr16:70381510-70381809") %>%
+  pivot_longer(cols = c(b1, b2, cml1, cml2), names_to = "sample", values_to = "count") %>%
+  ggplot(aes(x = sample, y = count, fill = alpha_group)) +
+  geom_col()
+
+a %>% mutate(alpha_group = sub(".*_", "", .$transcript)) %>% filter(gene_id == "chrchr16:70381510-70381809") %>%
+  pivot_longer(cols = c(b1, b2, cml1, cml2), names_to = "sample", values_to = "count") %>%
+  ggplot(aes(x = sample, y = count, fill = alpha_group)) +
+  geom_col(position = "fill")
+```
+```{r}
+?pivot_longer
+```
+`0.4 < a < 0.6`, `a < 0.2`, `0.6 <= a <= 0.8`, `a > 0.8`
+reshape2::melt(id = c("alpha_group", "gene_id")) %>%
+  ggplot(aes(x = variable, y = value, fill = alpha_group)) +
+  geom_col() +
+  scale_x_discrete(labels = c("B_cell_1", "B_cell_2", "CML_1", "CML_2")) +
+  facet_wrap(~ gene_id)
+
+###########################
+
+```{r}
+source("../code/processData.R")
+reads <- find_overlaps(dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% group_by(region_id) %>% filter(setequal(unique(transcript), c("a < 0.2", "0.4 < a < 0.6"))) %>% .[order(.$dtu_rank, decreasing = FALSE),] %>% .[1,] %>% as_granges(), as_granges(all_samples_simp)) %>% data.frame() %>% .$read_id
+rrbs_plot4(all_samples, reads)
+
+reads <- find_overlaps(dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% group_by(region_id) %>% filter(setequal(unique(transcript), c("a < 0.2", "0.4 < a < 0.6"))) %>% .[order(.$dtu_rank, decreasing = FALSE),] %>% .[2,] %>% as_granges(), as_granges(all_samples_simp)) %>% data.frame() %>% .$read_id
+rrbs_plot4(all_samples, reads)
+
+reads <- find_overlaps(dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% group_by(region_id) %>% filter(setequal(unique(transcript), c("a < 0.2", "0.4 < a < 0.6"))) %>% .[order(.$dtu_rank, decreasing = FALSE),] %>% .[3,] %>% as_granges(), as_granges(all_samples_simp)) %>% data.frame() %>% .$read_id
+rrbs_plot4(all_samples, reads)
+
+reads <- find_overlaps(dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% group_by(region_id) %>% filter(setequal(unique(transcript), c("a < 0.2", "0.4 < a < 0.6"))) %>% .[order(.$dtu_rank, decreasing = FALSE),] %>% .[4,] %>% as_granges(), as_granges(all_samples_simp)) %>% data.frame() %>% .$read_id
+rrbs_plot4(all_samples, reads)
+
+reads <- find_overlaps(dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% group_by(region_id) %>% filter(setequal(unique(transcript), c("a < 0.2", "0.4 < a < 0.6"))) %>% .[order(.$dtu_rank, decreasing = FALSE),] %>% .[5,] %>% as_granges(), as_granges(all_samples_simp)) %>% data.frame() %>% .$read_id
+rrbs_plot4(all_samples, reads)
+```
+
+```{r}
+reads <- find_overlaps(dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% group_by(region_id) %>% filter(setequal(unique(transcript), c("a < 0.2", "0.4 < a < 0.6"))) %>% .[order(.$dtu_rank, decreasing = FALSE),] %>% .[3,] %>% as_granges(), as_granges(all_samples_simp)) %>% data.frame() %>% .$read_id
+rrbs_plot4(all_samples, reads)
+```
+
+```{r}
+rrbs_plot4(all_samples, reads, jit_amount = 0.07) +
+  theme_bw()
+```
+
+
+
+```{r}
+all_samples_simp %>% filter(read_id %in% reads) %>% 
+  mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                alpha > 0.8 ~ "a > 0.8",
+                                alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                TRUE ~ "0.6 <= a <= 0.8")) %>% mutate(sample_type = ifelse(sample %in% c("b1", "b2"), "B", "CML")) %>% 
+  mutate(alpha_group = factor(alpha_group, levels = c("a < 0.2", "0.2 <= a <= 0.4", "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8"))) %>%
+  ggplot(aes(x = alpha_group, fill = alpha_group)) +
+  geom_bar() +
+  facet_wrap(~sample) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  theme(legend.position = "none")
+```
+
+```{r}
+all_samples_simp %>% filter(read_id %in% reads) %>% 
+  mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                alpha > 0.8 ~ "a > 0.8",
+                                alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                TRUE ~ "0.6 <= a <= 0.8")) %>% mutate(sample_type = ifelse(sample %in% c("b1", "b2"), "B", "CML")) %>% 
+  mutate(alpha_group = factor(alpha_group, levels = c("a < 0.2", "0.2 <= a <= 0.4", "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8"))) %>%
+  ggplot(aes(x = alpha_group, fill = sample_type)) +
+  geom_bar(position = "fill") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
+```
+
+
+```{r}
+bin_delta
+```
+
+
+```{r}
+sig_tile <- dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% group_by(region_id) %>% filter(setequal(unique(transcript), c("a < 0.2", "0.4 < a < 0.6"))) %>% .[order(.$dtu_rank, decreasing = FALSE),] %>% .[3,]
+```
+
+```{r}
+find_overlaps(as_granges(dmrcate_seq_dmr), as_granges(sig_tile)) %>% data.frame()
+```
+
+
+* they don't overlap - yippee!
+
+```{r}
+find_overlaps(as_granges(dtu_tiles_5_exon), as_granges(sig_tile)) %>% data.frame() %>% filter(FDR.x < 0.05)
+```
+
+
+```{r}
+dtu_tiles_5_exon %>%
+  ggplot(aes(x = logFC, y = -log10(FDR), colour = transcript)) +
+  geom_point(alpha = 0.4) +
+  theme_bw()
+```
+
+bin_delta <- find_overlaps(as_granges(all_samples_simp), as_granges(optiles_all)) %>% data.frame() %>%
+  distinct(sample, read_id, start, end, alpha, region_id) %>% 
+    mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                alpha > 0.8 ~ "a > 0.8",
+                                alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                TRUE ~ "0.6 <= a <= 0.8")) %>%
+  mutate(transcript = paste0(region_id, "_", alpha_group)) %>% mutate(sample_type = ifelse(sample %in% c("b1", "b2"), "B", "CML")) %>%
+  group_by(region_id, sample_type) %>% mutate(mean_alpha = mean(alpha)) %>% ungroup() %>% distinct(region_id, sample_type, mean_alpha) %>% .[order(.$region_id),]
+
+bin_delta <- bin_delta %>% pivot_wider(names_from = sample_type, values_from = mean_alpha) %>% mutate(delta_b_minus_cml = B - CML)
+bin_delta <- data.frame(bin_delta)
+
+
+```{r}
+optiles_all
+```
+
+```{r}
+find_overlaps(optiles_all[20:25,] %>% as_granges(), as_granges(filter(all_samples_simp, sample == "b1"))) %>% data.frame()
+```
+
+```{r}
+a <- find_overlaps(optiles_all %>% mutate(num = 1:n()) %>% as_granges(), as_granges(filter(all_samples_simp, sample == "b1"))) %>% data.frame()
+a %>% group_by(num, region_id) %>% summarise(n=n()) %>% ungroup() %>% filter(n > 5)
+```
+
+```{r}
+a %>% filter(num %in% 26:28)
+```
+
+```{r}
+optiles_all[26:28,]
+```
+
+```{r}
+reads <- find_overlaps(optiles_all[26:28,] %>% as_granges(), as_granges(filter(all_samples_simp, sample == "b1"))) %>% data.frame() %>% .$read_id
+rrbs_plot4(all_samples, reads) +
+  geom_vline(xintercept = 971617) +
+  geom_vline(xintercept = 971916) +
+  geom_vline(xintercept = 977972) +
+  geom_vline(xintercept = 978271) +
+  geom_vline(xintercept = 980637) +
+  geom_vline(xintercept = 980936)
+```
+
+```{r}
+reads <- find_overlaps(optiles_all[27:28,] %>% as_granges(), as_granges(filter(all_samples_simp, sample == "b1"))) %>% data.frame() %>% .$read_id
+rrbs_plot4(all_samples, reads) +
+  geom_vline(xintercept = 977960) +
+  geom_vline(xintercept = 978271) +
+  geom_vline(xintercept = 980637) +
+  geom_vline(xintercept = 980936) +
+  theme_bw()
+```
 
