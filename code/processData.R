@@ -275,3 +275,179 @@ rrbs_plot4 <- function(long_data, read_ids, cpgs = cg_sites, jit_amount = 0.1) {
     facet_wrap(~ sample)
   plot
 }
+
+
+
+dtu_function <- function(all_samples, optiles_all, num_groups = 5) {
+  dtu_optile <- find_overlaps(as_granges(all_samples), as_granges(optiles_all)) %>% data.frame() %>%
+    distinct(sample, read_id, read_start, read_end, alpha, region_id)
+
+  if(num_groups == 5) {
+    dtu_optile <- dtu_optile %>%
+      mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                     alpha > 0.8 ~ "a > 0.8",
+                                     alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                     alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                     TRUE ~ "0.6 <= a <= 0.8"))
+  } else if(num_groups == 3) {
+    dtu_optile <- dtu_optile %>%
+      mutate(alpha_group = case_when(alpha < 0.34 ~ "a < 0.34",
+                                     alpha > 0.65 ~ "a > 0.65",
+                                     TRUE ~ "0.34 <= a <= 0.65"))
+  } else if(num_groups == 4) {
+    dtu_optile <- dtu_optile %>%
+      mutate(alpha_group = case_when(alpha <= 0.25 ~ "a <= 0.25",
+                                     alpha >= 0.8 ~ "a >= 0.75",
+                                     alpha > 0.25 & alpha <= 0.5 ~ "0.25 <= a <= 0.5",
+                                     TRUE ~ "0.5 < a < 0.75"))
+  }
+
+  dtu_optile <- dtu_optile %>%
+    mutate(transcript = paste0(region_id, "_", alpha_group)) %>%
+    group_by(sample, transcript) %>%
+    summarise(transcript_count = n()) %>% ungroup() %>% data.frame()
+
+  # build matrix of "transcript" counts - transcript rows, sample as columns
+  dtu_optile <- dtu_optile %>% pivot_wider(names_from = sample, values_from = transcript_count)
+  dtu_optile[is.na(dtu_optile)] <- 0
+  dtu_optile$gene_id <- sub("_.*", "", dtu_optile$transcript)
+
+  # DTU analysis with edgeR
+  ## Alicia prefers gene method over Simes method (documentation slightly confusing about difference)
+  y <- DGEList(as.matrix(dtu_optile[,2:5]), group = c(1,1,2,2), genes = dtu_optile[,c("gene_id", "transcript")])
+  design <- model.matrix(~ c(1,1,2,2), data = y$samples)
+  fit <- glmQLFit(y, design, robust=TRUE)
+  ds <- diffSpliceDGE(fit, coef = 2, geneid = "gene_id", exonid = "transcript")
+  ts.gene_optiles <- topSpliceDGE(ds, test = "gene", number = Inf)
+
+  # add info to results: get proportion counts
+  gene_cg <- find_overlaps(as_granges(optiles_all), as_granges(cg_sites)) %>% data.frame() %>%
+    group_by(region_id) %>%
+    summarise(n_cg = n()) %>%
+    ungroup() %>% data.frame()
+  fit$genes <- fit$genes %>% mutate(n_cg = gene_cg[match(.$gene_id, gene_cg$region_id), "n_cg"])
+  rpk <- y$counts/rep(fit$genes$n_cg/1000, times = ncol(y$counts))
+  tpm_mat <- sweep(rpk, 2, colSums(rpk)/1e6, "/")
+  tpm_mat <- tpm_mat %>% data.frame() %>% mutate(id = dtu_optile$transcript, gene_id = dtu_optile$gene_id)
+
+  tpm_mat <- tpm_mat %>%
+    group_by(gene_id) %>%
+    mutate(prop_S1_gm = b1/sum(b1),
+           prop_S2_gm = b2/sum(b2),
+           prop_S3_k = cml1/sum(cml1),
+           prop_S4_k = cml2/sum(cml2)) %>%
+    ungroup() %>% data.frame()
+
+
+  # add locations back in so compatible with plyranges stuff
+  ## this bit only applicable to OPTILES because of the way it structures the ID
+  ts.gene_optiles <- ts.gene_optiles %>%
+    mutate(region_id = gene_id) %>%
+    separate_wider_delim(gene_id, delim = ":", names = c("seqnames", "gene_id")) %>%
+    mutate(seqnames = gsub("chrchr", "chr", seqnames)) %>%
+    separate_wider_delim(gene_id, delim = "-", names = c("start", "end"))
+  ts.gene_optiles$start <- as.double(ts.gene_optiles$start)
+  ts.gene_optiles$end <- as.double(ts.gene_optiles$end)
+  ts.gene_optiles$dtu_rank <- 1:nrow(ts.gene_optiles)
+  ts.gene_optiles
+}
+
+
+dtu_counts <- function(all_samples, optiles_all, num_groups = 5) {
+  dtu_optile <- find_overlaps(as_granges(all_samples), as_granges(optiles_all)) %>% data.frame() %>%
+    distinct(sample, read_id, read_start, read_end, alpha, region_id)
+
+  if(num_groups == 5) {
+    dtu_optile <- dtu_optile %>%
+      mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                     alpha > 0.8 ~ "a > 0.8",
+                                     alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                     alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                     TRUE ~ "0.6 <= a <= 0.8"))
+  } else if(num_groups == 3) {
+    dtu_optile <- dtu_optile %>%
+      mutate(alpha_group = case_when(alpha < 0.34 ~ "a < 0.34",
+                                     alpha > 0.65 ~ "a > 0.65",
+                                     TRUE ~ "0.34 <= a <= 0.65"))
+  } else if(num_groups == 4) {
+    dtu_optile <- dtu_optile %>%
+      mutate(alpha_group = case_when(alpha <= 0.25 ~ "a <= 0.25",
+                                     alpha >= 0.8 ~ "a >= 0.75",
+                                     alpha > 0.25 & alpha <= 0.5 ~ "0.25 <= a <= 0.5",
+                                     TRUE ~ "0.5 < a < 0.75"))
+  }
+
+  dtu_optile <- dtu_optile %>%
+    mutate(transcript = paste0(region_id, "_", alpha_group)) %>%
+    group_by(sample, transcript) %>%
+    summarise(transcript_count = n()) %>% ungroup() %>% data.frame()
+
+  # build matrix of "transcript" counts - transcript rows, sample as columns
+  dtu_optile <- dtu_optile %>% pivot_wider(names_from = sample, values_from = transcript_count)
+  dtu_optile[is.na(dtu_optile)] <- 0
+  dtu_optile$gene_id <- sub("_.*", "", dtu_optile$transcript)
+  dtu_optile
+}
+
+
+dtu_counts2 <- function(all_samples, optiles_all, num_groups = 5) {
+  dtu_optile <- find_overlaps(as_granges(all_samples), as_granges(optiles_all)) %>% data.frame() %>%
+    distinct(sample, read_id, read_start, read_end, alpha, region_id)
+
+  if(num_groups == 5) {
+    dtu_optile <- dtu_optile %>%
+      mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                     alpha > 0.8 ~ "a > 0.8",
+                                     alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                     alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                     TRUE ~ "0.6 <= a <= 0.8"))
+  } else if(num_groups == 3) {
+    dtu_optile <- dtu_optile %>%
+      mutate(alpha_group = case_when(alpha < 0.34 ~ "a < 0.34",
+                                     alpha > 0.65 ~ "a > 0.65",
+                                     TRUE ~ "0.34 <= a <= 0.65"))
+  } else if(num_groups == 4) {
+    dtu_optile <- dtu_optile %>%
+      mutate(alpha_group = case_when(alpha <= 0.25 ~ "a <= 0.25",
+                                     alpha >= 0.8 ~ "a >= 0.75",
+                                     alpha > 0.25 & alpha <= 0.5 ~ "0.25 <= a <= 0.5",
+                                     TRUE ~ "0.5 < a < 0.75"))
+  }
+
+  dtu_optile <- dtu_optile %>%
+    mutate(transcript = paste0(region_id, "_", alpha_group)) %>%
+    group_by(sample, transcript) %>%
+    summarise(transcript_count = n()) %>% ungroup() %>% data.frame()
+
+  # build matrix of "transcript" counts - transcript rows, sample as columns
+  dtu_optile <- dtu_optile %>% pivot_wider(names_from = sample, values_from = transcript_count)
+  dtu_optile[is.na(dtu_optile)] <- 0
+  dtu_optile$gene_id <- sub("_.*", "", dtu_optile$transcript)
+
+  # DTU analysis with edgeR
+  ## Alicia prefers gene method over Simes method (documentation slightly confusing about difference)
+  y <- DGEList(as.matrix(dtu_optile[,2:5]), group = c(1,1,2,2), genes = dtu_optile[,c("gene_id", "transcript")])
+  design <- model.matrix(~ c(1,1,2,2), data = y$samples)
+  fit <- glmQLFit(y, design, robust=TRUE)
+  ds <- diffSpliceDGE(fit, coef = 2, geneid = "gene_id", exonid = "transcript")
+  ts.gene_optiles <- topSpliceDGE(ds, test = "gene", number = Inf)
+
+  # add info to results: get proportion counts
+  gene_cg <- find_overlaps(as_granges(optiles_all), as_granges(cg_sites)) %>% data.frame() %>%
+    group_by(region_id) %>%
+    summarise(n_cg = n()) %>%
+    ungroup() %>% data.frame()
+  fit$genes <- fit$genes %>% mutate(n_cg = gene_cg[match(.$gene_id, gene_cg$region_id), "n_cg"])
+  rpk <- y$counts/rep(fit$genes$n_cg/1000, times = ncol(y$counts))
+  tpm_mat <- sweep(rpk, 2, colSums(rpk)/1e6, "/")
+  tpm_mat <- tpm_mat %>% data.frame() %>% mutate(id = dtu_optile$transcript, gene_id = dtu_optile$gene_id)
+
+  tpm_mat <- tpm_mat %>%
+    group_by(gene_id) %>%
+    mutate(prop_S1_gm = b1/sum(b1),
+           prop_S2_gm = b2/sum(b2),
+           prop_S3_k = cml1/sum(cml1),
+           prop_S4_k = cml2/sum(cml2)) %>%
+    ungroup() %>% data.frame()
+  tpm_mat
+}
