@@ -1,0 +1,484 @@
+---
+title: "processEmseq"
+author: "caitlinpage"
+date: "2026-07-09"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+## Introduction
+
+```{r}
+library(BSgenome.Hsapiens.UCSC.hg38)
+#library(data.table)
+library(plyranges)
+library(tidyr)
+library(stringr)
+library(dplyr)
+library(ggplot2)
+library(OpTiles)
+library(edgeR)
+```
+
+folder: /researchers/caitlin.page/cf_nano/fastq_tothill_emseq_healthy
+
+CpG_OT_PRJ240785_LPRJ240785_S1_L004_R1_001_bismark_bt2_pe.txt
+
+```{r}
+bis <- fread("/researchers/caitlin.page/cf_nano/fastq_tothill_emseq_healthy/CpG_OT_PRJ240785_LPRJ240785_S1_L004_R1_001_bismark_bt2_pe.txt")
+```
+
+* good it has same format
+
+```{r}
+process_wgbs_short <- function(bismark, bed = NULL) {
+  read <- bismark
+  names(read) <- c("read_id", "strand", "seqnames", "start", "meth_status")
+  read$end <- read$start
+
+  read_overlap <- read
+  read_overlap[, meth_status := ifelse(meth_status == "Z", "M", "U")]
+  read_overlap[, meth_pattern := paste0(meth_status, collapse = ""), by = read_id]
+  read_overlap[, num_meth := str_count(meth_pattern, pattern = "M")]
+  read_overlap[, total := str_length(meth_pattern)]
+  read_overlap[, alpha := num_meth/total]
+  read_overlap[, genom_positions := paste0(start, collapse = ","), by = read_id]
+
+  read_overlap <- read_overlap %>% .[order(.$read_id),]
+
+  read_overlap[, read_start := min(start), by = read_id]
+  read_overlap[, read_end := max(start), by = read_id]
+
+  read_overlap
+}
+```
+nmn
+```{r}
+em_healthy_785 <- process_wgbs_short(bis)
+saveRDS(em_healthy_785, "/researchers/caitlin.page/cf_nano/r_output/emseq_healthy_785.rds")
+```
+
+
+```{r}
+em_healthy_785
+```
+
+```{r}
+just_read <- em_healthy_785 %>% distinct(read_id, seqnames, read_start, read_end, meth_pattern, num_meth, total, alpha, genom_positions)
+```
+
+```{r}
+just_read %>%
+  ggplot(aes(x = alpha)) +
+  geom_density()
+```
+
+```{r}
+just_read %>%
+  ggplot(aes(x = total)) +
+  geom_histogram()
+```
+
+
+```{r}
+just_read %>% mutate(width = read_end - read_start) %>%
+  ggplot(aes(x = width)) +
+  geom_density()
+```
+
+```{r}
+just_read %>% mutate(width = read_end - read_start) %>%
+  ggplot(aes(x = log2(width))) +
+  geom_density()
+```
+
+
+```{r}
+1+1
+```
+
+
+```{r}
+source("../processData.R")
+
+bis
+em_healthy_785 <- process_wgbs(bis)
+saveRDS(em_healthy_785, "/researchers/caitlin.page/cf_nano/r_output/emseq_healthy_785.rds")
+```
+
+CpG_OT_PRJ240786_LPRJ240786_S2_L004_R1_001_bismark_bt2_pe.txt
+
+CpG_OT_PRJ241037_LPRJ241037_S20_L004_R1_001_bismark_bt2_pe.txt
+mnmnmn
+* others are still going
+
+
+```{r}
+source("../processData.R")
+
+bis <- fread("/researchers/caitlin.page/cf_nano/fastq_tothill_emseq_healthy/CpG_OT_PRJ240786_LPRJ240786_S2_L004_R1_001_bismark_bt2_pe.txt")
+em_healthy_786 <- process_wgbs(bis)
+saveRDS(em_healthy_786, "/researchers/caitlin.page/cf_nano/r_output/emseq_healthy_786.rds")
+```
+
+
+```{r}
+source("../processData.R")
+
+bis <- fread("/researchers/caitlin.page/cf_nano/fastq_tothill_emseq_healthy/CpG_OT_PRJ241037_LPRJ241037_S20_L004_R1_001_bismark_bt2_pe.txt")
+em_healthy_037 <- process_wgbs(bis)
+saveRDS(em_healthy_037, "/researchers/caitlin.page/cf_nano/r_output/emseq_healthy_037.rds")
+```
+
+
+
+
+
+## run this 
+
+```{r}
+process_wgbs_short <- function(bismark, bed = NULL) {
+  read <- bismark
+  names(read) <- c("read_id", "strand", "seqnames", "start", "meth_status")
+  read$end <- read$start
+
+  read_overlap <- read
+  read_overlap[, meth_status := ifelse(meth_status == "Z", "M", "U")]
+  read_overlap[, meth_pattern := paste0(meth_status, collapse = ""), by = read_id]
+  read_overlap[, num_meth := str_count(meth_pattern, pattern = "M")]
+  read_overlap[, total := str_length(meth_pattern)]
+  read_overlap[, alpha := num_meth/total]
+  read_overlap[, genom_positions := paste0(start, collapse = ","), by = read_id]
+
+  read_overlap <- read_overlap %>% .[order(.$read_id),]
+
+  read_overlap[, read_start := min(start), by = read_id]
+  read_overlap[, read_end := max(start), by = read_id]
+
+  read_overlap
+}
+```
+
+
+```{r}
+# process files
+
+em_healthy_785 <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy_785.rds")
+em_healthy_786 <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy_786.rds")
+em_healthy_787 <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy_787.rds")
+em_healthy_789 <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy_789.rds")
+em_healthy_036 <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy_036.rds")
+em_healthy_037 <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy_037.rds")
+```
+
+
+nmn
+```{r}
+# cpgs
+seqs <- seqnames(BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38)[1:22]
+
+cg_sites <- lapply(seqs, function(x) {
+  cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38[[x]])),
+        seqnames = x
+  )}) %>% bind_rows()
+```
+
+```{r}
+data.frame(em_healthy_036)[,cols]
+```
+
+```{r}
+em_healthy_036 <- data.frame(em_healthy_036)
+em_healthy_037 <- data.frame(em_healthy_037)
+em_healthy_785 <- data.frame(em_healthy_785)
+em_healthy_786 <- data.frame(em_healthy_786)
+em_healthy_787 <- data.frame(em_healthy_787)
+em_healthy_789 <- data.frame(em_healthy_789)
+```
+
+```{r}
+em_healthy_785$sample <- "a1"
+em_healthy_036$sample <- "a2"
+em_healthy_787$sample <- "a3"
+em_healthy_786$sample <- "b1"
+em_healthy_037$sample <- "b2"
+em_healthy_789$sample <- "b3"
+```
+
+
+```{r}
+# combine samples
+
+cols <- c("seqnames", "read_start", "read_end", "strand", "read_id", "sample", "meth_pattern", "num_meth", "total", "alpha", "genom_positions")
+
+all_samples <- rbind(em_healthy_785[,cols],
+                     em_healthy_036[,cols],
+                     em_healthy_787[,cols],
+                     em_healthy_786[,cols],
+                     em_healthy_037[,cols],
+                     em_healthy_789[,cols])
+colnames(all_samples)[2:3] <- c("start", "end")
+
+saveRDS(all_samples, "/researchers/caitlin.page/cf_nano/r_output/emseq_all_healthy.rds")
+```
+```{r}
+all_samples <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_all_healthy.rds")
+```
+
+```{r}
+all_samples %>% distinct(seqnames)
+```
+
+```{r}
+all_samples <- all_samples %>% filter(seqnames %in% seqs)
+all_samples <- distinct(all_samples)
+```
+
+
+```{r}
+# make tiles
+cols <- c("seqnames", "start")
+for_op <- all_samples[,cols]
+colnames(for_op)[1] <- "chr"
+for_op$end <- for_op$start
+for_op$strand <- "*"
+for_op <- for_op %>% group_by(chr, start, end, strand) %>% summarise(coverage = n()) %>% ungroup()
+for_op$numCs <- for_op$coverage - 1
+for_op$numTs <- for_op$coverage - for_op$numCs
+```
+
+
+
+```{r}
+all_samples %>% group_by(seqnames, start)
+```
+
+
+```{r}
+mr <- new(
+  "methylRaw",
+  for_op,
+  sample.id = "sample1",
+  assembly = "hg38",
+  context = "CpG",
+  resolution = "base"
+)
+
+length_region <- 500
+```
+nnmnnmn
+crazy that it's actually still running
+
+```{r}
+tiles <- methylKit::tileMethylCounts(mr,win.size=length_region,step.size=length_region,cov.bases = 0)
+
+tilesdf_all <- methylKit::getData(tiles)
+```
+
+```{r}
+mr
+```
+
+```{r}
+tiles
+```
+
+```{r}
+unique(as.character(tiles$chr))
+```
+
+
+```{r}
+library(parallel)
+```
+
+```{r}
+rownames(for_op)
+```
+
+* fix from claude
+** basically run in // for diff chromosomes
+
+```{r}
+detectCores()
+```
+
+
+```{r}
+
+chr_vector <- unique(as.character(tiles$chr))
+
+# Build per-chromosome subsets
+idx_chr_cpgs <- list()
+meth_subset <- list()
+idx_chr_tiles <- list()
+tiles_subset <- list()
+
+for(chrnum in chr_vector){
+  idx_chr_cpgs[[chrnum]] <- grep(paste0("chr", chrnum, ":"), rownames(for_op))
+  meth_subset[[chrnum]] <- for_op[idx_chr_cpgs[[chrnum]], ]
+  idx_chr_tiles[[chrnum]] <- grep(paste0("chr", chrnum, ":"), rownames(tilesdf_all))
+  tiles_subset[[chrnum]] <- tiles[idx_chr_tiles[[chrnum]], ]
+}
+
+# Run in parallel — adjust mc.cores to what you have available
+results <- mclapply(chr_vector, function(chr) {
+  merging_consecutive_regions(meth_subset[[chr]], tiles_subset[[chr]],
+                              da_thr = length_region, cb_thr = length_region)
+}, mc.cores = 25)
+
+names(results) <- chr_vector
+regions_plus_merged_regions <- do.call(rbind, results)
+```
+```{r}
+chr_vector
+```
+
+```{r}
+chr_vector <- unique(as.character(tiles$chr))
+chr <- chr_vector[1]
+results <- merging_consecutive_regions(mr[mr$chr == chr,], tiles[tiles$chr == chr,],
+                              da_thr = length_region, cb_thr = length_region)
+```
+
+```{r}
+res <- results
+for (i in 2:length(chr_vector)) {
+  r <- merging_consecutive_regions(mr[mr$chr == chr_vector[i],], tiles[tiles$chr == chr_vector[i],],
+                              da_thr = length_region, cb_thr = length_region)
+  res <- rbind(res, r)
+}
+```
+
+```{r}
+saveRDS(res, "/researchers/caitlin.page/cf_nano/r_output/optiles_all_emseq.rds")
+```
+
+```{r}
+res
+```
+
+```{r}
+distinct(res, chr)
+```
+
+```{r}
+optiles_all <- res
+optiles_all <- optiles_all %>% mutate(width = end - start + 1)
+colnames(optiles_all)[1] <- "seqnames"
+optiles_all$index <- 1:nrow(optiles_all)
+```
+```{r}
+saveRDS(optiles_all, "/researchers/caitlin.page/cf_nano/r_output/optiles_all_emseq.rds")
+```
+
+```{r}
+optiles_all <- readRDS("/researchers/caitlin.page/cf_nano/r_output/optiles_all_emseq.rds")
+```
+
+
+```{r}
+
+tilesdf_all <- tilesdf_all[,1:4] %>% mutate(width = end - start + 1)
+colnames(tilesdf_all)[1] <- "seqnames"
+tilesdf_all$id <- 1:nrow(tilesdf_all)
+
+```
+
+
+```{r}
+# overlap tiles and reads
+overlap_pos <- find_overlaps(as_granges(optiles_all), as_granges(all_samples)) %>% data.frame()
+```
+
+```{r}
+all_samples %>%
+  ggplot(aes(x = as.factor(total))) +
+  geom_bar()
+```
+
+
+```{r}
+overlap_pos %>% group_by(region_id) %>% summarise(n_reads = n()) %>%
+  ggplot(aes(x = n_reads)) +
+  geom_histogram()
+```
+
+
+```{r}
+# dtu
+
+dtu_optile <- overlap_pos %>% filter(total >= 3) %>%
+  distinct(sample, read_id, alpha, region_id) %>%
+  mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                 alpha > 0.8 ~ "a > 0.8",
+                                 alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                 alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                 TRUE ~ "0.6 <= a <= 0.8"))
+
+dtu_optile <- dtu_optile %>%
+  mutate(transcript = paste0(region_id, "_", alpha_group)) %>%
+  group_by(sample, transcript) %>%
+  summarise(transcript_count = n()) %>% ungroup() %>% data.frame()
+
+# build matrix of "transcript" counts - transcript rows, sample as columns
+dtu_optile <- dtu_optile %>% pivot_wider(names_from = sample, values_from = transcript_count)
+dtu_optile[is.na(dtu_optile)] <- 0
+dtu_optile$gene_id <- sub("_.*", "", dtu_optile$transcript)
+
+# DTU analysis with edgeR
+## Alicia prefers gene method over Simes method (documentation slightly confusing about difference)
+y <- DGEList(as.matrix(dtu_optile[,2:7]), group = c(1,1,1,2,2,2), genes = dtu_optile[,c("gene_id", "transcript")])
+design <- model.matrix(~ c(1,1,1,2,2,2), data = y$samples)
+fit <- glmQLFit(y, design, robust=TRUE)
+ds <- diffSpliceDGE(fit, coef = 2, geneid = "gene_id", exonid = "transcript")
+ts.gene_optiles <- topSpliceDGE(ds, test = "gene", number = Inf)
+```
+
+
+```{r}
+ts.gene_optiles <- ts.gene_optiles %>%
+  mutate(region_id = gene_id) %>%
+  separate_wider_delim(gene_id, delim = ":", names = c("seqnames", "gene_id")) %>%
+  mutate(seqnames = gsub("chrchr", "chr", seqnames)) %>%
+  separate_wider_delim(gene_id, delim = "-", names = c("start", "end"))
+ts.gene_optiles$start <- as.double(ts.gene_optiles$start)
+ts.gene_optiles$end <- as.double(ts.gene_optiles$end)
+ts.gene_optiles$dtu_rank <- 1:nrow(ts.gene_optiles)
+```
+
+
+```{r}
+saveRDS(ts.gene_optiles, "/researchers/caitlin.page/cf_nano/r_output/dtu_tiles_emseq_healthy.rds")
+```
+
+nmn
+ṉ
+nnmnmnmnmnmnmmnmnmmnmnmnnmnmnm
+
+```{r}
+emseq_tiles <- readRDS("/researchers/caitlin.page/cf_nano/r_output/dtu_tiles_emseq_healthy.rds")
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+emseq_tiles %>% mutate(false_pos = ifelse(FDR < 0.05, TRUE, FALSE), tile = "tile") %>%
+  ggplot(aes(x = tile, fill = false_pos)) +
+  geom_bar(position = "fill")
+```
+
+
+
+```{r}
+ts.gene_optiles %>% filter(FDR < 0.05)
+```
+
+11 false positives
+I'll take it
+mmmmmmmmmmmmmmmmmmm
