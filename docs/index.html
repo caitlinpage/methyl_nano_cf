@@ -310,7 +310,7 @@ class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span>
 <div class="tab-content">
 <div id="summary" class="tab-pane fade in active">
 <p>
-<strong>Last updated:</strong> 2026-06-29
+<strong>Last updated:</strong> 2026-07-22
 </p>
 <p>
 <strong>Checks:</strong> <span
@@ -357,15 +357,15 @@ results.</p>
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpagemethylnanocftreecc9980946dc36f8a0431735090833964680d1baftargetblankcc99809a">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpagemethylnanocftree4968b0368ad70db851155060e17c486e281c3da3targetblank4968b03a">
 <span class="glyphicon glyphicon-ok text-success"
 aria-hidden="true"></span> <strong>Repository version:</strong>
-<a href="https://github.com/caitlinpage/methyl_nano_cf/tree/cc9980946dc36f8a0431735090833964680d1baf" target="_blank">cc99809</a>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/tree/4968b0368ad70db851155060e17c486e281c3da3" target="_blank">4968b03</a>
 </a>
 </p>
 </div>
 <div
-id="strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpagemethylnanocftreecc9980946dc36f8a0431735090833964680d1baftargetblankcc99809a"
+id="strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpagemethylnanocftree4968b0368ad70db851155060e17c486e281c3da3targetblank4968b03a"
 class="panel-collapse collapse">
 <div class="panel-body">
 <p>
@@ -375,7 +375,7 @@ reproducibility.
 </p>
 <p>
 The results in this page were generated with repository version
-<a href="https://github.com/caitlinpage/methyl_nano_cf/tree/cc9980946dc36f8a0431735090833964680d1baf" target="_blank">cc99809</a>.
+<a href="https://github.com/caitlinpage/methyl_nano_cf/tree/4968b0368ad70db851155060e17c486e281c3da3" target="_blank">4968b03</a>.
 See the <em>Past versions</em> tab to see a history of the changes made
 to the R Markdown and HTML files.
 </p>
@@ -393,18 +393,22 @@ Ignored files:
     Ignored:    .RData
     Ignored:    .Rproj.user/
     Ignored:    analysis/.RData
-    Ignored:    analysis/figure/
 
 Untracked files:
+    Untracked:  analysis/pleaseRun.Rmd
     Untracked:  renv.lock
     Untracked:  renv/
 
 Unstaged changes:
     Modified:   .Rprofile
     Modified:   _workflowr.yml
+    Modified:   analysis/coverageAndSummaryAnalysis.Rmd
     Modified:   analysis/deAnalysisWithDtuRegion.Rmd
-    Modified:   analysis/dtuResultsWhichGroupSignif.Rmd
+    Modified:   analysis/dtuResultsChangeInSignifInterpret.Rmd
+    Modified:   analysis/processEmseq.Rmd
     Modified:   analysis/workflow.Rmd
+    Modified:   code/processData.R
+    Modified:   code/seqFastqToReadMeth.txt
 
 </code></pre>
 <p>
@@ -448,6 +452,40 @@ Message
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/4968b0368ad70db851155060e17c486e281c3da3/analysis/index.Rmd" target="_blank">4968b03</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-07-22
+</td>
+<td>
+wflow_publish("index.Rmd")
+</td>
+</tr>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/caitlinpage/methyl_nano_cf/113479cceadd33b214e30f66f5d63a60a0c3faf0/docs/index.html" target="_blank">113479c</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-06-29
+</td>
+<td>
+Build site.
+</td>
+</tr>
 <tr>
 <td>
 Rmd
@@ -1473,6 +1511,12 @@ significant</a></p>
 <p>How does the coverage compare in DTU and DMR? <a
 href="coverageInResults.html">coverage in (non)significant
 regions</a></p>
+</div>
+<div id="analysis-of-em-seq-data" class="section level1">
+<h1>4 Analysis of EM-Seq data</h1>
+<p>Check error rate by conducting healthy x healthy * Should have no
+significance * 11 tiles out of like 600k</p>
+<p><a href="processEmseq.html">healthy EM-Seq analysis</a></p>
 <div id="section" class="section level52">
 <p class="heading"></p>
 </div>
