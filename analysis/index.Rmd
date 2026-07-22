@@ -190,7 +190,13 @@ How does the coverage compare in DTU and DMR?
 [coverage in (non)significant regions](coverageInResults.html)
 
 
+# 4 Analysis of EM-Seq data
 
+Check error rate by conducting healthy x healthy
+* Should have no significance
+* 11 tiles out of like 600k
+
+[healthy EM-Seq analysis](processEmseq.html)
 
 
 
