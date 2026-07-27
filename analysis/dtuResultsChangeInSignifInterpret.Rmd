@@ -863,3 +863,48 @@ rrbs_plot4(all_samples, reads) +
   theme_bw()
 ```
 
+mmmmm
+mm
+
+
+# delta per alpha band
+* the change in proportion it
+s had in each
+
+```{r}
+reads <- find_overlaps(dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% group_by(region_id) %>% filter(setequal(unique(transcript), c("a < 0.2", "0.4 < a < 0.6"))) %>% .[order(.$dtu_rank, decreasing = FALSE),] %>% .[3,] %>% as_granges(), as_granges(all_samples_simp)) %>% data.frame() %>% .$read_id
+rrbs_plot4(all_samples, reads)
+```
+
+```{r}
+rrbs_plot4(all_samples, reads, jit_amount = 0.07) +
+  theme_bw()
+```
+
+
+```{r}
+o <- find_overlaps(dtu_tiles_5_exon %>% filter(FDR < 0.05) %>% group_by(region_id) %>% filter(setequal(unique(transcript), c("a < 0.2", "0.4 < a < 0.6"))) %>% .[order(.$dtu_rank, decreasing = FALSE),] %>% .[3,] %>% as_granges(), as_granges(all_samples_simp)) %>% data.frame()
+```
+
+
+```{r}
+o %>% distinct(sample, read_id, alpha, meth_pattern, num_meth, total) %>%
+  mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                     alpha > 0.8 ~ "a > 0.8",
+                                     alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                     alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                     TRUE ~ "0.6 <= a <= 0.8"),
+         sample_type = ifelse(sample %in% c("b1", "b2"), "B", "CML")) %>%
+  group_by(sample_type, alpha_group) %>% summarise(n=n()) %>%
+  ungroup() %>%
+  group_by(sample_type) %>% mutate(prop_in_sample = n/sum(n)) %>%
+  ungroup() %>%
+  group_by(alpha_group) %>%
+  mutate(delta_alpha = prop_in_sample - lead(prop_in_sample))
+```
+```{r}
+dtu_tiles_5_exon %>% filter(region_id == "chrchr6:140629201-140629500")
+```
+
+* oh yeah so the 0.6-0.8 is also significant in this one
+* but this does show it nicely
