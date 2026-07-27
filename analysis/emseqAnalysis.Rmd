@@ -1,0 +1,256 @@
+---
+title: "emseqAnalysis"
+author: "caitlinpage"
+date: "2026-07-27"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+## Introduction
+
+```{r}
+library(BSgenome.Hsapiens.UCSC.hg38)
+library(data.table)
+library(plyranges)
+library(tidyr)
+library(stringr)
+library(dplyr)
+library(ggplot2)
+library(OpTiles)
+library(edgeR)
+library(UpSetR)
+```
+
+```{r}
+# cpgs
+seqs <- seqnames(BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38)[1:22]
+
+cg_sites <- lapply(seqs, function(x) {
+  cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38[[x]])),
+        seqnames = x
+  )}) %>% bind_rows()
+```
+
+
+```{r}
+healthy_samples <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_all_healthy.rds")
+healthy_samples <- healthy_samples %>% filter(seqnames %in% seqs)
+healthy_samples <- distinct(healthy_samples)
+
+optiles_all <- readRDS("/researchers/caitlin.page/cf_nano/r_output/optiles_all_emseq.rds") # built from healthy
+
+cancer_samples <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_all_cancer.rds")
+
+healthy_samples$type <- "healthy"
+cancer_samples$type <- "cancer"
+```
+
+```{r}
+dtu_tiles <- readRDS("/researchers/caitlin.page/cf_nano/r_output/dtu_tiles_emseq_cancer_healthy.rds")
+dtu_tiles_healthy_compare <- readRDS("/researchers/caitlin.page/cf_nano/r_output/dtu_tiles_emseq_healthy.rds")
+```
+
+
+# Overview of samples
+
+```{r}
+healthy_samples %>%
+  ggplot(aes(x = total)) +
+  geom_density()
+
+healthy_samples %>%
+  ggplot(aes(x = alpha)) +
+  geom_density()
+```
+
+```{r}
+cancer_samples %>%
+  ggplot(aes(x = total)) +
+  geom_density()
+
+cancer_samples %>%
+  ggplot(aes(x = alpha)) +
+  geom_density()
+```
+
+
+# Analyse the healthy x healthy results
+
+
+```{r}
+dtu_tiles_healthy_compare %>% mutate(false_pos = ifelse(FDR < 0.05, TRUE, FALSE), tile = "tile") %>%
+  ggplot(aes(x = tile, fill = false_pos)) +
+  geom_bar(position = "fill")
+```
+
+```{r}
+dtu_tiles_healthy_compare %>% mutate(false_pos = ifelse(FDR < 0.05, TRUE, FALSE), tile = "tile") %>%
+  ggplot(aes(x = tile, fill = false_pos)) +
+  geom_bar() +
+  coord_polar("y", start = 0)
+```
+
+```{r}
+dtu_tiles_healthy_compare %>% mutate(false_pos = ifelse(FDR < 0.05, TRUE, FALSE), tile = "tile") %>%
+  group_by(false_pos) %>%
+  summarise(n = n()) %>%
+  ungroup() %>%
+  mutate(ratio = n/sum(n))
+```
+
+```{r}
+dtu_tiles_healthy_compare %>%
+  ggplot(aes(x = FDR)) +
+  geom_density()
+```
+
+```{r}
+dtu_tiles_healthy_compare %>% filter(FDR < 0.05) %>% nrow()
+```
+
+11 false positives
+I'll take it
+
+* visualise those regions
+```{r}
+healthy_samples$read_start <- healthy_samples$start
+healthy_samples$read_end <- healthy_samples$end
+```
+
+
+* cool cool got a strand thing going on with these reads - same read_id, oppo strand
+```{r}
+rrbs_plot5 <- function(read_data, read_ids, cpgs = cg_sites, jit_amount = 0.1) {
+  set.seed(42) # For reproducibility
+  # Calculate a single jitter amount per row (segment)
+  read_data <- read_data %>% dplyr::filter(read_id %in% read_ids)
+  jitter_amount <- runif(nrow(read_data), -jit_amount, jit_amount)
+  read_data$alpha_jit <- read_data$alpha + jitter_amount
+  read_data <- data.frame(read_data)
+
+  # Add jittered coordinates to new columns in the data frame
+  long_data <- read_data %>%
+    mutate(meth_status = strsplit(meth_pattern, ""), start = strsplit(genom_positions, ",")) %>%
+    unnest(meth_status, start) %>%
+    mutate(start = as.double(start))
+  
+  plot <- read_data %>%
+    ggplot() +
+    geom_segment(aes(x = read_start, xend = read_end, y = alpha_jit, yend = alpha_jit), alpha = 0.2) +
+    geom_point(data = long_data,
+               aes(x = start, y = alpha_jit, fill = meth_status), shape = 21, color = "black") +
+    scale_fill_manual(values = c("U" = "white", "M" = "black")) +
+    facet_wrap(~ sample)
+  plot
+}
+```
+
+```{r}
+reads <- find_overlaps(dtu_tiles_healthy_compare %>% filter(FDR < 0.05) %>% .[3,] %>% as_granges(), as_granges(healthy_samples)) %>% data.frame() %>% .$read_id
+rrbs_plot5(healthy_samples, reads)
+
+reads <- find_overlaps(dtu_tiles_healthy_compare %>% filter(FDR < 0.05) %>% .[4,] %>% as_granges(), as_granges(healthy_samples)) %>% data.frame() %>% .$read_id
+rrbs_plot5(healthy_samples, reads)
+
+reads <- find_overlaps(dtu_tiles_healthy_compare %>% filter(FDR < 0.05) %>% .[5,] %>% as_granges(), as_granges(healthy_samples)) %>% data.frame() %>% .$read_id
+rrbs_plot5(healthy_samples, reads)
+
+reads <- find_overlaps(dtu_tiles_healthy_compare %>% filter(FDR < 0.05) %>% .[6,] %>% as_granges(), as_granges(healthy_samples)) %>% data.frame() %>% .$read_id
+rrbs_plot5(healthy_samples, reads)
+
+reads <- find_overlaps(dtu_tiles_healthy_compare %>% filter(FDR < 0.05) %>% .[7,] %>% as_granges(), as_granges(healthy_samples)) %>% data.frame() %>% .$read_id
+rrbs_plot5(healthy_samples, reads)
+
+reads <- find_overlaps(dtu_tiles_healthy_compare %>% filter(FDR < 0.05) %>% .[8,] %>% as_granges(), as_granges(healthy_samples)) %>% data.frame() %>% .$read_id
+rrbs_plot5(healthy_samples, reads)
+
+reads <- find_overlaps(dtu_tiles_healthy_compare %>% filter(FDR < 0.05) %>% .[9,] %>% as_granges(), as_granges(healthy_samples)) %>% data.frame() %>% .$read_id
+rrbs_plot5(healthy_samples, reads)
+
+reads <- find_overlaps(dtu_tiles_healthy_compare %>% filter(FDR < 0.05) %>% .[10,] %>% as_granges(), as_granges(healthy_samples)) %>% data.frame() %>% .$read_id
+rrbs_plot5(healthy_samples, reads)
+
+reads <- find_overlaps(dtu_tiles_healthy_compare %>% filter(FDR < 0.05) %>% .[11,] %>% as_granges(), as_granges(healthy_samples)) %>% data.frame() %>% .$read_id
+rrbs_plot5(healthy_samples, reads)
+```
+
+* ok so there is a change in proportion for some of these
+* but also it's only 11 regions
+
+
+* check some of the non-significant ones
+```{r}
+reads <- find_overlaps(dtu_tiles_healthy_compare %>% filter(FDR > 0.05) %>% .[3,] %>% as_granges(), as_granges(healthy_samples)) %>% data.frame() %>% .$read_id
+rrbs_plot5(healthy_samples, reads)
+
+reads <- find_overlaps(dtu_tiles_healthy_compare %>% filter(FDR > 0.05) %>% .[5,] %>% as_granges(), as_granges(healthy_samples)) %>% data.frame() %>% .$read_id
+rrbs_plot5(healthy_samples, reads)
+
+reads <- find_overlaps(dtu_tiles_healthy_compare %>% filter(FDR > 0.05) %>% .[10,] %>% as_granges(), as_granges(healthy_samples)) %>% data.frame() %>% .$read_id
+rrbs_plot5(healthy_samples, reads)
+
+reads <- find_overlaps(dtu_tiles_healthy_compare %>% filter(FDR > 0.05) %>% .[20,] %>% as_granges(), as_granges(healthy_samples)) %>% data.frame() %>% .$read_id
+rrbs_plot5(healthy_samples, reads)
+
+reads <- find_overlaps(dtu_tiles_healthy_compare %>% filter(FDR > 0.05) %>% .[100,] %>% as_granges(), as_granges(healthy_samples)) %>% data.frame() %>% .$read_id
+rrbs_plot5(healthy_samples, reads)
+```
+
+
+# Analyse the cancer x healthy results
+
+```{r}
+dtu_tiles %>% filter(FDR < 0.05) %>% nrow()
+```
+
+
+```{r}
+dtu_tiles %>% mutate(signif = ifelse(FDR < 0.05, TRUE, FALSE), tile = "tile") %>%
+  ggplot(aes(x = tile, fill = signif)) +
+  geom_bar(position = "fill")
+```
+
+```{r}
+all_samples <- rbind(healthy_samples, cancer_samples) %>% data.frame()
+```
+
+
+```{r}
+reads <- find_overlaps(dtu_tiles %>% filter(FDR < 0.05) %>% .[3,] %>% as_granges(), as_granges(all_samples)) %>% data.frame() %>% .$read_id
+rrbs_plot5(all_samples, reads)
+
+reads <- find_overlaps(dtu_tiles %>% filter(FDR < 0.05) %>% .[4,] %>% as_granges(), as_granges(all_samples)) %>% data.frame() %>% .$read_id
+rrbs_plot5(all_samples, reads)
+
+reads <- find_overlaps(dtu_tiles %>% filter(FDR < 0.05) %>% .[5,] %>% as_granges(), as_granges(all_samples)) %>% data.frame() %>% .$read_id
+rrbs_plot5(all_samples, reads)
+
+reads <- find_overlaps(dtu_tiles %>% filter(FDR < 0.05) %>% .[6,] %>% as_granges(), as_granges(all_samples)) %>% data.frame() %>% .$read_id
+rrbs_plot5(all_samples, reads)
+
+reads <- find_overlaps(dtu_tiles %>% filter(FDR < 0.05) %>% .[7,] %>% as_granges(), as_granges(all_samples)) %>% data.frame() %>% .$read_id
+rrbs_plot5(all_samples, reads)
+
+reads <- find_overlaps(dtu_tiles %>% filter(FDR < 0.05) %>% .[8,] %>% as_granges(), as_granges(all_samples)) %>% data.frame() %>% .$read_id
+rrbs_plot5(all_samples, reads)
+
+reads <- find_overlaps(dtu_tiles %>% filter(FDR < 0.05) %>% .[9,] %>% as_granges(), as_granges(all_samples)) %>% data.frame() %>% .$read_id
+rrbs_plot5(all_samples, reads)
+
+reads <- find_overlaps(dtu_tiles %>% filter(FDR < 0.05) %>% .[10,] %>% as_granges(), as_granges(all_samples)) %>% data.frame() %>% .$read_id
+rrbs_plot5(all_samples, reads)
+
+reads <- find_overlaps(dtu_tiles %>% filter(FDR < 0.05) %>% .[11,] %>% as_granges(), as_granges(all_samples)) %>% data.frame() %>% .$read_id
+rrbs_plot5(all_samples, reads)
+```
+
+* non significant tiles
+```{r}
+reads <- find_overlaps(dtu_tiles %>% filter(FDR > 0.05) %>% .[10,] %>% as_granges(), as_granges(all_samples)) %>% data.frame() %>% .$read_id
+rrbs_plot5(all_samples, reads)
+
+reads <- find_overlaps(dtu_tiles %>% filter(FDR > 0.05) %>% .[110,] %>% as_granges(), as_granges(all_samples)) %>% data.frame() %>% .$read_id
+rrbs_plot5(all_samples, reads)
+```
+
