@@ -97,7 +97,7 @@ just_read %>% mutate(width = read_end - read_start) %>%
 
 
 ```{r, eval=FALSE}
-source("../processData.R")
+source("../code/processData.R")
 
 bis <- fread("/researchers/caitlin.page/cf_nano/fastq_tothill_emseq_healthy/CpG_OT_PRJ240786_LPRJ240786_S2_L004_R1_001_bismark_bt2_pe.txt")
 em_healthy_786 <- process_wgbs(bis)
