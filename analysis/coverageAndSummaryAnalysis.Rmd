@@ -8,6 +8,11 @@ editor_options:
 ---
 
 ```{r}
+all_samples
+```
+
+
+```{r}
 library(EnsDb.Hsapiens.v86)
 library(Biostrings)
 library(plyranges)

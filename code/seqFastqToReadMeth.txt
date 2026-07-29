@@ -8,6 +8,19 @@
 
 # start with fastq file
 
+# for the orad files (emseq)
+# in fastq folder
+ ~/orad.2.7.0.linux/orad file.fastq.ora
+
+# to decompress folder
+for f in *.fastq.ora; do
+  [ -e "$f" ] || continue
+  echo "Decompressing: $f"
+  ~/orad.2.7.0.linux/orad "$f"
+done
+
+
+
 # adapter trimming
 
 module load trimgalore

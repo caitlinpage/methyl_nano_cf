@@ -115,12 +115,15 @@ optiles_all$index <- 1:nrow(optiles_all)
 saveRDS(optiles_all, "/researchers/caitlin.page/cf_nano/r_output/optiles_all.rds")
 ```
 
+
+
 ```{r}
 optiles_all <- readRDS("/researchers/caitlin.page/cf_nano/r_output/optiles_all.rds")
 ```
 
 ```{r}
 overlap_pos <- find_overlaps(as_granges(optiles_all), as_granges(all_samples_simp)) %>% data.frame()
+overlap_pos
 ```
 
 ```{r}

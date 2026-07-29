@@ -157,7 +157,7 @@ de_res_beta %>% mutate(region_id = transcript) %>% separate_wider_delim(transcri
 ```
 
 # compare the results
-
+bvd
 ```{r}
 rbind(mutate(de_res, type = "alpha"), mutate(de_res_beta, type = "beta")) %>%
   group_by(type) %>% mutate(rank = 1:n(), signif = ifelse(FDR < 0.05, TRUE, FALSE)) %>% ungroup() %>% 
