@@ -35,8 +35,8 @@ cg_sites <- lapply(seqs, function(x) {
 
 ```{r}
 healthy_samples <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_all_healthy.rds")
-healthy_samples <- healthy_samples %>% filter(seqnames %in% seqs)
-healthy_samples <- distinct(healthy_samples)
+#healthy_samples <- healthy_samples %>% filter(seqnames %in% seqs)
+#healthy_samples <- distinct(healthy_samples)
 
 optiles_all <- readRDS("/researchers/caitlin.page/cf_nano/r_output/optiles_all_emseq.rds") # built from healthy
 
@@ -46,11 +46,16 @@ healthy_samples$type <- "healthy"
 cancer_samples$type <- "cancer"
 ```
 
+
+
 ```{r}
 dtu_tiles <- readRDS("/researchers/caitlin.page/cf_nano/r_output/dtu_tiles_emseq_cancer_healthy.rds")
 dtu_tiles_healthy_compare <- readRDS("/researchers/caitlin.page/cf_nano/r_output/dtu_tiles_emseq_healthy.rds")
 ```
 
+```{r}
+1+1
+```
 
 # Overview of samples
 
@@ -253,4 +258,28 @@ rrbs_plot5(all_samples, reads)
 reads <- find_overlaps(dtu_tiles %>% filter(FDR > 0.05) %>% .[110,] %>% as_granges(), as_granges(all_samples)) %>% data.frame() %>% .$read_id
 rrbs_plot5(all_samples, reads)
 ```
+
+
+# new
+
+```{r}
+o <- find_overlaps(dtu_tiles %>% filter(FDR < 0.05) %>% .[1:10,] %>% as_granges(), as_granges(all_samples)) %>% data.frame()
+```
+
+
+```{r}
+o <- o %>% distinct(sample, read_id, type, alpha, meth_pattern, num_meth, total) %>%
+  mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                     alpha > 0.8 ~ "a > 0.8",
+                                     alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                     alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                     TRUE ~ "0.6 <= a <= 0.8"))
+  group_by(type, alpha_group) %>% summarise(n=n()) %>%
+  ungroup() %>%
+  group_by(type) %>% mutate(prop_in_sample = n/sum(n)) %>%
+  ungroup() %>%
+  group_by(alpha_group) %>%
+  mutate(delta_alpha = prop_in_sample - lead(prop_in_sample))
+```
+
 
