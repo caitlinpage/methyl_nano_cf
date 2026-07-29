@@ -9,7 +9,490 @@ editor_options:
 
 ## Introduction
 
-```{r}
+The EMSeq data has 7 healthy samples. This means that we can cross the healthy samples, to check our false positive rate.
+Basically, the fewer significant regions we get out, the better.
 
+As there are 7 samples, I'll rotate the groups to run multiple times.
+
+## Packages
+
+```{r}
+library(BSgenome.Hsapiens.UCSC.hg38)
+library(data.table)
+library(plyranges)
+library(tidyr)
+library(stringr)
+library(dplyr)
+library(ggplot2)
+library(OpTiles)
+library(edgeR)
 ```
+
+```{r}
+seqs <- seqnames(BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38)[1:22]
+
+cg_sites <- lapply(seqs, function(x) {
+  cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38[[x]])),
+        seqnames = x
+  )}) %>% bind_rows()
+```
+
+
+```{r}
+process_wgbs_short <- function(bismark, bed = NULL) {
+  read <- bismark
+  names(read) <- c("read_id", "strand", "seqnames", "start", "meth_status")
+  read$end <- read$start
+
+  read_overlap <- read
+  read_overlap[, meth_status := ifelse(meth_status == "Z", "M", "U")]
+  read_overlap[, meth_pattern := paste0(meth_status, collapse = ""), by = read_id]
+  read_overlap[, num_meth := str_count(meth_pattern, pattern = "M")]
+  read_overlap[, total := str_length(meth_pattern)]
+  read_overlap[, alpha := num_meth/total]
+  read_overlap[, genom_positions := paste0(start, collapse = ","), by = read_id]
+
+  read_overlap <- read_overlap %>% .[order(.$read_id),]
+
+  read_overlap[, read_start := min(start), by = read_id]
+  read_overlap[, read_end := max(start), by = read_id]
+
+  read_overlap
+}
+
+bis <- fread("/researchers/caitlin.page/cf_nano/fastq_tothill_emseq_healthy/CpG_OT_PRJ240788_LPRJ240788_S4_L004_R1_001_bismark_bt2_pe.txt")
+em_healthy_788 <- process_wgbs_short(bis)
+saveRDS(em_healthy_788, "/researchers/caitlin.page/cf_nano/r_output/emseq_healthy_788.rds")
+```
+
+CpG_OT_PRJ240788_LPRJ240788_S4_L004_R1_001_bismark_bt2_pe.txt
+```{r}
+all_samples <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_all_healthy.rds")
+```
+
+```{r}
+em_healthy_788 <- em_healthy_788 %>% data.frame() %>% filter(seqnames %in% seqs)
+em_healthy_788$start <- em_healthy_788$read_start
+em_healthy_788$end <- em_healthy_788$read_end
+em_healthy_788$sample <- "healthy_788"
+```
+
+
+```{r}
+cols <- c("seqnames", "read_start", "read_end", "strand", "read_id", "sample", "meth_pattern", "num_meth", "total", "alpha", "genom_positions")
+```
+
+
+```{r}
+all_samples <- all_samples %>%
+  mutate(sample = case_when(sample == "a1" ~ "healthy_785",
+                            sample == "a2" ~ "healthy_036",
+                            sample == "a3" ~ "healthy_787",
+                            sample == "b1" ~ "healthy_786",
+                            sample == "b2" ~ "healthy_037",
+                            TRUE ~ "healthy_789"))
+
+all_samples <- rbind(all_samples, distinct(em_healthy_788[,colnames(all_samples)]))
+```
+
+```{r}
+dtu_tiles_healthy_compare <- readRDS("/researchers/caitlin.page/cf_nano/r_output/dtu_tiles_emseq_healthy.rds")
+dtu_tiles_healthy_compare %>% filter(FDR < 0.05) %>% group_by(seqnames) %>% summarise(n=n())
+```
+
+
+```{r}
+optiles_all <- readRDS("/researchers/caitlin.page/cf_nano/r_output/optiles_all_emseq.rds")
+nrow(optiles_all)
+optiles_all %>% group_by(seqnames) %>% summarise(n=n()) %>% .[1:5,]
+```
+
+* we'll use chr1
+
+# dtu testing
+
+```{r}
+overlap_pos <- find_overlaps(as_granges(filter(optiles_all, seqnames == "chr1")), as_granges(all_samples)) %>% data.frame()
+```
+
+```{r}
+# dtu
+dtu_optile <- overlap_pos %>% filter(total >= 3) %>%
+  distinct(sample, read_id, alpha, region_id) %>%
+  mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                 alpha > 0.8 ~ "a > 0.8",
+                                 alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                 alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                 TRUE ~ "0.6 <= a <= 0.8"))
+
+dtu_optile <- dtu_optile %>%
+  mutate(transcript = paste0(region_id, "_", alpha_group)) %>%
+  group_by(sample, transcript) %>%
+  summarise(transcript_count = n()) %>% ungroup() %>% data.frame()
+
+# build matrix of "transcript" counts - transcript rows, sample as columns
+dtu_optile <- dtu_optile %>% pivot_wider(names_from = sample, values_from = transcript_count)
+dtu_optile[is.na(dtu_optile)] <- 0
+dtu_optile$gene_id <- sub("_.*", "", dtu_optile$transcript)
+```
+
+```{r}
+unique(all_samples$sample)
+```
+
+
+```{r}
+samples <- c(unique(all_samples$sample))  # your 7 sample names
+
+# --- Analysis function ---
+run_analysis <- function(combo) {
+  cols <- c(combo$g1, combo$g2)
+  group <- c(1, 1, 1, 2, 2, 2)
+
+  y <- DGEList(
+    as.matrix(dtu_optile[, cols]),
+    group = group,
+    genes = dtu_optile[, c("gene_id", "transcript")]
+  )
+  design <- model.matrix(~ group)
+  fit <- glmQLFit(y, design, robust = TRUE)
+  ds  <- diffSpliceDGE(fit, coef = 2, geneid = "gene_id", exonid = "transcript")
+
+  topSpliceDGE(ds, test = "gene", number = Inf) %>%
+    mutate(
+      region_id = gene_id,
+      excluded  = combo$excluded,
+      group1    = paste(combo$g1, collapse = ","),
+      group2    = paste(combo$g2, collapse = ",")
+    ) %>%
+    separate_wider_delim(gene_id, delim = ":", names = c("seqnames", "gene_id")) %>%
+    mutate(seqnames = gsub("chrchr", "chr", seqnames)) %>%
+    separate_wider_delim(gene_id, delim = "-", names = c("start", "end")) %>%
+    mutate(
+      start    = as.double(start),
+      end      = as.double(end),
+      dtu_rank = row_number()
+    )
+}
+
+# --- Generate 70 combinations ---
+all_combos <- unlist(
+  lapply(seq_along(samples), function(excl_i) {
+    remaining <- samples[-excl_i]
+    splits <- combn(remaining, 3, simplify = FALSE)
+    splits <- Filter(function(g1) g1[1] < setdiff(remaining, g1)[1], splits)
+    lapply(splits, function(g1) {
+      list(g1 = g1, g2 = setdiff(remaining, g1), excluded = samples[excl_i])
+    })
+  }),
+  recursive = FALSE
+)
+
+# --- Run across all 70 combinations ---
+results <- lapply(all_combos, run_analysis)
+
+# --- Combine into one data frame ---
+results_df <- bind_rows(results)
+
+saveRDS(results_df, "/researchers/caitlin.page/cf_nano/r_output/dtu_tiles_emseq_healthy_all_fp.rds")
+```
+
+# Analysis of tile level results
+
+```{r}
+results_df[1:10,]
+```
+```{r}
+results_df %>% filter(FDR < 0.05) %>% nrow()
+```
+
+```{r}
+results_df %>% distinct(excluded, group1, group2) %>% nrow() # checking correct number of runs
+```
+
+```{r}
+results_df %>% mutate(fdr_signif = ifelse(FDR < 0.05, TRUE, FALSE)) %>% group_by(excluded, group1, group2, fdr_signif) %>%
+  summarise(n = n()) %>%
+  ungroup() %>%
+  group_by(excluded, group1, group2) %>%
+  mutate(total_group = sum(n), prop = n/sum(n)) %>%
+  ungroup() %>%
+  filter(fdr_signif == TRUE) %>% .[1:5,]
+```
+
+* these are some tiny, beautifully low proportions
+* crazy how low it is
+
+* also this is only 42 of the 70 groups - so some groups didn't have any significant - no false positives
+
+* this is expected to be related to coverage
+
+```{r}
+dtu_optile %>% mutate(reads = rowSums(.[,2:8])) %>%
+  group_by(gene_id) %>%
+  summarise(coverage = sum(reads)) %>%
+  mutate(region_signif = ifelse(gene_id %in% filter(results_df, FDR < 0.05)$region_id, TRUE, FALSE)) %>%
+  ggplot(aes(x = region_signif, y = coverage, fill = region_signif)) +
+  geom_boxplot() +
+  theme(legend.position = "none")
+
+dtu_optile %>% mutate(reads = rowSums(.[,2:8])) %>%
+  group_by(gene_id) %>%
+  summarise(coverage = sum(reads)) %>%
+  mutate(region_signif = ifelse(gene_id %in% filter(results_df, FDR < 0.05)$region_id, TRUE, FALSE)) %>%
+  ggplot(aes(x = region_signif, y = log2(coverage), fill = region_signif)) +
+  geom_boxplot() +
+  theme(legend.position = "none")
+
+dtu_optile %>% mutate(reads = rowSums(.[,2:8])) %>%
+  group_by(gene_id) %>%
+  summarise(coverage = sum(reads)) %>%
+  mutate(region_signif = ifelse(gene_id %in% filter(results_df, FDR < 0.05)$region_id, TRUE, FALSE)) %>%
+  ggplot(aes(x = log2(coverage), colour = region_signif)) +
+  geom_density()
+```
+* as expected, higher coverage in significant regions
+
+
+## visualise the regions
+```{r}
+rrbs_plot6 <- function(read_data, read_ids, cpgs = cg_sites, jit_amount = 0.1) {
+  set.seed(42) # For reproducibility
+  # Calculate a single jitter amount per row (segment)
+  read_data <- read_data %>% dplyr::filter(read_id %in% read_ids)
+  jitter_amount <- runif(nrow(read_data), -jit_amount, jit_amount)
+  read_data$alpha_jit <- read_data$alpha + jitter_amount
+  read_data <- data.frame(read_data)
+
+  # Add jittered coordinates to new columns in the data frame
+  long_data <- read_data %>%
+    mutate(meth_status = strsplit(meth_pattern, ""), start = strsplit(genom_positions, ",")) %>%
+    unnest(meth_status, start) %>%
+    mutate(start = as.double(start))
+  
+  plot <- read_data %>%
+    ggplot() +
+    geom_segment(aes(x = read_start, xend = read_end, y = alpha_jit, yend = alpha_jit), alpha = 0.2) +
+    geom_point(data = long_data,
+               aes(x = start, y = alpha_jit, fill = meth_status), shape = 21, color = "black") +
+    scale_fill_manual(values = c("U" = "white", "M" = "black")) +
+    facet_wrap(~ sample)
+  
+  distrib <- read_data %>%
+    ggplot(aes(x = alpha, colour = alpha)) +
+    geom_density()
+  
+  list(plot, distrib)
+}
+```
+
+
+```{r}
+signif_results <- results_df %>% filter(FDR < 0.05) %>% .[order(.$FDR),]
+signif_results[1,]$excluded
+```
+
+```{r}
+reads <- find_overlaps(as_granges(signif_results[1,]), as_granges(filter(all_samples, !sample %in% signif_results[1,]$excluded))) %>% data.frame() %>% .$read_id
+rrbs_plot5(healthy_samples, reads)
+
+reads <- find_overlaps(as_granges(signif_results[2,]), as_granges(filter(all_samples, !sample %in% signif_results[2,]$excluded))) %>% data.frame() %>% .$read_id
+rrbs_plot5(healthy_samples, reads)
+
+reads <- find_overlaps(as_granges(signif_results[3,]), as_granges(filter(all_samples, !sample %in% signif_results[3,]$excluded))) %>% data.frame() %>% .$read_id
+rrbs_plot5(healthy_samples, reads)
+
+reads <- find_overlaps(as_granges(signif_results[4,]), as_granges(filter(all_samples, !sample %in% signif_results[4,]$excluded))) %>% data.frame() %>% .$read_id
+rrbs_plot5(healthy_samples, reads)
+
+reads <- find_overlaps(as_granges(signif_results[30,]), as_granges(filter(all_samples, !sample %in% signif_results[30,]$excluded))) %>% data.frame() %>% .$read_id
+rrbs_plot5(healthy_samples, reads)
+
+reads <- find_overlaps(as_granges(signif_results[79,]), as_granges(filter(all_samples, !sample %in% signif_results[79,]$excluded))) %>% data.frame() %>% .$read_id
+rrbs_plot5(healthy_samples, reads)
+```
+
+```{r}
+signif_results <- results_df %>% filter(FDR > 0.05) %>% .[order(.$FDR),]
+
+reads <- find_overlaps(as_granges(signif_results[1,]), as_granges(filter(all_samples, !sample %in% signif_results[1,]$excluded))) %>% data.frame() %>% .$read_id
+rrbs_plot5(healthy_samples, reads)
+
+reads <- find_overlaps(as_granges(signif_results[10,]), as_granges(filter(all_samples, !sample %in% signif_results[10,]$excluded))) %>% data.frame() %>% .$read_id
+rrbs_plot5(healthy_samples, reads)
+
+reads <- find_overlaps(as_granges(signif_results[100,]), as_granges(filter(all_samples, !sample %in% signif_results[100,]$excluded))) %>% data.frame() %>% .$read_id
+rrbs_plot5(healthy_samples, reads)
+
+reads <- find_overlaps(as_granges(signif_results[1000,]), as_granges(filter(all_samples, !sample %in% signif_results[1000,]$excluded))) %>% data.frame() %>% .$read_id
+rrbs_plot5(healthy_samples, reads)
+
+reads <- find_overlaps(as_granges(signif_results[100000,]), as_granges(filter(all_samples, !sample %in% signif_results[100000,]$excluded))) %>% data.frame() %>% .$read_id
+rrbs_plot5(healthy_samples, reads)
+
+reads <- find_overlaps(as_granges(signif_results[1000000,]), as_granges(filter(all_samples, !sample %in% signif_results[1000000,]$excluded))) %>% data.frame() %>% .$read_id
+rrbs_plot5(healthy_samples, reads)
+```
+
+
+# repeat but with the alpha band level results alpha band + tile
+
+```{r}
+samples <- c(unique(all_samples$sample))  # your 7 sample names
+
+# --- Analysis function ---
+run_analysis <- function(combo) {
+  cols <- c(combo$g1, combo$g2)
+  group <- c(1, 1, 1, 2, 2, 2)
+
+  y <- DGEList(
+    as.matrix(dtu_optile[, cols]),
+    group = group,
+    genes = dtu_optile[, c("gene_id", "transcript")]
+  )
+  design <- model.matrix(~ group)
+  fit <- glmQLFit(y, design, robust = TRUE)
+  ds  <- diffSpliceDGE(fit, coef = 2, geneid = "gene_id", exonid = "transcript")
+
+  topSpliceDGE(ds, test = "exon", number = Inf) %>%
+    mutate(
+      region_id = gene_id,
+      excluded  = combo$excluded,
+      group1    = paste(combo$g1, collapse = ","),
+      group2    = paste(combo$g2, collapse = ",")
+    ) %>%
+    separate_wider_delim(gene_id, delim = ":", names = c("seqnames", "gene_id")) %>%
+    mutate(seqnames = gsub("chrchr", "chr", seqnames)) %>%
+    separate_wider_delim(gene_id, delim = "-", names = c("start", "end")) %>%
+    mutate(
+      start    = as.double(start),
+      end      = as.double(end),
+      dtu_rank = row_number()
+    )
+}
+
+# --- Generate 70 combinations ---
+all_combos <- unlist(
+  lapply(seq_along(samples), function(excl_i) {
+    remaining <- samples[-excl_i]
+    splits <- combn(remaining, 3, simplify = FALSE)
+    splits <- Filter(function(g1) g1[1] < setdiff(remaining, g1)[1], splits)
+    lapply(splits, function(g1) {
+      list(g1 = g1, g2 = setdiff(remaining, g1), excluded = samples[excl_i])
+    })
+  }),
+  recursive = FALSE
+)
+
+# --- Run across all 70 combinations ---
+results <- lapply(all_combos, run_analysis)
+
+# --- Combine into one data frame ---
+alpha_band_results_df <- bind_rows(results)
+
+saveRDS(alpha_band_results_df, "/researchers/caitlin.page/cf_nano/r_output/dtu_tiles_emseq_healthy_all_fp_exon_level.rds")
+```
+
+
+```{r}
+alpha_band_results_df[1:10,]
+```
+```{r}
+alpha_band_results_df %>% filter(FDR < 0.05) %>% nrow()
+```
+
+```{r}
+alpha_band_results_df %>% distinct(excluded, group1, group2) %>% nrow() # checking correct number of runs
+```
+
+```{r}
+alpha_band_results_df %>% mutate(fdr_signif = ifelse(FDR < 0.05, TRUE, FALSE)) %>% group_by(excluded, group1, group2, fdr_signif) %>%
+  summarise(n = n()) %>%
+  ungroup() %>%
+  group_by(excluded, group1, group2) %>%
+  mutate(total_group = sum(n), prop = n/sum(n)) %>%
+  ungroup() %>%
+  filter(fdr_signif == TRUE) %>% .[1:5,]
+```
+
+* these are some tiny, beautifully low proportions
+* crazy how low it is
+
+* also this is only 42 of the 70 groups - so some groups didn't have any significant - no false positives
+
+* this is expected to be related to coverage
+
+```{r}
+dtu_optile %>% mutate(reads = rowSums(.[,2:8])) %>%
+  group_by(gene_id) %>%
+  summarise(coverage = sum(reads)) %>%
+  mutate(region_signif = ifelse(gene_id %in% filter(alpha_band_results_df, FDR < 0.05)$region_id, TRUE, FALSE)) %>%
+  ggplot(aes(x = region_signif, y = coverage, fill = region_signif)) +
+  geom_boxplot() +
+  theme(legend.position = "none")
+
+dtu_optile %>% mutate(reads = rowSums(.[,2:8])) %>%
+  group_by(gene_id) %>%
+  summarise(coverage = sum(reads)) %>%
+  mutate(region_signif = ifelse(gene_id %in% filter(alpha_band_results_df, FDR < 0.05)$region_id, TRUE, FALSE)) %>%
+  ggplot(aes(x = region_signif, y = log2(coverage), fill = region_signif)) +
+  geom_boxplot() +
+  theme(legend.position = "none")
+
+dtu_optile %>% mutate(reads = rowSums(.[,2:8])) %>%
+  group_by(gene_id) %>%
+  summarise(coverage = sum(reads)) %>%
+  mutate(region_signif = ifelse(gene_id %in% filter(alpha_band_results_df, FDR < 0.05)$region_id, TRUE, FALSE)) %>%
+  ggplot(aes(x = log2(coverage), colour = region_signif)) +
+  geom_density()
+```
+
+* want more specific plots using the alpha bands but I'm not quite sure what I want to do that as yet
+
+## visualise reads
+
+```{r}
+signif_results <- alpha_band_results_df %>% filter(FDR < 0.05) %>% .[order(.$FDR),]
+signif_results[nrow(signif_results),]
+```
+
+```{r}
+reads <- find_overlaps(as_granges(signif_results[1,]), as_granges(filter(all_samples, !sample %in% signif_results[1,]$excluded))) %>% data.frame() %>% .$read_id
+rrbs_plot5(healthy_samples, reads)
+
+reads <- find_overlaps(as_granges(signif_results[2,]), as_granges(filter(all_samples, !sample %in% signif_results[2,]$excluded))) %>% data.frame() %>% .$read_id
+rrbs_plot5(healthy_samples, reads)
+
+reads <- find_overlaps(as_granges(signif_results[3,]), as_granges(filter(all_samples, !sample %in% signif_results[3,]$excluded))) %>% data.frame() %>% .$read_id
+rrbs_plot5(healthy_samples, reads)
+
+reads <- find_overlaps(as_granges(signif_results[4,]), as_granges(filter(all_samples, !sample %in% signif_results[4,]$excluded))) %>% data.frame() %>% .$read_id
+rrbs_plot5(healthy_samples, reads)
+
+reads <- find_overlaps(as_granges(signif_results[30,]), as_granges(filter(all_samples, !sample %in% signif_results[30,]$excluded))) %>% data.frame() %>% .$read_id
+rrbs_plot5(healthy_samples, reads)
+
+reads <- find_overlaps(as_granges(signif_results[nrow(signif_results),]), as_granges(filter(all_samples, !sample %in% signif_results[nrow(signif_results),]$excluded))) %>% data.frame() %>% .$read_id
+rrbs_plot5(healthy_samples, reads)
+```
+
+```{r}
+signif_results <- alpha_band_results_df %>% filter(FDR > 0.05) %>% .[order(.$FDR),]
+
+reads <- find_overlaps(as_granges(signif_results[1,]), as_granges(filter(all_samples, !sample %in% signif_results[1,]$excluded))) %>% data.frame() %>% .$read_id
+rrbs_plot5(healthy_samples, reads)
+
+reads <- find_overlaps(as_granges(signif_results[10,]), as_granges(filter(all_samples, !sample %in% signif_results[10,]$excluded))) %>% data.frame() %>% .$read_id
+rrbs_plot5(healthy_samples, reads)
+
+reads <- find_overlaps(as_granges(signif_results[100,]), as_granges(filter(all_samples, !sample %in% signif_results[100,]$excluded))) %>% data.frame() %>% .$read_id
+rrbs_plot5(healthy_samples, reads)
+
+reads <- find_overlaps(as_granges(signif_results[1000,]), as_granges(filter(all_samples, !sample %in% signif_results[1000,]$excluded))) %>% data.frame() %>% .$read_id
+rrbs_plot5(healthy_samples, reads)
+
+reads <- find_overlaps(as_granges(signif_results[nrow(signif_results),]), as_granges(filter(all_samples, !sample %in% signif_results[nrow(signif_results),]$excluded))) %>% data.frame() %>% .$read_id
+rrbs_plot5(healthy_samples, reads)
+```
+
 
