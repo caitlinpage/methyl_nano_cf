@@ -1,0 +1,2142 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="caitlinpage" />
+
+<meta name="date" content="2026-07-28" />
+
+<title>emseqFalsePositiveCheck</title>
+
+<script src="site_libs/header-attrs-2.29/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/jqueryui-1.13.2/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<link href="site_libs/font-awesome-6.5.2/css/all.min.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet" />
+
+<link rel="icon" href="https://github.com/workflowr/workflowr-assets/raw/main/img/reproducible.png">
+<!-- Add a small amount of space between sections. -->
+<style type="text/css">
+div.section {
+  padding-top: 12px;
+}
+</style>
+
+
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">3_cf_nano</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Home</a>
+</li>
+<li>
+  <a href="about.html">About</a>
+</li>
+<li>
+  <a href="license.html">License</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li>
+  <a href="https://github.com/caitlinpage/methyl_nano_cf">
+    <span class="fab fa-github"></span>
+     
+    Source code
+  </a>
+</li>
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+
+
+<h1 class="title toc-ignore">emseqFalsePositiveCheck</h1>
+<h4 class="author">caitlinpage</h4>
+<h4 class="date">2026-07-28</h4>
+
+</div>
+
+
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-report" data-toggle="collapse" data-target="#workflowr-report">
+<span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+workflowr <span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span>
+</button>
+</p>
+<div id="workflowr-report" class="collapse">
+<ul class="nav nav-tabs">
+<li class="active">
+<a data-toggle="tab" href="#summary">Summary</a>
+</li>
+<li>
+<a data-toggle="tab" href="#checks"> Checks <span
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span>
+</a>
+</li>
+<li>
+<a data-toggle="tab" href="#versions">Past versions</a>
+</li>
+</ul>
+<div class="tab-content">
+<div id="summary" class="tab-pane fade in active">
+<p>
+<strong>Last updated:</strong> 2026-07-31
+</p>
+<p>
+<strong>Checks:</strong> <span
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 7
+<span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> 0
+</p>
+<p>
+<strong>Knit directory:</strong> <code>methyl_nano_cf/analysis/</code>
+<span class="glyphicon glyphicon-question-sign" aria-hidden="true"
+title="This is the local directory in which the code in this file was executed.">
+</span>
+</p>
+<p>
+This reproducible <a href="https://rmarkdown.rstudio.com">R Markdown</a>
+analysis was created with <a
+  href="https://github.com/workflowr/workflowr">workflowr</a> (version
+1.7.1). The <em>Checks</em> tab describes the reproducibility checks
+that were applied when the results were created. The <em>Past
+versions</em> tab lists the development history.
+</p>
+<hr>
+</div>
+<div id="checks" class="tab-pane fade">
+<div id="workflowr-checks" class="panel-group">
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRMarkdownfilestronguptodate">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>R Markdown file:</strong> up-to-date
+</a>
+</p>
+</div>
+<div id="strongRMarkdownfilestronguptodate"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great! Since the R Markdown file has been committed to the Git
+repository, you know the exact version of the code that produced these
+results.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongEnvironmentstrongempty">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Environment:</strong> empty </a>
+</p>
+</div>
+<div id="strongEnvironmentstrongempty" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! The global environment was empty. Objects defined in the
+global environment can affect the analysis in your R Markdown file in
+unknown ways. For reproduciblity it’s best to always run the code in an
+empty environment.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSeedstrongcodesetseed20250606code">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Seed:</strong>
+<code>set.seed(20250606)</code> </a>
+</p>
+</div>
+<div id="strongSeedstrongcodesetseed20250606code"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>The command <code>set.seed(20250606)</code> was run prior to running
+the code in the R Markdown file. Setting a seed ensures that any results
+that rely on randomness, e.g. subsampling or permutations, are
+reproducible.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSessioninformationstrongrecorded">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Session information:</strong>
+recorded </a>
+</p>
+</div>
+<div id="strongSessioninformationstrongrecorded"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Recording the operating system, R version, and package
+versions is critical for reproducibility.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongCachestrongnone">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Cache:</strong> none </a>
+</p>
+</div>
+<div id="strongCachestrongnone" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Nice! There were no cached chunks for this analysis, so you can be
+confident that you successfully produced the results during this
+run.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongFilepathsstrongrelative">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>File paths:</strong> relative </a>
+</p>
+</div>
+<div id="strongFilepathsstrongrelative" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Using relative paths to the files within your workflowr
+project makes it easier to run your code on other machines.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpagemethylnanocftree766a711d9a8050817e92d6172f9b0f18d10d41e6targetblank766a711a">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Repository version:</strong>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/tree/766a711d9a8050817e92d6172f9b0f18d10d41e6" target="_blank">766a711</a>
+</a>
+</p>
+</div>
+<div
+id="strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpagemethylnanocftree766a711d9a8050817e92d6172f9b0f18d10d41e6targetblank766a711a"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>
+Great! You are using Git for version control. Tracking code development
+and connecting the code version to the results is critical for
+reproducibility.
+</p>
+<p>
+The results in this page were generated with repository version
+<a href="https://github.com/caitlinpage/methyl_nano_cf/tree/766a711d9a8050817e92d6172f9b0f18d10d41e6" target="_blank">766a711</a>.
+See the <em>Past versions</em> tab to see a history of the changes made
+to the R Markdown and HTML files.
+</p>
+<p>
+Note that you need to be careful to ensure that all relevant files for
+the analysis have been committed to Git prior to generating the results
+(you can use <code>wflow_publish</code> or
+<code>wflow_git_commit</code>). workflowr only checks the R Markdown
+file, but you know if there are other scripts or data files that it
+depends on. Below is the status of the Git repository when the results
+were generated:
+</p>
+<pre><code>
+Ignored files:
+    Ignored:    .RData
+    Ignored:    .Rproj.user/
+    Ignored:    analysis/.RData
+    Ignored:    analysis/figure/
+
+Untracked files:
+    Untracked:  analysis/pleaseRun.Rmd
+    Untracked:  renv.lock
+    Untracked:  renv/
+
+Unstaged changes:
+    Modified:   .Rprofile
+    Modified:   _workflowr.yml
+
+</code></pre>
+<p>
+Note that any generated files, e.g. HTML, png, CSS, etc., are not
+included in this status report because it is ok for generated content to
+have uncommitted changes.
+</p>
+</div>
+</div>
+</div>
+</div>
+<hr>
+</div>
+<div id="versions" class="tab-pane fade">
+<p>
+These are the previous versions of the repository in which changes were
+made to the R Markdown
+(<code>analysis/emseqFalsePositiveCheck.Rmd</code>) and HTML
+(<code>docs/emseqFalsePositiveCheck.html</code>) files. If you’ve
+configured a remote Git repository (see <code>?wflow_git_remote</code>),
+click on the hyperlinks in the table below to view the files as they
+were in that past version.
+</p>
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+File
+</th>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+<th>
+Message
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/766a711d9a8050817e92d6172f9b0f18d10d41e6/analysis/emseqFalsePositiveCheck.Rmd" target="_blank">766a711</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-07-31
+</td>
+<td>
+wflow_publish(c("emseqFalsePositiveCheck.Rmd", "index.Rmd"))
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/8c1716de5627c7dfb299a146927b24c41c02c9bc/analysis/emseqFalsePositiveCheck.Rmd" target="_blank">8c1716d</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-07-29
+</td>
+<td>
+run all 70 possible combinations
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/3a62191a3be4425a4973a72192ccc7073d8d6873/analysis/emseqFalsePositiveCheck.Rmd" target="_blank">3a62191</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-07-28
+</td>
+<td>
+set up new files
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr>
+</div>
+</div>
+</div>
+<div id="introduction" class="section level2">
+<h2>Introduction</h2>
+<p>The EMSeq data has 7 healthy samples. This means that we can cross
+the healthy samples, to check our false positive rate. Basically, the
+fewer significant regions we get out, the better.</p>
+<p>As there are 7 samples, I’ll rotate the groups to run multiple
+times.</p>
+</div>
+<div id="packages" class="section level2">
+<h2>Packages</h2>
+<pre class="r"><code>library(BSgenome.Hsapiens.UCSC.hg38)</code></pre>
+<pre><code>Loading required package: GenomeInfoDb</code></pre>
+<pre><code>Loading required package: BiocGenerics</code></pre>
+<pre><code>
+Attaching package: &#39;BiocGenerics&#39;</code></pre>
+<pre><code>The following objects are masked from &#39;package:stats&#39;:
+
+    IQR, mad, sd, var, xtabs</code></pre>
+<pre><code>The following objects are masked from &#39;package:base&#39;:
+
+    anyDuplicated, aperm, append, as.data.frame, basename, cbind,
+    colnames, dirname, do.call, duplicated, eval, evalq, Filter, Find,
+    get, grep, grepl, intersect, is.unsorted, lapply, Map, mapply,
+    match, mget, order, paste, pmax, pmax.int, pmin, pmin.int,
+    Position, rank, rbind, Reduce, rownames, sapply, saveRDS, setdiff,
+    table, tapply, union, unique, unsplit, which.max, which.min</code></pre>
+<pre><code>Loading required package: S4Vectors</code></pre>
+<pre><code>Loading required package: stats4</code></pre>
+<pre><code>
+Attaching package: &#39;S4Vectors&#39;</code></pre>
+<pre><code>The following object is masked from &#39;package:utils&#39;:
+
+    findMatches</code></pre>
+<pre><code>The following objects are masked from &#39;package:base&#39;:
+
+    expand.grid, I, unname</code></pre>
+<pre><code>Loading required package: IRanges</code></pre>
+<pre><code>Loading required package: BSgenome</code></pre>
+<pre><code>Loading required package: GenomicRanges</code></pre>
+<pre><code>Loading required package: Biostrings</code></pre>
+<pre><code>Loading required package: XVector</code></pre>
+<pre><code>
+Attaching package: &#39;Biostrings&#39;</code></pre>
+<pre><code>The following object is masked from &#39;package:base&#39;:
+
+    strsplit</code></pre>
+<pre><code>Loading required package: BiocIO</code></pre>
+<pre><code>Loading required package: rtracklayer</code></pre>
+<pre><code>Warning: replacing previous import &#39;S4Arrays::makeNindexFromArrayViewport&#39; by
+&#39;DelayedArray::makeNindexFromArrayViewport&#39; when loading &#39;SummarizedExperiment&#39;</code></pre>
+<pre><code>
+Attaching package: &#39;rtracklayer&#39;</code></pre>
+<pre><code>The following object is masked from &#39;package:BiocIO&#39;:
+
+    FileForFormat</code></pre>
+<pre class="r"><code>library(data.table)</code></pre>
+<pre><code>
+Attaching package: &#39;data.table&#39;</code></pre>
+<pre><code>The following object is masked from &#39;package:GenomicRanges&#39;:
+
+    shift</code></pre>
+<pre><code>The following object is masked from &#39;package:IRanges&#39;:
+
+    shift</code></pre>
+<pre><code>The following objects are masked from &#39;package:S4Vectors&#39;:
+
+    first, second</code></pre>
+<pre class="r"><code>library(plyranges)</code></pre>
+<pre><code>
+Attaching package: &#39;plyranges&#39;</code></pre>
+<pre><code>The following object is masked from &#39;package:data.table&#39;:
+
+    between</code></pre>
+<pre><code>The following object is masked from &#39;package:XVector&#39;:
+
+    slice</code></pre>
+<pre><code>The following object is masked from &#39;package:IRanges&#39;:
+
+    slice</code></pre>
+<pre><code>The following object is masked from &#39;package:stats&#39;:
+
+    filter</code></pre>
+<pre class="r"><code>library(tidyr)</code></pre>
+<pre><code>
+Attaching package: &#39;tidyr&#39;</code></pre>
+<pre><code>The following object is masked from &#39;package:S4Vectors&#39;:
+
+    expand</code></pre>
+<pre class="r"><code>library(stringr)
+library(dplyr)</code></pre>
+<pre><code>
+Attaching package: &#39;dplyr&#39;</code></pre>
+<pre><code>The following objects are masked from &#39;package:plyranges&#39;:
+
+    between, n, n_distinct</code></pre>
+<pre><code>The following objects are masked from &#39;package:data.table&#39;:
+
+    between, first, last</code></pre>
+<pre><code>The following objects are masked from &#39;package:Biostrings&#39;:
+
+    collapse, intersect, setdiff, setequal, union</code></pre>
+<pre><code>The following object is masked from &#39;package:XVector&#39;:
+
+    slice</code></pre>
+<pre><code>The following objects are masked from &#39;package:GenomicRanges&#39;:
+
+    intersect, setdiff, union</code></pre>
+<pre><code>The following object is masked from &#39;package:GenomeInfoDb&#39;:
+
+    intersect</code></pre>
+<pre><code>The following objects are masked from &#39;package:IRanges&#39;:
+
+    collapse, desc, intersect, setdiff, slice, union</code></pre>
+<pre><code>The following objects are masked from &#39;package:S4Vectors&#39;:
+
+    first, intersect, rename, setdiff, setequal, union</code></pre>
+<pre><code>The following objects are masked from &#39;package:BiocGenerics&#39;:
+
+    combine, intersect, setdiff, union</code></pre>
+<pre><code>The following objects are masked from &#39;package:stats&#39;:
+
+    filter, lag</code></pre>
+<pre><code>The following objects are masked from &#39;package:base&#39;:
+
+    intersect, setdiff, setequal, union</code></pre>
+<pre class="r"><code>library(ggplot2)
+library(OpTiles)</code></pre>
+<pre><code>Warning: replacing previous import &#39;GenomicRanges::shift&#39; by
+&#39;data.table::shift&#39; when loading &#39;OpTiles&#39;</code></pre>
+<pre><code>Warning: replacing previous import &#39;data.table::first&#39; by &#39;dplyr::first&#39; when
+loading &#39;OpTiles&#39;</code></pre>
+<pre><code>Warning: replacing previous import &#39;biomaRt::select&#39; by &#39;dplyr::select&#39; when
+loading &#39;OpTiles&#39;</code></pre>
+<pre><code>Warning: replacing previous import &#39;GenomicRanges::intersect&#39; by
+&#39;dplyr::intersect&#39; when loading &#39;OpTiles&#39;</code></pre>
+<pre><code>Warning: replacing previous import &#39;data.table::last&#39; by &#39;dplyr::last&#39; when
+loading &#39;OpTiles&#39;</code></pre>
+<pre><code>Warning: replacing previous import &#39;GenomicRanges::union&#39; by &#39;dplyr::union&#39;
+when loading &#39;OpTiles&#39;</code></pre>
+<pre><code>Warning: replacing previous import &#39;data.table::between&#39; by &#39;dplyr::between&#39;
+when loading &#39;OpTiles&#39;</code></pre>
+<pre><code>Warning: replacing previous import &#39;GenomicRanges::setdiff&#39; by &#39;dplyr::setdiff&#39;
+when loading &#39;OpTiles&#39;</code></pre>
+<pre><code>Warning: replacing previous import &#39;dplyr::combine&#39; by &#39;gridExtra::combine&#39;
+when loading &#39;OpTiles&#39;</code></pre>
+<pre><code>Warning: replacing previous import &#39;stringr::str_wrap&#39; by &#39;xfun::str_wrap&#39; when
+loading &#39;OpTiles&#39;</code></pre>
+<pre><code>Warning: replacing previous import &#39;tidyr::unite&#39; by &#39;methylKit::unite&#39; when
+loading &#39;OpTiles&#39;</code></pre>
+<pre class="r"><code>library(edgeR)</code></pre>
+<pre><code>Loading required package: limma</code></pre>
+<pre><code>
+Attaching package: &#39;limma&#39;</code></pre>
+<pre><code>The following object is masked from &#39;package:BiocGenerics&#39;:
+
+    plotMA</code></pre>
+<pre class="r"><code>seqs &lt;- seqnames(BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38)[1:22]
+
+cg_sites &lt;- lapply(seqs, function(x) {
+  cbind(data.frame(Biostrings::matchPattern(&quot;CG&quot;, BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38[[x]])),
+        seqnames = x
+  )}) %&gt;% bind_rows()</code></pre>
+<pre><code>Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored</code></pre>
+<pre class="r"><code>process_wgbs_short &lt;- function(bismark, bed = NULL) {
+  read &lt;- bismark
+  names(read) &lt;- c(&quot;read_id&quot;, &quot;strand&quot;, &quot;seqnames&quot;, &quot;start&quot;, &quot;meth_status&quot;)
+  read$end &lt;- read$start
+
+  read_overlap &lt;- read
+  read_overlap[, meth_status := ifelse(meth_status == &quot;Z&quot;, &quot;M&quot;, &quot;U&quot;)]
+  read_overlap[, meth_pattern := paste0(meth_status, collapse = &quot;&quot;), by = read_id]
+  read_overlap[, num_meth := str_count(meth_pattern, pattern = &quot;M&quot;)]
+  read_overlap[, total := str_length(meth_pattern)]
+  read_overlap[, alpha := num_meth/total]
+  read_overlap[, genom_positions := paste0(start, collapse = &quot;,&quot;), by = read_id]
+
+  read_overlap &lt;- read_overlap %&gt;% .[order(.$read_id),]
+
+  read_overlap[, read_start := min(start), by = read_id]
+  read_overlap[, read_end := max(start), by = read_id]
+
+  read_overlap
+}
+
+bis &lt;- fread(&quot;/researchers/caitlin.page/cf_nano/fastq_tothill_emseq_healthy/CpG_OT_PRJ240788_LPRJ240788_S4_L004_R1_001_bismark_bt2_pe.txt&quot;)</code></pre>
+<pre><code>Warning in
+fread(&quot;/researchers/caitlin.page/cf_nano/fastq_tothill_emseq_healthy/CpG_OT_PRJ240788_LPRJ240788_S4_L004_R1_001_bismark_bt2_pe.txt&quot;):
+Detected 1 column names but the data has 5 columns (i.e. invalid file). Added 4
+extra default column names at the end.</code></pre>
+<pre class="r"><code>em_healthy_788 &lt;- process_wgbs_short(bis)
+saveRDS(em_healthy_788, &quot;/researchers/caitlin.page/cf_nano/r_output/emseq_healthy_788.rds&quot;)</code></pre>
+<p>CpG_OT_PRJ240788_LPRJ240788_S4_L004_R1_001_bismark_bt2_pe.txt</p>
+<pre class="r"><code>all_samples &lt;- readRDS(&quot;/researchers/caitlin.page/cf_nano/r_output/emseq_all_healthy.rds&quot;)</code></pre>
+<pre class="r"><code>em_healthy_788 &lt;- em_healthy_788 %&gt;% data.frame() %&gt;% filter(seqnames %in% seqs)
+em_healthy_788$start &lt;- em_healthy_788$read_start
+em_healthy_788$end &lt;- em_healthy_788$read_end
+em_healthy_788$sample &lt;- &quot;healthy_788&quot;</code></pre>
+<pre class="r"><code>cols &lt;- c(&quot;seqnames&quot;, &quot;read_start&quot;, &quot;read_end&quot;, &quot;strand&quot;, &quot;read_id&quot;, &quot;sample&quot;, &quot;meth_pattern&quot;, &quot;num_meth&quot;, &quot;total&quot;, &quot;alpha&quot;, &quot;genom_positions&quot;)</code></pre>
+<pre class="r"><code>all_samples &lt;- all_samples %&gt;%
+  mutate(sample = case_when(sample == &quot;a1&quot; ~ &quot;healthy_785&quot;,
+                            sample == &quot;a2&quot; ~ &quot;healthy_036&quot;,
+                            sample == &quot;a3&quot; ~ &quot;healthy_787&quot;,
+                            sample == &quot;b1&quot; ~ &quot;healthy_786&quot;,
+                            sample == &quot;b2&quot; ~ &quot;healthy_037&quot;,
+                            TRUE ~ &quot;healthy_789&quot;))
+
+all_samples &lt;- rbind(all_samples, distinct(em_healthy_788[,colnames(all_samples)]))</code></pre>
+<pre class="r"><code>dtu_tiles_healthy_compare &lt;- readRDS(&quot;/researchers/caitlin.page/cf_nano/r_output/dtu_tiles_emseq_healthy.rds&quot;)
+dtu_tiles_healthy_compare %&gt;% filter(FDR &lt; 0.05) %&gt;% group_by(seqnames) %&gt;% summarise(n=n())</code></pre>
+<pre><code># A tibble: 8 × 2
+  seqnames     n
+  &lt;chr&gt;    &lt;int&gt;
+1 chr1         2
+2 chr10        1
+3 chr12        1
+4 chr16        2
+5 chr19        2
+6 chr21        1
+7 chr4         1
+8 chr8         1</code></pre>
+<pre class="r"><code>optiles_all &lt;- readRDS(&quot;/researchers/caitlin.page/cf_nano/r_output/optiles_all_emseq.rds&quot;)
+nrow(optiles_all)</code></pre>
+<pre><code>[1] 2319818</code></pre>
+<pre class="r"><code>optiles_all %&gt;% group_by(seqnames) %&gt;% summarise(n=n()) %&gt;% .[1:5,]</code></pre>
+<pre><code># A tibble: 5 × 2
+  seqnames      n
+  &lt;chr&gt;     &lt;int&gt;
+1 chr1     199164
+2 chr10    117824
+3 chr11    114964
+4 chr12    112937
+5 chr13     79961</code></pre>
+<ul>
+<li>we’ll use chr1</li>
+</ul>
+</div>
+<div id="dtu-testing" class="section level1">
+<h1>dtu testing</h1>
+<pre class="r"><code>overlap_pos &lt;- find_overlaps(as_granges(filter(optiles_all, seqnames == &quot;chr1&quot;)), as_granges(all_samples)) %&gt;% data.frame()</code></pre>
+<pre class="r"><code># dtu
+dtu_optile &lt;- overlap_pos %&gt;% filter(total &gt;= 3) %&gt;%
+  distinct(sample, read_id, alpha, region_id) %&gt;%
+  mutate(alpha_group = case_when(alpha &lt; 0.2 ~ &quot;a &lt; 0.2&quot;,
+                                 alpha &gt; 0.8 ~ &quot;a &gt; 0.8&quot;,
+                                 alpha &gt;= 0.2 &amp; alpha &lt;= 0.4 ~ &quot;0.2 &lt;= a &lt;= 0.4&quot;,
+                                 alpha &gt; 0.4 &amp; alpha &lt; 0.6 ~ &quot;0.4 &lt; a &lt; 0.6&quot;,
+                                 TRUE ~ &quot;0.6 &lt;= a &lt;= 0.8&quot;))
+
+dtu_optile &lt;- dtu_optile %&gt;%
+  mutate(transcript = paste0(region_id, &quot;_&quot;, alpha_group)) %&gt;%
+  group_by(sample, transcript) %&gt;%
+  summarise(transcript_count = n()) %&gt;% ungroup() %&gt;% data.frame()</code></pre>
+<pre><code>`summarise()` has grouped output by &#39;sample&#39;. You can override using the
+`.groups` argument.</code></pre>
+<pre class="r"><code># build matrix of &quot;transcript&quot; counts - transcript rows, sample as columns
+dtu_optile &lt;- dtu_optile %&gt;% pivot_wider(names_from = sample, values_from = transcript_count)
+dtu_optile[is.na(dtu_optile)] &lt;- 0
+dtu_optile$gene_id &lt;- sub(&quot;_.*&quot;, &quot;&quot;, dtu_optile$transcript)</code></pre>
+<pre class="r"><code>unique(all_samples$sample)</code></pre>
+<pre><code>[1] &quot;healthy_785&quot; &quot;healthy_036&quot; &quot;healthy_787&quot; &quot;healthy_786&quot; &quot;healthy_037&quot;
+[6] &quot;healthy_789&quot; &quot;healthy_788&quot;</code></pre>
+<pre class="r"><code>samples &lt;- c(unique(all_samples$sample))  # your 7 sample names
+
+# --- Analysis function ---
+run_analysis &lt;- function(combo) {
+  cols &lt;- c(combo$g1, combo$g2)
+  group &lt;- c(1, 1, 1, 2, 2, 2)
+
+  y &lt;- DGEList(
+    as.matrix(dtu_optile[, cols]),
+    group = group,
+    genes = dtu_optile[, c(&quot;gene_id&quot;, &quot;transcript&quot;)]
+  )
+  design &lt;- model.matrix(~ group)
+  fit &lt;- glmQLFit(y, design, robust = TRUE)
+  ds  &lt;- diffSpliceDGE(fit, coef = 2, geneid = &quot;gene_id&quot;, exonid = &quot;transcript&quot;)
+
+  topSpliceDGE(ds, test = &quot;gene&quot;, number = Inf) %&gt;%
+    mutate(
+      region_id = gene_id,
+      excluded  = combo$excluded,
+      group1    = paste(combo$g1, collapse = &quot;,&quot;),
+      group2    = paste(combo$g2, collapse = &quot;,&quot;)
+    ) %&gt;%
+    separate_wider_delim(gene_id, delim = &quot;:&quot;, names = c(&quot;seqnames&quot;, &quot;gene_id&quot;)) %&gt;%
+    mutate(seqnames = gsub(&quot;chrchr&quot;, &quot;chr&quot;, seqnames)) %&gt;%
+    separate_wider_delim(gene_id, delim = &quot;-&quot;, names = c(&quot;start&quot;, &quot;end&quot;)) %&gt;%
+    mutate(
+      start    = as.double(start),
+      end      = as.double(end),
+      dtu_rank = row_number()
+    )
+}
+
+# --- Generate 70 combinations ---
+all_combos &lt;- unlist(
+  lapply(seq_along(samples), function(excl_i) {
+    remaining &lt;- samples[-excl_i]
+    splits &lt;- combn(remaining, 3, simplify = FALSE)
+    splits &lt;- Filter(function(g1) g1[1] &lt; setdiff(remaining, g1)[1], splits)
+    lapply(splits, function(g1) {
+      list(g1 = g1, g2 = setdiff(remaining, g1), excluded = samples[excl_i])
+    })
+  }),
+  recursive = FALSE
+)
+
+# --- Run across all 70 combinations ---
+results &lt;- lapply(all_combos, run_analysis)</code></pre>
+<pre><code>Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 
+Total number of exons:  292861 
+Total number of genes:  119151 
+Number of genes with 1 exon:  49183 
+Mean number of exons in a gene:  2 
+Max number of exons in a gene:  5 </code></pre>
+<pre class="r"><code># --- Combine into one data frame ---
+results_df &lt;- bind_rows(results)
+
+saveRDS(results_df, &quot;/researchers/caitlin.page/cf_nano/r_output/dtu_tiles_emseq_healthy_all_fp.rds&quot;)</code></pre>
+</div>
+<div id="analysis-of-tile-level-results" class="section level1">
+<h1>Analysis of tile level results</h1>
+<pre class="r"><code>results_df[1:10,]</code></pre>
+<pre><code># A tibble: 10 × 12
+   seqnames   start    end NExons gene.F P.Value   FDR region_id excluded group1
+   &lt;chr&gt;      &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;   &lt;dbl&gt; &lt;dbl&gt; &lt;chr&gt;     &lt;chr&gt;    &lt;chr&gt; 
+ 1 chr1      1.67e7 1.67e7      5   8.11 2.20e-6 0.154 chrchr1:… healthy… healt…
+ 2 chr1      2.21e8 2.21e8      5   6.32 4.47e-5 0.813 chrchr1:… healthy… healt…
+ 3 chr1      6.83e7 6.83e7      4   6.99 1.08e-4 0.813 chrchr1:… healthy… healt…
+ 4 chr1      2.24e8 2.24e8      5   5.27 3.08e-4 0.813 chrchr1:… healthy… healt…
+ 5 chr1      2.13e8 2.13e8      4   6.12 3.73e-4 0.813 chrchr1:… healthy… healt…
+ 6 chr1      9.47e7 9.47e7      5   5.06 4.48e-4 0.813 chrchr1:… healthy… healt…
+ 7 chr1      1.51e8 1.51e8      3   7.72 4.86e-4 0.813 chrchr1:… healthy… healt…
+ 8 chr1      4.46e7 4.46e7      5   4.98 5.22e-4 0.813 chrchr1:… healthy… healt…
+ 9 chr1      2.23e8 2.23e8      4   5.83 5.64e-4 0.813 chrchr1:… healthy… healt…
+10 chr1      9.60e6 9.60e6      4   5.81 5.77e-4 0.813 chrchr1:… healthy… healt…
+# ℹ 2 more variables: group2 &lt;chr&gt;, dtu_rank &lt;int&gt;</code></pre>
+<pre class="r"><code>results_df %&gt;% filter(FDR &lt; 0.05) %&gt;% nrow()</code></pre>
+<pre><code>[1] 79</code></pre>
+<pre class="r"><code>results_df %&gt;% distinct(excluded, group1, group2) %&gt;% nrow() # checking correct number of runs</code></pre>
+<pre><code>[1] 70</code></pre>
+<pre class="r"><code>results_df %&gt;% mutate(fdr_signif = ifelse(FDR &lt; 0.05, TRUE, FALSE)) %&gt;% group_by(excluded, group1, group2, fdr_signif) %&gt;%
+  summarise(n = n()) %&gt;%
+  ungroup() %&gt;%
+  group_by(excluded, group1, group2) %&gt;%
+  mutate(total_group = sum(n), prop = n/sum(n)) %&gt;%
+  ungroup() %&gt;%
+  filter(fdr_signif == TRUE) %&gt;% .[1:5,]</code></pre>
+<pre><code>`summarise()` has grouped output by &#39;excluded&#39;, &#39;group1&#39;, &#39;group2&#39;. You can
+override using the `.groups` argument.</code></pre>
+<pre><code># A tibble: 5 × 7
+  excluded    group1                 group2 fdr_signif     n total_group    prop
+  &lt;chr&gt;       &lt;chr&gt;                  &lt;chr&gt;  &lt;lgl&gt;      &lt;int&gt;       &lt;int&gt;   &lt;dbl&gt;
+1 healthy_036 healthy_785,healthy_0… healt… TRUE           4       69968 5.72e-5
+2 healthy_036 healthy_785,healthy_7… healt… TRUE           1       69968 1.43e-5
+3 healthy_036 healthy_785,healthy_7… healt… TRUE           1       69968 1.43e-5
+4 healthy_036 healthy_785,healthy_7… healt… TRUE           3       69968 4.29e-5
+5 healthy_036 healthy_785,healthy_7… healt… TRUE           2       69968 2.86e-5</code></pre>
+<ul>
+<li><p>these are some tiny, beautifully low proportions</p></li>
+<li><p>crazy how low it is</p></li>
+<li><p>also this is only 42 of the 70 groups - so some groups didn’t
+have any significant - no false positives</p></li>
+<li><p>this is expected to be related to coverage</p></li>
+</ul>
+<pre class="r"><code>dtu_optile %&gt;% mutate(reads = rowSums(.[,2:8])) %&gt;%
+  group_by(gene_id) %&gt;%
+  summarise(coverage = sum(reads)) %&gt;%
+  mutate(region_signif = ifelse(gene_id %in% filter(results_df, FDR &lt; 0.05)$region_id, TRUE, FALSE)) %&gt;%
+  ggplot(aes(x = region_signif, y = coverage, fill = region_signif)) +
+  geom_boxplot() +
+  theme(legend.position = &quot;none&quot;)</code></pre>
+<p><img src="figure/emseqFalsePositiveCheck.Rmd/unnamed-chunk-18-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>dtu_optile %&gt;% mutate(reads = rowSums(.[,2:8])) %&gt;%
+  group_by(gene_id) %&gt;%
+  summarise(coverage = sum(reads)) %&gt;%
+  mutate(region_signif = ifelse(gene_id %in% filter(results_df, FDR &lt; 0.05)$region_id, TRUE, FALSE)) %&gt;%
+  ggplot(aes(x = region_signif, y = log2(coverage), fill = region_signif)) +
+  geom_boxplot() +
+  theme(legend.position = &quot;none&quot;)</code></pre>
+<p><img src="figure/emseqFalsePositiveCheck.Rmd/unnamed-chunk-18-2.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>dtu_optile %&gt;% mutate(reads = rowSums(.[,2:8])) %&gt;%
+  group_by(gene_id) %&gt;%
+  summarise(coverage = sum(reads)) %&gt;%
+  mutate(region_signif = ifelse(gene_id %in% filter(results_df, FDR &lt; 0.05)$region_id, TRUE, FALSE)) %&gt;%
+  ggplot(aes(x = log2(coverage), colour = region_signif)) +
+  geom_density()</code></pre>
+<p><img src="figure/emseqFalsePositiveCheck.Rmd/unnamed-chunk-18-3.png" width="672" style="display: block; margin: auto;" />
+* as expected, higher coverage in significant regions</p>
+<div id="visualise-the-regions" class="section level2">
+<h2>visualise the regions</h2>
+<pre class="r"><code>rrbs_plot5 &lt;- function(read_data, read_ids, cpgs = cg_sites, jit_amount = 0.1) {
+  set.seed(42) # For reproducibility
+  # Calculate a single jitter amount per row (segment)
+  read_data &lt;- read_data %&gt;% dplyr::filter(read_id %in% read_ids)
+  jitter_amount &lt;- runif(nrow(read_data), -jit_amount, jit_amount)
+  read_data$alpha_jit &lt;- read_data$alpha + jitter_amount
+  read_data &lt;- data.frame(read_data)
+
+  # Add jittered coordinates to new columns in the data frame
+  long_data &lt;- read_data %&gt;%
+    mutate(meth_status = strsplit(meth_pattern, &quot;&quot;), start = strsplit(genom_positions, &quot;,&quot;)) %&gt;%
+    unnest(meth_status, start) %&gt;%
+    mutate(start = as.double(start))
+  
+  plot &lt;- read_data %&gt;%
+    ggplot() +
+    geom_segment(aes(x = read_start, xend = read_end, y = alpha_jit, yend = alpha_jit), alpha = 0.2) +
+    geom_point(data = long_data,
+               aes(x = start, y = alpha_jit, fill = meth_status), shape = 21, color = &quot;black&quot;) +
+    scale_fill_manual(values = c(&quot;U&quot; = &quot;white&quot;, &quot;M&quot; = &quot;black&quot;)) +
+    facet_wrap(~ sample)
+  
+  distrib &lt;- read_data %&gt;%
+    ggplot(aes(x = alpha, colour = alpha)) +
+    geom_density()
+  
+  list(plot, distrib)
+}</code></pre>
+<pre class="r"><code>signif_results &lt;- results_df %&gt;% filter(FDR &lt; 0.05) %&gt;% .[order(.$FDR),]
+signif_results[1,]$excluded</code></pre>
+<pre><code>[1] &quot;healthy_786&quot;</code></pre>
+<pre class="r"><code>reads &lt;- find_overlaps(as_granges(signif_results[1,]), as_granges(filter(all_samples, !sample %in% signif_results[1,]$excluded))) %&gt;% data.frame() %&gt;% .$read_id
+rrbs_plot5(all_samples, reads)</code></pre>
+<pre><code>Warning: `unnest()` has a new interface. See `?unnest` for details.
+ℹ Try `df %&gt;% unnest(c(meth_status, start))`, with `mutate()` if needed.</code></pre>
+<pre><code>[[1]]</code></pre>
+<p><img src="figure/emseqFalsePositiveCheck.Rmd/unnamed-chunk-21-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[2]]</code></pre>
+<pre><code>Warning: The following aesthetics were dropped during statistical transformation:
+colour.
+ℹ This can happen when ggplot fails to infer the correct grouping structure in
+  the data.
+ℹ Did you forget to specify a `group` aesthetic or to convert a numerical
+  variable into a factor?</code></pre>
+<p><img src="figure/emseqFalsePositiveCheck.Rmd/unnamed-chunk-21-2.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>reads &lt;- find_overlaps(as_granges(signif_results[2,]), as_granges(filter(all_samples, !sample %in% signif_results[2,]$excluded))) %&gt;% data.frame() %&gt;% .$read_id
+rrbs_plot5(all_samples, reads)</code></pre>
+<pre><code>Warning: `unnest()` has a new interface. See `?unnest` for details.
+ℹ Try `df %&gt;% unnest(c(meth_status, start))`, with `mutate()` if needed.</code></pre>
+<pre><code>[[1]]</code></pre>
+<p><img src="figure/emseqFalsePositiveCheck.Rmd/unnamed-chunk-21-3.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[2]]</code></pre>
+<pre><code>Warning: The following aesthetics were dropped during statistical transformation:
+colour.
+ℹ This can happen when ggplot fails to infer the correct grouping structure in
+  the data.
+ℹ Did you forget to specify a `group` aesthetic or to convert a numerical
+  variable into a factor?</code></pre>
+<p><img src="figure/emseqFalsePositiveCheck.Rmd/unnamed-chunk-21-4.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>reads &lt;- find_overlaps(as_granges(signif_results[3,]), as_granges(filter(all_samples, !sample %in% signif_results[3,]$excluded))) %&gt;% data.frame() %&gt;% .$read_id
+rrbs_plot5(all_samples, reads)</code></pre>
+<pre><code>Warning: `unnest()` has a new interface. See `?unnest` for details.
+ℹ Try `df %&gt;% unnest(c(meth_status, start))`, with `mutate()` if needed.</code></pre>
+<pre><code>[[1]]</code></pre>
+<p><img src="figure/emseqFalsePositiveCheck.Rmd/unnamed-chunk-21-5.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[2]]</code></pre>
+<pre><code>Warning: The following aesthetics were dropped during statistical transformation:
+colour.
+ℹ This can happen when ggplot fails to infer the correct grouping structure in
+  the data.
+ℹ Did you forget to specify a `group` aesthetic or to convert a numerical
+  variable into a factor?</code></pre>
+<p><img src="figure/emseqFalsePositiveCheck.Rmd/unnamed-chunk-21-6.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>reads &lt;- find_overlaps(as_granges(signif_results[4,]), as_granges(filter(all_samples, !sample %in% signif_results[4,]$excluded))) %&gt;% data.frame() %&gt;% .$read_id
+rrbs_plot5(all_samples, reads)</code></pre>
+<pre><code>Warning: `unnest()` has a new interface. See `?unnest` for details.
+ℹ Try `df %&gt;% unnest(c(meth_status, start))`, with `mutate()` if needed.</code></pre>
+<pre><code>[[1]]</code></pre>
+<p><img src="figure/emseqFalsePositiveCheck.Rmd/unnamed-chunk-21-7.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[2]]</code></pre>
+<pre><code>Warning: The following aesthetics were dropped during statistical transformation:
+colour.
+ℹ This can happen when ggplot fails to infer the correct grouping structure in
+  the data.
+ℹ Did you forget to specify a `group` aesthetic or to convert a numerical
+  variable into a factor?</code></pre>
+<p><img src="figure/emseqFalsePositiveCheck.Rmd/unnamed-chunk-21-8.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>reads &lt;- find_overlaps(as_granges(signif_results[30,]), as_granges(filter(all_samples, !sample %in% signif_results[30,]$excluded))) %&gt;% data.frame() %&gt;% .$read_id
+rrbs_plot5(all_samples, reads)</code></pre>
+<pre><code>Warning: `unnest()` has a new interface. See `?unnest` for details.
+ℹ Try `df %&gt;% unnest(c(meth_status, start))`, with `mutate()` if needed.</code></pre>
+<pre><code>[[1]]</code></pre>
+<p><img src="figure/emseqFalsePositiveCheck.Rmd/unnamed-chunk-21-9.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[2]]</code></pre>
+<pre><code>Warning: The following aesthetics were dropped during statistical transformation:
+colour.
+ℹ This can happen when ggplot fails to infer the correct grouping structure in
+  the data.
+ℹ Did you forget to specify a `group` aesthetic or to convert a numerical
+  variable into a factor?</code></pre>
+<p><img src="figure/emseqFalsePositiveCheck.Rmd/unnamed-chunk-21-10.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>reads &lt;- find_overlaps(as_granges(signif_results[79,]), as_granges(filter(all_samples, !sample %in% signif_results[79,]$excluded))) %&gt;% data.frame() %&gt;% .$read_id
+rrbs_plot5(all_samples, reads)</code></pre>
+<pre><code>Warning: `unnest()` has a new interface. See `?unnest` for details.
+ℹ Try `df %&gt;% unnest(c(meth_status, start))`, with `mutate()` if needed.</code></pre>
+<pre><code>[[1]]</code></pre>
+<p><img src="figure/emseqFalsePositiveCheck.Rmd/unnamed-chunk-21-11.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[2]]</code></pre>
+<pre><code>Warning: The following aesthetics were dropped during statistical transformation:
+colour.
+ℹ This can happen when ggplot fails to infer the correct grouping structure in
+  the data.
+ℹ Did you forget to specify a `group` aesthetic or to convert a numerical
+  variable into a factor?</code></pre>
+<p><img src="figure/emseqFalsePositiveCheck.Rmd/unnamed-chunk-21-12.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>signif_results &lt;- results_df %&gt;% filter(FDR &gt; 0.05) %&gt;% .[order(.$FDR),]
+
+reads &lt;- find_overlaps(as_granges(signif_results[1,]), as_granges(filter(all_samples, !sample %in% signif_results[1,]$excluded))) %&gt;% data.frame() %&gt;% .$read_id
+rrbs_plot5(all_samples, reads)</code></pre>
+<pre><code>Warning: `unnest()` has a new interface. See `?unnest` for details.
+ℹ Try `df %&gt;% unnest(c(meth_status, start))`, with `mutate()` if needed.</code></pre>
+<pre><code>[[1]]</code></pre>
+<p><img src="figure/emseqFalsePositiveCheck.Rmd/unnamed-chunk-22-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[2]]</code></pre>
+<pre><code>Warning: The following aesthetics were dropped during statistical transformation:
+colour.
+ℹ This can happen when ggplot fails to infer the correct grouping structure in
+  the data.
+ℹ Did you forget to specify a `group` aesthetic or to convert a numerical
+  variable into a factor?</code></pre>
+<p><img src="figure/emseqFalsePositiveCheck.Rmd/unnamed-chunk-22-2.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>reads &lt;- find_overlaps(as_granges(signif_results[10,]), as_granges(filter(all_samples, !sample %in% signif_results[10,]$excluded))) %&gt;% data.frame() %&gt;% .$read_id
+rrbs_plot5(all_samples, reads)</code></pre>
+<pre><code>Warning: `unnest()` has a new interface. See `?unnest` for details.
+ℹ Try `df %&gt;% unnest(c(meth_status, start))`, with `mutate()` if needed.</code></pre>
+<pre><code>[[1]]</code></pre>
+<p><img src="figure/emseqFalsePositiveCheck.Rmd/unnamed-chunk-22-3.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[2]]</code></pre>
+<pre><code>Warning: The following aesthetics were dropped during statistical transformation:
+colour.
+ℹ This can happen when ggplot fails to infer the correct grouping structure in
+  the data.
+ℹ Did you forget to specify a `group` aesthetic or to convert a numerical
+  variable into a factor?</code></pre>
+<p><img src="figure/emseqFalsePositiveCheck.Rmd/unnamed-chunk-22-4.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>reads &lt;- find_overlaps(as_granges(signif_results[100,]), as_granges(filter(all_samples, !sample %in% signif_results[100,]$excluded))) %&gt;% data.frame() %&gt;% .$read_id
+rrbs_plot5(all_samples, reads)</code></pre>
+<pre><code>Warning: `unnest()` has a new interface. See `?unnest` for details.
+ℹ Try `df %&gt;% unnest(c(meth_status, start))`, with `mutate()` if needed.</code></pre>
+<pre><code>[[1]]</code></pre>
+<p><img src="figure/emseqFalsePositiveCheck.Rmd/unnamed-chunk-22-5.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[2]]</code></pre>
+<pre><code>Warning: The following aesthetics were dropped during statistical transformation:
+colour.
+ℹ This can happen when ggplot fails to infer the correct grouping structure in
+  the data.
+ℹ Did you forget to specify a `group` aesthetic or to convert a numerical
+  variable into a factor?</code></pre>
+<p><img src="figure/emseqFalsePositiveCheck.Rmd/unnamed-chunk-22-6.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>reads &lt;- find_overlaps(as_granges(signif_results[1000,]), as_granges(filter(all_samples, !sample %in% signif_results[1000,]$excluded))) %&gt;% data.frame() %&gt;% .$read_id
+rrbs_plot5(all_samples, reads)</code></pre>
+<pre><code>Warning: `unnest()` has a new interface. See `?unnest` for details.
+ℹ Try `df %&gt;% unnest(c(meth_status, start))`, with `mutate()` if needed.</code></pre>
+<pre><code>[[1]]</code></pre>
+<p><img src="figure/emseqFalsePositiveCheck.Rmd/unnamed-chunk-22-7.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[2]]</code></pre>
+<pre><code>Warning: The following aesthetics were dropped during statistical transformation:
+colour.
+ℹ This can happen when ggplot fails to infer the correct grouping structure in
+  the data.
+ℹ Did you forget to specify a `group` aesthetic or to convert a numerical
+  variable into a factor?</code></pre>
+<p><img src="figure/emseqFalsePositiveCheck.Rmd/unnamed-chunk-22-8.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>reads &lt;- find_overlaps(as_granges(signif_results[100000,]), as_granges(filter(all_samples, !sample %in% signif_results[100000,]$excluded))) %&gt;% data.frame() %&gt;% .$read_id
+rrbs_plot5(all_samples, reads)</code></pre>
+<pre><code>Warning: `unnest()` has a new interface. See `?unnest` for details.
+ℹ Try `df %&gt;% unnest(c(meth_status, start))`, with `mutate()` if needed.</code></pre>
+<pre><code>[[1]]</code></pre>
+<p><img src="figure/emseqFalsePositiveCheck.Rmd/unnamed-chunk-22-9.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[2]]</code></pre>
+<pre><code>Warning: The following aesthetics were dropped during statistical transformation:
+colour.
+ℹ This can happen when ggplot fails to infer the correct grouping structure in
+  the data.
+ℹ Did you forget to specify a `group` aesthetic or to convert a numerical
+  variable into a factor?</code></pre>
+<p><img src="figure/emseqFalsePositiveCheck.Rmd/unnamed-chunk-22-10.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>reads &lt;- find_overlaps(as_granges(signif_results[1000000,]), as_granges(filter(all_samples, !sample %in% signif_results[1000000,]$excluded))) %&gt;% data.frame() %&gt;% .$read_id
+rrbs_plot5(all_samples, reads)</code></pre>
+<pre><code>Warning: `unnest()` has a new interface. See `?unnest` for details.
+ℹ Try `df %&gt;% unnest(c(meth_status, start))`, with `mutate()` if needed.</code></pre>
+<pre><code>[[1]]</code></pre>
+<p><img src="figure/emseqFalsePositiveCheck.Rmd/unnamed-chunk-22-11.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[2]]</code></pre>
+<pre><code>Warning: The following aesthetics were dropped during statistical transformation:
+colour.
+ℹ This can happen when ggplot fails to infer the correct grouping structure in
+  the data.
+ℹ Did you forget to specify a `group` aesthetic or to convert a numerical
+  variable into a factor?</code></pre>
+<p><img src="figure/emseqFalsePositiveCheck.Rmd/unnamed-chunk-22-12.png" width="672" style="display: block; margin: auto;" /></p>
+</div>
+</div>
+<div id="repeat-but-with-the-alpha-band-level-results-alpha-band-tile"
+class="section level1">
+<h1>repeat but with the alpha band level results alpha band + tile</h1>
+<pre class="r"><code>samples &lt;- c(unique(all_samples$sample))  # your 7 sample names
+
+# --- Analysis function ---
+run_analysis &lt;- function(combo) {
+  cols &lt;- c(combo$g1, combo$g2)
+  group &lt;- c(1, 1, 1, 2, 2, 2)
+
+  y &lt;- DGEList(
+    as.matrix(dtu_optile[, cols]),
+    group = group,
+    genes = dtu_optile[, c(&quot;gene_id&quot;, &quot;transcript&quot;)]
+  )
+  design &lt;- model.matrix(~ group)
+  fit &lt;- glmQLFit(y, design, robust = TRUE)
+  ds  &lt;- diffSpliceDGE(fit, coef = 2, geneid = &quot;gene_id&quot;, exonid = &quot;transcript&quot;)
+
+  topSpliceDGE(ds, test = &quot;exon&quot;, number = Inf) %&gt;%
+    mutate(
+      region_id = gene_id,
+      excluded  = combo$excluded,
+      group1    = paste(combo$g1, collapse = &quot;,&quot;),
+      group2    = paste(combo$g2, collapse = &quot;,&quot;)
+    ) %&gt;%
+    separate_wider_delim(gene_id, delim = &quot;:&quot;, names = c(&quot;seqnames&quot;, &quot;gene_id&quot;)) %&gt;%
+    mutate(seqnames = gsub(&quot;chrchr&quot;, &quot;chr&quot;, seqnames)) %&gt;%
+    separate_wider_delim(gene_id, delim = &quot;-&quot;, names = c(&quot;start&quot;, &quot;end&quot;)) %&gt;%
+    mutate(
+      start    = as.double(start),
+      end      = as.double(end),
+      dtu_rank = row_number()
+    )
+}
+
+# --- Generate 70 combinations ---
+all_combos &lt;- unlist(
+  lapply(seq_along(samples), function(excl_i) {
+    remaining &lt;- samples[-excl_i]
+    splits &lt;- combn(remaining, 3, simplify = FALSE)
+    splits &lt;- Filter(function(g1) g1[1] &lt; setdiff(remaining, g1)[1], splits)
+    lapply(splits, function(g1) {
+      list(g1 = g1, g2 = setdiff(remaining, g1), excluded = samples[excl_i])
+    })
+  }),
+  recursive = FALSE
+)
+
+# --- Run across all 70 combinations ---
+results &lt;- lapply(all_combos, run_analysis)
+
+# --- Combine into one data frame ---
+alpha_band_results_df &lt;- bind_rows(results)
+
+saveRDS(alpha_band_results_df, &quot;/researchers/caitlin.page/cf_nano/r_output/dtu_tiles_emseq_healthy_all_fp_exon_level.rds&quot;)</code></pre>
+<pre class="r"><code>alpha_band_results_df &lt;- readRDS(&quot;/researchers/caitlin.page/cf_nano/r_output/dtu_tiles_emseq_healthy_all_fp_exon_level.rds&quot;)</code></pre>
+<pre class="r"><code>alpha_band_results_df %&gt;% 
+  ggplot(aes(x = FDR)) +
+  geom_histogram()</code></pre>
+<pre><code>`stat_bin()` using `bins = 30`. Pick better value with `binwidth`.</code></pre>
+<p><img src="figure/emseqFalsePositiveCheck.Rmd/unnamed-chunk-25-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>alpha_band_results_df[1:10,]</code></pre>
+<pre><code># A tibble: 10 × 13
+   seqnames     start       end transcript  logFC exon.F P.Value   FDR region_id
+   &lt;chr&gt;        &lt;dbl&gt;     &lt;dbl&gt; &lt;chr&gt;       &lt;dbl&gt;  &lt;dbl&gt;   &lt;dbl&gt; &lt;dbl&gt; &lt;chr&gt;    
+ 1 chr1      68282001  68282500 chrchr1:68… -4.12   17.5 2.84e-5     1 chrchr1:…
+ 2 chr1     220967117 220967616 chrchr1:22…  1.88   16.6 4.69e-5     1 chrchr1:…
+ 3 chr1      16692603  16693102 chrchr1:16… -2.53   16.3 6.16e-5     1 chrchr1:…
+ 4 chr1       9728516   9729015 chrchr1:97…  1.97   13.2 2.83e-4     1 chrchr1:…
+ 5 chr1       3011552   3012051 chrchr1:30… -3.75   12.9 3.25e-4     1 chrchr1:…
+ 6 chr1       2142371   2142870 chrchr1:21…  3.80   12.1 4.94e-4     1 chrchr1:…
+ 7 chr1     160886001 160886500 chrchr1:16…  3.65   12.1 5.01e-4     1 chrchr1:…
+ 8 chr1     110619391 110619890 chrchr1:11… -3.72   12.0 5.40e-4     1 chrchr1:…
+ 9 chr1      38256957  38257456 chrchr1:38…  3.51   11.9 5.73e-4     1 chrchr1:…
+10 chr1     240399223 240399722 chrchr1:24…  3.56   11.6 6.54e-4     1 chrchr1:…
+# ℹ 4 more variables: excluded &lt;chr&gt;, group1 &lt;chr&gt;, group2 &lt;chr&gt;,
+#   dtu_rank &lt;int&gt;</code></pre>
+<pre class="r"><code>alpha_band_results_df %&gt;% filter(FDR &lt; 0.05) %&gt;% nrow()</code></pre>
+<pre><code>[1] 22</code></pre>
+<pre class="r"><code>alpha_band_results_df %&gt;% distinct(excluded, group1, group2) %&gt;% nrow() # checking correct number of runs</code></pre>
+<pre><code>[1] 70</code></pre>
+<pre class="r"><code>alpha_band_results_df %&gt;% mutate(fdr_signif = ifelse(FDR &lt; 0.05, TRUE, FALSE)) %&gt;% group_by(excluded, group1, group2, fdr_signif) %&gt;%
+  summarise(n = n()) %&gt;%
+  ungroup() %&gt;%
+  group_by(excluded, group1, group2) %&gt;%
+  mutate(total_group = sum(n), prop = n/sum(n)) %&gt;%
+  ungroup() %&gt;%
+  filter(fdr_signif == TRUE) %&gt;% .[1:5,]</code></pre>
+<pre><code>`summarise()` has grouped output by &#39;excluded&#39;, &#39;group1&#39;, &#39;group2&#39;. You can
+override using the `.groups` argument.</code></pre>
+<pre><code># A tibble: 5 × 7
+  excluded    group1                 group2 fdr_signif     n total_group    prop
+  &lt;chr&gt;       &lt;chr&gt;                  &lt;chr&gt;  &lt;lgl&gt;      &lt;int&gt;       &lt;int&gt;   &lt;dbl&gt;
+1 healthy_036 healthy_785,healthy_7… healt… TRUE           1      243678 4.10e-6
+2 healthy_036 healthy_785,healthy_7… healt… TRUE           1      243678 4.10e-6
+3 healthy_036 healthy_785,healthy_7… healt… TRUE           1      243678 4.10e-6
+4 healthy_036 healthy_785,healthy_7… healt… TRUE           2      243678 8.21e-6
+5 healthy_036 healthy_785,healthy_7… healt… TRUE           1      243678 4.10e-6</code></pre>
+<ul>
+<li><p>these are some tiny, beautifully low proportions</p></li>
+<li><p>crazy how low it is</p></li>
+<li><p>also this is only 42 of the 70 groups - so some groups didn’t
+have any significant - no false positives</p></li>
+<li><p>this is expected to be related to coverage</p></li>
+</ul>
+<pre class="r"><code>dtu_optile %&gt;% mutate(reads = rowSums(.[,2:8])) %&gt;%
+  group_by(gene_id) %&gt;%
+  summarise(coverage = sum(reads)) %&gt;%
+  mutate(region_signif = ifelse(gene_id %in% filter(alpha_band_results_df, FDR &lt; 0.05)$region_id, TRUE, FALSE)) %&gt;%
+  ggplot(aes(x = region_signif, y = coverage, fill = region_signif)) +
+  geom_boxplot() +
+  theme(legend.position = &quot;none&quot;)</code></pre>
+<p><img src="figure/emseqFalsePositiveCheck.Rmd/unnamed-chunk-30-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>dtu_optile %&gt;% mutate(reads = rowSums(.[,2:8])) %&gt;%
+  group_by(gene_id) %&gt;%
+  summarise(coverage = sum(reads)) %&gt;%
+  mutate(region_signif = ifelse(gene_id %in% filter(alpha_band_results_df, FDR &lt; 0.05)$region_id, TRUE, FALSE)) %&gt;%
+  ggplot(aes(x = region_signif, y = log2(coverage), fill = region_signif)) +
+  geom_boxplot() +
+  theme(legend.position = &quot;none&quot;)</code></pre>
+<p><img src="figure/emseqFalsePositiveCheck.Rmd/unnamed-chunk-30-2.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>dtu_optile %&gt;% mutate(reads = rowSums(.[,2:8])) %&gt;%
+  group_by(gene_id) %&gt;%
+  summarise(coverage = sum(reads)) %&gt;%
+  mutate(region_signif = ifelse(gene_id %in% filter(alpha_band_results_df, FDR &lt; 0.05)$region_id, TRUE, FALSE)) %&gt;%
+  ggplot(aes(x = log2(coverage), colour = region_signif)) +
+  geom_density()</code></pre>
+<p><img src="figure/emseqFalsePositiveCheck.Rmd/unnamed-chunk-30-3.png" width="672" style="display: block; margin: auto;" /></p>
+<ul>
+<li>want more specific plots using the alpha bands but I’m not quite
+sure what I want to do that as yet</li>
+</ul>
+<div id="visualise-reads" class="section level2">
+<h2>visualise reads</h2>
+<pre class="r"><code>signif_results &lt;- alpha_band_results_df %&gt;% filter(FDR &lt; 0.05) %&gt;% .[order(.$FDR),]
+signif_results[nrow(signif_results),]</code></pre>
+<pre><code># A tibble: 1 × 13
+  seqnames     start       end transcript  logFC exon.F P.Value    FDR region_id
+  &lt;chr&gt;        &lt;dbl&gt;     &lt;dbl&gt; &lt;chr&gt;       &lt;dbl&gt;  &lt;dbl&gt;   &lt;dbl&gt;  &lt;dbl&gt; &lt;chr&gt;    
+1 chr1     204592210 204592709 chrchr1:20… -2.77   25.8 3.89e-7 0.0474 chrchr1:…
+# ℹ 4 more variables: excluded &lt;chr&gt;, group1 &lt;chr&gt;, group2 &lt;chr&gt;,
+#   dtu_rank &lt;int&gt;</code></pre>
+<pre class="r"><code>reads &lt;- find_overlaps(as_granges(signif_results[1,]), as_granges(filter(all_samples, !sample %in% signif_results[1,]$excluded))) %&gt;% data.frame() %&gt;% .$read_id
+rrbs_plot5(all_samples, reads)</code></pre>
+<pre><code>Warning: `unnest()` has a new interface. See `?unnest` for details.
+ℹ Try `df %&gt;% unnest(c(meth_status, start))`, with `mutate()` if needed.</code></pre>
+<pre><code>[[1]]</code></pre>
+<p><img src="figure/emseqFalsePositiveCheck.Rmd/unnamed-chunk-32-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[2]]</code></pre>
+<pre><code>Warning: The following aesthetics were dropped during statistical transformation:
+colour.
+ℹ This can happen when ggplot fails to infer the correct grouping structure in
+  the data.
+ℹ Did you forget to specify a `group` aesthetic or to convert a numerical
+  variable into a factor?</code></pre>
+<p><img src="figure/emseqFalsePositiveCheck.Rmd/unnamed-chunk-32-2.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>reads &lt;- find_overlaps(as_granges(signif_results[2,]), as_granges(filter(all_samples, !sample %in% signif_results[2,]$excluded))) %&gt;% data.frame() %&gt;% .$read_id
+rrbs_plot5(all_samples, reads)</code></pre>
+<pre><code>Warning: `unnest()` has a new interface. See `?unnest` for details.
+ℹ Try `df %&gt;% unnest(c(meth_status, start))`, with `mutate()` if needed.</code></pre>
+<pre><code>[[1]]</code></pre>
+<p><img src="figure/emseqFalsePositiveCheck.Rmd/unnamed-chunk-32-3.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[2]]</code></pre>
+<pre><code>Warning: The following aesthetics were dropped during statistical transformation:
+colour.
+ℹ This can happen when ggplot fails to infer the correct grouping structure in
+  the data.
+ℹ Did you forget to specify a `group` aesthetic or to convert a numerical
+  variable into a factor?</code></pre>
+<p><img src="figure/emseqFalsePositiveCheck.Rmd/unnamed-chunk-32-4.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>reads &lt;- find_overlaps(as_granges(signif_results[3,]), as_granges(filter(all_samples, !sample %in% signif_results[3,]$excluded))) %&gt;% data.frame() %&gt;% .$read_id
+rrbs_plot5(all_samples, reads)</code></pre>
+<pre><code>Warning: `unnest()` has a new interface. See `?unnest` for details.
+ℹ Try `df %&gt;% unnest(c(meth_status, start))`, with `mutate()` if needed.</code></pre>
+<pre><code>[[1]]</code></pre>
+<p><img src="figure/emseqFalsePositiveCheck.Rmd/unnamed-chunk-32-5.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[2]]</code></pre>
+<pre><code>Warning: The following aesthetics were dropped during statistical transformation:
+colour.
+ℹ This can happen when ggplot fails to infer the correct grouping structure in
+  the data.
+ℹ Did you forget to specify a `group` aesthetic or to convert a numerical
+  variable into a factor?</code></pre>
+<p><img src="figure/emseqFalsePositiveCheck.Rmd/unnamed-chunk-32-6.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>reads &lt;- find_overlaps(as_granges(signif_results[4,]), as_granges(filter(all_samples, !sample %in% signif_results[4,]$excluded))) %&gt;% data.frame() %&gt;% .$read_id
+rrbs_plot5(all_samples, reads)</code></pre>
+<pre><code>Warning: `unnest()` has a new interface. See `?unnest` for details.
+ℹ Try `df %&gt;% unnest(c(meth_status, start))`, with `mutate()` if needed.</code></pre>
+<pre><code>[[1]]</code></pre>
+<p><img src="figure/emseqFalsePositiveCheck.Rmd/unnamed-chunk-32-7.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[2]]</code></pre>
+<pre><code>Warning: The following aesthetics were dropped during statistical transformation:
+colour.
+ℹ This can happen when ggplot fails to infer the correct grouping structure in
+  the data.
+ℹ Did you forget to specify a `group` aesthetic or to convert a numerical
+  variable into a factor?</code></pre>
+<p><img src="figure/emseqFalsePositiveCheck.Rmd/unnamed-chunk-32-8.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>reads &lt;- find_overlaps(as_granges(signif_results[nrow(signif_results),]), as_granges(filter(all_samples, !sample %in% signif_results[nrow(signif_results),]$excluded))) %&gt;% data.frame() %&gt;% .$read_id
+rrbs_plot5(all_samples, reads)</code></pre>
+<pre><code>Warning: `unnest()` has a new interface. See `?unnest` for details.
+ℹ Try `df %&gt;% unnest(c(meth_status, start))`, with `mutate()` if needed.</code></pre>
+<pre><code>[[1]]</code></pre>
+<p><img src="figure/emseqFalsePositiveCheck.Rmd/unnamed-chunk-32-9.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[2]]</code></pre>
+<pre><code>Warning: The following aesthetics were dropped during statistical transformation:
+colour.
+ℹ This can happen when ggplot fails to infer the correct grouping structure in
+  the data.
+ℹ Did you forget to specify a `group` aesthetic or to convert a numerical
+  variable into a factor?</code></pre>
+<p><img src="figure/emseqFalsePositiveCheck.Rmd/unnamed-chunk-32-10.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>signif_results &lt;- alpha_band_results_df %&gt;% filter(FDR &gt; 0.05) %&gt;% .[order(.$FDR),]
+
+reads &lt;- find_overlaps(as_granges(signif_results[1,]), as_granges(filter(all_samples, !sample %in% signif_results[1,]$excluded))) %&gt;% data.frame() %&gt;% .$read_id
+rrbs_plot5(all_samples, reads)</code></pre>
+<pre><code>Warning: `unnest()` has a new interface. See `?unnest` for details.
+ℹ Try `df %&gt;% unnest(c(meth_status, start))`, with `mutate()` if needed.</code></pre>
+<pre><code>[[1]]</code></pre>
+<p><img src="figure/emseqFalsePositiveCheck.Rmd/unnamed-chunk-33-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[2]]</code></pre>
+<pre><code>Warning: The following aesthetics were dropped during statistical transformation:
+colour.
+ℹ This can happen when ggplot fails to infer the correct grouping structure in
+  the data.
+ℹ Did you forget to specify a `group` aesthetic or to convert a numerical
+  variable into a factor?</code></pre>
+<p><img src="figure/emseqFalsePositiveCheck.Rmd/unnamed-chunk-33-2.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>reads &lt;- find_overlaps(as_granges(signif_results[10,]), as_granges(filter(all_samples, !sample %in% signif_results[10,]$excluded))) %&gt;% data.frame() %&gt;% .$read_id
+rrbs_plot5(all_samples, reads)</code></pre>
+<pre><code>Warning: `unnest()` has a new interface. See `?unnest` for details.
+ℹ Try `df %&gt;% unnest(c(meth_status, start))`, with `mutate()` if needed.</code></pre>
+<pre><code>[[1]]</code></pre>
+<p><img src="figure/emseqFalsePositiveCheck.Rmd/unnamed-chunk-33-3.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[2]]</code></pre>
+<pre><code>Warning: The following aesthetics were dropped during statistical transformation:
+colour.
+ℹ This can happen when ggplot fails to infer the correct grouping structure in
+  the data.
+ℹ Did you forget to specify a `group` aesthetic or to convert a numerical
+  variable into a factor?</code></pre>
+<p><img src="figure/emseqFalsePositiveCheck.Rmd/unnamed-chunk-33-4.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>reads &lt;- find_overlaps(as_granges(signif_results[100,]), as_granges(filter(all_samples, !sample %in% signif_results[100,]$excluded))) %&gt;% data.frame() %&gt;% .$read_id
+rrbs_plot5(all_samples, reads)</code></pre>
+<pre><code>Warning: `unnest()` has a new interface. See `?unnest` for details.
+ℹ Try `df %&gt;% unnest(c(meth_status, start))`, with `mutate()` if needed.</code></pre>
+<pre><code>[[1]]</code></pre>
+<p><img src="figure/emseqFalsePositiveCheck.Rmd/unnamed-chunk-33-5.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[2]]</code></pre>
+<pre><code>Warning: The following aesthetics were dropped during statistical transformation:
+colour.
+ℹ This can happen when ggplot fails to infer the correct grouping structure in
+  the data.
+ℹ Did you forget to specify a `group` aesthetic or to convert a numerical
+  variable into a factor?</code></pre>
+<p><img src="figure/emseqFalsePositiveCheck.Rmd/unnamed-chunk-33-6.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>reads &lt;- find_overlaps(as_granges(signif_results[1000,]), as_granges(filter(all_samples, !sample %in% signif_results[1000,]$excluded))) %&gt;% data.frame() %&gt;% .$read_id
+rrbs_plot5(all_samples, reads)</code></pre>
+<pre><code>Warning: `unnest()` has a new interface. See `?unnest` for details.
+ℹ Try `df %&gt;% unnest(c(meth_status, start))`, with `mutate()` if needed.</code></pre>
+<pre><code>[[1]]</code></pre>
+<p><img src="figure/emseqFalsePositiveCheck.Rmd/unnamed-chunk-33-7.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[2]]</code></pre>
+<pre><code>Warning: The following aesthetics were dropped during statistical transformation:
+colour.
+ℹ This can happen when ggplot fails to infer the correct grouping structure in
+  the data.
+ℹ Did you forget to specify a `group` aesthetic or to convert a numerical
+  variable into a factor?</code></pre>
+<p><img src="figure/emseqFalsePositiveCheck.Rmd/unnamed-chunk-33-8.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>reads &lt;- find_overlaps(as_granges(signif_results[nrow(signif_results),]), as_granges(filter(all_samples, !sample %in% signif_results[nrow(signif_results),]$excluded))) %&gt;% data.frame() %&gt;% .$read_id
+rrbs_plot5(all_samples, reads)</code></pre>
+<pre><code>Warning: `unnest()` has a new interface. See `?unnest` for details.
+ℹ Try `df %&gt;% unnest(c(meth_status, start))`, with `mutate()` if needed.</code></pre>
+<pre><code>[[1]]</code></pre>
+<p><img src="figure/emseqFalsePositiveCheck.Rmd/unnamed-chunk-33-9.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[2]]</code></pre>
+<pre><code>Warning: The following aesthetics were dropped during statistical transformation:
+colour.
+ℹ This can happen when ggplot fails to infer the correct grouping structure in
+  the data.
+ℹ Did you forget to specify a `group` aesthetic or to convert a numerical
+  variable into a factor?</code></pre>
+<p><img src="figure/emseqFalsePositiveCheck.Rmd/unnamed-chunk-33-10.png" width="672" style="display: block; margin: auto;" /></p>
+<br>
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-sessioninfo" data-toggle="collapse" data-target="#workflowr-sessioninfo" style="display: block;">
+<span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
+Session information
+</button>
+</p>
+<div id="workflowr-sessioninfo" class="collapse">
+<pre class="r"><code>sessionInfo()</code></pre>
+<pre><code>R version 4.4.1 (2024-06-14)
+Platform: x86_64-pc-linux-gnu
+Running under: Red Hat Enterprise Linux 9.6 (Plow)
+
+Matrix products: default
+BLAS/LAPACK: FlexiBLAS OPENBLAS-OPENMP;  LAPACK version 3.9.0
+
+locale:
+ [1] LC_CTYPE=en_AU.UTF-8       LC_NUMERIC=C              
+ [3] LC_TIME=en_AU.UTF-8        LC_COLLATE=en_AU.UTF-8    
+ [5] LC_MONETARY=en_AU.UTF-8    LC_MESSAGES=en_AU.UTF-8   
+ [7] LC_PAPER=en_AU.UTF-8       LC_NAME=C                 
+ [9] LC_ADDRESS=C               LC_TELEPHONE=C            
+[11] LC_MEASUREMENT=en_AU.UTF-8 LC_IDENTIFICATION=C       
+
+time zone: Australia/Melbourne
+tzcode source: system (glibc)
+
+attached base packages:
+[1] stats4    stats     graphics  grDevices utils     datasets  methods  
+[8] base     
+
+other attached packages:
+ [1] edgeR_4.4.2                       limma_3.62.2                     
+ [3] OpTiles_0.1.0                     ggplot2_3.5.2                    
+ [5] dplyr_1.1.4                       stringr_1.5.1                    
+ [7] tidyr_1.3.1                       plyranges_1.26.0                 
+ [9] data.table_1.17.8                 BSgenome.Hsapiens.UCSC.hg38_1.4.5
+[11] BSgenome_1.74.0                   rtracklayer_1.66.0               
+[13] BiocIO_1.16.0                     Biostrings_2.74.1                
+[15] XVector_0.46.0                    GenomicRanges_1.58.0             
+[17] GenomeInfoDb_1.42.3               IRanges_2.40.1                   
+[19] S4Vectors_0.44.0                  BiocGenerics_0.52.0              
+
+loaded via a namespace (and not attached):
+  [1] RColorBrewer_1.1-3          rstudioapi_0.17.1          
+  [3] jsonlite_2.0.0              magrittr_2.0.3             
+  [5] farver_2.1.2                rmarkdown_2.29             
+  [7] fs_1.6.6                    zlibbioc_1.52.0            
+  [9] vctrs_0.6.5                 memoise_2.0.1              
+ [11] Rsamtools_2.22.0            RCurl_1.98-1.17            
+ [13] htmltools_0.5.8.1           S4Arrays_1.6.0             
+ [15] progress_1.2.3              curl_6.4.0                 
+ [17] cellranger_1.1.0            SparseArray_1.6.2          
+ [19] sass_0.4.10                 bslib_0.9.0                
+ [21] plyr_1.8.9                  httr2_1.2.1                
+ [23] cachem_1.1.0                GenomicAlignments_1.42.0   
+ [25] whisker_0.4.1               lifecycle_1.0.4            
+ [27] pkgconfig_2.0.3             Matrix_1.7-0               
+ [29] R6_2.6.1                    fastmap_1.2.0              
+ [31] GenomeInfoDbData_1.2.13     MatrixGenerics_1.18.1      
+ [33] digest_0.6.37               numDeriv_2016.8-1.1        
+ [35] patchwork_1.3.2             AnnotationDbi_1.68.0       
+ [37] rprojroot_2.1.0             RSQLite_2.4.2              
+ [39] labeling_0.4.3              filelock_1.0.3             
+ [41] httr_1.4.7                  abind_1.4-8                
+ [43] compiler_4.4.1              bit64_4.6.0-1              
+ [45] withr_3.0.2                 BiocParallel_1.40.2        
+ [47] easyGgplot2_1.0.0.9000      DBI_1.2.3                  
+ [49] R.utils_2.13.0              biomaRt_2.62.1             
+ [51] MASS_7.3-60.2               rappdirs_0.3.3             
+ [53] DelayedArray_0.32.0         rjson_0.2.23               
+ [55] gtools_3.9.5                tools_4.4.1                
+ [57] httpuv_1.6.16               R.oo_1.27.1                
+ [59] glue_1.8.0                  restfulr_0.0.16            
+ [61] promises_1.3.3              grid_4.4.1                 
+ [63] reshape2_1.4.4              generics_0.1.4             
+ [65] gtable_0.3.6                R.methodsS3_1.8.2          
+ [67] hms_1.1.3                   utf8_1.2.6                 
+ [69] xml2_1.4.0                  pillar_1.11.0              
+ [71] fastseg_1.52.0              emdbook_1.3.14             
+ [73] later_1.4.2                 splines_4.4.1              
+ [75] BiocFileCache_2.14.0        lattice_0.22-6             
+ [77] bit_4.6.0                   tidyselect_1.2.1           
+ [79] locfit_1.5-9.12             knitr_1.50                 
+ [81] git2r_0.36.2                gridExtra_2.3              
+ [83] SummarizedExperiment_1.36.0 xfun_0.52                  
+ [85] Biobase_2.66.0              statmod_1.5.1              
+ [87] matrixStats_1.5.0           stringi_1.8.7              
+ [89] UCSC.utils_1.2.0            workflowr_1.7.1            
+ [91] yaml_2.3.10                 evaluate_1.0.4             
+ [93] codetools_0.2-20            bbmle_1.0.25.1             
+ [95] tibble_3.3.0                qvalue_2.38.0              
+ [97] cli_3.6.5                   jquerylib_0.1.4            
+ [99] dichromat_2.0-0.1           Rcpp_1.1.0                 
+[101] readxl_1.4.5                dbplyr_2.5.0               
+[103] coda_0.19-4.1               png_0.1-8                  
+[105] methylKit_1.32.1            bdsmatrix_1.3-7            
+[107] XML_3.99-0.18               parallel_4.4.1             
+[109] blob_1.2.4                  prettyunits_1.2.0          
+[111] mclust_6.1.2                bitops_1.0-9               
+[113] mvtnorm_1.3-6               scales_1.4.0               
+[115] purrr_1.1.0                 crayon_1.5.3               
+[117] rlang_1.1.6                 KEGGREST_1.46.0            </code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+
+<!-- Adjust MathJax settings so that all math formulae are shown using
+TeX fonts only; see
+https://docs.mathjax.org/en/latest/web/configuration.html. This will make
+the presentation more consistent at the cost of the webpage sometimes
+taking slightly longer to load. Note that this only works because the
+footer is added to webpages before the MathJax javascript. -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    "HTML-CSS": { availableFonts: ["TeX"] }
+  });
+</script>
+
+
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+
+<script>
+$(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
