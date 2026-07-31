@@ -256,7 +256,7 @@ dtu_optile %>% mutate(reads = rowSums(.[,2:8])) %>%
 
 ## visualise the regions
 ```{r}
-rrbs_plot6 <- function(read_data, read_ids, cpgs = cg_sites, jit_amount = 0.1) {
+rrbs_plot5 <- function(read_data, read_ids, cpgs = cg_sites, jit_amount = 0.1) {
   set.seed(42) # For reproducibility
   # Calculate a single jitter amount per row (segment)
   read_data <- read_data %>% dplyr::filter(read_id %in% read_ids)
@@ -294,50 +294,50 @@ signif_results[1,]$excluded
 
 ```{r}
 reads <- find_overlaps(as_granges(signif_results[1,]), as_granges(filter(all_samples, !sample %in% signif_results[1,]$excluded))) %>% data.frame() %>% .$read_id
-rrbs_plot5(healthy_samples, reads)
+rrbs_plot5(all_samples, reads)
 
 reads <- find_overlaps(as_granges(signif_results[2,]), as_granges(filter(all_samples, !sample %in% signif_results[2,]$excluded))) %>% data.frame() %>% .$read_id
-rrbs_plot5(healthy_samples, reads)
+rrbs_plot5(all_samples, reads)
 
 reads <- find_overlaps(as_granges(signif_results[3,]), as_granges(filter(all_samples, !sample %in% signif_results[3,]$excluded))) %>% data.frame() %>% .$read_id
-rrbs_plot5(healthy_samples, reads)
+rrbs_plot5(all_samples, reads)
 
 reads <- find_overlaps(as_granges(signif_results[4,]), as_granges(filter(all_samples, !sample %in% signif_results[4,]$excluded))) %>% data.frame() %>% .$read_id
-rrbs_plot5(healthy_samples, reads)
+rrbs_plot5(all_samples, reads)
 
 reads <- find_overlaps(as_granges(signif_results[30,]), as_granges(filter(all_samples, !sample %in% signif_results[30,]$excluded))) %>% data.frame() %>% .$read_id
-rrbs_plot5(healthy_samples, reads)
+rrbs_plot5(all_samples, reads)
 
 reads <- find_overlaps(as_granges(signif_results[79,]), as_granges(filter(all_samples, !sample %in% signif_results[79,]$excluded))) %>% data.frame() %>% .$read_id
-rrbs_plot5(healthy_samples, reads)
+rrbs_plot5(all_samples, reads)
 ```
 
 ```{r}
 signif_results <- results_df %>% filter(FDR > 0.05) %>% .[order(.$FDR),]
 
 reads <- find_overlaps(as_granges(signif_results[1,]), as_granges(filter(all_samples, !sample %in% signif_results[1,]$excluded))) %>% data.frame() %>% .$read_id
-rrbs_plot5(healthy_samples, reads)
+rrbs_plot5(all_samples, reads)
 
 reads <- find_overlaps(as_granges(signif_results[10,]), as_granges(filter(all_samples, !sample %in% signif_results[10,]$excluded))) %>% data.frame() %>% .$read_id
-rrbs_plot5(healthy_samples, reads)
+rrbs_plot5(all_samples, reads)
 
 reads <- find_overlaps(as_granges(signif_results[100,]), as_granges(filter(all_samples, !sample %in% signif_results[100,]$excluded))) %>% data.frame() %>% .$read_id
-rrbs_plot5(healthy_samples, reads)
+rrbs_plot5(all_samples, reads)
 
 reads <- find_overlaps(as_granges(signif_results[1000,]), as_granges(filter(all_samples, !sample %in% signif_results[1000,]$excluded))) %>% data.frame() %>% .$read_id
-rrbs_plot5(healthy_samples, reads)
+rrbs_plot5(all_samples, reads)
 
 reads <- find_overlaps(as_granges(signif_results[100000,]), as_granges(filter(all_samples, !sample %in% signif_results[100000,]$excluded))) %>% data.frame() %>% .$read_id
-rrbs_plot5(healthy_samples, reads)
+rrbs_plot5(all_samples, reads)
 
 reads <- find_overlaps(as_granges(signif_results[1000000,]), as_granges(filter(all_samples, !sample %in% signif_results[1000000,]$excluded))) %>% data.frame() %>% .$read_id
-rrbs_plot5(healthy_samples, reads)
+rrbs_plot5(all_samples, reads)
 ```
 
 
 # repeat but with the alpha band level results alpha band + tile
 
-```{r}
+```{r, eval=FALSE}
 samples <- c(unique(all_samples$sample))  # your 7 sample names
 
 # --- Analysis function ---
@@ -393,10 +393,22 @@ alpha_band_results_df <- bind_rows(results)
 saveRDS(alpha_band_results_df, "/researchers/caitlin.page/cf_nano/r_output/dtu_tiles_emseq_healthy_all_fp_exon_level.rds")
 ```
 
+```{r}
+alpha_band_results_df <- readRDS("/researchers/caitlin.page/cf_nano/r_output/dtu_tiles_emseq_healthy_all_fp_exon_level.rds")
+```
+
+```{r}
+alpha_band_results_df %>% 
+  ggplot(aes(x = FDR)) +
+  geom_histogram()
+```
+
+
 
 ```{r}
 alpha_band_results_df[1:10,]
 ```
+
 ```{r}
 alpha_band_results_df %>% filter(FDR < 0.05) %>% nrow()
 ```
@@ -458,41 +470,38 @@ signif_results[nrow(signif_results),]
 
 ```{r}
 reads <- find_overlaps(as_granges(signif_results[1,]), as_granges(filter(all_samples, !sample %in% signif_results[1,]$excluded))) %>% data.frame() %>% .$read_id
-rrbs_plot5(healthy_samples, reads)
+rrbs_plot5(all_samples, reads)
 
 reads <- find_overlaps(as_granges(signif_results[2,]), as_granges(filter(all_samples, !sample %in% signif_results[2,]$excluded))) %>% data.frame() %>% .$read_id
-rrbs_plot5(healthy_samples, reads)
+rrbs_plot5(all_samples, reads)
 
 reads <- find_overlaps(as_granges(signif_results[3,]), as_granges(filter(all_samples, !sample %in% signif_results[3,]$excluded))) %>% data.frame() %>% .$read_id
-rrbs_plot5(healthy_samples, reads)
+rrbs_plot5(all_samples, reads)
 
 reads <- find_overlaps(as_granges(signif_results[4,]), as_granges(filter(all_samples, !sample %in% signif_results[4,]$excluded))) %>% data.frame() %>% .$read_id
-rrbs_plot5(healthy_samples, reads)
-
-reads <- find_overlaps(as_granges(signif_results[30,]), as_granges(filter(all_samples, !sample %in% signif_results[30,]$excluded))) %>% data.frame() %>% .$read_id
-rrbs_plot5(healthy_samples, reads)
+rrbs_plot5(all_samples, reads)
 
 reads <- find_overlaps(as_granges(signif_results[nrow(signif_results),]), as_granges(filter(all_samples, !sample %in% signif_results[nrow(signif_results),]$excluded))) %>% data.frame() %>% .$read_id
-rrbs_plot5(healthy_samples, reads)
+rrbs_plot5(all_samples, reads)
 ```
 
 ```{r}
 signif_results <- alpha_band_results_df %>% filter(FDR > 0.05) %>% .[order(.$FDR),]
 
 reads <- find_overlaps(as_granges(signif_results[1,]), as_granges(filter(all_samples, !sample %in% signif_results[1,]$excluded))) %>% data.frame() %>% .$read_id
-rrbs_plot5(healthy_samples, reads)
+rrbs_plot5(all_samples, reads)
 
 reads <- find_overlaps(as_granges(signif_results[10,]), as_granges(filter(all_samples, !sample %in% signif_results[10,]$excluded))) %>% data.frame() %>% .$read_id
-rrbs_plot5(healthy_samples, reads)
+rrbs_plot5(all_samples, reads)
 
 reads <- find_overlaps(as_granges(signif_results[100,]), as_granges(filter(all_samples, !sample %in% signif_results[100,]$excluded))) %>% data.frame() %>% .$read_id
-rrbs_plot5(healthy_samples, reads)
+rrbs_plot5(all_samples, reads)
 
 reads <- find_overlaps(as_granges(signif_results[1000,]), as_granges(filter(all_samples, !sample %in% signif_results[1000,]$excluded))) %>% data.frame() %>% .$read_id
-rrbs_plot5(healthy_samples, reads)
+rrbs_plot5(all_samples, reads)
 
 reads <- find_overlaps(as_granges(signif_results[nrow(signif_results),]), as_granges(filter(all_samples, !sample %in% signif_results[nrow(signif_results),]$excluded))) %>% data.frame() %>% .$read_id
-rrbs_plot5(healthy_samples, reads)
+rrbs_plot5(all_samples, reads)
 ```
 
 
