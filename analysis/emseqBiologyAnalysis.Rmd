@@ -10,6 +10,378 @@ editor_options:
 ## Introduction
 
 ```{r}
+library(BSgenome.Hsapiens.UCSC.hg38)
+library(data.table)
+library(plyranges)
+#library(tidyr)
+library(stringr)
+library(dplyr)
+library(ggplot2)
+library(OpTiles)
+library(edgeR)
+library(UpSetR)
+library(TxDb.Hsapiens.UCSC.hg38.knownGene)
+```
 
+```{r}
+genes_txdb <- genes(TxDb.Hsapiens.UCSC.hg38.knownGene)
+```
+
+```{r}
+tile_counts_2
+tile_counts
+```
+
+```{r}
+dtu_emseq <- readRDS("/researchers/caitlin.page/cf_nano/r_output/dtu_tiles_emseq_cancer_healthy.rds")
+```
+
+```{r}
+dtu_gene <- find_overlaps(genes_txdb, as_granges(dtu_emseq)) %>% data.frame()
+```
+
+```{r}
+dtu_gene %>% filter(FDR < 0.05) %>%
+  group_by(gene_id) %>% summarise(n=dplyr::n()) %>% ungroup() %>% group_by(n) %>% summarise(n_regions_gene_overlaps = dplyr::n())
+```
+
+```{r}
+find_overlaps(genes_txdb, as_granges(optiles_all)) %>% data.frame() %>%
+  group_by(gene_id) %>% summarise(n_tile = n()) %>%
+  ggplot(aes(x = n_tile)) +
+  geom_histogram(bins = 50)
+```
+
+
+```{r}
+dtu_gene %>% filter(FDR < 0.05) %>%
+  group_by(gene_id) %>% summarise(n_sig_regions=dplyr::n()) %>% ungroup() %>%
+  ggplot(aes(x = as.factor(n_sig_regions))) +
+  geom_bar()
+```
+
+# 1 gene, multiple tiles
+```{r}
+dtu_gene %>% filter(FDR < 0.05) %>%
+  group_by(gene_id) %>% mutate(n_sig_regions=dplyr::n()) %>% ungroup() %>% filter(n_sig_regions > 3) %>% .[order(.$n_sig_regions, decreasing = TRUE),] %>% .[order(.$dtu_rank),] %>% dplyr::distinct(gene_id, dtu_rank)
+
+dtu_gene %>% filter(FDR < 0.05) %>%
+  group_by(gene_id) %>% summarise(n_sig_regions=dplyr::n()) %>% ungroup() %>% filter(n_sig_regions > 3) %>% .[order(.$n_sig_regions, decreasing = TRUE),] dplyr::distinct(gene_id)
+```
+
+```{r}
+dtu_emseq %>% filter(FDR < 0.05)
+```
+
+```{r}
+dtu_gene %>% filter(FDR < 0.05) %>% 
+    group_by(gene_id) %>% mutate(n_sig_regions=dplyr::n()) %>% ungroup() %>%
+    filter(n_sig_regions > 3) %>% .[order(.$n_sig_regions, decreasing = TRUE),] %>% .[order(.$dtu_rank),] %>% dplyr::distinct(gene_id, dtu_rank) %>% .[1,]
+```
+
+
+```{r}
+list_plot <- list()
+for(i in 1:18) {
+  
+  tile_sig <- dtu_gene %>% filter(FDR < 0.05) %>% 
+    group_by(gene_id) %>% mutate(n_sig_regions=dplyr::n()) %>% ungroup() %>%
+    filter(n_sig_regions > 3) %>% .[order(.$n_sig_regions, decreasing = TRUE),] %>% .[order(.$dtu_rank),] %>% dplyr::distinct(gene_id, dtu_rank)
+  
+  p_data <- dtu_gene %>% filter(gene_id == tile_sig$gene_id[i]) %>% 
+  tidyr::separate(region_id, into = c("chr", "tile_start", "tile_end"), sep = "[:-]") %>% 
+  mutate(tile_start = as.integer(tile_start), tile_end = as.integer(tile_end),
+         y_pos = dplyr::row_number())
+p <- p_data %>%
+  ggplot() +
+  geom_segment(data = filter(p_data, strand == "-"), aes(x = start, xend = end, y = 0, yend = 0), linewidth = 2,
+               arrow = arrow(length = unit(0.2, "cm"), type = "closed", ends = "first")) +
+  geom_segment(data = filter(p_data, strand == "+"), aes(x = start, xend = end, y = 0, yend = 0), linewidth = 2,
+               arrow = arrow(length = unit(0.2, "cm"), type = "closed", ends = "last")) +
+  geom_segment(aes(x = tile_start, xend = tile_end, y = y_pos, yend = y_pos), linewidth = 2) +
+  geom_text(aes(x = min(start), y = 0.2, label = gene_id),
+          hjust = 1,    # right-align so all labels end at the same x
+          nudge_x = -10000) +
+coord_cartesian(clip = "off") +   # allows text to render outside the plot area
+theme(plot.margin = margin(5, 5, 5, 60)) +
+  geom_text(aes(x = tile_start, y = y_pos, label = dtu_rank)) +
+  ggtitle(gsub("^chr", "", unique(p_data$chr)))
+
+list_plot <- list(list_plot, p)
+}
+list_plot
+```
+
+
+tile_sig <- dtu_gene %>% filter(FDR < 0.05) %>% 
+    group_by(region_id) %>% mutate(n_gene_overlap = dplyr::n()) %>% ungroup() %>%
+    filter(n_gene_overlap > 3) %>% .[order(.$n_gene_overlap, decreasing = TRUE),] %>% .[order(.$dtu_rank),] %>% dplyr::distinct(region_id, dtu_rank)
+  
+  p_data <- dtu_gene %>% filter(region_id == tile_sig$region_id[i]) %>% 
+  tidyr::separate(region_id, into = c("chr", "tile_start", "tile_end"), sep = "[:-]") %>% 
+  mutate(tile_start = as.integer(tile_start), tile_end = as.integer(tile_end),
+         y_pos = disjointBins(IRanges(start, end)))
+p <- p_data %>%
+  ggplot() +
+  geom_segment(data = filter(p_data, strand == "-"), aes(x = start, xend = end, y = y_pos, yend = y_pos), linewidth = 2,
+               arrow = arrow(length = unit(0.2, "cm"), type = "closed", ends = "first")) +
+  geom_segment(data = filter(p_data, strand == "+"), aes(x = start, xend = end, y = y_pos, yend = y_pos), linewidth = 2,
+               arrow = arrow(length = unit(0.2, "cm"), type = "closed", ends = "last")) +
+  geom_segment(aes(x = tile_start, xend = tile_end, y = 27, yend = 27), linewidth = 2) +
+  geom_text(aes(x = min(start), y = y_pos, label = gene_id),
+          hjust = 1,    # right-align so all labels end at the same x
+          nudge_x = -10000) +
+coord_cartesian(clip = "off") +   # allows text to render outside the plot area
+theme(plot.margin = margin(5, 5, 5, 60)) +
+  geom_text(aes(x = tile_start, y = 26, label = dtu_rank)) +
+  ggtitle(gsub("^chr", "", unique(p_data$chr)))
+
+
+```{r}
+dtu_gene %>% filter(FDR < 0.05) %>% dplyr::distinct(gene_id)
+```
+
+```{r}
+dtu_gene %>% filter(FDR < 0.05) %>% dplyr::distinct(gene_id) %>% .$gene_id %>% .[2001:2538]
+```
+
+```{r}
+dtu_gene %>% filter(FDR < 0.05) %>% dplyr::distinct(gene_id) %>% .$gene_id
+```
+
+```{r}
+library(org.Hs.eg.db)
+gene_types <- select(org.Hs.eg.db, keys = dtu_gene %>% filter(FDR < 0.05) %>% dplyr::distinct(gene_id) %>% .$gene_id, 
+                     columns = c("SYMBOL", "GENENAME"), 
+                     keytype = "ENTREZID")
+```
+
+
+# make some fake promoters
+
+```{r}
+genes_txdb
+```
+* 2000bp upstream, 200bp downstream
+```{r}
+promoters_txdb <- promoters(genes_txdb)
+```
+
+
+```{r}
+dtu_promoter <- find_overlaps(promoters_txdb, as_granges(dtu_emseq)) %>% data.frame()
+```
+
+```{r}
+dtu_promoter %>% filter(FDR < 0.05)
+dtu_promoter %>% filter(FDR < 0.05) %>% dplyr::distinct(gene_id)
+```
+
+```{r}
+dtu_promoter %>% filter(FDR < 0.05) %>%
+  group_by(gene_id) %>% summarise(n_sig_regions=dplyr::n()) %>% ungroup() %>%
+  ggplot(aes(x = as.factor(n_sig_regions))) +
+  geom_bar()
+```
+
+```{r}
+gene_types_prom <- select(org.Hs.eg.db, keys = dtu_promoter %>% filter(FDR < 0.05) %>% dplyr::distinct(gene_id) %>% .$gene_id, 
+                     columns = c("SYMBOL", "GENENAME"), 
+                     keytype = "ENTREZID")
+```
+
+
+```{r}
+ggVennDiagram::ggVennDiagram(list(gene = dtu_gene %>% filter(FDR < 0.05) %>% dplyr::distinct(gene_id) %>% .$gene_id, promoter = dtu_promoter %>% filter(FDR < 0.05) %>% dplyr::distinct(gene_id) %>% .$gene_id))
+```
+
+# where do overlaps happen in gene
+
+```{r}
+dtu_gene %>% filter(FDR < 0.05) %>% .[order(.$FDR),]
+```
+
+```{r}
+dtu_gene %>% filter(FDR < 0.05) %>% .[order(.$FDR),] %>% .[1,]
+dtu_gene %>% filter(FDR < 0.05) %>% .[order(.$FDR),] %>% .[1,] %>% 
+  tidyr::separate(region_id, into = c("chr", "tile_start", "tile_end"), sep = "[:-]") %>% 
+  mutate(tile_start = as.integer(tile_start), tile_end = as.integer(tile_end)) %>% {
+    strand_dir <- if (unique(.$strand) == "-") "first" else "last"
+  ggplot(.) +
+  geom_segment(aes(x = start, xend = end, y = 1, yend = 1), linewidth = 2,
+               arrow = arrow(length = unit(0.2, "cm"), type = "closed", ends = strand_dir)) +
+  geom_segment(aes(x = tile_start, xend = tile_end, y = 2, yend = 2), linewidth = 2) +
+  geom_text(aes(x = start, y = 1.2, label = gene_id))
+  }
+```
+
+```{r}
+list_plot <- list()
+for(i in 1:10) {
+  
+p <- dtu_gene %>% filter(FDR < 0.05) %>% .[order(.$FDR),] %>% .[i,] %>% 
+  tidyr::separate(region_id, into = c("chr", "tile_start", "tile_end"), sep = "[:-]") %>% 
+  mutate(tile_start = as.integer(tile_start), tile_end = as.integer(tile_end)) %>% {
+    strand_dir <- if (unique(.$strand) == "-") "first" else "last"
+    chr_label  <- unique(.$chr)
+  ggplot(.) +
+  geom_segment(aes(x = start, xend = end, y = 1, yend = 1), linewidth = 2,
+               arrow = arrow(length = unit(0.2, "cm"), type = "closed", ends = strand_dir)) +
+  geom_segment(aes(x = tile_start, xend = tile_end, y = 2, yend = 2), linewidth = 2) +
+  geom_text(aes(x = start, y = 1.2, label = gene_id)) +
+  geom_text(aes(x = tile_start, y = 1.8, label = dtu_rank)) +
+  ggtitle(chr_label)
+}
+list_plot <- list(list_plot, p)
+  }
+list_plot
+```
+
+```{r}
+dtu_gene %>% filter(FDR < 0.05) %>% .[order(.$FDR),]
+```
+
+
+# promoter
+
+```{r}
+list_plot <- list()
+for(i in 1:10) {
+  
+p <- dtu_promoter %>% filter(FDR < 0.05) %>% .[order(.$FDR),] %>% .[i,] %>% 
+  tidyr::separate(region_id, into = c("chr", "tile_start", "tile_end"), sep = "[:-]") %>% 
+  mutate(tile_start = as.integer(tile_start), tile_end = as.integer(tile_end)) %>% {
+    strand_dir <- if (unique(.$strand) == "-") "first" else "last"
+    chr_label <- unique(.$chr)
+  ggplot(.) +
+  geom_segment(aes(x = start, xend = end, y = 1, yend = 1), linewidth = 2,
+               arrow = arrow(length = unit(0.2, "cm"), type = "closed", ends = strand_dir)) +
+  geom_segment(aes(x = tile_start, xend = tile_end, y = 2, yend = 2), linewidth = 2) +
+  geom_text(aes(x = start, y = 1.2, label = gene_id)) +
+  geom_text(aes(x = tile_start, y = 1.8, label = dtu_rank)) +
+  ggtitle(chr_label)
+  }
+
+list_plot <- list(list_plot, p)
+}
+list_plot
+```
+
+
+```{r}
+dtu_gene %>% filter(FDR < 0.05) %>%
+  group_by(region_id) %>% summarise(n_gene_overlap = dplyr::n()) %>%
+  ggplot(aes(x = as.factor(n_gene_overlap))) +
+  geom_bar()
+
+dtu_promoter %>% filter(FDR < 0.05) %>%
+  group_by(region_id) %>% summarise(n_gene_overlap = dplyr::n()) %>%
+  ggplot(aes(x = as.factor(n_gene_overlap))) +
+  geom_bar()
+```
+```{r}
+dtu_gene %>% filter(FDR < 0.05) %>% 
+  group_by(region_id) %>% mutate(n_gene_overlap = dplyr::n()) %>% ungroup() %>%
+  filter(n_gene_overlap > 3) %>% .[order(.$n_gene_overlap, decreasing = TRUE),] %>% .[order(.$dtu_rank),] 
+```
+
+```{r}
+dtu_gene %>% filter(FDR < 0.05) %>% 
+  group_by(region_id) %>% mutate(n_gene_overlap = dplyr::n()) %>% ungroup() %>%
+  filter(n_gene_overlap > 3) %>% .[order(.$n_gene_overlap, decreasing = TRUE),] %>% .[order(.$dtu_rank),] %>% dplyr::distinct(region_id, dtu_rank)
+```
+
+```{r}
+dtu_gene$region_id[5]
+```
+
+# 1 dtu, multiple genes
+
+```{r}
+list_plot <- list()
+for(i in 1:18) {
+  
+  tile_sig <- dtu_gene %>% filter(FDR < 0.05) %>% 
+    group_by(region_id) %>% mutate(n_gene_overlap = dplyr::n()) %>% ungroup() %>%
+    filter(n_gene_overlap > 3) %>% .[order(.$n_gene_overlap, decreasing = TRUE),] %>% .[order(.$dtu_rank),] %>% dplyr::distinct(region_id, dtu_rank)
+  
+  p_data <- dtu_gene %>% filter(region_id == tile_sig$region_id[i]) %>% 
+  tidyr::separate(region_id, into = c("chr", "tile_start", "tile_end"), sep = "[:-]") %>% 
+  mutate(tile_start = as.integer(tile_start), tile_end = as.integer(tile_end),
+         y_pos = disjointBins(IRanges(start, end)))
+p <- p_data %>%
+  ggplot() +
+  geom_segment(data = filter(p_data, strand == "-"), aes(x = start, xend = end, y = y_pos, yend = y_pos), linewidth = 2,
+               arrow = arrow(length = unit(0.2, "cm"), type = "closed", ends = "first")) +
+  geom_segment(data = filter(p_data, strand == "+"), aes(x = start, xend = end, y = y_pos, yend = y_pos), linewidth = 2,
+               arrow = arrow(length = unit(0.2, "cm"), type = "closed", ends = "last")) +
+  geom_segment(aes(x = tile_start, xend = tile_end, y = 27, yend = 27), linewidth = 2) +
+  geom_text(aes(x = min(start), y = y_pos, label = gene_id),
+          hjust = 1,    # right-align so all labels end at the same x
+          nudge_x = -10000) +
+coord_cartesian(clip = "off") +   # allows text to render outside the plot area
+theme(plot.margin = margin(5, 5, 5, 60)) +
+  geom_text(aes(x = tile_start, y = 26, label = dtu_rank)) +
+  ggtitle(gsub("^chr", "", unique(p_data$chr)))
+
+list_plot <- list(list_plot, p)
+}
+list_plot
+```
+
+
+
+```{r}
+tile_counts
+```
+
+
+# where do overlaps happen in promoter?
+
+# PPGL genes (calude)
+
+```{r}
+ppgl_drivers <- data.frame(
+  symbol = c(
+    # Cluster 1 — Pseudohypoxia / TCA cycle
+    "SDHA", "SDHB", "SDHC", "SDHD", "SDHAF2",
+    "VHL", "FH", "MDH2", "EPAS1", "IDH1", "IDH2",
+    "SLC25A11", "DLST", "GOT2",
+    # Cluster 2 — Kinase / RAS signalling
+    "RET", "NF1", "HRAS", "KRAS", "NRAS",
+    "TMEM127", "MAX", "KIF1B", "FGFR1",
+    # Cluster 3 — Wnt / cortical
+    "MAML3", "CSDE1", "UBTF",
+    # Malignancy / progression
+    "ATRX", "TERT", "TP53", "CDKN2A",
+    "RB1", "SETD2", "PTEN", "MEN1"
+  ),
+  entrez_id = c(
+    6389, 6390, 6391, 6392, 54949,
+    7428, 2271, 4191, 2034, 3417, 3418,
+    8402, 1743, 2806,
+    5979, 4763, 3265, 3845, 4893,
+    55654, 4149, 23095, 2260,
+    55502, 7812, 7343,
+    546, 7015, 7157, 1029,
+    5925, 29072, 5728, 4221
+  ),
+  cluster = c(
+    rep("Pseudohypoxia", 14),
+    rep("Kinase_RAS", 9),
+    rep("Wnt_cortical", 3),
+    rep("Malignancy", 8)
+  ),
+  stringsAsFactors = FALSE
+)
+```
+
+```{r}
+ggVennDiagram::ggVennDiagram(list(ppgl = as.character(ppgl_drivers$entrez_id), dtu = dtu_gene %>% filter(FDR < 0.05) %>% dplyr::distinct(gene_id) %>% .$gene_id))
+```
+
+```{r}
+ppgl_drivers %>% filter(symbol %in% gene_types$SYMBOL)
+ppgl_drivers %>% filter(symbol %in% gene_types_prom$SYMBOL)
 ```
 
