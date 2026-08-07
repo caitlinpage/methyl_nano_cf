@@ -10,6 +10,401 @@ editor_options:
 ## Introduction
 
 ```{r}
+library(BSgenome.Hsapiens.UCSC.hg38)
+library(data.table)
+library(plyranges)
+library(tidyr)
+library(stringr)
+library(dplyr)
+```
 
+```{r}
+seqs <- seqnames(BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38)[1:22]
+
+cg_sites <- lapply(seqs, function(x) {
+  cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38[[x]])),
+        seqnames = x
+  )}) %>% bind_rows()
+```
+
+```{r}
+all_samples <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_all_healthy.rds")
+all_samples <- all_samples %>%
+  mutate(sample = case_when(sample == "a1" ~ "healthy_785",
+                            sample == "a2" ~ "healthy_036",
+                            sample == "a3" ~ "healthy_787",
+                            sample == "b1" ~ "healthy_786",
+                            sample == "b2" ~ "healthy_037",
+                            TRUE ~ "healthy_789"))
+```
+
+mmmmmm
+```{r}
+betas_for_wgbs <- function(reads) {
+  # Split entire columns at once (vectorised, not row-wise)
+  meth_split <- strsplit(reads$meth_pattern, "")
+  pos_split  <- lapply(strsplit(reads$genom_positions, ","), as.double)
+  n          <- lengths(meth_split)   # CpGs per read
+
+  # Unnest with rep/unlist — much faster than tidyr::unnest
+  dt <- data.table(
+    sample      = rep(reads$sample,   n),
+    seqnames    = rep(reads$seqnames, n),
+    start       = unlist(pos_split,   use.names = FALSE),
+    meth_status = unlist(meth_split,  use.names = FALSE)
+  )
+
+  # Count M/U and compute beta in one grouped pass
+  result <- dt[, {
+    m <- sum(meth_status == "M")
+    u <- sum(meth_status == "U")
+    list(meth_count_pos = m, unmeth_count_pos = u, beta = m / (m + u))
+  }, keyby = .(sample, seqnames, start)]
+
+  # Collapse across samples (matches original behaviour)
+  unique(result[, .(sample, seqnames, start, meth_count_pos, unmeth_count_pos, beta)])
+}
+```
+
+
+```{r}
+betas <- betas_for_wgbs(all_samples)
+saveRDS(betas, "/researchers/caitlin.page/cf_nano/r_output/emseq_betas_healthy.rds")
+```
+
+```{r}
+rm(all_samples)
+rm(betas)
+```
+
+
+```{r}
+all_samples <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_all_cancer.rds")
+betas <- betas_for_wgbs(all_samples)
+saveRDS(betas, "/researchers/caitlin.page/cf_nano/r_output/emseq_betas_cancer.rds")
+```
+
+```{r}
+list.files("/researchers/caitlin.page/cf_nano/r_output/")
+```
+
+```{r}
+betas <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_betas_healthy.rds")
+```
+
+```{r}
+b <- betas %>% data.frame()
+b <- b %>% filter(seqnames %in% seqs)
+```
+
+```{r}
+b$cov <- b$meth_count_pos + b$unmeth_count_pos
+```
+
+```{r}
+b <- b[,c(1:5,7)] %>% pivot_wider(names_from = sample, values_from = c(meth_count_pos, unmeth_count_pos, cov))
+b[is.na(b)] <- 0
+```
+
+```{r}
+samples <- unique(betas$sample)
+```
+
+
+```{r}
+ranges <- b[,1:2]
+meth <- b[,3:8]
+colnames(meth) <- samples
+cov <- b[,15:20]
+colnames(cov) <- samples
+```
+
+```{r}
+as.matrix(meth)
+```
+
+## chr1
+
+```{r}
+library(bsseq)
+library(DMRcate)
+library(dplyr)
+library(stringr)
+library(tidyr)
+library(data.table)
+
+
+
+###############
+
+# healthy
+betas <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_betas_healthy.rds")
+betas_c <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_betas_cancer.rds")
+b <- rbind(betas %>% data.frame(), betas_c %>% data.frame())
+b <- b %>% filter(seqnames == "chr1")
+b$cov <- b$meth_count_pos + b$unmeth_count_pos
+cols <- c("sample", "seqnames", "start", "meth_count_pos", "unmeth_count_pos", "cov")
+b <- b[,cols] %>% pivot_wider(names_from = sample, values_from = c(meth_count_pos, unmeth_count_pos, cov))
+b[is.na(b)] <- 0
+
+samples <- c(unique(betas$sample), unique(betas_c$sample))
+sample_stuff <- c(Type = c("healthy", "healthy", "healthy", "healthy", "healthy", "healthy", "cancer", "cancer", "cancer", "cancer", "cancer", "cancer")) %>% data.frame()
+rownames(sample_stuff) <- samples
+
+ranges <- b[,1:2]
+meth <- b[,3:14]
+colnames(meth) <- samples
+cov <- b[,27:38]
+colnames(cov) <- samples
+
+#### bsseq
+## make BSseq object
+bseq <- bsseq::BSseq(M = as.matrix(meth),
+                     Cov = as.matrix(cov), pData = sample_stuff,
+                     chr = ranges$seqnames, pos = as.numeric(ranges$start),
+                     sampleNames = samples)
+bseq <- sort(bseq)
+
+param <- BiocParallel::SnowParam(workers = 8, type = "SOCK")
+bs_batch1 <- BSmooth(bseq[, 1:6],  BPPARAM = param)
+bs_batch2 <- BSmooth(bseq[, 7:12], BPPARAM = param)
+
+# Combine afterwards
+bsmooth_obj <- bsseq::combine(bs_batch1, bs_batch2)
+
+#bsmooth_obj <- BSmooth(BSseq = bseq, verbose = TRUE)
+bseq.cov <- getCoverage(bsmooth_obj)
+keep <- which(rowSums(bseq.cov[, bsmooth_obj$Type == "healthy"] >= 2) >= 2 &
+                rowSums(bseq.cov[, bsmooth_obj$Type == "cancer"] >= 2) >= 2)
+
+bsmooth_obj <- bsmooth_obj[keep,]
+saveRDS(bsmooth_obj, "/researchers/caitlin.page/cf_nano/r_output/bsmooth_obj_emseq_chr1.rds")
+
+
+
+# do a fp with this???
+
+### dmrcate
+tissue <- factor(c("healthy", "healthy", "healthy", "healthy", "healthy", "healthy", "cancer", "cancer", "cancer", "cancer", "cancer", "cancer"), levels = c("healthy", "cancer"))
+
+#Regular matrix design
+design <- model.matrix(~tissue)
+
+
+methdesign <- modelMatrixMeth(design)
+
+#failed here because no significance - good
+seq_annot <- sequencing.annotate(bsmooth_obj, methdesign, all.cov = TRUE,
+                                 coef = 8, fdr=0.05)
+
+seq_dmrcate.res <- dmrcate(seq_annot, C=2, min.cpgs = 5)
+
+dmrcate_seq_dmr <- extractRanges(seq_dmrcate.res, genome = "hg38")
+dmrcate_seq_dmr <- dmrcate_seq_dmr %>% data.frame()
+dmrcate_seq_anno <- seq_annot@ranges %>% data.frame()
+
+saveRDS(dmrcate_seq_dmr, "/researchers/caitlin.page/cf_nano/r_output/dmr_emseq_chr1.rds")
+saveRDS(dmrcate_seq_anno, "/researchers/caitlin.page/cf_nano/r_output/dm_emseq_chr1.rds")
+```
+
+
+# we have DMRS!!!!!
+
+```{r}
+dmr_emseq <- readRDS("/researchers/caitlin.page/cf_nano/r_output/dmr_emseq.rds")
+```
+
+```{r}
+dplyr::distinct(dmr_emseq, min_smoothed_fdr)
+dmr_emseq %>% dplyr::filter(min_smoothed_fdr < 0.05)
+```
+
+* yikes
+```{r}
+betas_h$cov <- betas_h$meth_count_pos + betas_h$unmeth_count_pos
+betas_h <- betas_h %>% filter(seqnames %in% c("chr1", "chr2", "chr3", "chr4", "chr5", "chr6", "chr7", "chr8", "chr9", "chr10",
+          "chr11", "chr12", "chr13", "chr14", "chr15", "chr16", "chr17", "chr18", "chr19",
+          "chr20", "chr21", "chr22"))
+
+betas_h %>%
+  ggplot(aes(x= cov)) +
+  geom_histogram(bins = 75)
+```
+
+```{r}
+betas_h %>%
+  ggplot(aes(x= cov)) +
+  geom_histogram(bins = 75) +
+  scale_x_continuous(limits =c (0, 150))
+```
+
+```{r}
+dmr_emseq_strict <- readRDS("/researchers/caitlin.page/cf_nano/r_output/dmr_emseq_strict.rds")
+```
+
+* oops didn't work (here's hoping it finishes before the meeting!)
+
+*if it does
+* code to run
+```{r}
+optiles_all <- readRDS("/researchers/caitlin.page/cf_nano/r_output/optiles_all_emseq.rds")
+```
+
+```{r}
+dmr_emseq_strict <- readRDS("/researchers/caitlin.page/cf_nano/r_output/dmr_emseq_strict.rds")
+
+dmr_emseq_strict %>% filter(min_smoothed_fdr < 0.05) %>% nrow()
+```
+
+```{r}
+dmr_emseq_strict <- dmr_emseq_strict %>% .[order(.$min_smoothed_fdr),] %>% mutate(dmr_rank = 1:n())
+```
+
+```{r}
+dmr_dtu <- find_overlaps(as_granges(dmr_emseq_strict), as_granges(dtu_emseq)) %>% data.frame()
+dmr_tiles <- find_overlaps(as_granges(dmr_emseq_strict), as_granges(optiles_all)) %>% data.frame()
+
+ggVennDiagram::ggVennDiagram(list(dmr = dmr_tiles %>% filter(min_smoothed_fdr < 0.05) %>% .$region_id,
+                                  dtu = dtu_emseq %>% filter(FDR < 0.05) %>% .$region_id))
+```
+```{r}
+dmr_dtu
+```
+
+```{r}
+dmr_dtu %>%
+  ggplot(aes(x = dmr_rank, y = dtu_rank)) +
+  geom_point(alpha = 0.3)
+```
+
+```{r}
+dmr_dtu %>% filter(FDR < 0.05, min_smoothed_fdr < 0.05) %>% group_by(dmr_rank) %>% summarise(n_tiles = n()) %>%
+  ggplot(aes(x= as.factor(n_tiles))) +
+  geom_bar()
+```
+```{r}
+dmr_dtu %>% group_by(dmr_rank) %>% summarise(n_tiles = n()) %>%
+  ggplot(aes(x= as.factor(n_tiles))) +
+  geom_bar()
+```
+
+```{r}
+dmr_beta <- find_overlaps(as_granges(dmr_emseq_strict), as_granges(mutate(all_b, seqnames = seqnames.x, start = start.x, width = 1))) %>% data.frame()
+
+```
+
+```{r}
+dmr_emseq_strict
+tail(dmr_emseq)
+```
+```{r}
+dmr_emseq_strict 
+```
+
+```{r}
+all_b %>% filter(seqnames.x == dmr_emseq_strict[1,]$seqnames, start.x >= 147077566, start.x <= 147080214) %>%
+  tidyr::pivot_longer(cols = c(cancer_0223, cancer_0224, cancer_0225, cancer_0454, cancer_0456, cancer_0457, healthy_036, healthy_037, healthy_785, healthy_786, healthy_787, healthy_789), names_to = "sample", values_to = "beta") %>% mutate(type = substr(sample, 1, 1)) %>%
+  ggplot(aes(x = start.x, y = beta, colour = type)) +
+  geom_point(alpha = 0.3)
+```
+
+```{r}
+?substr
+```
+
+```{r}
+dmr_dtu %>% filter(FDR < 0.05, min_smoothed_fdr < 0.05) %>% group_by(dtu_rank) %>% summarise(n_dmr = n()) %>%
+  ggplot(aes(x= as.factor(n_dmr))) +
+  geom_bar()
+```
+
+
+```{r}
+list_plot <- list()
+for(i in 1:28) {
+  
+  p_data <- dmr_dtu %>% filter(FDR < 0.05, min_smoothed_fdr < 0.05) %>% .[order(.$dtu_rank),] %>% .[i,] %>% 
+  tidyr::separate(region_id, into = c("chr", "tile_start", "tile_end"), sep = "[:-]") %>% 
+  mutate(tile_start = as.integer(tile_start), tile_end = as.integer(tile_end))
+p <- p_data %>%
+  ggplot() +
+  geom_segment(aes(x = start, xend = end, y = 1, yend = 1), linewidth = 2) +
+  geom_segment(aes(x = tile_start, xend = tile_end, y = 2, yend = 2), linewidth = 2) +
+  geom_text(aes(x = min(start), y = 1.2, label = dmr_rank),
+          hjust = 1,    # right-align so all labels end at the same x
+          nudge_x = -5) +
+coord_cartesian(clip = "off") +   # allows text to render outside the plot area
+theme(plot.margin = margin(5, 5, 5, 60)) +
+  geom_text(aes(x = tile_start, y = 1.8, label = dtu_rank)) +
+  ggtitle(gsub("^chr", "", unique(p_data$chr)))
+
+list_plot <- list(list_plot, p)
+}
+list_plot
+```
+# top 28 dmrs
+```{r}
+list_plot <- list()
+for(i in 1:28) {
+  
+  p_data <- dmr_dtu %>% filter(FDR < 0.05, min_smoothed_fdr < 0.05) %>% .[order(.$dmr_rank),] %>% .[i,] %>% 
+  tidyr::separate(region_id, into = c("chr", "tile_start", "tile_end"), sep = "[:-]") %>% 
+  mutate(tile_start = as.integer(tile_start), tile_end = as.integer(tile_end))
+p <- p_data %>%
+  ggplot() +
+  geom_segment(aes(x = start, xend = end, y = 1, yend = 1), linewidth = 2) +
+  geom_segment(aes(x = tile_start, xend = tile_end, y = 2, yend = 2), linewidth = 2) +
+  geom_text(aes(x = min(start), y = 1.2, label = dmr_rank),
+          hjust = 1,    # right-align so all labels end at the same x
+          nudge_x = -5) +
+coord_cartesian(clip = "off") +   # allows text to render outside the plot area
+theme(plot.margin = margin(5, 5, 5, 60)) +
+  geom_text(aes(x = tile_start, y = 1.8, label = dtu_rank)) +
+  ggtitle(gsub("^chr", "", unique(p_data$chr)))
+
+list_plot <- list(list_plot, p)
+}
+list_plot
+```
+
+```{r}
+dmr_dtu <- dmr_dtu %>% mutate(gene_pos = paste0(seqnames, ":", start, "-", end))
+dmr_dtu_genes <- find_overlaps(genes_txdb, as_granges(dmr_dtu)) %>% data.frame()
+```
+
+
+```{r}
+list_plot <- list()
+for(i in 1:18) {
+  
+  tile_sig <- dtu_gene %>% filter(FDR < 0.05) %>% 
+    group_by(gene_id) %>% mutate(n_sig_regions=dplyr::n()) %>% ungroup() %>%
+    filter(n_sig_regions > 3) %>% .[order(.$n_sig_regions, decreasing = TRUE),] %>% .[order(.$dtu_rank),] %>% dplyr::distinct(gene_id, dtu_rank)
+  
+  p_data <- dtu_gene %>% filter(gene_id == tile_sig$gene_id[i]) %>% 
+  tidyr::separate(region_id, into = c("chr", "tile_start", "tile_end"), sep = "[:-]") %>% 
+    tidyr::separate(gene_pos, into = c("chr2", "dmr_start", "dmr_end"), sep = "[:-]") %>%
+  mutate(tile_start = as.integer(tile_start), tile_end = as.integer(tile_end),
+         dmr_start = as.integer(dmr_start), dmr_end = as.integer(dmr_end),
+         y_pos = dplyr::row_number())
+p <- p_data %>%
+  ggplot() +
+  geom_segment(data = filter(p_data, strand == "-"), aes(x = start, xend = end, y = 0, yend = 0), linewidth = 2,
+               arrow = arrow(length = unit(0.2, "cm"), type = "closed", ends = "first")) +
+  geom_segment(data = filter(p_data, strand == "+"), aes(x = start, xend = end, y = 0, yend = 0), linewidth = 2,
+               arrow = arrow(length = unit(0.2, "cm"), type = "closed", ends = "last")) +
+  geom_segment(aes(x = tile_start, xend = tile_end, y = y_pos, yend = y_pos), linewidth = 2) +
+  geom_segment(aes(x = tile_start, xend = tile_end, y = y_pos, yend = y_pos), linewidth = 2)
+  geom_text(aes(x = min(start), y = 0.2, label = gene_id),
+          hjust = 1,    # right-align so all labels end at the same x
+          nudge_x = -10000) +
+coord_cartesian(clip = "off") +   # allows text to render outside the plot area
+theme(plot.margin = margin(5, 5, 5, 60)) +
+  geom_text(aes(x = tile_start, y = y_pos, label = dtu_rank)) +
+  ggtitle(gsub("^chr", "", unique(p_data$chr)))
+
+list_plot <- list(list_plot, p)
+}
+list_plot
 ```
 
