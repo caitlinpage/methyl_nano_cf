@@ -505,3 +505,436 @@ rrbs_plot5(all_samples, reads)
 ```
 
 
+## compare
+```{r}
+
+```
+
+```{r}
+results_df %>% filter(FDR < 0.05)
+```
+
+```{r}
+results_df %>% mutate(sig_fdr = ifelse(FDR < 0.05, TRUE, FALSE), version = paste0(excluded, "_", group1, ":", group2)) %>% group_by(version, sig_fdr) %>% summarise(n=n()) %>% ungroup() %>% group_by(version) %>% mutate(prop = n/sum(n)) %>% filter(sig_fdr == TRUE)
+```
+
+```{r}
+results_df %>% mutate(sig_fdr = ifelse(FDR < 0.05, TRUE, FALSE), version = paste0(excluded, "_", group1, ":", group2)) %>% group_by(version, sig_fdr) %>% summarise(n=n()) %>% ungroup() %>% group_by(version) %>% mutate(prop = n/sum(n)) %>% filter(sig_fdr == TRUE) %>%
+  ggplot(aes(x = as.factor(n))) +
+  geom_bar()
+```
+
+
+```{r}
+results_df %>% mutate(sig_fdr = ifelse(FDR < 0.05, TRUE, FALSE), version = paste0(excluded, "_", group1, ":", group2)) %>% distinct(region_id)
+
+results_df %>% mutate(sig_fdr = ifelse(FDR < 0.05, TRUE, FALSE), version = paste0(excluded, "_", group1, ":", group2)) %>% group_by(version) %>% summarise(n_region = n()) %>% ungroup() %>%
+  ggplot(aes(x = n_region)) +
+  geom_histogram()
+```
+
+```{r}
+6/69968
+```
+
+### random plots for right now
+
+```{r}
+all_samples_simp <- all_samples %>% distinct(sample, read_id, seqnames, read_start, read_end, meth_pattern, alpha, num_meth, total)
+```
+
+
+```{r}
+all_samples_simp %>% mutate(width = read_end - read_start + 1) %>%
+  ggplot(aes(x = width)) +
+  geom_histogram(bins = 50)
+
+```
+
+```{r}
+all_samples_simp %>% mutate(width = read_end - read_start + 1) %>% filter(total >= 3) %>%
+  ggplot(aes(x = width)) +
+  geom_histogram(bins = 50)
+```
+
+```{r}
+all_samples_simp$start <- all_samples_simp$read_start
+all_samples_simp$end <- all_samples_simp$read_end
+```
+
+
+```{r}
+tiles_reads <- find_overlaps(as_granges(optiles_all), as_granges(all_samples_simp)) %>% data.frame()
+```
+
+
+```{r}
+tiles_reads %>% filter(total >= 3) %>% group_by(region_id, sample) %>% summarise(n=n()) %>%
+  ggplot(aes(x = log2(n), colour = sample)) +
+  geom_density()
+```
+```{r}
+tiles_reads %>% filter(total >= 3) %>% group_by(region_id, sample) %>% summarise(n=n()) %>%
+  ggplot(aes(x = log2(n), fill = sample)) +
+  geom_histogram(bins = 50)
+```
+
+# read overlap multiple tiles??
+
+```{r}
+tiles_reads %>% group_by(read_id) %>% summarise(n=n()) %>%
+  ggplot(aes(x = as.factor(n))) +
+  geom_bar()
+```
+
+```{r}
+tiles_reads %>% group_by(read_id) %>% summarise(n=n())
+```
+
+```{r}
+tiles_reads %>% group_by(read_id) %>% summarise(n=n()) %>% ungroup() %>%
+  group_by(n) %>% summarise(how_many = n())
+```
+
+```{r}
+tiles_reads %>% group_by(read_id) %>% summarise(n=n()) %>% ungroup() %>%
+  ggplot(aes(x = as.factor(n))) +
+  geom_bar()
+```
+
+```{r}
+dtu_emseq_cancer <- readRDS("/researchers/caitlin.page/cf_nano/r_output/dtu_tiles_emseq_cancer_healthy.rds")
+```
+
+```{r}
+dtu_emseq_cancer %>% filter(FDR < 0.05)
+```
+
+```{r}
+library(TxDb.Hsapiens.UCSC.hg38.knownGene)
+genes_txdb <- genes(TxDb.Hsapiens.UCSC.hg38.knownGene)
+```
+
+```{r}
+library(missMethyl)
+library(GO.db)
+```
+```{r}
+genes_5 <- find_overlaps(as_granges(genes_txdb), as_granges(dtu_emseq_cancer)) %>% data.frame()
+```
+
+
+```{r}
+txdb_genes <- find_overlaps(genes_txdb, as_granges(cg_sites)) %>% data.frame() %>%
+  group_by(gene_id) %>% mutate(num_cg = n()) %>% ungroup() %>% distinct()
+```
+
+
+```{r}
+source("../code/runGST.R")
+gene_try <- genes_5 %>% filter(FDR < 0.05)
+gene_info <- txdb_genes %>% mutate(is_de = ifelse(gene_id %in% gene_try$gene_id, 1, 0)) %>% distinct(gene_id, num_cg, is_de, width)
+
+run_test <- list(
+  sig.eg = gene_info %>% filter(is_de == 1) %>% .$gene_id,
+  universe = gene_info$gene_id,
+  freq = gene_info$num_cg,
+  de = gene_info$is_de,
+  equiv = gene_info$num_cg
+)
+
+gst_5_filt <- run_miss_methyl_b(run_test, method = "Wallenius")
+
+saveRDS(gst_5_filt, "/researchers/caitlin.page/cf_nano/r_output/gst_emseq.rds")
+```
+
+```{r}
+dtu.optiles <- readRDS("/researchers/caitlin.page/cf_nano/r_output/ts.gene_optiles.rds")
+genes_rrbs <- find_overlaps(as_granges(genes_txdb), as_granges(dtu_emseq_cancer)) %>% data.frame()
+```
+
+
+```{r}
+source("../code/runGST.R")
+gene_try <- genes_rrbs %>% filter(FDR < 0.05)
+gene_info <- txdb_genes %>% mutate(is_de = ifelse(gene_id %in% gene_try$gene_id, 1, 0)) %>% distinct(gene_id, num_cg, is_de, width)
+
+run_test <- list(
+  sig.eg = gene_info %>% filter(is_de == 1) %>% .$gene_id,
+  universe = gene_info$gene_id,
+  freq = gene_info$num_cg,
+  de = gene_info$is_de,
+  equiv = gene_info$num_cg
+)
+
+gst_5_filt <- run_miss_methyl_b(run_test, method = "Wallenius")
+
+saveRDS(gst_5_filt, "/researchers/caitlin.page/cf_nano/r_output/gst_rrbs.rds")
+```
+
+```{r}
+list.files("/researchers/caitlin.page/cf_nano/r_output")
+```
+
+```{r}
+gst_emseq <- readRDS("/researchers/caitlin.page/cf_nano/r_output/gst_emseq.rds")
+gst_rrbs <- readRDS("/researchers/caitlin.page/cf_nano/r_output/gst_rrbs.rds") #this is wrong - accidentally ran it on the cancer data
+```
+
+```{r}
+gst_rrbs[[1]] %>% filter(FDR < 0.05)
+```
+
+```{r}
+go_gm12878_vs_k562 <- c(
+
+  ## ── Shared haematopoiesis ──────────────────────────────────────────────────
+  "GO:0030097", # hemopoiesis
+  "GO:0048534", # hematopoietic or lymphoid organ development
+  "GO:0002521", # leukocyte differentiation
+  "GO:0002244", # hematopoietic progenitor cell differentiation
+  "GO:0060218", # hematopoietic stem cell differentiation
+
+  ## ── B cell / lymphoid (GM12878-enriched) ──────────────────────────────────
+  "GO:0030183", # B cell differentiation
+  "GO:0042113", # B cell activation
+  "GO:0019724", # B cell mediated immunity
+  "GO:0050853", # B cell receptor signaling pathway
+  "GO:0050851", # antigen receptor-mediated signaling pathway
+  "GO:0046649", # lymphocyte activation
+  "GO:0002376", # immune system process
+  "GO:0006955", # immune response
+  "GO:0002250", # adaptive immune response
+  "GO:0006959", # humoral immune response
+  "GO:0002377", # immunoglobulin production
+  "GO:0016064", # immunoglobulin-mediated immune response
+
+  ## ── Antigen presentation (GM12878) ────────────────────────────────────────
+  "GO:0019882", # antigen processing and presentation
+  "GO:0002474", # antigen processing and presentation of peptide antigen via MHC class I
+  "GO:0002495", # antigen processing and presentation of peptide antigen via MHC class II
+  "GO:0006954", # inflammatory response
+
+  ## ── Erythroid differentiation (K562-enriched) ────────────────────────────
+  "GO:0030218", # erythrocyte differentiation
+  "GO:0048821", # erythrocyte development
+  "GO:0030099", # myeloid cell differentiation
+  "GO:0002043", # blood vessel endothelial cell proliferation involved in sprouting angiogenesis
+
+  ## ── Haemoglobin / oxygen transport (K562) ─────────────────────────────────
+  "GO:0015671", # oxygen transport
+  "GO:0019825", # oxygen binding
+  "GO:0020037", # heme binding
+  "GO:0005833", # hemoglobin complex
+  "GO:0042744", # hydrogen peroxide catabolic process
+  "GO:0006979", # response to oxidative stress
+
+  ## ── Megakaryocyte / platelet (K562) ───────────────────────────────────────
+  "GO:0030099", # myeloid cell differentiation
+  "GO:0030168", # platelet activation
+  "GO:0070527", # platelet aggregation
+  "GO:0007596", # blood coagulation
+  "GO:0050817", # coagulation
+  "GO:0002576", # platelet degranulation
+
+  ## ── BCR-ABL / oncogenic kinase signalling (K562) ──────────────────────────
+  "GO:0007169", # transmembrane receptor protein tyrosine kinase signaling pathway
+  "GO:0007265", # Ras protein signal transduction
+  "GO:0051897", # positive regulation of protein kinase B signaling
+  "GO:0038095", # Fc-epsilon receptor signaling pathway
+  "GO:0004672", # protein kinase activity
+  "GO:0016301", # kinase activity
+  "GO:0006468", # protein phosphorylation
+
+  ## ── Cell cycle / proliferation (K562 > GM12878) ───────────────────────────
+  "GO:0007049", # cell cycle
+  "GO:0051726", # regulation of cell cycle
+  "GO:0042127", # regulation of cell population proliferation
+  "GO:0008283", # cell population proliferation
+  "GO:0000279", # M phase
+  "GO:0000087", # mitotic M phase
+
+  ## ── Apoptosis / survival ───────────────────────────────────────────────────
+  "GO:0043066", # negative regulation of apoptotic process
+  "GO:0006915", # apoptotic process
+  "GO:0097190", # apoptotic signaling pathway
+
+  ## ── Metabolism (K562 is highly glycolytic) ────────────────────────────────
+  "GO:0006006", # glucose metabolic process
+  "GO:0019318", # hexose metabolic process
+  "GO:0006096", # glycolytic process
+  "GO:0006120", # mitochondrial electron transport, NADH to ubiquinone
+  "GO:0045333"  # cellular respiration
+)
+```
+
+```{r}
+gst_rrbs[[1]] %>% mutate(rank = 1:nrow(.)) %>% filter(GOID %in% go_gm12878_vs_k562)
+```
+
+```{r}
+gst_rrbs[[1]] %>% filter(FDR < 0.05)
+gst_emseq[[1]] %>% filter(FDR < 0.05)
+```
+
+
+```{r}
+gst_emseq[[1]] %>% mutate(rank = 1:nrow(.), in_set = cumsum(GOID %in% go_adrenal_ppgl)) %>%
+  ggplot(aes(x = rank, y = in_set)) +
+  geom_line(linewidth = 2) +
+  geom_vline(aes(xintercept = 298), colour = "red", linetype = "dashed")
+```
+
+
+```{r}
+gst_emseq[[1]] %>% filter(FDR < 0.05)
+```
+
+
+
+```{r}
+gst_emseq[[1]] %>% filter(GOID %in% c("GO:0030325", "GO:0034651", "GO:0031960"))
+```
+
+```{r}
+go_adrenal_ppgl <- c(
+  # Adrenal gland development & differentiation
+  "GO:0030325", # adrenal gland development
+  "GO:0072047", # adrenal gland morphogenesis
+  "GO:0014033", # neural crest cell differentiation
+  "GO:0007422", # peripheral nervous system development
+  "GO:0021675", # nerve development
+  "GO:0048666", # neuron development
+  "GO:0007400", # neuroblast fate determination
+
+  # Chromaffin cell biology
+  "GO:0060086", # chromaffin cell differentiation
+  "GO:0035924", # cellular response to VEGF stimulus
+  "GO:0006887", # exocytosis
+  "GO:0017156", # calcium ion-regulated exocytosis
+  "GO:0030072", # peptide hormone secretion
+  "GO:0046903", # secretion
+
+  # Catecholamine biosynthesis and metabolism
+  "GO:0006584", # catecholamine metabolic process
+  "GO:0006585", # catecholamine biosynthetic process
+  "GO:0042415", # norepinephrine metabolic process
+  "GO:0042416", # epinephrine metabolic process
+  "GO:0042420", # dopamine metabolic process
+  "GO:0042423", # catecholamine biosynthetic process from tyrosine
+  "GO:0009308", # amine metabolic process
+  "GO:0042402", # cellular biogenic amine catabolic process
+  "GO:0042398", # cellular modified amino acid biosynthetic process
+
+  # Hypoxia / pseudohypoxia
+  "GO:0001666", # response to hypoxia
+  "GO:0036293", # response to decreased oxygen levels
+  "GO:0071456", # cellular response to hypoxia
+  "GO:0061418", # regulation of transcription in response to hypoxia
+  "GO:0001935", # endothelial cell proliferation
+  "GO:0001525", # angiogenesis
+  "GO:0001568", # blood vessel development
+  "GO:0045766", # positive regulation of angiogenesis
+
+  # HIF / mTOR / kinase signalling
+  "GO:0032007", # negative regulation of TOR signaling
+  "GO:0031929", # TOR signaling
+  "GO:0043200", # response to amino acid
+  "GO:0007189", # adenylate cyclase-activating GPCR signalling
+  "GO:0007265", # Ras protein signal transduction
+  "GO:0007264", # small GTPase-mediated signal transduction
+  "GO:0004672", # protein kinase activity
+  "GO:0016301", # kinase activity
+
+  # Steroid hormone synthesis (adrenal cortex)
+  "GO:0006700", # C21-steroid hormone biosynthetic process
+  "GO:0006704", # glucocorticoid biosynthetic process
+  "GO:0006705", # mineralocorticoid biosynthetic process
+  "GO:0008207", # C21-steroid hormone metabolic process
+  "GO:0016125", # sterol metabolic process
+  "GO:0008202", # steroid metabolic process
+
+  # DNA repair / TCA / SDHx-related
+  "GO:0006099", # tricarboxylic acid cycle
+  "GO:0045333", # cellular respiration
+  "GO:0006626", # protein targeting to mitochondrion
+  "GO:0006355", # regulation of DNA-templated transcription
+  "GO:0006281", # DNA repair
+  "GO:0010212", # response to ionizing radiation
+  "GO:0000703", # oxidative phosphorylation uncoupler activity
+  "GO:0008177", # succinate dehydrogenase (ubiquinone) activity
+
+  # Tumour suppressor / oncogenesis
+  "GO:0051726", # regulation of cell cycle
+  "GO:0042127", # regulation of cell population proliferation
+  "GO:0043066", # negative regulation of apoptotic process
+  "GO:0007049", # cell cycle
+  "GO:0016055", # Wnt signalling pathway
+  "GO:0030307", # positive regulation of cell growth
+  "GO:0045087"  # innate immune response
+)
+```
+
+```{r}
+gst_emseq[[1]] %>% mutate(rank = 1:nrow(.)) %>% filter(GOID %in% go_adrenal_ppgl)
+```
+
+```{r}
+gst_emseq[[1]] %>% mutate(rank = 1:nrow(.)) %>% filter(FDR < 0.05)
+```
+
+
+```{r}
+gst_emseq[[1]] %>% mutate(rank = 1:nrow(.), in_set = cumsum(GOID %in% go_adrenal_ppgl)) %>%
+  ggplot(aes(x = rank, y = in_set)) +
+  geom_line(linewidth = 2) +
+  geom_vline(aes(xintercept = 298), colour = "red", linetype = "dashed")
+```
+
+
+truth_gst_100 <- rbind(
+  gst_res_dmr1[1:100,] %>% mutate(in_imm = cumsum(GOID %in% immuneGO$GOID), method = "Wall_1") %>% .[names(.) %in% c("rank_fdr", "in_imm", "method")],
+  gst_res_dmr1_hyper[1:100,] %>% mutate(in_imm = cumsum(GOID %in% immuneGO$GOID), method = "Hyper_1") %>% .[names(.) %in% c("rank_fdr", "in_imm", "method")])
+
+truth_gst_100 %>%
+  ggplot(aes(x = rank_fdr, y = in_imm, colour = method)) +
+  geom_line(size = 2) +
+  labs(x = "Rank", y = "Cumulative no. in immune sets") +
+  theme_bw()
+
+```{r}
+gst_emseq[[1]] %>% mutate(in_set = ifelse(GOID %in% go_adrenal_ppgl, TRUE, FALSE))
+```
+
+
+## rrbs tiles
+
+```{r}
+tiles_cg <- find_overlaps(as_granges(optiles_all), as_granges(cg_sites)) %>% data.frame()
+tiles_cg %>%
+  group_by(region_id) %>%
+  summarise(n_cg = n()) %>%
+  ggplot(aes(x = n_cg)) +
+  geom_histogram(bins = 70)
+```
+
+```{r}
+emseq_cancer <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_all_cancer.rds")
+```
+
+
+```{r}
+all_samples %>% filter(total >= 3) %>% filter(seqnames %in% c("chr1", "chr2", "chr3", "chr4", "chr5")) %>%
+  ggplot(aes(x = seqnames, fill = seqnames)) +
+  geom_bar()
+```
+
+```{r}
+rrbs_samples <- readRDS("/researchers/caitlin.page/cf_nano/r_output/all_rrbs_samples.rds")
+
+rrbs_samples <- rrbs_samples %>% distinct(seqnames, read_start, read_end, sample, total, alpha) %>% filter(total >= 3)
+rrbs_samples %>%
+  filter(seqnames %in% c("chr1", "chr2", "chr3", "chr4", "chr5")) %>%
+  ggplot(aes(x = seqnames, fill = seqnames)) +
+  geom_bar()
+```
