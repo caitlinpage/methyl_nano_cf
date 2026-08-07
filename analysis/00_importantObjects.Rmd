@@ -366,3 +366,72 @@ saveRDS(dtu_tiles_5_exon, "/researchers/caitlin.page/cf_nano/r_output/dtu_tiles_
 saveRDS(dtu_tiles_5_mean_alpha, "/researchers/caitlin.page/cf_nano/r_output/dtu_tiles_5_mean_alpha.rds")
 ```
 
+
+# emseq
+```{r}
+library(arrow)
+```
+
+
+```{r}
+reads <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_all_cancer.rds")
+write_parquet(reads, "/researchers/caitlin.page/cf_nano/r_output/emseq_all_cancer.parquet")
+```
+
+
+
+```{r}
+library(data.table)
+
+betas_for_wgbs <- function(reads_path) {
+  reads <- readRDS(reads_path)
+  setDT(reads)
+  
+  # Factors store strings once, not per-row
+  reads[, sample   := as.factor(sample)]
+  reads[, seqnames := as.factor(seqnames)]
+  
+  chroms  <- levels(reads$seqnames)
+  samples <- levels(reads$sample)
+  
+  results <- vector("list", length(chroms))
+  
+  for (i in seq_along(chroms)) {
+    chunk <- reads[seqnames == chroms[i]]
+    
+    meth_split <- strsplit(chunk$meth_pattern, "")
+    pos_split  <- lapply(strsplit(chunk$genom_positions, ","), as.double)
+    n          <- lengths(meth_split)
+    
+    dt <- data.table(
+      sample   = rep(chunk$sample, n),
+      seqnames = chroms[i],
+      end      = rep(chunk$end, n),
+      start    = unlist(pos_split,  use.names = FALSE),
+      is_meth  = unlist(meth_split, use.names = FALSE) == "M"  # logical not character
+    )
+    rm(chunk, meth_split, pos_split, n); gc()
+    
+    agg <- dt[, {
+      m <- sum(is_meth)
+      u <- sum(!is_meth)
+      list(end = end[1L], beta = m / (m + u))
+    }, keyby = .(sample, seqnames, start)]
+    rm(dt); gc()
+    
+    results[[i]] <- dcast(agg, seqnames + start + end ~ sample, value.var = "beta")
+    rm(agg); gc()
+    
+    message(sprintf("%s done (%d/%d)", chroms[i], i, length(chroms)))
+  }
+  
+  rbindlist(results, fill = TRUE)
+}
+```
+
+
+```{r}
+betas <- betas_for_wgbs(reads)
+saveRDS(betas, "/researchers/caitlin.page/cf_nano/r_output/emseq_betas_cancer.rds")
+```
+
