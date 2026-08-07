@@ -283,3 +283,279 @@ o <- o %>% distinct(sample, read_id, type, alpha, meth_pattern, num_meth, total)
 ```
 
 
+```{r}
+chr1 <- reads[seqnames == "chr1"]
+saveRDS(chr1, "/researchers/caitlin.page/cf_nano/emseq_cancer_chr1.rds")
+```
+
+
+```{r}
+reads %>% data.frame() %>% filter(seqnames %in% c("chr1", "chr2", "chr3", "chr4", "chr5")) %>%
+  ggplot(aes(x = seqnames, fill = seqnames)) +
+  geom_bar()
+```
+
+```{r}
+betas <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_betas_cancer.rds")
+betas_h <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_betas_healthy.rds")
+```
+```{r}
+cols <- c("sample", "seqnames", "start", "meth_count_pos", "unmeth_count_pos", "beta") "cov")
+betas_h[,c(1:3,5)]
+```
+
+```{r}
+betas_h[,cols]
+```
+
+# pca time
+```{r}
+saveRDS(betas, "/researchers/caitlin.page/cf_nano/r_output/emseq_cancer_beta_only.rds")
+```
+
+```{r}
+betas <- betas[,c(1:2,4:9)]
+betas <- betas %>% group_by(seqnames, start) %>% fill(c(cancer_0223, cancer_0224, cancer_0225, cancer_0454, cancer_0456, cancer_0457), .direction = "downup") %>% distinct() %>% ungroup()
+```
+
+```{r}
+unique(betas$seqnames)
+```
+
+```{r}
+seqs <- c("chr1", "chr2", "chr3", "chr4", "chr5", "chr6", "chr7", "chr8", "chr9", "chr10",
+          "chr11", "chr12", "chr13", "chr14", "chr15", "chr16", "chr17", "chr18", "chr19",
+          "chr20", "chr21", "chr22")
+```
+
+* want it with the alpha bands
+* which I think is just doing it with alpha?
+* do it with beta firstmmm
+
+```{r}
+betas_h_mod <- betas_h %>% filter(seqnames %in% seqs) %>% .[,c(1:3,6)] %>%
+  pivot_wider(names_from = sample, values_from = beta)
+betas_h_mod
+```
+
+```{r}
+betas$pos <- paste0(betas$seqnames, ":", betas$start)
+betas_h_mod$pos <- paste0(betas_h_mod$seqnames, ":", betas_h_mod$start)
+```
+
+```{r}
+all_b <- full_join(betas_h_mod, betas, by = "pos")
+```
+
+```{r}
+all_b_filt <- na.omit(all_b)
+all_b_filt <- data.frame(all_b_filt)
+rownames(all_b_filt) <- all_b_filt$pos
+```
+
+```{r}
+t(all_b_filt[1:5,1:5])
+```
+
+```{r}
+rot <- data.frame(t(all_b_filt[,c(3:8,12:17)]))
+a <- as.matrix(rot[1:5,1:5])
+```
+
+
+```{r}
+pca <- prcomp(rot, center = TRUE, scale. = FALSE)
+```
+
+```{r}
+pca$x
+?prcomp
+```
+
+
+```{r}
+pca_df <- as.data.frame(pca$x)
+pca_df$Sample <- rownames(pca_df)
+
+# Add any metadata you have (group, tissue, batch, etc.)
+pca_df$Group <- c("healthy", "healthy", "healthy", "healthy", "healthy", "healthy",
+                  "cancer", "cancer", "cancer", "cancer", "cancer", "cancer")  # match sample order
+
+# Variance explained
+var_explained <- round(pca$sdev^2 / sum(pca$sdev^2) * 100, 1)
+
+ggplot(pca_df, aes(x = PC1, y = PC2, colour = Group, label = Sample)) +
+  geom_point(size = 4) 
+```
+
+```{r}
+ggplot(pca_df, aes(x = PC1, y = PC2, colour = Group, label = Sample)) +
+  geom_point(size = 4) +
+  geom_text() +
+#  ggrepel::geom_text_repel() +
+  labs(
+    x = paste0("PC1 (", var_explained[1], "%)"),
+    y = paste0("PC2 (", var_explained[2], "%)"),
+    title = "PCA of CpG Methylation"
+  ) +
+  theme_bw()
+```
+
+# alpha categories
+(let's just go for chr1)
+
+
+```{r}
+cancer_chr1 <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_cancer_chr1.rds")
+cancer_chr1 <- data.frame(cancer_chr1)
+healthy <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_all_healthy.rds")
+```
+
+```{r}
+healthy <- healthy %>% filter(seqnames == "chr1")
+```
+
+
+```{r}
+emseq_tiles <- readRDS("/researchers/caitlin.page/cf_nano/r_output/optiles_all_emseq.rds")
+```
+
+```{r}
+all_chr1 <- rbind(healthy, cancer_chr1[,colnames(healthy)]) %>% data.frame()
+```
+
+```{r}
+overlap_tiles <- find_overlaps(as_granges(emseq_tiles), as_granges(all_chr1)) %>% data.frame()
+```
+
+```{r}
+overlap_tiles <- overlap_tiles %>%
+  mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                 alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                 alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                 alpha >= 0.6 & alpha <= 0.8 ~ "0.6 <= a <= 0.8",
+                                 TRUE > 0.8 ~ "a > 0.8")) 
+```
+
+```{r}
+tile_counts <- overlap_tiles %>% 
+  mutate(transcript = paste0(region_id, "_", alpha_group)) %>%
+  group_by(sample, transcript) %>%
+  summarise(transcript_count = n()) %>% ungroup() %>% data.frame()
+```
+```{r}
+tile_counts2 <- tile_counts %>% pivot_wider(names_from = transcript, values_from = transcript_count)
+tile_counts2 <- data.frame(tile_counts2)
+rownames(tile_counts2) <- tile_counts2$sample
+```
+```{r}
+tile_counts_2 <- tile_counts2[,2:ncol(tile_counts2)]
+tile_counts_2[is.na(tile_counts_2)] <- 0
+```
+```{r}
+mat <- as.matrix(tile_counts_2)
+mat[is.na(mat)] <- 0
+tile_counts_2 <- as.data.frame(mat)
+```
+
+mm
+```{r}
+pca_a <- prcomp(tile_counts_2, center = TRUE, scale. = FALSE)
+pca_df_a <- as.data.frame(pca_a$x)
+pca_df_a$Sample <- rownames(pca_df_a)
+
+# Add any metadata you have (group, tissue, batch, etc.)
+pca_df_a$Group <- c("healthy", "healthy", "healthy", "healthy", "healthy", "healthy",
+                  "cancer", "cancer", "cancer", "cancer", "cancer", "cancer")  # match sample order
+
+# Variance explained
+var_explained_a <- round(pca_a$sdev^2 / sum(pca_a$sdev^2) * 100, 1)
+
+ggplot(pca_df_a, aes(x = PC1, y = PC2, colour = Group, label = Sample)) +
+  geom_point(size = 4) 
+```
+
+```{r}
+ggplot(pca_df_a, aes(x = PC1, y = PC2, colour = Group, label = Sample)) +
+  geom_point(size = 4) +
+  geom_text() +
+#  ggrepel::geom_text_repel() +
+  labs(
+    x = paste0("PC1 (", var_explained[1], "%)"),
+    y = paste0("PC2 (", var_explained[2], "%)"),
+    title = "PCA of CpG Methylation"
+  ) +
+  theme_bw()
+```
+```{r}
+ggplot(pca_df_a, aes(x = PC1, y = PC2, colour = Group, label = Sample)) +
+  geom_point(size = 4) +
+  geom_text(aes(label = Sample), 
+          nudge_x = 200,   # shift right — adjust this to your axis scale
+          nudge_y = 300,   # shift up
+          hjust = 0,       # left-align text (so it extends away from the point)
+          size = 3) +
+  labs(
+    x = paste0("PC1 (", var_explained[1], "%)"),
+    y = paste0("PC2 (", var_explained[2], "%)"),
+    title = "PCA of CpG Methylation"
+  ) +
+  theme_bw()
+
+```
+
+```{r}
+rot
+```
+
+```{r}
+saveRDS(overlap_tiles, "/researchers/caitlin.page/cf_nano/r_output/emseq_reads_tiles_chr1.rds")
+```
+
+```{r}
+list.files("/researchers/caitlin.page/cf_nano/r_output")
+```
+
+
+```{r}
+dtu_optile <- find_overlaps(as_granges(all_samples), as_granges(regions_definition)) %>% data.frame() %>%
+  distinct(sample, read_id, read_start, read_end, alpha, region_id) %>%
+  mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                 alpha > 0.8 ~ "a > 0.8",
+                                 alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                 alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                 TRUE ~ "0.6 <= a <= 0.8"))
+# count the occurence of the region+alpha ("transcript")
+dtu_optile <- dtu_optile %>%
+  mutate(transcript = paste0(region_id, "_", alpha_group)) %>%
+  group_by(sample, transcript) %>%
+  summarise(transcript_count = n()) %>% ungroup() %>% data.frame()
+
+# build matrix of "transcript" counts - transcript rows, sample as columns
+dtu_optile <- dtu_optile %>% pivot_wider(names_from = sample, values_from = transcript_count)
+dtu_optile[is.na(dtu_optile)] <- 0
+dtu_optile$gene_id <- sub("_.*", "", dtu_optile$transcript)
+```
+
+```{r}
+
+```
+
+
+```{r}
+list.files("/researchers/caitlin.page/cf_nano/r_output")
+```
+
+
+
+
+
+```{r}
+betas_h <- 
+b <- b %>% filter(seqnames %in% seqs)
+b$cov <- b$meth_count_pos + b$unmeth_count_pos
+cols <- c("sample", "seqnames", "start", "meth_count_pos", "unmeth_count_pos", "cov")
+b <- b[,cols] %>% pivot_wider(names_from = sample, values_from = c(meth_count_pos, unmeth_count_pos, cov))
+b[is.na(b)] <- 0
+```
+
