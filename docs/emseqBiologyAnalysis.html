@@ -1,0 +1,1786 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="caitlinpage" />
+
+<meta name="date" content="2026-07-28" />
+
+<title>emseqBiologyAnalysis</title>
+
+<script src="site_libs/header-attrs-2.29/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/jqueryui-1.13.2/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<link href="site_libs/font-awesome-6.5.2/css/all.min.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet" />
+
+<link rel="icon" href="https://github.com/workflowr/workflowr-assets/raw/main/img/reproducible.png">
+<!-- Add a small amount of space between sections. -->
+<style type="text/css">
+div.section {
+  padding-top: 12px;
+}
+</style>
+
+
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">3_cf_nano</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Home</a>
+</li>
+<li>
+  <a href="about.html">About</a>
+</li>
+<li>
+  <a href="license.html">License</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li>
+  <a href="https://github.com/caitlinpage/methyl_nano_cf">
+    <span class="fab fa-github"></span>
+     
+    Source code
+  </a>
+</li>
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+
+
+<h1 class="title toc-ignore">emseqBiologyAnalysis</h1>
+<h4 class="author">caitlinpage</h4>
+<h4 class="date">2026-07-28</h4>
+
+</div>
+
+
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-report" data-toggle="collapse" data-target="#workflowr-report">
+<span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+workflowr <span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span>
+</button>
+</p>
+<div id="workflowr-report" class="collapse">
+<ul class="nav nav-tabs">
+<li class="active">
+<a data-toggle="tab" href="#summary">Summary</a>
+</li>
+<li>
+<a data-toggle="tab" href="#checks"> Checks <span
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span>
+</a>
+</li>
+<li>
+<a data-toggle="tab" href="#versions">Past versions</a>
+</li>
+</ul>
+<div class="tab-content">
+<div id="summary" class="tab-pane fade in active">
+<p>
+<strong>Last updated:</strong> 2026-08-12
+</p>
+<p>
+<strong>Checks:</strong> <span
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 7
+<span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> 0
+</p>
+<p>
+<strong>Knit directory:</strong> <code>methyl_nano_cf/analysis/</code>
+<span class="glyphicon glyphicon-question-sign" aria-hidden="true"
+title="This is the local directory in which the code in this file was executed.">
+</span>
+</p>
+<p>
+This reproducible <a href="https://rmarkdown.rstudio.com">R Markdown</a>
+analysis was created with <a
+  href="https://github.com/workflowr/workflowr">workflowr</a> (version
+1.7.1). The <em>Checks</em> tab describes the reproducibility checks
+that were applied when the results were created. The <em>Past
+versions</em> tab lists the development history.
+</p>
+<hr>
+</div>
+<div id="checks" class="tab-pane fade">
+<div id="workflowr-checks" class="panel-group">
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRMarkdownfilestronguptodate">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>R Markdown file:</strong> up-to-date
+</a>
+</p>
+</div>
+<div id="strongRMarkdownfilestronguptodate"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great! Since the R Markdown file has been committed to the Git
+repository, you know the exact version of the code that produced these
+results.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongEnvironmentstrongempty">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Environment:</strong> empty </a>
+</p>
+</div>
+<div id="strongEnvironmentstrongempty" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! The global environment was empty. Objects defined in the
+global environment can affect the analysis in your R Markdown file in
+unknown ways. For reproduciblity it’s best to always run the code in an
+empty environment.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSeedstrongcodesetseed20250606code">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Seed:</strong>
+<code>set.seed(20250606)</code> </a>
+</p>
+</div>
+<div id="strongSeedstrongcodesetseed20250606code"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>The command <code>set.seed(20250606)</code> was run prior to running
+the code in the R Markdown file. Setting a seed ensures that any results
+that rely on randomness, e.g. subsampling or permutations, are
+reproducible.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSessioninformationstrongrecorded">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Session information:</strong>
+recorded </a>
+</p>
+</div>
+<div id="strongSessioninformationstrongrecorded"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Recording the operating system, R version, and package
+versions is critical for reproducibility.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongCachestrongnone">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Cache:</strong> none </a>
+</p>
+</div>
+<div id="strongCachestrongnone" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Nice! There were no cached chunks for this analysis, so you can be
+confident that you successfully produced the results during this
+run.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongFilepathsstrongrelative">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>File paths:</strong> relative </a>
+</p>
+</div>
+<div id="strongFilepathsstrongrelative" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Using relative paths to the files within your workflowr
+project makes it easier to run your code on other machines.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpagemethylnanocftree70dd104ca1f600244ed6aa274c4f30f92fffcaectargetblank70dd104a">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Repository version:</strong>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/tree/70dd104ca1f600244ed6aa274c4f30f92fffcaec" target="_blank">70dd104</a>
+</a>
+</p>
+</div>
+<div
+id="strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpagemethylnanocftree70dd104ca1f600244ed6aa274c4f30f92fffcaectargetblank70dd104a"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>
+Great! You are using Git for version control. Tracking code development
+and connecting the code version to the results is critical for
+reproducibility.
+</p>
+<p>
+The results in this page were generated with repository version
+<a href="https://github.com/caitlinpage/methyl_nano_cf/tree/70dd104ca1f600244ed6aa274c4f30f92fffcaec" target="_blank">70dd104</a>.
+See the <em>Past versions</em> tab to see a history of the changes made
+to the R Markdown and HTML files.
+</p>
+<p>
+Note that you need to be careful to ensure that all relevant files for
+the analysis have been committed to Git prior to generating the results
+(you can use <code>wflow_publish</code> or
+<code>wflow_git_commit</code>). workflowr only checks the R Markdown
+file, but you know if there are other scripts or data files that it
+depends on. Below is the status of the Git repository when the results
+were generated:
+</p>
+<pre><code>
+Ignored files:
+    Ignored:    .RData
+    Ignored:    .Rproj.user/
+    Ignored:    analysis/.RData
+    Ignored:    analysis/figure/
+
+Untracked files:
+    Untracked:  analysis/pleaseRun.Rmd
+    Untracked:  renv.lock
+    Untracked:  renv/
+
+Unstaged changes:
+    Modified:   .Rprofile
+    Modified:   _workflowr.yml
+    Modified:   analysis/dtuDiffGroupsAndGst.Rmd
+    Modified:   analysis/emseqBetaAnalysis.Rmd
+    Modified:   analysis/processEmseq.Rmd
+
+</code></pre>
+<p>
+Note that any generated files, e.g. HTML, png, CSS, etc., are not
+included in this status report because it is ok for generated content to
+have uncommitted changes.
+</p>
+</div>
+</div>
+</div>
+</div>
+<hr>
+</div>
+<div id="versions" class="tab-pane fade">
+<p>
+These are the previous versions of the repository in which changes were
+made to the R Markdown (<code>analysis/emseqBiologyAnalysis.Rmd</code>)
+and HTML (<code>docs/emseqBiologyAnalysis.html</code>) files. If you’ve
+configured a remote Git repository (see <code>?wflow_git_remote</code>),
+click on the hyperlinks in the table below to view the files as they
+were in that past version.
+</p>
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+File
+</th>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+<th>
+Message
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/70dd104ca1f600244ed6aa274c4f30f92fffcaec/analysis/emseqBiologyAnalysis.Rmd" target="_blank">70dd104</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-08-12
+</td>
+<td>
+wflow_publish("emseqBiologyAnalysis.Rmd")
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/480725cc37ef818f16140c5f852cfec945615953/analysis/emseqBiologyAnalysis.Rmd" target="_blank">480725c</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-08-07
+</td>
+<td>
+visualising genes
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/3a62191a3be4425a4973a72192ccc7073d8d6873/analysis/emseqBiologyAnalysis.Rmd" target="_blank">3a62191</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-07-28
+</td>
+<td>
+set up new files
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr>
+</div>
+</div>
+</div>
+<div id="introduction" class="section level2">
+<h2>Introduction</h2>
+<pre class="r"><code>library(BSgenome.Hsapiens.UCSC.hg38)</code></pre>
+<pre><code>Loading required package: GenomeInfoDb</code></pre>
+<pre><code>Loading required package: BiocGenerics</code></pre>
+<pre><code>
+Attaching package: &#39;BiocGenerics&#39;</code></pre>
+<pre><code>The following objects are masked from &#39;package:stats&#39;:
+
+    IQR, mad, sd, var, xtabs</code></pre>
+<pre><code>The following objects are masked from &#39;package:base&#39;:
+
+    anyDuplicated, aperm, append, as.data.frame, basename, cbind,
+    colnames, dirname, do.call, duplicated, eval, evalq, Filter, Find,
+    get, grep, grepl, intersect, is.unsorted, lapply, Map, mapply,
+    match, mget, order, paste, pmax, pmax.int, pmin, pmin.int,
+    Position, rank, rbind, Reduce, rownames, sapply, saveRDS, setdiff,
+    table, tapply, union, unique, unsplit, which.max, which.min</code></pre>
+<pre><code>Loading required package: S4Vectors</code></pre>
+<pre><code>Loading required package: stats4</code></pre>
+<pre><code>
+Attaching package: &#39;S4Vectors&#39;</code></pre>
+<pre><code>The following object is masked from &#39;package:utils&#39;:
+
+    findMatches</code></pre>
+<pre><code>The following objects are masked from &#39;package:base&#39;:
+
+    expand.grid, I, unname</code></pre>
+<pre><code>Loading required package: IRanges</code></pre>
+<pre><code>Loading required package: BSgenome</code></pre>
+<pre><code>Loading required package: GenomicRanges</code></pre>
+<pre><code>Loading required package: Biostrings</code></pre>
+<pre><code>Loading required package: XVector</code></pre>
+<pre><code>
+Attaching package: &#39;Biostrings&#39;</code></pre>
+<pre><code>The following object is masked from &#39;package:base&#39;:
+
+    strsplit</code></pre>
+<pre><code>Loading required package: BiocIO</code></pre>
+<pre><code>Loading required package: rtracklayer</code></pre>
+<pre><code>Warning: replacing previous import &#39;S4Arrays::makeNindexFromArrayViewport&#39; by
+&#39;DelayedArray::makeNindexFromArrayViewport&#39; when loading &#39;SummarizedExperiment&#39;</code></pre>
+<pre><code>
+Attaching package: &#39;rtracklayer&#39;</code></pre>
+<pre><code>The following object is masked from &#39;package:BiocIO&#39;:
+
+    FileForFormat</code></pre>
+<pre class="r"><code>library(data.table)</code></pre>
+<pre><code>
+Attaching package: &#39;data.table&#39;</code></pre>
+<pre><code>The following object is masked from &#39;package:GenomicRanges&#39;:
+
+    shift</code></pre>
+<pre><code>The following object is masked from &#39;package:IRanges&#39;:
+
+    shift</code></pre>
+<pre><code>The following objects are masked from &#39;package:S4Vectors&#39;:
+
+    first, second</code></pre>
+<pre class="r"><code>library(plyranges)</code></pre>
+<pre><code>
+Attaching package: &#39;plyranges&#39;</code></pre>
+<pre><code>The following object is masked from &#39;package:data.table&#39;:
+
+    between</code></pre>
+<pre><code>The following object is masked from &#39;package:XVector&#39;:
+
+    slice</code></pre>
+<pre><code>The following object is masked from &#39;package:IRanges&#39;:
+
+    slice</code></pre>
+<pre><code>The following object is masked from &#39;package:stats&#39;:
+
+    filter</code></pre>
+<pre class="r"><code>library(tidyr)</code></pre>
+<pre><code>
+Attaching package: &#39;tidyr&#39;</code></pre>
+<pre><code>The following object is masked from &#39;package:S4Vectors&#39;:
+
+    expand</code></pre>
+<pre class="r"><code>library(stringr)
+library(dplyr)</code></pre>
+<pre><code>
+Attaching package: &#39;dplyr&#39;</code></pre>
+<pre><code>The following objects are masked from &#39;package:plyranges&#39;:
+
+    between, n, n_distinct</code></pre>
+<pre><code>The following objects are masked from &#39;package:data.table&#39;:
+
+    between, first, last</code></pre>
+<pre><code>The following objects are masked from &#39;package:Biostrings&#39;:
+
+    collapse, intersect, setdiff, setequal, union</code></pre>
+<pre><code>The following object is masked from &#39;package:XVector&#39;:
+
+    slice</code></pre>
+<pre><code>The following objects are masked from &#39;package:GenomicRanges&#39;:
+
+    intersect, setdiff, union</code></pre>
+<pre><code>The following object is masked from &#39;package:GenomeInfoDb&#39;:
+
+    intersect</code></pre>
+<pre><code>The following objects are masked from &#39;package:IRanges&#39;:
+
+    collapse, desc, intersect, setdiff, slice, union</code></pre>
+<pre><code>The following objects are masked from &#39;package:S4Vectors&#39;:
+
+    first, intersect, rename, setdiff, setequal, union</code></pre>
+<pre><code>The following objects are masked from &#39;package:BiocGenerics&#39;:
+
+    combine, intersect, setdiff, union</code></pre>
+<pre><code>The following objects are masked from &#39;package:stats&#39;:
+
+    filter, lag</code></pre>
+<pre><code>The following objects are masked from &#39;package:base&#39;:
+
+    intersect, setdiff, setequal, union</code></pre>
+<pre class="r"><code>library(ggplot2)
+library(OpTiles)</code></pre>
+<pre><code>Warning: replacing previous import &#39;GenomicRanges::shift&#39; by
+&#39;data.table::shift&#39; when loading &#39;OpTiles&#39;</code></pre>
+<pre><code>Warning: replacing previous import &#39;data.table::first&#39; by &#39;dplyr::first&#39; when
+loading &#39;OpTiles&#39;</code></pre>
+<pre><code>Warning: replacing previous import &#39;data.table::between&#39; by &#39;dplyr::between&#39;
+when loading &#39;OpTiles&#39;</code></pre>
+<pre><code>Warning: replacing previous import &#39;data.table::last&#39; by &#39;dplyr::last&#39; when
+loading &#39;OpTiles&#39;</code></pre>
+<pre><code>Warning: replacing previous import &#39;GenomicRanges::setdiff&#39; by &#39;dplyr::setdiff&#39;
+when loading &#39;OpTiles&#39;</code></pre>
+<pre><code>Warning: replacing previous import &#39;biomaRt::select&#39; by &#39;dplyr::select&#39; when
+loading &#39;OpTiles&#39;</code></pre>
+<pre><code>Warning: replacing previous import &#39;GenomicRanges::intersect&#39; by
+&#39;dplyr::intersect&#39; when loading &#39;OpTiles&#39;</code></pre>
+<pre><code>Warning: replacing previous import &#39;GenomicRanges::union&#39; by &#39;dplyr::union&#39;
+when loading &#39;OpTiles&#39;</code></pre>
+<pre><code>Warning: replacing previous import &#39;dplyr::combine&#39; by &#39;gridExtra::combine&#39;
+when loading &#39;OpTiles&#39;</code></pre>
+<pre><code>Warning: replacing previous import &#39;stringr::str_wrap&#39; by &#39;xfun::str_wrap&#39; when
+loading &#39;OpTiles&#39;</code></pre>
+<pre><code>Warning: replacing previous import &#39;tidyr::unite&#39; by &#39;methylKit::unite&#39; when
+loading &#39;OpTiles&#39;</code></pre>
+<pre class="r"><code>library(edgeR)</code></pre>
+<pre><code>Loading required package: limma</code></pre>
+<pre><code>
+Attaching package: &#39;limma&#39;</code></pre>
+<pre><code>The following object is masked from &#39;package:BiocGenerics&#39;:
+
+    plotMA</code></pre>
+<pre class="r"><code>library(UpSetR)
+library(TxDb.Hsapiens.UCSC.hg38.knownGene)</code></pre>
+<pre><code>Loading required package: GenomicFeatures</code></pre>
+<pre><code>Loading required package: AnnotationDbi</code></pre>
+<pre><code>Loading required package: Biobase</code></pre>
+<pre><code>Welcome to Bioconductor
+
+    Vignettes contain introductory material; view with
+    &#39;browseVignettes()&#39;. To cite Bioconductor, see
+    &#39;citation(&quot;Biobase&quot;)&#39;, and for packages &#39;citation(&quot;pkgname&quot;)&#39;.</code></pre>
+<pre><code>
+Attaching package: &#39;AnnotationDbi&#39;</code></pre>
+<pre><code>The following object is masked from &#39;package:dplyr&#39;:
+
+    select</code></pre>
+<pre><code>The following object is masked from &#39;package:plyranges&#39;:
+
+    select</code></pre>
+<pre class="r"><code>genes_txdb &lt;- genes(TxDb.Hsapiens.UCSC.hg38.knownGene)</code></pre>
+<pre><code>  2162 genes were dropped because they have exons located on both strands
+  of the same reference sequence or on more than one reference sequence,
+  so cannot be represented by a single genomic range.
+  Use &#39;single.strand.genes.only=FALSE&#39; to get all the genes in a
+  GRangesList object, or use suppressMessages() to suppress this message.</code></pre>
+<pre class="r"><code>optiles_all &lt;- readRDS(&quot;/researchers/caitlin.page/cf_nano/r_output/optiles_all_emseq.rds&quot;)
+dtu_emseq &lt;- readRDS(&quot;/researchers/caitlin.page/cf_nano/r_output/dtu_tiles_emseq_cancer_healthy.rds&quot;)
+dmr_emseq &lt;- readRDS(&quot;/researchers/caitlin.page/cf_nano/r_output/dmr_emseq_strict.rds&quot;)
+dmr_emseq &lt;- dmr_emseq %&gt;% .[order(.$min_smoothed_fdr),] %&gt;% mutate(dmr_rank = 1:n())</code></pre>
+<pre class="r"><code>#tile_counts_2
+#tile_counts</code></pre>
+</div>
+<div id="cpgs-and-tiles" class="section level1">
+<h1>cpgs and tiles</h1>
+<pre class="r"><code>seqs &lt;- seqnames(BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38)[1:22]
+
+cg_sites &lt;- lapply(seqs, function(x) {
+  cbind(data.frame(Biostrings::matchPattern(&quot;CG&quot;, BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38[[x]])),
+        seqnames = x
+  )}) %&gt;% bind_rows()</code></pre>
+<pre><code>Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored
+Warning in .local(x, row.names, optional, ...): &#39;optional&#39; argument was ignored</code></pre>
+<pre class="r"><code>optiles_all &lt;- find_overlaps(as_granges(optiles_all), as_granges(cg_sites)) %&gt;% data.frame()
+optiles_all &lt;- optiles_all %&gt;% group_by(seqnames, start, end, region_id) %&gt;%
+  summarise(n_cg = n()) %&gt;% ungroup()</code></pre>
+<pre><code>`summarise()` has regrouped the output.
+ℹ Summaries were computed grouped by seqnames, start, end, and region_id.
+ℹ Output is grouped by seqnames, start, and end.
+ℹ Use `summarise(.groups = &quot;drop_last&quot;)` to silence this message.
+ℹ Use `summarise(.by = c(seqnames, start, end, region_id))` for per-operation
+  grouping (`?dplyr::dplyr_by`) instead.</code></pre>
+</div>
+<div id="understanding-genes-and-tiles" class="section level1">
+<h1>Understanding genes and tiles</h1>
+<div id="how-many-tiles-overlap-genes" class="section level2">
+<h2>how many tiles overlap genes?</h2>
+<pre class="r"><code>gene_tile &lt;- find_overlaps(genes_txdb, as_granges(optiles_all)) %&gt;% data.frame()</code></pre>
+<pre class="r"><code>gene_tile %&gt;%
+  group_by(gene_id) %&gt;% summarise(n_tile = n()) %&gt;%
+  ggplot(aes(x = n_tile)) +
+  geom_histogram(bins = 50) +
+  theme_bw()</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-7-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>gene_tile %&gt;%
+  group_by(gene_id) %&gt;% summarise(n_tile = n()) %&gt;%
+  ggplot(aes(x = n_tile)) +
+  geom_histogram(bins = 50) +
+  scale_x_continuous(limits = c(0,500)) +
+  theme_bw()</code></pre>
+<pre><code>Warning: Removed 291 rows containing non-finite outside the scale range
+(`stat_bin()`).</code></pre>
+<pre><code>Warning: Removed 2 rows containing missing values or values outside the scale range
+(`geom_bar()`).</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-8-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>gene_tile %&gt;%
+  group_by(gene_id) %&gt;% summarise(n_tile = n()) %&gt;%
+  ggplot(aes(x = n_tile)) +
+  geom_histogram(bins = 50) +
+  scale_x_continuous(limits = c(0,200)) +
+  theme_bw()</code></pre>
+<pre><code>Warning: Removed 1680 rows containing non-finite outside the scale range (`stat_bin()`).
+Removed 2 rows containing missing values or values outside the scale range
+(`geom_bar()`).</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-8-2.png" width="672" style="display: block; margin: auto;" /></p>
+</div>
+<div id="significant-tiles" class="section level2">
+<h2>significant tiles</h2>
+<pre class="r"><code>dtu_gene &lt;- find_overlaps(genes_txdb, as_granges(dtu_emseq)) %&gt;% data.frame()</code></pre>
+<pre class="r"><code>dtu_gene %&gt;% filter(FDR &lt; 0.05) %&gt;%
+  group_by(gene_id) %&gt;% summarise(n=dplyr::n()) %&gt;% ungroup() %&gt;% group_by(n) %&gt;% summarise(n_regions_gene_overlaps = dplyr::n())</code></pre>
+<pre><code># A tibble: 21 × 2
+       n n_regions_gene_overlaps
+   &lt;int&gt;                   &lt;int&gt;
+ 1     1                    1763
+ 2     2                     451
+ 3     3                     136
+ 4     4                      63
+ 5     5                      39
+ 6     6                      12
+ 7     7                      17
+ 8     8                      13
+ 9     9                      10
+10    10                      14
+# ℹ 11 more rows</code></pre>
+<pre class="r"><code>find_overlaps(genes_txdb, as_granges(optiles_all)) %&gt;% data.frame() %&gt;%
+  group_by(gene_id) %&gt;% summarise(n_tile = n()) %&gt;%
+  ggplot(aes(x = n_tile)) +
+  geom_histogram(bins = 50)</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-11-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>dtu_gene %&gt;% filter(FDR &lt; 0.05) %&gt;%
+  group_by(gene_id) %&gt;% summarise(n_sig_regions=dplyr::n()) %&gt;% ungroup() %&gt;%
+  ggplot(aes(x = as.factor(n_sig_regions))) +
+  geom_bar()</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-12-1.png" width="672" style="display: block; margin: auto;" /></p>
+</div>
+<div
+id="are-genes-with-more-tiles-more-likely-to-show-up-as-significant"
+class="section level2">
+<h2>are genes with more tiles more likely to show up as
+significant?</h2>
+<pre class="r"><code>te &lt;- gene_tile %&gt;% group_by(gene_id) %&gt;% summarise(n_tile = n()) %&gt;% mutate(tile_signif = ifelse(gene_id %in% filter(dtu_gene, FDR &lt; 0.05)$gene_id, TRUE, FALSE)) %&gt;%
+  ungroup() %&gt;%
+  group_by(n_tile, tile_signif) %&gt;%
+  summarise(n=n()) %&gt;% ungroup() %&gt;% group_by(n_tile) %&gt;% mutate(prop = n/sum(n)) %&gt;% ungroup()</code></pre>
+<pre><code>`summarise()` has regrouped the output.
+ℹ Summaries were computed grouped by n_tile and tile_signif.
+ℹ Output is grouped by n_tile.
+ℹ Use `summarise(.groups = &quot;drop_last&quot;)` to silence this message.
+ℹ Use `summarise(.by = c(n_tile, tile_signif))` for per-operation grouping
+  (`?dplyr::dplyr_by`) instead.</code></pre>
+<pre class="r"><code>te_n &lt;- te %&gt;% filter(tile_signif) %&gt;% pull(n_tile)</code></pre>
+<pre class="r"><code>te %&gt;% filter(tile_signif == TRUE) %&gt;%
+  bind_rows(
+    te %&gt;%
+      filter(!n_tile %in% te_n) %&gt;%
+      distinct(n_tile) %&gt;%
+      mutate(tile_signif = TRUE, n = 0L, prop = 0)
+  ) %&gt;%
+  arrange(n_tile) %&gt;%
+  ggplot(aes(x = n_tile, y = prop)) +
+  geom_point()</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-14-1.png" width="672" style="display: block; margin: auto;" />
+* I was expecting this to look like my gene set testing bias plot * but
+no it has to be special and difficult * could be because not binning
+it</p>
+<pre class="r"><code>source(&quot;../code/runGST.R&quot;)
+bias_plot &lt;- gene_tile %&gt;% group_by(gene_id) %&gt;% summarise(n_tile = n()) %&gt;% mutate(tile_signif = ifelse(gene_id %in% filter(dtu_gene, FDR &lt; 0.05)$gene_id, 1, 0))
+.plotBias(bias_plot$tile_signif, bias_plot$n_tile)</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-15-1.png" width="672" style="display: block; margin: auto;" />
+* that’s better - but yeah it is very low ( also this was number of
+tiles per gene - not cpgs)</p>
+<ul>
+<li>maybe tiles and cpgs aren’t that related to each other?</li>
+</ul>
+<pre class="r"><code>gene_tile %&gt;% group_by(gene_id) %&gt;%
+  summarise(n_tile = n(), sum_cg = sum(n_cg)) %&gt;%
+  ggplot(aes(x = n_tile, y = sum_cg)) +
+  geom_point(alpha = 0.3)</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-16-1.png" width="672" style="display: block; margin: auto;" />
+* not the case mmmmmmmmmmmmmmmmm mmm * make the bias plot with the
+cpgs</p>
+<pre class="r"><code>source(&quot;../code/runGST.R&quot;)
+bias_plot &lt;- gene_tile %&gt;% group_by(gene_id) %&gt;% summarise(sum_cg = sum(n_cg)) %&gt;% mutate(tile_signif = ifelse(gene_id %in% filter(dtu_gene, FDR &lt; 0.05)$gene_id, 1, 0))
+.plotBias(bias_plot$tile_signif, bias_plot$sum_cg)</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-17-1.png" width="672" style="display: block; margin: auto;" /></p>
+</div>
+</div>
+<div id="gene-multiple-tiles" class="section level1">
+<h1>1 gene, multiple tiles</h1>
+<pre class="r"><code>dtu_gene %&gt;% filter(FDR &lt; 0.05) %&gt;%
+  group_by(gene_id) %&gt;% mutate(n_sig_regions=dplyr::n()) %&gt;% ungroup() %&gt;% filter(n_sig_regions &gt; 3) %&gt;% .[order(.$n_sig_regions, decreasing = TRUE),] %&gt;% .[order(.$dtu_rank),] %&gt;% dplyr::distinct(gene_id, dtu_rank) %&gt;% nrow()</code></pre>
+<pre><code>[1] 1298</code></pre>
+<pre class="r"><code>dtu_gene %&gt;% filter(FDR &lt; 0.05) %&gt;%
+  group_by(gene_id) %&gt;% summarise(n_sig_regions=dplyr::n()) %&gt;% ungroup() %&gt;% filter(n_sig_regions &gt; 3) %&gt;% .[order(.$n_sig_regions, decreasing = TRUE),] %&gt;% dplyr::distinct(gene_id) %&gt;% nrow()</code></pre>
+<pre><code>[1] 188</code></pre>
+<pre class="r"><code>dtu_emseq %&gt;% filter(FDR &lt; 0.05) %&gt;% nrow()</code></pre>
+<pre><code>[1] 5357</code></pre>
+<pre class="r"><code>dtu_gene %&gt;% filter(FDR &lt; 0.05) %&gt;% 
+    group_by(gene_id) %&gt;% mutate(n_sig_regions=dplyr::n()) %&gt;% ungroup() %&gt;%
+    filter(n_sig_regions &gt; 3) %&gt;% .[order(.$n_sig_regions, decreasing = TRUE),] %&gt;% .[order(.$dtu_rank),] %&gt;% dplyr::distinct(gene_id, dtu_rank) %&gt;% .[1,]</code></pre>
+<pre><code># A tibble: 1 × 2
+  gene_id dtu_rank
+  &lt;chr&gt;      &lt;int&gt;
+1 4600          11</code></pre>
+<pre class="r"><code>list_plot &lt;- list()
+for(i in 1:18) {
+  
+  tile_sig &lt;- dtu_gene %&gt;% filter(FDR &lt; 0.05) %&gt;% 
+    group_by(gene_id) %&gt;% mutate(n_sig_regions=dplyr::n()) %&gt;% ungroup() %&gt;%
+    filter(n_sig_regions &gt; 3) %&gt;% .[order(.$n_sig_regions, decreasing = TRUE),] %&gt;% .[order(.$dtu_rank),] %&gt;% dplyr::distinct(gene_id, dtu_rank)
+  
+  p_data &lt;- dtu_gene %&gt;% filter(gene_id == tile_sig$gene_id[i]) %&gt;% 
+  tidyr::separate(region_id, into = c(&quot;chr&quot;, &quot;tile_start&quot;, &quot;tile_end&quot;), sep = &quot;[:-]&quot;) %&gt;% 
+  mutate(tile_start = as.integer(tile_start), tile_end = as.integer(tile_end),
+         y_pos = dplyr::row_number())
+p &lt;- p_data %&gt;%
+  ggplot() +
+  geom_segment(data = filter(p_data, strand == &quot;-&quot;), aes(x = start, xend = end, y = 0, yend = 0), linewidth = 2,
+               arrow = arrow(length = unit(0.2, &quot;cm&quot;), type = &quot;closed&quot;, ends = &quot;first&quot;)) +
+  geom_segment(data = filter(p_data, strand == &quot;+&quot;), aes(x = start, xend = end, y = 0, yend = 0), linewidth = 2,
+               arrow = arrow(length = unit(0.2, &quot;cm&quot;), type = &quot;closed&quot;, ends = &quot;last&quot;)) +
+  geom_segment(aes(x = tile_start, xend = tile_end, y = y_pos, yend = y_pos), linewidth = 2) +
+  geom_text(aes(x = min(start), y = 0.2, label = gene_id),
+          hjust = 1,    # right-align so all labels end at the same x
+          nudge_x = -10000) +
+coord_cartesian(clip = &quot;off&quot;) +   # allows text to render outside the plot area
+theme(plot.margin = margin(5, 5, 5, 60)) +
+  geom_text(aes(x = tile_start, y = y_pos, label = dtu_rank)) +
+  ggtitle(gsub(&quot;^chr&quot;, &quot;&quot;, unique(p_data$chr)))
+
+list_plot &lt;- list(list_plot, p)
+}
+list_plot</code></pre>
+<pre><code>[[1]]
+[[1]][[1]]
+[[1]][[1]][[1]]
+[[1]][[1]][[1]][[1]]
+[[1]][[1]][[1]][[1]][[1]]
+[[1]][[1]][[1]][[1]][[1]][[1]]
+[[1]][[1]][[1]][[1]][[1]][[1]][[1]]
+[[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]]
+[[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]]
+[[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]]
+[[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]]
+[[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]]
+[[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]]
+[[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]]
+[[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]]
+[[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]]
+[[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]]
+[[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]]
+list()
+
+[[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[2]]</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-21-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+
+[[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[2]]</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-21-2.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+
+[[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[2]]</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-21-3.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+
+[[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[2]]</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-21-4.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+
+[[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[2]]</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-21-5.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+
+[[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[2]]</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-21-6.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+
+[[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[2]]</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-21-7.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+
+[[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[2]]</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-21-8.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+
+[[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[2]]</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-21-9.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+
+[[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[2]]</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-21-10.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+
+[[1]][[1]][[1]][[1]][[1]][[1]][[1]][[2]]</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-21-11.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+
+[[1]][[1]][[1]][[1]][[1]][[1]][[2]]</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-21-12.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+
+[[1]][[1]][[1]][[1]][[1]][[2]]</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-21-13.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+
+[[1]][[1]][[1]][[1]][[2]]</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-21-14.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+
+[[1]][[1]][[1]][[2]]</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-21-15.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+
+[[1]][[1]][[2]]</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-21-16.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+
+[[1]][[2]]</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-21-17.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+
+[[2]]</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-21-18.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>dtu_gene %&gt;% filter(FDR &lt; 0.05) %&gt;% dplyr::distinct(gene_id) %&gt;% nrow()</code></pre>
+<pre><code>[1] 2538</code></pre>
+<pre class="r"><code>library(org.Hs.eg.db)</code></pre>
+<pre><code></code></pre>
+<pre class="r"><code>gene_types &lt;- select(org.Hs.eg.db, keys = dtu_gene %&gt;% filter(FDR &lt; 0.05) %&gt;% dplyr::distinct(gene_id) %&gt;% .$gene_id, 
+                     columns = c(&quot;SYMBOL&quot;, &quot;GENENAME&quot;), 
+                     keytype = &quot;ENTREZID&quot;)</code></pre>
+<pre><code>&#39;select()&#39; returned 1:1 mapping between keys and columns</code></pre>
+</div>
+<div id="make-some-fake-promoters" class="section level1">
+<h1>make some fake promoters</h1>
+<ul>
+<li>2000bp upstream, 200bp downstream</li>
+</ul>
+<pre class="r"><code>promoters_txdb &lt;- promoters(genes_txdb)</code></pre>
+<pre><code>Warning in valid.GenomicRanges.seqinfo(x, suggest.trim = TRUE): GRanges object contains 2 out-of-bound ranges located on sequences
+  chr4_GL000257v2_alt and chr16_GL383556v1_alt. Note that ranges located
+  on a sequence whose length is unknown (NA) or on a circular sequence
+  are not considered out-of-bound (use seqlengths() and isCircular() to
+  get the lengths and circularity flags of the underlying sequences). You
+  can use trim() to trim these ranges. See ?`trim,GenomicRanges-method`
+  for more information.</code></pre>
+<pre class="r"><code>dtu_promoter &lt;- find_overlaps(promoters_txdb, as_granges(dtu_emseq)) %&gt;% data.frame()</code></pre>
+<pre class="r"><code>dtu_promoter %&gt;% filter(FDR &lt; 0.05) %&gt;% nrow()</code></pre>
+<pre><code>[1] 687</code></pre>
+<pre class="r"><code>dtu_promoter %&gt;% filter(FDR &lt; 0.05) %&gt;% dplyr::distinct(gene_id) %&gt;% nrow()</code></pre>
+<pre><code>[1] 625</code></pre>
+<pre class="r"><code>dtu_promoter %&gt;% filter(FDR &lt; 0.05) %&gt;%
+  group_by(gene_id) %&gt;% summarise(n_sig_regions=dplyr::n()) %&gt;% ungroup() %&gt;%
+  ggplot(aes(x = as.factor(n_sig_regions))) +
+  geom_bar()</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-27-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>gene_types_prom &lt;- select(org.Hs.eg.db, keys = dtu_promoter %&gt;% filter(FDR &lt; 0.05) %&gt;% dplyr::distinct(gene_id) %&gt;% .$gene_id, 
+                     columns = c(&quot;SYMBOL&quot;, &quot;GENENAME&quot;), 
+                     keytype = &quot;ENTREZID&quot;)</code></pre>
+<pre><code>&#39;select()&#39; returned 1:1 mapping between keys and columns</code></pre>
+<pre class="r"><code>ggVennDiagram::ggVennDiagram(list(gene = dtu_gene %&gt;% filter(FDR &lt; 0.05) %&gt;% dplyr::distinct(gene_id) %&gt;% .$gene_id, promoter = dtu_promoter %&gt;% filter(FDR &lt; 0.05) %&gt;% dplyr::distinct(gene_id) %&gt;% .$gene_id))</code></pre>
+<pre><code>Warning in geom_label(aes(label = .data[[label]]), data = region_label, :
+Ignoring unknown parameters: `linewidth`</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-29-1.png" width="672" style="display: block; margin: auto;" /></p>
+</div>
+<div id="where-do-overlaps-happen-in-gene" class="section level1">
+<h1>where do overlaps happen in gene</h1>
+<pre class="r"><code>dtu_gene %&gt;% filter(FDR &lt; 0.05) %&gt;% .[order(.$FDR),] %&gt;% .[1,]</code></pre>
+<pre><code>     seqnames     start       end  width strand gene_id NExons   gene.F
+3976    chr11 126423358 127003460 580103      -   84623      5 22.29994
+        P.Value          FDR                    region_id dtu_rank
+3976 1.5145e-17 7.719341e-12 chrchr11:126851417-126851916        4</code></pre>
+<pre class="r"><code>dtu_gene %&gt;% filter(FDR &lt; 0.05) %&gt;% .[order(.$FDR),] %&gt;% .[1,] %&gt;% 
+  tidyr::separate(region_id, into = c(&quot;chr&quot;, &quot;tile_start&quot;, &quot;tile_end&quot;), sep = &quot;[:-]&quot;) %&gt;% 
+  mutate(tile_start = as.integer(tile_start), tile_end = as.integer(tile_end)) %&gt;% {
+    strand_dir &lt;- if (unique(.$strand) == &quot;-&quot;) &quot;first&quot; else &quot;last&quot;
+  ggplot(.) +
+  geom_segment(aes(x = start, xend = end, y = 1, yend = 1), linewidth = 2,
+               arrow = arrow(length = unit(0.2, &quot;cm&quot;), type = &quot;closed&quot;, ends = strand_dir)) +
+  geom_segment(aes(x = tile_start, xend = tile_end, y = 2, yend = 2), linewidth = 2) +
+  geom_text(aes(x = start, y = 1.2, label = gene_id))
+  }</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-30-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>list_plot &lt;- list()
+for(i in 1:10) {
+  
+p &lt;- dtu_gene %&gt;% filter(FDR &lt; 0.05) %&gt;% .[order(.$FDR),] %&gt;% .[i,] %&gt;% 
+  tidyr::separate(region_id, into = c(&quot;chr&quot;, &quot;tile_start&quot;, &quot;tile_end&quot;), sep = &quot;[:-]&quot;) %&gt;% 
+  mutate(tile_start = as.integer(tile_start), tile_end = as.integer(tile_end)) %&gt;% {
+    strand_dir &lt;- if (unique(.$strand) == &quot;-&quot;) &quot;first&quot; else &quot;last&quot;
+    chr_label  &lt;- unique(.$chr)
+  ggplot(.) +
+  geom_segment(aes(x = start, xend = end, y = 1, yend = 1), linewidth = 2,
+               arrow = arrow(length = unit(0.2, &quot;cm&quot;), type = &quot;closed&quot;, ends = strand_dir)) +
+  geom_segment(aes(x = tile_start, xend = tile_end, y = 2, yend = 2), linewidth = 2) +
+  geom_text(aes(x = start, y = 1.2, label = gene_id)) +
+  geom_text(aes(x = tile_start, y = 1.8, label = dtu_rank)) +
+  ggtitle(chr_label)
+}
+list_plot &lt;- list(list_plot, p)
+  }
+list_plot</code></pre>
+<pre><code>[[1]]
+[[1]][[1]]
+[[1]][[1]][[1]]
+[[1]][[1]][[1]][[1]]
+[[1]][[1]][[1]][[1]][[1]]
+[[1]][[1]][[1]][[1]][[1]][[1]]
+[[1]][[1]][[1]][[1]][[1]][[1]][[1]]
+[[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]]
+[[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]]
+[[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]]
+list()
+
+[[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[2]]</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-31-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+
+[[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[2]]</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-31-2.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+
+[[1]][[1]][[1]][[1]][[1]][[1]][[1]][[2]]</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-31-3.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+
+[[1]][[1]][[1]][[1]][[1]][[1]][[2]]</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-31-4.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+
+[[1]][[1]][[1]][[1]][[1]][[2]]</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-31-5.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+
+[[1]][[1]][[1]][[1]][[2]]</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-31-6.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+
+[[1]][[1]][[1]][[2]]</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-31-7.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+
+[[1]][[1]][[2]]</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-31-8.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+
+[[1]][[2]]</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-31-9.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+
+[[2]]</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-31-10.png" width="672" style="display: block; margin: auto;" /></p>
+</div>
+<div id="promoter" class="section level1">
+<h1>promoter</h1>
+<pre class="r"><code>list_plot &lt;- list()
+for(i in 1:10) {
+  
+p &lt;- dtu_promoter %&gt;% filter(FDR &lt; 0.05) %&gt;% .[order(.$FDR),] %&gt;% .[i,] %&gt;% 
+  tidyr::separate(region_id, into = c(&quot;chr&quot;, &quot;tile_start&quot;, &quot;tile_end&quot;), sep = &quot;[:-]&quot;) %&gt;% 
+  mutate(tile_start = as.integer(tile_start), tile_end = as.integer(tile_end)) %&gt;% {
+    strand_dir &lt;- if (unique(.$strand) == &quot;-&quot;) &quot;first&quot; else &quot;last&quot;
+    chr_label &lt;- unique(.$chr)
+  ggplot(.) +
+  geom_segment(aes(x = start, xend = end, y = 1, yend = 1), linewidth = 2,
+               arrow = arrow(length = unit(0.2, &quot;cm&quot;), type = &quot;closed&quot;, ends = strand_dir)) +
+  geom_segment(aes(x = tile_start, xend = tile_end, y = 2, yend = 2), linewidth = 2) +
+  geom_text(aes(x = start, y = 1.2, label = gene_id)) +
+  geom_text(aes(x = tile_start, y = 1.8, label = dtu_rank)) +
+  ggtitle(chr_label)
+  }
+
+list_plot &lt;- list(list_plot, p)
+}
+list_plot</code></pre>
+<pre><code>[[1]]
+[[1]][[1]]
+[[1]][[1]][[1]]
+[[1]][[1]][[1]][[1]]
+[[1]][[1]][[1]][[1]][[1]]
+[[1]][[1]][[1]][[1]][[1]][[1]]
+[[1]][[1]][[1]][[1]][[1]][[1]][[1]]
+[[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]]
+[[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]]
+[[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]]
+list()
+
+[[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[2]]</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-32-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+
+[[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[2]]</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-32-2.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+
+[[1]][[1]][[1]][[1]][[1]][[1]][[1]][[2]]</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-32-3.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+
+[[1]][[1]][[1]][[1]][[1]][[1]][[2]]</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-32-4.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+
+[[1]][[1]][[1]][[1]][[1]][[2]]</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-32-5.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+
+[[1]][[1]][[1]][[1]][[2]]</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-32-6.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+
+[[1]][[1]][[1]][[2]]</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-32-7.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+
+[[1]][[1]][[2]]</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-32-8.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+
+[[1]][[2]]</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-32-9.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+
+[[2]]</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-32-10.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>dtu_gene %&gt;% filter(FDR &lt; 0.05) %&gt;%
+  group_by(region_id) %&gt;% summarise(n_gene_overlap = dplyr::n()) %&gt;%
+  ggplot(aes(x = as.factor(n_gene_overlap))) +
+  geom_bar()</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-33-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>dtu_promoter %&gt;% filter(FDR &lt; 0.05) %&gt;%
+  group_by(region_id) %&gt;% summarise(n_gene_overlap = dplyr::n()) %&gt;%
+  ggplot(aes(x = as.factor(n_gene_overlap))) +
+  geom_bar()</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-33-2.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>dtu_gene %&gt;% filter(FDR &lt; 0.05) %&gt;% 
+  group_by(region_id) %&gt;% mutate(n_gene_overlap = dplyr::n()) %&gt;% ungroup() %&gt;%
+  filter(n_gene_overlap &gt; 3) %&gt;% .[order(.$n_gene_overlap, decreasing = TRUE),] %&gt;% .[order(.$dtu_rank),] %&gt;% .[1:5,]</code></pre>
+<pre><code># A tibble: 5 × 13
+  seqnames     start    end  width strand gene_id NExons gene.F  P.Value     FDR
+  &lt;fct&gt;        &lt;int&gt;  &lt;int&gt;  &lt;int&gt; &lt;fct&gt;  &lt;chr&gt;    &lt;dbl&gt;  &lt;dbl&gt;    &lt;dbl&gt;   &lt;dbl&gt;
+1 chr8     126876891 1.27e8 522321 +      100750…      5   12.4 8.60e-10 3.13e-5
+2 chr8     127244637 1.27e8 170386 +      103021…      5   12.4 8.60e-10 3.13e-5
+3 chr8     127322183 1.27e8  97884 +      5462         5   12.4 8.60e-10 3.13e-5
+4 chr8     127289808 1.27e8 192332 -      727677       5   12.4 8.60e-10 3.13e-5
+5 chr5     141430507 1.42e8  82469 +      26025        5   10.1 4.98e- 8 3.60e-4
+# ℹ 3 more variables: region_id &lt;chr&gt;, dtu_rank &lt;int&gt;, n_gene_overlap &lt;int&gt;</code></pre>
+<pre class="r"><code>dtu_gene %&gt;% filter(FDR &lt; 0.05) %&gt;% 
+  group_by(region_id) %&gt;% mutate(n_gene_overlap = dplyr::n()) %&gt;% ungroup() %&gt;%
+  filter(n_gene_overlap &gt; 3) %&gt;% .[order(.$n_gene_overlap, decreasing = TRUE),] %&gt;% .[order(.$dtu_rank),] %&gt;% dplyr::distinct(region_id, dtu_rank)</code></pre>
+<pre><code># A tibble: 18 × 2
+   region_id                   dtu_rank
+   &lt;chr&gt;                          &lt;int&gt;
+ 1 chrchr8:127337830-127338329       56
+ 2 chrchr5:141430539-141431038      281
+ 3 chrchr5:141414855-141415354      360
+ 4 chrchr5:141420957-141421456      412
+ 5 chrchr5:141492501-141493000      627
+ 6 chrchr8:127086569-127087068     1050
+ 7 chrchr5:141422833-141423332     1443
+ 8 chrchr5:141364335-141364834     1541
+ 9 chrchr2:233759342-233759841     1698
+10 chrchr5:141431140-141431639     1765
+11 chrchr7:116432802-116433301     2074
+12 chrchr5:141361515-141362014     3223
+13 chrchr17:48576523-48577022      3888
+14 chrchr2:233692589-233693088     4243
+15 chrchr5:141412991-141413490     4476
+16 chrchr10:78293382-78293881      4532
+17 chrchr5:141409680-141410179     4686
+18 chrchr11:5422563-5423062        5069</code></pre>
+</div>
+<div id="dtu-multiple-genes" class="section level1">
+<h1>1 dtu, multiple genes</h1>
+<pre class="r"><code>list_plot &lt;- list()
+for(i in 1:18) {
+  
+  tile_sig &lt;- dtu_gene %&gt;% filter(FDR &lt; 0.05) %&gt;% 
+    group_by(region_id) %&gt;% mutate(n_gene_overlap = dplyr::n()) %&gt;% ungroup() %&gt;%
+    filter(n_gene_overlap &gt; 3) %&gt;% .[order(.$n_gene_overlap, decreasing = TRUE),] %&gt;% .[order(.$dtu_rank),] %&gt;% dplyr::distinct(region_id, dtu_rank)
+  
+  p_data &lt;- dtu_gene %&gt;% filter(region_id == tile_sig$region_id[i]) %&gt;% 
+  tidyr::separate(region_id, into = c(&quot;chr&quot;, &quot;tile_start&quot;, &quot;tile_end&quot;), sep = &quot;[:-]&quot;) %&gt;% 
+  mutate(tile_start = as.integer(tile_start), tile_end = as.integer(tile_end),
+         y_pos = disjointBins(IRanges(start, end)))
+p &lt;- p_data %&gt;%
+  ggplot() +
+  geom_segment(data = filter(p_data, strand == &quot;-&quot;), aes(x = start, xend = end, y = y_pos, yend = y_pos), linewidth = 2,
+               arrow = arrow(length = unit(0.2, &quot;cm&quot;), type = &quot;closed&quot;, ends = &quot;first&quot;)) +
+  geom_segment(data = filter(p_data, strand == &quot;+&quot;), aes(x = start, xend = end, y = y_pos, yend = y_pos), linewidth = 2,
+               arrow = arrow(length = unit(0.2, &quot;cm&quot;), type = &quot;closed&quot;, ends = &quot;last&quot;)) +
+  geom_segment(aes(x = tile_start, xend = tile_end, y = 27, yend = 27), linewidth = 2) +
+  geom_text(aes(x = min(start), y = y_pos, label = gene_id),
+          hjust = 1,    # right-align so all labels end at the same x
+          nudge_x = -10000) +
+coord_cartesian(clip = &quot;off&quot;) +   # allows text to render outside the plot area
+theme(plot.margin = margin(5, 5, 5, 60)) +
+  geom_text(aes(x = tile_start, y = 26, label = dtu_rank)) +
+  ggtitle(gsub(&quot;^chr&quot;, &quot;&quot;, unique(p_data$chr)))
+
+list_plot &lt;- list(list_plot, p)
+}
+list_plot</code></pre>
+<pre><code>[[1]]
+[[1]][[1]]
+[[1]][[1]][[1]]
+[[1]][[1]][[1]][[1]]
+[[1]][[1]][[1]][[1]][[1]]
+[[1]][[1]][[1]][[1]][[1]][[1]]
+[[1]][[1]][[1]][[1]][[1]][[1]][[1]]
+[[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]]
+[[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]]
+[[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]]
+[[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]]
+[[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]]
+[[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]]
+[[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]]
+[[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]]
+[[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]]
+[[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]]
+[[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]]
+list()
+
+[[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[2]]</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-36-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+
+[[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[2]]</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-36-2.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+
+[[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[2]]</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-36-3.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+
+[[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[2]]</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-36-4.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+
+[[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[2]]</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-36-5.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+
+[[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[2]]</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-36-6.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+
+[[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[2]]</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-36-7.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+
+[[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[2]]</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-36-8.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+
+[[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[2]]</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-36-9.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+
+[[1]][[1]][[1]][[1]][[1]][[1]][[1]][[1]][[2]]</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-36-10.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+
+[[1]][[1]][[1]][[1]][[1]][[1]][[1]][[2]]</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-36-11.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+
+[[1]][[1]][[1]][[1]][[1]][[1]][[2]]</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-36-12.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+
+[[1]][[1]][[1]][[1]][[1]][[2]]</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-36-13.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+
+[[1]][[1]][[1]][[1]][[2]]</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-36-14.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+
+[[1]][[1]][[1]][[2]]</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-36-15.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+
+[[1]][[1]][[2]]</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-36-16.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+
+[[1]][[2]]</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-36-17.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+
+[[2]]</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-36-18.png" width="672" style="display: block; margin: auto;" /></p>
+</div>
+<div id="where-do-overlaps-happen-in-promoter" class="section level1">
+<h1>where do overlaps happen in promoter?</h1>
+</div>
+<div id="ppgl-genes-calude" class="section level1">
+<h1>PPGL genes (calude)</h1>
+<pre class="r"><code>ppgl_drivers &lt;- data.frame(
+  symbol = c(
+    # Cluster 1 — Pseudohypoxia / TCA cycle
+    &quot;SDHA&quot;, &quot;SDHB&quot;, &quot;SDHC&quot;, &quot;SDHD&quot;, &quot;SDHAF2&quot;,
+    &quot;VHL&quot;, &quot;FH&quot;, &quot;MDH2&quot;, &quot;EPAS1&quot;, &quot;IDH1&quot;, &quot;IDH2&quot;,
+    &quot;SLC25A11&quot;, &quot;DLST&quot;, &quot;GOT2&quot;,
+    # Cluster 2 — Kinase / RAS signalling
+    &quot;RET&quot;, &quot;NF1&quot;, &quot;HRAS&quot;, &quot;KRAS&quot;, &quot;NRAS&quot;,
+    &quot;TMEM127&quot;, &quot;MAX&quot;, &quot;KIF1B&quot;, &quot;FGFR1&quot;,
+    # Cluster 3 — Wnt / cortical
+    &quot;MAML3&quot;, &quot;CSDE1&quot;, &quot;UBTF&quot;,
+    # Malignancy / progression
+    &quot;ATRX&quot;, &quot;TERT&quot;, &quot;TP53&quot;, &quot;CDKN2A&quot;,
+    &quot;RB1&quot;, &quot;SETD2&quot;, &quot;PTEN&quot;, &quot;MEN1&quot;
+  ),
+  entrez_id = c(
+    6389, 6390, 6391, 6392, 54949,
+    7428, 2271, 4191, 2034, 3417, 3418,
+    8402, 1743, 2806,
+    5979, 4763, 3265, 3845, 4893,
+    55654, 4149, 23095, 2260,
+    55502, 7812, 7343,
+    546, 7015, 7157, 1029,
+    5925, 29072, 5728, 4221
+  ),
+  cluster = c(
+    rep(&quot;Pseudohypoxia&quot;, 14),
+    rep(&quot;Kinase_RAS&quot;, 9),
+    rep(&quot;Wnt_cortical&quot;, 3),
+    rep(&quot;Malignancy&quot;, 8)
+  ),
+  stringsAsFactors = FALSE
+)</code></pre>
+<pre class="r"><code>ggVennDiagram::ggVennDiagram(list(ppgl = as.character(ppgl_drivers$entrez_id), dtu = dtu_gene %&gt;% filter(FDR &lt; 0.05) %&gt;% dplyr::distinct(gene_id) %&gt;% .$gene_id))</code></pre>
+<pre><code>Warning in geom_label(aes(label = .data[[label]]), data = region_label, :
+Ignoring unknown parameters: `linewidth`</code></pre>
+<p><img src="figure/emseqBiologyAnalysis.Rmd/unnamed-chunk-38-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>ppgl_drivers %&gt;% filter(symbol %in% gene_types$SYMBOL)</code></pre>
+<pre><code>  symbol entrez_id       cluster
+1 SDHAF2     54949 Pseudohypoxia
+2  EPAS1      2034 Pseudohypoxia
+3   DLST      1743 Pseudohypoxia
+4    RET      5979    Kinase_RAS
+5  MAML3     55502  Wnt_cortical
+6   TERT      7015    Malignancy</code></pre>
+<pre class="r"><code>ppgl_drivers %&gt;% filter(symbol %in% gene_types_prom$SYMBOL)</code></pre>
+<pre><code>[1] symbol    entrez_id cluster  
+&lt;0 rows&gt; (or 0-length row.names)</code></pre>
+<br>
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-sessioninfo" data-toggle="collapse" data-target="#workflowr-sessioninfo" style="display: block;">
+<span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
+Session information
+</button>
+</p>
+<div id="workflowr-sessioninfo" class="collapse">
+<pre class="r"><code>sessionInfo()</code></pre>
+<pre><code>R version 4.4.1 (2024-06-14)
+Platform: x86_64-pc-linux-gnu
+Running under: Red Hat Enterprise Linux 9.6 (Plow)
+
+Matrix products: default
+BLAS/LAPACK: FlexiBLAS OPENBLAS-OPENMP;  LAPACK version 3.9.0
+
+locale:
+ [1] LC_CTYPE=en_AU.UTF-8       LC_NUMERIC=C              
+ [3] LC_TIME=en_AU.UTF-8        LC_COLLATE=en_AU.UTF-8    
+ [5] LC_MONETARY=en_AU.UTF-8    LC_MESSAGES=en_AU.UTF-8   
+ [7] LC_PAPER=en_AU.UTF-8       LC_NAME=C                 
+ [9] LC_ADDRESS=C               LC_TELEPHONE=C            
+[11] LC_MEASUREMENT=en_AU.UTF-8 LC_IDENTIFICATION=C       
+
+time zone: Australia/Melbourne
+tzcode source: system (glibc)
+
+attached base packages:
+[1] stats4    stats     graphics  grDevices utils     datasets  methods  
+[8] base     
+
+other attached packages:
+ [1] org.Hs.eg.db_3.20.0                     
+ [2] TxDb.Hsapiens.UCSC.hg38.knownGene_3.20.0
+ [3] GenomicFeatures_1.58.0                  
+ [4] AnnotationDbi_1.68.0                    
+ [5] Biobase_2.66.0                          
+ [6] UpSetR_1.4.1                            
+ [7] edgeR_4.4.2                             
+ [8] limma_3.62.2                            
+ [9] OpTiles_0.1.0                           
+[10] ggplot2_3.5.2                           
+[11] dplyr_1.2.1                             
+[12] stringr_1.5.1                           
+[13] tidyr_1.3.2                             
+[14] plyranges_1.26.0                        
+[15] data.table_1.17.8                       
+[16] BSgenome.Hsapiens.UCSC.hg38_1.4.5       
+[17] BSgenome_1.74.0                         
+[18] rtracklayer_1.66.0                      
+[19] BiocIO_1.16.0                           
+[20] Biostrings_2.74.1                       
+[21] XVector_0.46.0                          
+[22] GenomicRanges_1.58.0                    
+[23] GenomeInfoDb_1.42.3                     
+[24] IRanges_2.40.1                          
+[25] S4Vectors_0.44.0                        
+[26] BiocGenerics_0.52.0                     
+
+loaded via a namespace (and not attached):
+  [1] RColorBrewer_1.1-3          rstudioapi_0.17.1          
+  [3] jsonlite_2.0.0              magrittr_2.0.3             
+  [5] farver_2.1.2                rmarkdown_2.29             
+  [7] fs_1.6.6                    zlibbioc_1.52.0            
+  [9] vctrs_0.7.3                 memoise_2.0.1              
+ [11] Rsamtools_2.22.0            RCurl_1.98-1.17            
+ [13] htmltools_0.5.8.1           S4Arrays_1.6.0             
+ [15] progress_1.2.3              curl_6.4.0                 
+ [17] cellranger_1.1.0            SparseArray_1.6.2          
+ [19] sass_0.4.10                 bslib_0.9.0                
+ [21] plyr_1.8.9                  httr2_1.2.1                
+ [23] cachem_1.1.0                GenomicAlignments_1.42.0   
+ [25] whisker_0.4.1               lifecycle_1.0.5            
+ [27] pkgconfig_2.0.3             Matrix_1.7-0               
+ [29] R6_2.6.1                    fastmap_1.2.0              
+ [31] GenomeInfoDbData_1.2.13     MatrixGenerics_1.18.1      
+ [33] digest_0.6.37               numDeriv_2016.8-1.1        
+ [35] patchwork_1.3.2             rprojroot_2.1.0            
+ [37] RSQLite_2.4.2               labeling_0.4.3             
+ [39] filelock_1.0.3              httr_1.4.7                 
+ [41] abind_1.4-8                 compiler_4.4.1             
+ [43] bit64_4.6.0-1               withr_3.0.2                
+ [45] BiocParallel_1.40.2         easyGgplot2_1.0.0.9000     
+ [47] DBI_1.2.3                   R.utils_2.13.0             
+ [49] biomaRt_2.62.1              MASS_7.3-60.2              
+ [51] rappdirs_0.3.3              DelayedArray_0.32.0        
+ [53] rjson_0.2.23                gtools_3.9.5               
+ [55] tools_4.4.1                 httpuv_1.6.16              
+ [57] R.oo_1.27.1                 glue_1.8.0                 
+ [59] restfulr_0.0.16             promises_1.3.3             
+ [61] grid_4.4.1                  reshape2_1.4.4             
+ [63] generics_0.1.4              gtable_0.3.6               
+ [65] R.methodsS3_1.8.2           ggVennDiagram_1.5.7        
+ [67] hms_1.1.3                   utf8_1.2.6                 
+ [69] xml2_1.4.0                  pillar_1.11.0              
+ [71] fastseg_1.52.0              emdbook_1.3.14             
+ [73] later_1.4.2                 splines_4.4.1              
+ [75] BiocFileCache_2.14.0        lattice_0.22-6             
+ [77] bit_4.6.0                   tidyselect_1.2.1           
+ [79] locfit_1.5-9.12             knitr_1.50                 
+ [81] git2r_0.36.2                gridExtra_2.3              
+ [83] SummarizedExperiment_1.36.0 xfun_0.52                  
+ [85] statmod_1.5.1               matrixStats_1.5.0          
+ [87] stringi_1.8.7               UCSC.utils_1.2.0           
+ [89] workflowr_1.7.1             yaml_2.3.10                
+ [91] evaluate_1.0.4              codetools_0.2-20           
+ [93] bbmle_1.0.25.1              tibble_3.3.0               
+ [95] qvalue_2.38.0               cli_3.6.5                  
+ [97] jquerylib_0.1.4             dichromat_2.0-0.1          
+ [99] Rcpp_1.1.0                  readxl_1.4.5               
+[101] dbplyr_2.5.0                coda_0.19-4.1              
+[103] png_0.1-8                   methylKit_1.32.1           
+[105] bdsmatrix_1.3-7             XML_3.99-0.18              
+[107] parallel_4.4.1              blob_1.2.4                 
+[109] prettyunits_1.2.0           mclust_6.1.2               
+[111] bitops_1.0-9                mvtnorm_1.3-6              
+[113] scales_1.4.0                purrr_1.1.0                
+[115] crayon_1.5.3                rlang_1.3.0                
+[117] KEGGREST_1.46.0            </code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+
+<!-- Adjust MathJax settings so that all math formulae are shown using
+TeX fonts only; see
+https://docs.mathjax.org/en/latest/web/configuration.html. This will make
+the presentation more consistent at the cost of the webpage sometimes
+taking slightly longer to load. Note that this only works because the
+footer is added to webpages before the MathJax javascript. -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    "HTML-CSS": { availableFonts: ["TeX"] }
+  });
+</script>
+
+
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+
+<script>
+$(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
