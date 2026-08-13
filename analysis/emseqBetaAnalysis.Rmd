@@ -16,7 +16,10 @@ library(plyranges)
 library(tidyr)
 library(stringr)
 library(dplyr)
+library(ggplot2)
 ```
+
+# Obtain beta values
 
 ```{r}
 seqs <- seqnames(BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38)[1:22]
@@ -27,7 +30,7 @@ cg_sites <- lapply(seqs, function(x) {
   )}) %>% bind_rows()
 ```
 
-```{r}
+```{r, eval=FALSE}
 all_samples <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_all_healthy.rds")
 all_samples <- all_samples %>%
   mutate(sample = case_when(sample == "a1" ~ "healthy_785",
@@ -38,7 +41,7 @@ all_samples <- all_samples %>%
                             TRUE ~ "healthy_789"))
 ```
 
-mmmmmm
+
 ```{r}
 betas_for_wgbs <- function(reads) {
   # Split entire columns at once (vectorised, not row-wise)
@@ -67,26 +70,18 @@ betas_for_wgbs <- function(reads) {
 ```
 
 
-```{r}
+```{r, eval=FALSE}
 betas <- betas_for_wgbs(all_samples)
 saveRDS(betas, "/researchers/caitlin.page/cf_nano/r_output/emseq_betas_healthy.rds")
 ```
 
-```{r}
-rm(all_samples)
-rm(betas)
-```
 
-
-```{r}
+```{r, eval=FALSE}
 all_samples <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_all_cancer.rds")
 betas <- betas_for_wgbs(all_samples)
 saveRDS(betas, "/researchers/caitlin.page/cf_nano/r_output/emseq_betas_cancer.rds")
 ```
 
-```{r}
-list.files("/researchers/caitlin.page/cf_nano/r_output/")
-```
 
 ```{r}
 betas <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_betas_healthy.rds")
@@ -119,25 +114,23 @@ cov <- b[,15:20]
 colnames(cov) <- samples
 ```
 
-```{r}
-as.matrix(meth)
-```
 
 ## chr1
-
 ```{r}
-library(bsseq)
-library(DMRcate)
-library(dplyr)
-library(stringr)
-library(tidyr)
-library(data.table)
+betas <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_betas_healthy.rds")
+betas_c <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_betas_cancer.rds")
+b <- rbind(betas %>% data.frame(), betas_c %>% data.frame())
+b <- b %>% filter(seqnames == "chr1")
+b$cov <- b$meth_count_pos + b$unmeth_count_pos
+cols <- c("sample", "seqnames", "start", "meth_count_pos", "unmeth_count_pos", "cov")
+b <- b[,cols] %>% pivot_wider(names_from = sample, values_from = c(meth_count_pos, unmeth_count_pos, cov))
+b[is.na(b)] <- 0
+saveRDS(b, "/researchers/caitlin.page/cf_nano/r_output/emseq_betas_chr1.rds")
+```
 
+# dmr detection steps
 
-
-###############
-
-# healthy
+```{r, eval=FALSE}
 betas <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_betas_healthy.rds")
 betas_c <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_betas_cancer.rds")
 b <- rbind(betas %>% data.frame(), betas_c %>% data.frame())
@@ -164,7 +157,7 @@ bseq <- bsseq::BSseq(M = as.matrix(meth),
                      chr = ranges$seqnames, pos = as.numeric(ranges$start),
                      sampleNames = samples)
 bseq <- sort(bseq)
-
+bseq <- bseq[which(rowSums(getCoverage(bseq) >= 10) == ncol(bseq)), ] 
 param <- BiocParallel::SnowParam(workers = 8, type = "SOCK")
 bs_batch1 <- BSmooth(bseq[, 1:6],  BPPARAM = param)
 bs_batch2 <- BSmooth(bseq[, 7:12], BPPARAM = param)
@@ -173,29 +166,20 @@ bs_batch2 <- BSmooth(bseq[, 7:12], BPPARAM = param)
 bsmooth_obj <- bsseq::combine(bs_batch1, bs_batch2)
 
 #bsmooth_obj <- BSmooth(BSseq = bseq, verbose = TRUE)
-bseq.cov <- getCoverage(bsmooth_obj)
-keep <- which(rowSums(bseq.cov[, bsmooth_obj$Type == "healthy"] >= 2) >= 2 &
-                rowSums(bseq.cov[, bsmooth_obj$Type == "cancer"] >= 2) >= 2)
 
 bsmooth_obj <- bsmooth_obj[keep,]
 saveRDS(bsmooth_obj, "/researchers/caitlin.page/cf_nano/r_output/bsmooth_obj_emseq_chr1.rds")
-
-
-
-# do a fp with this???
 
 ### dmrcate
 tissue <- factor(c("healthy", "healthy", "healthy", "healthy", "healthy", "healthy", "cancer", "cancer", "cancer", "cancer", "cancer", "cancer"), levels = c("healthy", "cancer"))
 
 #Regular matrix design
 design <- model.matrix(~tissue)
-
-
-methdesign <- modelMatrixMeth(design)
+methdesign <- edgeR::modelMatrixMeth(design)
 
 #failed here because no significance - good
 seq_annot <- sequencing.annotate(bsmooth_obj, methdesign, all.cov = TRUE,
-                                 coef = 8, fdr=0.05)
+                                 coef = 14, fdr=0.05)
 
 seq_dmrcate.res <- dmrcate(seq_annot, C=2, min.cpgs = 5)
 
@@ -210,16 +194,6 @@ saveRDS(dmrcate_seq_anno, "/researchers/caitlin.page/cf_nano/r_output/dm_emseq_c
 
 # we have DMRS!!!!!
 
-```{r}
-dmr_emseq <- readRDS("/researchers/caitlin.page/cf_nano/r_output/dmr_emseq.rds")
-```
-
-```{r}
-dplyr::distinct(dmr_emseq, min_smoothed_fdr)
-dmr_emseq %>% dplyr::filter(min_smoothed_fdr < 0.05)
-```
-
-* yikes
 ```{r}
 betas_h$cov <- betas_h$meth_count_pos + betas_h$unmeth_count_pos
 betas_h <- betas_h %>% filter(seqnames %in% c("chr1", "chr2", "chr3", "chr4", "chr5", "chr6", "chr7", "chr8", "chr9", "chr10",
@@ -239,30 +213,22 @@ betas_h %>%
 ```
 
 ```{r}
-dmr_emseq_strict <- readRDS("/researchers/caitlin.page/cf_nano/r_output/dmr_emseq_strict.rds")
-```
-
-* oops didn't work (here's hoping it finishes before the meeting!)
-
-*if it does
-* code to run
-```{r}
 optiles_all <- readRDS("/researchers/caitlin.page/cf_nano/r_output/optiles_all_emseq.rds")
 ```
 
 ```{r}
-dmr_emseq_strict <- readRDS("/researchers/caitlin.page/cf_nano/r_output/dmr_emseq_strict.rds")
+dmr_emseq <- readRDS("/researchers/caitlin.page/cf_nano/r_output/dmr_emseq_strict.rds")
 
-dmr_emseq_strict %>% filter(min_smoothed_fdr < 0.05) %>% nrow()
+dmr_emseq %>% filter(min_smoothed_fdr < 0.05) %>% nrow()
 ```
 
 ```{r}
-dmr_emseq_strict <- dmr_emseq_strict %>% .[order(.$min_smoothed_fdr),] %>% mutate(dmr_rank = 1:n())
+dmr_emseq <- dmr_emseq %>% .[order(.$min_smoothed_fdr),] %>% mutate(dmr_rank = 1:n())
 ```
 
 ```{r}
-dmr_dtu <- find_overlaps(as_granges(dmr_emseq_strict), as_granges(dtu_emseq)) %>% data.frame()
-dmr_tiles <- find_overlaps(as_granges(dmr_emseq_strict), as_granges(optiles_all)) %>% data.frame()
+dmr_dtu <- find_overlaps(as_granges(dmr_emseq), as_granges(dtu_emseq)) %>% data.frame()
+dmr_tiles <- find_overlaps(as_granges(dmr_emseq), as_granges(optiles_all)) %>% data.frame()
 
 ggVennDiagram::ggVennDiagram(list(dmr = dmr_tiles %>% filter(min_smoothed_fdr < 0.05) %>% .$region_id,
                                   dtu = dtu_emseq %>% filter(FDR < 0.05) %>% .$region_id))
@@ -289,20 +255,20 @@ dmr_dtu %>% group_by(dmr_rank) %>% summarise(n_tiles = n()) %>%
 ```
 
 ```{r}
-dmr_beta <- find_overlaps(as_granges(dmr_emseq_strict), as_granges(mutate(all_b, seqnames = seqnames.x, start = start.x, width = 1))) %>% data.frame()
+dmr_beta <- find_overlaps(as_granges(dmr_emseq), as_granges(mutate(all_b, seqnames = seqnames.x, start = start.x, width = 1))) %>% data.frame()
 
 ```
 
 ```{r}
-dmr_emseq_strict
+dmr_emseq
 tail(dmr_emseq)
 ```
 ```{r}
-dmr_emseq_strict 
+dmr_emseq 
 ```
 
 ```{r}
-all_b %>% filter(seqnames.x == dmr_emseq_strict[1,]$seqnames, start.x >= 147077566, start.x <= 147080214) %>%
+all_b %>% filter(seqnames.x == dmr_emseq[1,]$seqnames, start.x >= 147077566, start.x <= 147080214) %>%
   tidyr::pivot_longer(cols = c(cancer_0223, cancer_0224, cancer_0225, cancer_0454, cancer_0456, cancer_0457, healthy_036, healthy_037, healthy_785, healthy_786, healthy_787, healthy_789), names_to = "sample", values_to = "beta") %>% mutate(type = substr(sample, 1, 1)) %>%
   ggplot(aes(x = start.x, y = beta, colour = type)) +
   geom_point(alpha = 0.3)
@@ -407,4 +373,629 @@ list_plot <- list(list_plot, p)
 }
 list_plot
 ```
+
+####
+
+```{r}
+dmr_emseq[1,]
+betas
+```
+
+```{r}
+betas <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_betas_healthy.rds")
+betas_c <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_betas_cancer.rds")
+```
+
+
+
+* want it with the alpha bands
+* which I think is just doing it with alpha?
+* do it with beta firstmmm
+```{r}
+b
+```
+
+m
+```{r}
+betas <- betas %>% data.frame() %>% filter(seqnames == "chr1") %>% .[,c(1:3,6)] %>%
+  pivot_wider(names_from = sample, values_from = beta)
+
+betas_c <- betas_c %>% data.frame() %>% filter(seqnames == "chr1") %>% .[,c(1:3,6)] %>%
+  pivot_wider(names_from = sample, values_from = beta)
+betas$pos <- paste0(betas$seqnames, ":", betas$start)
+betas_c$pos <- paste0(betas_c$seqnames, ":", betas_c$start)
+betas$type <- "healthy"
+betas_c$type <- "cancer"
+all_b <- full_join(betas, betas_c, by = "pos")
+```
+```{r}
+dmr_emseq[1,]
+```
+
+```{r}
+all_b %>% filter(seqnames.x == dmr_emseq[1,]$seqnames, start.x >= 147077566, start.x <= 147080214) %>%
+  tidyr::pivot_longer(cols = c(cancer_0223, cancer_0224, cancer_0225, cancer_0454, cancer_0456, cancer_0457, healthy_036, healthy_037, healthy_785, healthy_786, healthy_787, healthy_789), names_to = "sample", values_to = "beta") %>% mutate(type = substr(sample, 1, 1)) %>%
+  ggplot(aes(x = start.x, y = beta, colour = type)) +
+  geom_point(alpha = 0.3)
+```
+
+```{r}
+find_overlaps(as_granges(dmr_emseq[1,]), as_granges(dtu_emseq))
+```
+* overlap 2 signif tiles
+em_healthy_785$sample <- "a1"
+em_healthy_036$sample <- "a2"
+em_healthy_787$sample <- "a3"
+em_healthy_786$sample <- "b1"
+em_healthy_037$sample <- "b2"
+em_healthy_789$sample <- "b3"
+```{r}
+dmr_emseq <- readRDS("/researchers/caitlin.page/cf_nano/r_output/dmr_emseq_strict.rds")
+```
+
+```{r}
+emseq_reads_tiles_chr1 <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_reads_tiles_chr1.rds")
+emseq_reads_tiles_chr1 %>% distinct(sample)
+emseq_reads_tiles_chr1 <- emseq_reads_tiles_chr1 %>% mutate(sample = case_when(sample == "a1" ~ "healthy_785",
+                                                     sample == "a2" ~ "healthy_036",
+                                                     sample == "a3" ~ "healthy_787",
+                                                     sample == "b1" ~ "healthy_786",
+                                                     sample == "b2" ~ "healthy_037",
+                                                     sample == "b3" ~ "healthy_789", TRUE ~ sample))
+emseq_reads_tiles_chr1$type <- sub("_.*", "", emseq_reads_tiles_chr1$sample)
+```
+```{r}
+betas
+```
+
+```{r}
+b <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_betas_chr1.rds")
+```
+
+
+```{r}
+dmr_reads <- find_overlaps(as_granges(dmr_emseq[1,]), as_granges(emseq_reads_tiles_chr1)) %>% data.frame()
+dmr_reads %>% distinct(region_id)
+```
+
+
+Plot layers
+
+reads - split by type?
+
+then betas
+
+then dmr? 
+
+then genes? etc
+
+```{r}
+rrbs_plot5 <- function(read_data, read_ids, cpgs = cg_sites, jit_amount = 0.1) {
+  set.seed(42) # For reproducibility
+  # Calculate a single jitter amount per row (segment)
+  read_data <- read_data %>% dplyr::filter(read_id %in% read_ids)
+  jitter_amount <- runif(nrow(read_data), -jit_amount, jit_amount)
+  read_data$alpha_jit <- read_data$alpha + jitter_amount
+  read_data <- data.frame(read_data)
+
+  # Add jittered coordinates to new columns in the data frame
+  long_data <- read_data %>%
+    mutate(meth_status = strsplit(meth_pattern, ""), start = strsplit(genom_positions, ",")) %>%
+    unnest(meth_status, start) %>%
+    mutate(start = as.double(start))
+  
+  chr <- unique(read_data$seqnames)
+  min_start <- min(read_data$read_start)
+  max_end <- max(read_data$read_end)
+  
+  read_data <- read_data %>% mutate(alpha_group = factor(alpha_group, levels = c("a < 0.2", "0.2 <= a <= 0.4", "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8")))
+  
+  plot <- read_data %>%
+    ggplot() +
+    geom_segment(aes(x = read_start, xend = read_end, y = alpha_jit, yend = alpha_jit, colour = alpha_group)) +
+    geom_point(data = long_data,
+               aes(x = start, y = alpha_jit, fill = meth_status, colour = alpha_group), shape = 21) +
+    scale_fill_manual(values = c("U" = "white", "M" = "black")) +
+    facet_wrap(~ type, nrow=2) +
+    labs(title = paste0(chr, ":", min_start, "-", max_end)) 
+  plot
+}
+
+reads <- distinct(dmr_reads, read_id) %>% .$read_id
+rrbs_plot5(dmr_reads, reads)
+```
+
+```{r}
+dmr_reads
+```
+
+
+```{r}
+reads <- distinct(dmr_reads, read_id) %>% .$read_id
+```
+
+
+```{r}
+geom_beta <- function(all_b, plot.space=1, plot.height=1) {
+    structure(list(all_b = all_b, plot.space = plot.space,
+        plot.height = plot.height),
+        class = "beta"
+    )
+}
+
+ggplot_add.beta <- function(object, plot, object_name) {
+plot2 <- plot
+    while (inherits(plot2, "patchwork")) {
+        plot2 <- plot2[[1]]
+    }
+    plot.data <- plot2$labels$title
+    plot.data <- stringr::str_split_1(plot.data, ":")
+    # prepare plot range
+    # the plot region are not normal, so start is minimum value
+    plot.chr <- plot.data[1]
+    plot.data <- stringr::str_split_1(plot.data[2], "-")
+    plot.region.start <- plot.data[1] %>% as.numeric()
+    plot.region.end <- plot.data[2] %>% as.numeric()
+    
+    all_b <- object$all_b
+    plot.space <- object$plot.space
+    plot.height <- object$plot.height
+    
+    all_b <- all_b %>%
+  tidyr::pivot_longer(cols = c(cancer_0223, cancer_0224, cancer_0225, cancer_0454, cancer_0456, cancer_0457, healthy_036, healthy_037, healthy_785, healthy_786, healthy_787, healthy_789), names_to = "sample", values_to = "beta") %>% mutate(type = substr(sample, 1, 1)) %>% filter(seqnames.x %in% plot.chr,
+                                start.x >= plot.region.start,
+                                start.x <= plot.region.end)
+    
+    b_plot <- all_b %>%
+  ggplot(aes(x = start.x, y = beta, colour = type)) +
+  geom_point(alpha = 0.3) 
+  #    facet_wrap(~type, nrow = 2)
+    
+    patchwork::wrap_plots(plot + ggplot2::theme(plot.margin = ggplot2::margin(t = plot.space, b = plot.space)),
+        b_plot,
+        ncol = 1, heights = c(1, plot.height)
+    )
+}
+#rrbs_plot5(dmr_reads, reads) +
+#  geom_beta(all_b)
+```
+```{r}
+all_b
+```
+
+
+
+*dau
+```{r}
+dau_tiles <- readRDS("/researchers/caitlin.page/cf_nano/r_output/dtu_tiles_emseq_cancer_healthy.rds")
+```
+
+```{r}
+geom_dau <- function(
+    dau.df=NULL, dau.label=FALSE, dau.color="black", dau.size=5,
+    plot.space=0.1, plot.height=0.05) {
+    structure(
+        list(
+            dau.df = dau.df, dau.label = dau.label, dau.color = dau.color, dau.size = dau.size,
+            plot.space = plot.space, plot.height = plot.height
+        ),
+        class = "dau"
+    )
+}
+
+
+#' @export
+ggplot_add.dau <- function(object, plot, object_name) {
+    if (!is.data.frame(object$dau.df)) {
+        stop("data.frame of daus is required")
+    }
+    plot2 <- plot
+    while (inherits(plot2, "patchwork")) {
+        plot2 <- plot2[[1]]
+    }
+    plot.data <- plot2$labels$title
+    plot.data <- stringr::str_split_1(plot.data, ":")
+
+    plot.chr <- plot.data[1]
+    plot.data <- stringr::str_split_1(plot.data[2], "-")
+    plot.region.start <- plot.data[1] %>% as.numeric()
+    plot.region.end <- plot.data[2] %>% as.numeric()
+
+    # get parameters
+    dau.df <- object$dau.df
+    dau.label <- object$dau.label
+    dau.color <- object$dau.color
+    dau.size <- object$dau.size
+    plot.space <- object$plot.space
+    plot.height <- object$plot.height
+
+    dau.df <- dau.df %>% filter(seqnames %in% plot.chr,
+                                start >= plot.region.start,
+                                end <= plot.region.end, 
+                                FDR < 0.05) 
+  
+    dau.plot <- dau.df %>%
+            ggplot2::ggplot(ggplot2::aes(x = .data$start, y = 1)) +
+            ggplot2::geom_segment(
+                mapping = ggplot2::aes(
+                    x = .data$start, y = 1,
+                    xend = .data$end, yend = 1
+                ),
+                linewidth = dau.size, color = dau.color
+            ) +
+      labs(y = "dau") +
+      ..peakGatcTheme(margin.len = plot.space, x.range = c(plot.region.start, plot.region.end))
+
+    # assemble plot
+    patchwork::wrap_plots(plot + ggplot2::theme(plot.margin = ggplot2::margin(t = plot.space, b = plot.space)),
+        dau.plot,
+        ncol = 1, heights = c(1, plot.height)
+    )
+}
+#rrbs_plot5(dmr_reads, reads) +
+#  geom_beta(all_b) +
+#  geom_dau(dau_tiles)
+```
+
+*dmr
+```{r}
+geom_dmr <- function(
+    dmr.df=NULL, dmr.label=FALSE, dmr.color="black", dmr.size=5,
+    plot.space=0.1, plot.height=0.05) {
+    structure(
+        list(
+            dmr.df = dmr.df, dmr.label = dmr.label, dmr.color = dmr.color, dmr.size = dmr.size,
+            plot.space = plot.space, plot.height = plot.height
+        ),
+        class = "dmr"
+    )
+}
+
+
+#' @export
+ggplot_add.dmr <- function(object, plot, object_name) {
+    if (!is.data.frame(object$dmr.df)) {
+        stop("data.frame of dmr is required")
+    }
+    plot2 <- plot
+    while (inherits(plot2, "patchwork")) {
+        plot2 <- plot2[[1]]
+    }
+    plot.data <- plot2$labels$title
+    plot.data <- stringr::str_split_1(plot.data, ":")
+
+    plot.chr <- plot.data[1]
+    plot.data <- stringr::str_split_1(plot.data[2], "-")
+    plot.region.start <- plot.data[1] %>% as.numeric()
+    plot.region.end <- plot.data[2] %>% as.numeric()
+
+    # get parameters
+    dmr.df <- object$dmr.df
+    dmr.label <- object$dmr.label
+    dmr.color <- object$dmr.color
+    dmr.size <- object$dmr.size
+    plot.space <- object$plot.space
+    plot.height <- object$plot.height
+    
+    dmr.df <- dmr.df %>% filter(seqnames %in% plot.chr,
+                                start >= plot.region.start,
+                                end <= plot.region.end)
+    
+   # dmr.df <-  dmr.df %>% mutate(score = c(1,1,1)) 
+    dmr.plot <- dmr.df %>%
+            ggplot2::ggplot(ggplot2::aes(x = .data$start, y = 1)) +
+            ggplot2::geom_segment(
+                mapping = ggplot2::aes(
+                    x = .data$start, y = 1,
+                    xend = .data$end, yend = 1
+                ),
+                linewidth = dmr.size, color = dmr.color
+            ) +
+      labs(y = "dmr") +
+      ..peakGatcTheme(margin.len = plot.space, x.range = c(plot.region.start, plot.region.end))
+
+    # assemble plot
+    patchwork::wrap_plots(plot + ggplot2::theme(plot.margin = ggplot2::margin(t = plot.space, b = plot.space)),
+        dmr.plot,
+        ncol = 1, heights = c(1, plot.height)
+    )
+}
+rrbs_plot5(dmr_reads, reads) +
+  geom_beta(all_b) +
+  geom_dmr(dmr_emseq)
+```
+
+
+```{r}
+plot_test <- rrbs_plot5(dmr_reads, reads) +
+  geom_beta(all_b) +
+  geom_dau(dau_tiles) +
+  geom_dmr(dmr_emseq)
+```
+
+```{r}
+plot_test2 <- rrbs_plot5(dmr_reads, reads) +
+  geom_beta(all_b) +
+  geom_dau(dau_tiles) +
+  geom_dmr(dmr_emseq)
+```
+
+```{r}
+plot_test3 <- rrbs_plot5(distinct(dmr_reads), reads) +
+  geom_beta(all_b) +
+  geom_dau(dau_tiles) +
+  geom_dmr(dmr_emseq)
+```
+
+
+```{r}
+dmr_reads
+```
+```{r}
+distinct(dmr_reads)
+```
+```{r}
+dau_tiles %>% filter(region_id %in% "chrchr1:147077877-147078376")
+```
+
+```{r}
+dmr_reads <- distinct(dmr_reads)
+```
+
+```{r}
+dmr_reads
+```
+
+
+```{r}
+tile_dmr_read <- find_overlaps(as_granges(dau_tiles), as_granges(dmr_reads)) %>% data.frame()
+tile_dmr_read %>% distinct(region_id.x)
+tile_dmr_read %>% distinct(region_id.y)
+```
+* 3 tiles
+
+* I think there's a missing bit because there's no tile there
+* add a tile location layer
+
+* and it's going to be because I only used the healthy samples to make the tiles - and that data is sparse in that spot
+
+
+
+```{r}
+optiles_all <- readRDS("/researchers/caitlin.page/cf_nano/r_output/optiles_all_emseq.rds")
+```
+
+
+```{r}
+geom_tilepos <- function(
+    tilepos.df=NULL, tilepos.label=FALSE, tilepos.color="black", tilepos.size=5,
+    plot.space=0.1, plot.height=0.05) {
+    structure(
+        list(
+            tilepos.df = tilepos.df, tilepos.label = tilepos.label, tilepos.color = tilepos.color, tilepos.size = tilepos.size,
+            plot.space = plot.space, plot.height = plot.height
+        ),
+        class = "tilepos"
+    )
+}
+
+
+#' @export
+ggplot_add.tilepos <- function(object, plot, object_name) {
+    if (!is.data.frame(object$tilepos.df)) {
+        stop("data.frame of tilepos is required")
+    }
+    plot2 <- plot
+    while (inherits(plot2, "patchwork")) {
+        plot2 <- plot2[[1]]
+    }
+    plot.data <- plot2$labels$title
+    plot.data <- stringr::str_split_1(plot.data, ":")
+
+    plot.chr <- plot.data[1]
+    plot.data <- stringr::str_split_1(plot.data[2], "-")
+    plot.region.start <- plot.data[1] %>% as.numeric()
+    plot.region.end <- plot.data[2] %>% as.numeric()
+
+    # get parameters
+    tilepos.df <- object$tilepos.df
+    tilepos.label <- object$tilepos.label
+    tilepos.color <- object$tilepos.color
+    tilepos.size <- object$tilepos.size
+    plot.space <- object$plot.space
+    plot.height <- object$plot.height
+    
+    tilepos.df <- tilepos.df %>% filter(seqnames %in% plot.chr,
+                                start >= plot.region.start,
+                                end <= plot.region.end)
+    
+    tilepos.plot <- tilepos.df %>%
+            ggplot2::ggplot(ggplot2::aes(x = .data$start, y = 1)) +
+            ggplot2::geom_segment(
+                mapping = ggplot2::aes(
+                    x = .data$start, y = 1,
+                    xend = .data$end, yend = 1
+                ),
+                linewidth = tilepos.size, color = tilepos.color
+            ) +
+      labs(y = "tilepos") +
+      ..peakGatcTheme(margin.len = plot.space, x.range = c(plot.region.start, plot.region.end))
+
+    # assemble plot
+    patchwork::wrap_plots(plot + ggplot2::theme(plot.margin = ggplot2::margin(t = plot.space, b = plot.space)),
+        tilepos.plot,
+        ncol = 1, heights = c(1, plot.height)
+    )
+}
+```
+
+```{r}
+plot_test4 <- rrbs_plot5(distinct(dmr_reads), reads) +
+  geom_beta(all_b) +
+  geom_dau(dau_tiles) +
+  geom_dmr(dmr_emseq) +
+  geom_tilepos(optiles_all)
+```
+
+* ok OP
+
+* duh modifiy the tile
+```{r}
+tile_dmr_read %>% distinct(region_id.x)
+```
+
+```{r}
+
+```
+
+
+```{r}
+a <- find_overlaps(as_granges(filter(optiles_all, region_id %in% c("chrchr1:147077877-147078376", "chrchr1:147078743-147079242", "chrchr1:147079643-147080142"))), as_granges(filter(mutate(all_b, seqnames = seqnames.x, start = start.x, width = 1), !is.na)) %>% data.frame()
+```
+
+```{r}
+optiles_all %>% filter(seqnames == "chr1", start >= 147077877) %>% .[order(.$start),] %>% .[1:5,] %>% mutate(gap_to_next = lead(start) - end)
+```
+
+```{r}
+all_b %>% filter(seqnames.x == "chr1", start.x >= 147078376, start.x <= 147078743)
+```
+
+```{r}
+all_b %>% filter(seqnames.x == "chr1", start.x >= 147079242, start.x <= 147079643)
+```
+
+
+```{r}
+dmr_reads %>% mutate(read_in_tile)
+```
+
+
+..plotPeak <- function(valid.bed, plot.size, plot.color, peak.label) {
+    if (nrow(valid.bed) == 0) {
+        message("No data available for this region")
+        peak.plot <- ggplot2::ggplot() +
+            ggplot2::geom_blank()
+    } else {
+        peak.plot <- valid.bed %>%
+            ggplot2::ggplot(ggplot2::aes(x = .data$start, y = 1)) +
+            ggplot2::geom_segment(
+                mapping = ggplot2::aes(
+                    x = .data$start, y = 1,
+                    xend = .data$end, yend = 1
+                ),
+                linewidth = plot.space, color = plot.color
+            ) +
+            if (peak.label == TRUE) {
+                ggplot2::geom_label(ggplot2::aes(
+                    x = (.data$start + .data$end) / 2,
+                    label = .data$peak_id
+                ), colour = "black", size = 3, vjust = "bottom", nudge_y = 0.02)
+            }
+    }
+    peak.plot
+}
+```{r}
+..peakGatcTheme <- function(margin.len, x.range) {
+    list(
+        ggplot2::theme_classic(),
+        ggplot2::theme(
+            axis.line.y = ggplot2::element_blank(),
+            axis.text.y = ggplot2::element_blank(),
+            axis.title.y.right = ggplot2::element_text(color = "black", angle = 90, vjust = 0.5),
+            axis.ticks.y = ggplot2::element_blank(),
+            axis.text.x = ggplot2::element_blank(),
+            axis.title.x = ggplot2::element_blank(),
+            axis.ticks.x = ggplot2::element_blank(),
+            panel.border = ggplot2::element_rect(colour = "black", fill = NA, linewidth = 1),
+            plot.margin = ggplot2::margin(t = margin.len, b = margin.len)
+        ),
+        ggplot2::scale_y_continuous(
+            limits = c(1 - 0.1, 1 + 0.1),
+            expand = c(0, 0), position = "right"
+        ),
+        ggplot2::scale_x_continuous(expand = c(0, 0)),
+        ggplot2::coord_cartesian(xlim = x.range)
+    )
+}
+```
+
+
+```{r}
+dmr_emseq
+```
+
+
+geom_dm <- function(dm_results.df, plot.space=0.1, plot.height=0.1) {
+    structure(list(dm_results.df = dm_results.df, plot.space = plot.space,
+        plot.height = plot.height),
+        class = "dm"
+    )
+}
+
+#' @export
+ggplot_add.dm <- function(object, plot, object_name) {
+    if (!is.data.frame(object$dm_results.df)) {
+        stop("data.frame of dm results is required")
+    }
+    plot2 <- plot
+    while (inherits(plot2, "patchwork")) {
+        plot2 <- plot2[[1]]
+    }
+    plot.data <- plot2$labels$title
+    plot.data <- stringr::str_split_1(plot.data, ":")
+    # prepare plot range
+    # the plot region are not normal, so start is minimum value
+    plot.chr <- plot.data[1]
+    plot.data <- stringr::str_split_1(plot.data[2], "-")
+    plot.region.start <- plot.data[1] %>% as.numeric()
+    plot.region.end <- plot.data[2] %>% as.numeric()
+
+    # get parameters
+    dm_results.df <- object$dm_results.df
+    plot.space <- object$plot.space
+    plot.height <- object$plot.height
+
+    df_regions <- dm_results.df %>% dplyr::filter(
+        .data$seqnames == plot.chr,
+        .data$start >= plot.region.start,
+        .data$end <= plot.region.end
+    )
+    df_regions <- df_regions %>%
+        dplyr::mutate(
+            dm = ifelse(.data$dm == -1, 0, .data$dm),
+            meth_status = ifelse(.data$meth_status == "Downreg", "No_sig", .data$meth_status)
+        )
+    df_colour <- ..dmReshape(df_regions)
+
+    df_fc <- ..dmMax(df_regions)
+
+    colours_list <- c("Upreg" = "red", "Not_included" = "grey", "No_sig" = "black")
+
+    dm_res.plot <- df_regions %>%
+        ggplot2::ggplot(ggplot2::aes(x = .data$start, y = .data$logFC, colour = factor(.data$meth_status, levels = c("Upreg", "No_sig", "Not_included")))) +
+        ggplot2::geom_polygon(data = df_colour, ggplot2::aes(x = .data$Position, y = .data$y_axis_2, fill = factor(.data$meth_status, levels = c("Upreg", "No_sig", "Not_included")))) +
+        ggplot2::geom_segment(ggplot2::aes(xend = .data$start, yend = 0)) +
+        ggplot2::geom_segment(ggplot2::aes(x = .data$end, xend = .data$end, y = .data$logFC, yend = 0)) +
+        ggplot2::geom_segment(ggplot2::aes(x = .data$start, xend = .data$end, y = .data$logFC, yend = .data$logFC)) +
+        ggplot2::geom_segment(ggplot2::aes(x = .data$start, xend = .data$end, y = 0, yend = 0)) +
+        ..dmTheme(margin.len = plot.space, colours = colours_list, x.range = c(plot.region.start, plot.region.end)) +
+        ggplot2::scale_y_continuous(
+            limits = c(-(df_fc$abs_fc) - 0.5, df_fc$abs_fc + 0.5),
+            expand = c(0, 0), breaks = c(-round(df_fc$abs_fc), 0, round(df_fc$abs_fc)), position = "right"
+            )
+
+    # assemble plot
+    patchwork::wrap_plots(plot + ggplot2::theme(plot.margin = ggplot2::margin(t = plot.space, b = plot.space)),
+        dm_res.plot,
+        ncol = 1, heights = c(1, plot.height)
+    )
+}
+
+```{r}
+dmr_reads
+```
+
+reads <- find_overlaps(dtu_tiles_healthy_compare %>% filter(FDR < 0.05) %>% .[3,] %>% as_granges(), as_granges(healthy_samples)) %>% data.frame() %>% .$read_id
+rrbs_plot5(healthy_samples, reads)
 
