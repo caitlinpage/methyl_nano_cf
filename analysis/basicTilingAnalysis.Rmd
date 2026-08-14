@@ -1,0 +1,52 @@
+---
+title: "basicTilingAnalysis"
+author: "Caitlin Page"
+date: "2026-08-14"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+## Introduction
+
+Tile the hg38 genome into 500 bp non-overlapping windows across all standard chromosomes (chr1–22, chrX, chrY, chrM).
+
+## Packages
+
+```{r}
+library(BSgenome.Hsapiens.UCSC.hg38)
+library(plyranges)
+library(dplyr)
+```
+
+## Tile genome
+
+```{r}
+# Get chromosome lengths for standard chromosomes only
+seqinfo_hg38 <- seqlengths(BSgenome.Hsapiens.UCSC.hg38)
+std_chroms <- grepl("^chr([1-9]|1[0-9]|2[0-2]|X|Y|M)$", names(seqinfo_hg38))
+seqinfo_hg38 <- seqinfo_hg38[std_chroms]
+seqinfo_hg38
+```
+
+```{r}
+# Tile into 500 bp non-overlapping windows
+tiles_500bp <- GenomicRanges::tileGenome(seqinfo_hg38, tilewidth = 500, cut.last.tile.in.chrom = TRUE)
+
+# Add a tile number column
+tiles_500bp <- tiles_500bp %>%
+  data.frame() %>%
+  mutate(tile_num = 1:n()) %>%
+  as_granges()
+
+tiles_500bp
+```
+
+```{r}
+# How many tiles?
+length(tiles_500bp)
+```
+
+```{r}
+saveRDS(tiles_500bp, "/researchers/caitlin.page/cf_nano/r_output/tiles_500bp_hg38.rds")
+```

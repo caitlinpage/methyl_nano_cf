@@ -202,6 +202,10 @@ Check error rate by conducting healthy x healthy
 
 [false positive testing](emseqFalsePositiveCheck.html)
 
+[beta value analysis](emseqBetaAnalysis.html)
+
+[biology analysis](emseqBiologyAnalysis.html)
+
 ####################################################
 
 # OLD FILE ORGANISATION
