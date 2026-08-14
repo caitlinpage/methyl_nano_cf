@@ -15,8 +15,12 @@ Tile the hg38 genome into 500 bp non-overlapping windows across all standard chr
 
 ```{r}
 library(BSgenome.Hsapiens.UCSC.hg38)
+library(data.table)
 library(plyranges)
+library(tidyr)
+library(stringr)
 library(dplyr)
+library(ggplot2)
 ```
 
 ## Tile genome
@@ -47,6 +51,338 @@ tiles_500bp
 length(tiles_500bp)
 ```
 
-```{r}
+```{r, eval=FALSE}
 saveRDS(tiles_500bp, "/researchers/caitlin.page/cf_nano/r_output/tiles_500bp_hg38.rds")
 ```
+
+
+# overlap tiles and CpGs
+
+```{r}
+# cpgs
+seqs <- seqnames(BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38)[1:22]
+
+cg_sites <- lapply(seqs, function(x) {
+  cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38[[x]])),
+        seqnames = x
+  )}) %>% bind_rows()
+```
+
+```{r}
+tiles_500bp_cg <- find_overlaps(tiles_500bp, as_granges(cg_sites)) %>% data.frame() %>%
+  group_by(tile_num) %>% mutate(n_cg = n())
+tiles_500bp_cg <- tiles_500bp_cg %>% ungroup() %>% distinct()
+```
+
+## how many tiles were removed?
+
+```{r}
+length(tiles_500bp)
+nrow(tiles_500bp_cg)
+```
+
+
+```{r}
+tiles_500bp %>% data.frame() %>% mutate(has_cg = ifelse(tile_num %in% tiles_500bp_cg$tile_num, TRUE, FALSE)) %>%
+  ggplot(aes(x = has_cg, fill = has_cg)) +
+  geom_bar() +
+  theme(legend.position = "none")
+```
+
+# where are they along the chromosome?
+
+* guessing probably starts and ends
+
+```{r}
+tiles_500bp %>% data.frame() %>% mutate(has_cg = ifelse(tile_num %in% tiles_500bp_cg$tile_num, 2, 1)) %>% 
+  filter(seqnames == "chr22") %>%
+  ggplot(aes(x = tile_num, y = has_cg)) +
+  geom_point(alpha = 0.2)
+```
+* ok so it's tricky to see
+* not sure how to visualise - and don't think it matters too much
+
+
+# overlap to OpTiles tiles
+
+```{r}
+optiles_all <- readRDS("/researchers/caitlin.page/cf_nano/r_output/optiles_all_emseq.rds")
+```
+
+
+```{r}
+tiles_500bp_cg$tile_id <- paste0(tiles_500bp_cg$seqnames, ":", tiles_500bp_cg$start, "-", tiles_500bp_cg$end)
+```
+
+```{r}
+tile_overlap <- find_overlaps(as_granges(tiles_500bp_cg), as_granges(optiles_all)) %>% data.frame()
+```
+
+```{r, eval=FALSE}
+optiles_all %>% mutate(overlap_tile = ifelse(region_id %in% tile_overlap$region_id, TRUE, FALSE)) %>%
+  ggplot(aes(x = region_id, fill = region_id)) +
+  geom_bar() +
+  theme(legend.position = "none")
+```
+
+```{r,eval=FALSE}
+tiles_500bp_cg %>% mutate(overlap_region = ifelse(tile_id %in% tile_overlap$tile_id, TRUE, FALSE)) %>%
+  ggplot(aes(x = tile_id, fill = tile_id)) +
+  geom_bar() +
+  theme(legend.position = "none")
+```
+
+```{r}
+tile_overlap_p <- tile_overlap %>%
+  mutate(
+    # extract start from each ID  e.g. "chr1:13283-13782" → 13283
+    start_fixed = start,   # already have this
+    start_op    = as.integer(str_extract(region_id, "(?<=:)\\d+"))
+  )
+```
+
+## offset distrib
+
+```{r}
+tile_overlap_p %>%
+  mutate(offset = abs(start_fixed - start_op)) %>%
+  ggplot(aes(x = offset)) +
+  geom_histogram(bins = 100) +
+  labs(x = "start position offset between methods (bp)", y = "count")
+```
+* spike at 0 means most tiles share a starting position (good)
+* bump at ~500 - adjacent tiles
+
+* follow up
+```{r}
+tile_overlap_p %>%
+  mutate(offset = abs(start - start_op)) %>%
+  filter(offset > 10, offset < 490) %>%          # exclude the two main spikes
+  count(seqnames, sort = TRUE)                     # are they concentrated on specific chromosomes?
+
+tile_overlap_p %>%
+  mutate(offset = abs(start - start_op)) %>%
+  filter(offset > 10, offset < 490) %>%
+  ggplot(aes(x = seqnames)) +
+  geom_bar()
+```
+
+
+
+```{r}
+# Or: are they at chromosome ends?
+tile_overlap_p %>%
+  mutate(offset = abs(start - start_op)) %>%
+  filter(offset > 10, offset < 490) %>%
+  ggplot(aes(x = start)) +
+  geom_histogram(bins = 100) +
+  facet_wrap(~seqnames, scales = "free_x")
+```
+
+## how many basic tiles share same OPTile
+
+```{r}
+tile_overlap_p %>%
+  count(region_id, name = "n_fixed_tiles") %>%
+  count(n_fixed_tiles) %>%
+  ggplot(aes(x = factor(n_fixed_tiles), y = n)) +
+  geom_col() +
+  labs(x = "number of fixed tiles per operational tile", y = "count of operational tiles")
+```
+
+## look at a region
+
+```{r}
+tile_overlap_p %>%
+  filter(seqnames == "chr1", start < 70000) %>%
+  mutate(end_op = start_op + 500) %>%
+  ggplot() +
+  geom_rect(aes(xmin = start, xmax = end, ymin = 1.1, ymax = 1.9),
+            fill = "#4477AA", alpha = 0.7) +
+  geom_rect(aes(xmin = start_op, xmax = end_op, ymin = 0.1, ymax = 0.9),
+            fill = "#EE6677", alpha = 0.7) +
+  scale_y_continuous(breaks = c(0.5, 1.5), labels = c("operational", "fixed")) +
+  labs(x = "genomic position", y = NULL) +
+  theme_bw()
+```
+
+
+## Summary
+* The tiling methods appear to be very similar
+* This is good
+
+# DAU analysis with Tiles
+
+```{r}
+healthy_samples <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_all_healthy.rds")
+cancer_samples <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_all_cancer.rds")
+
+healthy_samples$type <- "healthy"
+cancer_samples$type <- "cancer"
+
+all_samples <- rbind(healthy_samples, cancer_samples) %>% data.frame()
+```
+
+```{r}
+rm(healthy_samples)
+rm(cancer_samples)
+```
+
+
+```{r}
+# overlap tiles and reads
+overlap_pos <- find_overlaps(as_granges(tiles_500bp_cg), as_granges(all_samples)) %>% data.frame()
+
+# dtu
+
+dtu_optile <- overlap_pos %>%
+  distinct(sample, read_id, read_start, read_end, alpha, tile_id, type) %>%
+  mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                 alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                 alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                 alpha <= 0.6 & alpha <= 0.8 ~ "0.6 <= a <= 0.8",
+                                 TRUE ~ "a > 0.8",), 
+         transcript = paste0(tile_id, "_", alpha_group)) %>%
+  group_by(sample, transcript) %>%
+  summarise(transcript_count = n()) %>% ungroup() %>% data.frame()
+
+# build matrix of "transcript" counts - transcript rows, sample as columns
+dtu_optile <- dtu_optile %>% pivot_wider(names_from = sample, values_from = transcript_count, values_fill = 0)
+dtu_optile$gene_id <- sub("_.*", "", dtu_optile$transcript)
+
+# DTU analysis with edgeR
+## Alicia prefers gene method over Simes method (documentation slightly confusing about difference)
+y <- DGEList(as.matrix(dtu_optile[,2:13]), group = c(1,1,1,1,1,1,2,2,2,2,2,2), genes = dtu_optile[,c("gene_id", "transcript")])
+design <- model.matrix(~ c(1,1,1,1,1,1,2,2,2,2,2,2), data = y$samples)
+fit <- glmQLFit(y, design, robust=TRUE)
+ds <- diffSpliceDGE(fit, coef = 2, geneid = "gene_id", exonid = "transcript")
+dau_basictiles <- topSpliceDGE(ds, test = "gene", number = Inf)
+
+
+dau_basictiles <- dau_basictiles %>%
+  mutate(region_id = gene_id) %>%
+  separate_wider_delim(gene_id, delim = ":", names = c("seqnames", "gene_id")) %>%
+  separate_wider_delim(gene_id, delim = "-", names = c("start", "end"))
+dau_basictiles$start <- as.double(dau_basictiles$start)
+dau_basictiles$end <- as.double(dau_basictiles$end)
+dau_basictiles$dtu_rank <- 1:nrow(dau_basictiles)
+saveRDS(dau_basictiles, "/researchers/caitlin.page/cf_nano/r_output/dtu_basictiles_emseq_cancer_healthy.rds")
+
+```
+
+
+# Explore results
+
+```{r}
+dau_basictiles %>% filter(FDR < 0.05) %>% nrow()
+```
+
+
+```{r}
+dau_basictiles %>% mutate(signif = ifelse(FDR < 0.05, TRUE, FALSE), tile = "tile") %>%
+  ggplot(aes(x = tile, fill = signif)) +
+  geom_bar(position = "fill")
+```
+
+
+## plot reads
+
+```{r}
+rrbs_plot5 <- function(read_data, read_ids, cpgs = cg_sites, jit_amount = 0.1) {
+  set.seed(42) # For reproducibility
+  # Calculate a single jitter amount per row (segment)
+  read_data <- read_data %>% dplyr::filter(read_id %in% read_ids)
+  jitter_amount <- runif(nrow(read_data), -jit_amount, jit_amount)
+  read_data$alpha_jit <- read_data$alpha + jitter_amount
+  read_data <- data.frame(read_data)
+
+  # Add jittered coordinates to new columns in the data frame
+  long_data <- read_data %>%
+    mutate(meth_status = strsplit(meth_pattern, ""), start = strsplit(genom_positions, ",")) %>%
+    unnest(meth_status, start) %>%
+    mutate(start = as.double(start))
+
+  chr <- unique(read_data$seqnames)
+  min_start <- min(read_data$read_start)
+  max_end <- max(read_data$read_end)
+
+  read_data <- read_data %>%
+    mutate(alpha_group =
+             factor(alpha_group,
+                    levels = c("a < 0.2", "0.2 <= a <= 0.4",
+                               "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8")))
+
+  plot <- read_data %>%
+    ggplot() +
+    geom_segment(aes(x = read_start, xend = read_end,
+                     y = alpha_jit, yend = alpha_jit, colour = alpha_group)) +
+    geom_point(data = long_data,
+               aes(x = start, y = alpha_jit,
+                   fill = meth_status, colour = alpha_group), shape = 21) +
+    scale_fill_manual(values = c("U" = "white", "M" = "black")) +
+    facet_wrap(~ type, nrow=2) +
+    labs(title = paste0(chr, ":", min_start, "-", max_end))
+  plot
+}
+```
+
+
+```{r}
+reads <- find_overlaps(dau_basictiles %>% filter(FDR < 0.05) %>% .[3,] %>% as_granges(), as_granges(all_samples)) %>% data.frame() %>% .$read_id
+rrbs_plot5(all_samples, reads)
+
+reads <- find_overlaps(dau_basictiles %>% filter(FDR < 0.05) %>% .[4,] %>% as_granges(), as_granges(all_samples)) %>% data.frame() %>% .$read_id
+rrbs_plot5(all_samples, reads)
+
+reads <- find_overlaps(dau_basictiles %>% filter(FDR < 0.05) %>% .[5,] %>% as_granges(), as_granges(all_samples)) %>% data.frame() %>% .$read_id
+rrbs_plot5(all_samples, reads)
+
+reads <- find_overlaps(dau_basictiles %>% filter(FDR < 0.05) %>% .[6,] %>% as_granges(), as_granges(all_samples)) %>% data.frame() %>% .$read_id
+rrbs_plot5(all_samples, reads)
+
+reads <- find_overlaps(dau_basictiles %>% filter(FDR < 0.05) %>% .[7,] %>% as_granges(), as_granges(all_samples)) %>% data.frame() %>% .$read_id
+rrbs_plot5(all_samples, reads)
+
+reads <- find_overlaps(dau_basictiles %>% filter(FDR < 0.05) %>% .[8,] %>% as_granges(), as_granges(all_samples)) %>% data.frame() %>% .$read_id
+rrbs_plot5(all_samples, reads)
+
+reads <- find_overlaps(dau_basictiles %>% filter(FDR < 0.05) %>% .[9,] %>% as_granges(), as_granges(all_samples)) %>% data.frame() %>% .$read_id
+rrbs_plot5(all_samples, reads)
+
+reads <- find_overlaps(dau_basictiles %>% filter(FDR < 0.05) %>% .[10,] %>% as_granges(), as_granges(all_samples)) %>% data.frame() %>% .$read_id
+rrbs_plot5(all_samples, reads)
+
+reads <- find_overlaps(dau_basictiles %>% filter(FDR < 0.05) %>% .[11,] %>% as_granges(), as_granges(all_samples)) %>% data.frame() %>% .$read_id
+rrbs_plot5(all_samples, reads)
+```
+
+
+# Compare to results from OpTiles
+
+```{r}
+dau_optiles <- readRDS("/researchers/caitlin.page/cf_nano/r_output/dtu_tiles_emseq_cancer_healthy.rds")
+```
+
+```{r}
+dau_basictiles %>% filter(FDR < 0.05) %>% nrow()
+dau_optiles %>% filter(FDR < 0.05) %>% nrow()
+```
+
+
+```{r}
+tile_overlap %>% filter(tile_id %in% filter(dau_basictiles, FDR < 0.05)$tile_id) %>% distinct(tile_id) %>% nrow()
+tile_overlap %>% filter(tile_id %in% filter(dau_basictiles, FDR < 0.05)$tile_id) %>% distinct(region_id) %>% nrow()
+```
+
+```{r}
+tile_overlap %>% filter(region_id %in% filter(dau_optiles, FDR < 0.05)$region_id) %>% distinct(region_id) %>% nrow()
+tile_overlap %>% filter(region_id %in% filter(dau_optiles, FDR < 0.05)$region_id) %>% distinct(tile_id) %>% nrow()
+```
+
+
+```{r}
+tile_overlap %>% filter(region_id %in% filter(dau_optiles, FDR < 0.05)$region_id,
+                        tile_id %in% filter(dau_basictiles, FDR < 0.05)$tile_id) %>% distinct(region_id, tile_id) %>% nrow()
+```
+
+
