@@ -7,16 +7,65 @@ editor_options:
   chunk_output_type: inline
 ---
 
-## Nanopore
+This file describes the datasets used in this project. 
+They span different technologies and biology, and have come from different sources.
 
-1. Nanopore cell-free Methylation
+# RRBS ENCODE cell-line
+
+[encode rrbs fastqs avail](https://www.encodeproject.org/search/?type=Experiment&control_type%21=%2A&related_series.%40type=ReferenceEpigenome&replicates.library.biosample.donor.organism.scientific_name=Homo+sapiens&status=released&assay_title=RRBS)
+* has 13 rrbs data sets
+
+[GM12878 cell line](https://www.encodeproject.org/experiments/ENCSR000DFT/)
+* hg19
+* lymphoblastoid cell line
+* single-end
+* 2 technical replicates
+
+[K562 cell line](https://www.encodeproject.org/experiments/ENCSR000DFK/)
+* hg19
+* erythroleukaemia cell line
+* patient with CML - chronic myeloid leukaemia 
+* bcr-abl1 positive
+* 2 technical replicates
+
+
+Processing details of fastq files can be found [here]
+
+## Summary
+Used for:
+* Developing data structures
+* Developing differential approach
+Advantages:
+* Short read lengths (fast to process and analyse)
+Disadvantages:
+* 2 replicates limits analysis (3 is more robust)
+* can't do false positive testing
+* reads are extremely short which is unrealistic
+
+
+# EMSeq Normal and cell-free PPGL
+*Data provided by Richard Tothill lab Melb Uni
+* 7 healthy samples
+* 21 cancer samples
+
+Processing details of fastq files can be found [here]
+
+## Summary
+Used for:
+* Evaluating differential alpha method
+Advantages:
+* Enough samples for robust analysis and false positives
+Disadvantages:
+* Massive files - more time to load and analyse
+
+
+# Nanopore cell-free methylation
+
 Paper: [Detecting cell-of-origin and cancer-specific methylation features of cell-free DNA from Nanopore sequencing](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-022-02710-1#availability-of-data-and-materials)
 Data:
-Data located:
 * [Zenodo](https://zenodo.org/records/6642503)
 * [GEO](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE185307)
 Zenodo is the method recommended by the authors
-Data accessed by:
 
 Samples:
 13 files:
@@ -43,36 +92,7 @@ bc8 and bc9 have the lowest tumour fraction of the samples
 bc10 and bc11 have the highest tumour fraction
 
 
-
-## RRBS
-2. Encode RRBS cell-line
-
-[encode rrbs fastqs avail](https://www.encodeproject.org/search/?type=Experiment&control_type%21=%2A&related_series.%40type=ReferenceEpigenome&replicates.library.biosample.donor.organism.scientific_name=Homo+sapiens&status=released&assay_title=RRBS)
-* has 13 rrbs data sets
-
-[GM12878 cell line](https://www.encodeproject.org/experiments/ENCSR000DFT/)
-* it's a lymphoblastoid cell line
-* picked it because it has no cancer or anything else - a few had cancer
-* also immune cells - nice and have used before
-* also it's blood - which ties in with my cell free analysis
-
-* has 2 technical replicates
-* single end this time
-
-* processed fastq with bismark
-
-** USING THIS ONE
-ENCFF000LYO
-** OOH ITS HG19
-
-2a. [K562 cell line](https://www.encodeproject.org/experiments/ENCSR000DFK/)
-* hg19
-* erythroleukaemia cell line
-* patient with CML - chronic myeloid leukaemia 
-* bcr-abl1 positive
-
-## WGBS
-3. BSseq pancreatic cancer
+# WGBS Pancreatic cancer and normal
 Paper: [Epigenomic reprogramming during pancreatic cancer progression links anabolic glucose metabolism to distant metastasis](https://www.nature.com/articles/ng.3753)
 [GEO](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE63123)
 has 19 samples
@@ -122,14 +142,15 @@ z: unmethylated
 [source](https://toolshed.g2.bx.psu.edu/repository/display_tool?repository_id=0df2df1072d600d7&tool_config=%2Fsrv%2Ftoolshed-repos%2Fmain%2F000%2Frepo_463%2Fbismark_methylation_extractor.xml&changeset_revision=8c191acde702&render_repository_actions_for=tool_shed)
 
 
-## maybe use
+
+# Other datasets
 [roadmap epigenome](https://egg2.wustl.edu/roadmap/web_portal/)
 * still need to do some digging to find the files
 * the paper data is used in the BSmooth paper
 [GEO](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE16256)
 [paper](https://www.nature.com/articles/nature08514#accession-codes) 2009
 
-# cancer cell line encyclopedia = come back to this one
+## cancer cell line encyclopedia = come back to this one
 https://sites.broadinstitute.org/ccle/datasets
 https://depmap.org/portal/data_page/?tab=allData
 promoter data 
@@ -137,33 +158,15 @@ promoter data
 [raw data](https://www.ncbi.nlm.nih.gov/sra/?term=PRJNA523380+rrbs)
 * fastq files
 
-## Identified but unused data sets
-
-# breast cancer
+## breast cancer
 [paper](https://www.nature.com/articles/s41467-021-25661-w#data-availability)
+* fastqs on request
 
-just has a link to download processed methylation values so we'll see
-also has fastq upon request
-
-# healthy indiv neutrophils rrbs
+## healthy indiv neutrophils rrbs
 Genome-scale DNA methylome and transcriptome profiling of human neutrophils
 [paper](https://www.nature.com/articles/sdata201619#Sec12)
 [GEO](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE59163)
 * potentially
 13 samples
 * GSE table files
-```{r}
-#read.table("../data/rrbs/neutrophil_paper_2016/GSE59163_RAW/GSM1429638_X9006_ad3tr65.fastq_bismark.sam_methpcNF2t10.txt.gz")
-```
-* no column names
-* guess: v4 = num meth, v5 = num unmeth, v7 = beta as %
-```{r}
-(92)/(92+8) * 100
-52/(52+3)*100
-```
-* nope they don't match
 
-# [rrbsdata (bioconductor package)](https://bioconductor.org/packages/release/data/experiment/html/RRBSdata.html)
-has 12 samples
-this is the paper they got the data from: https://ashpublications.org/blood/article/121/1/178/31062/DNA-methylation-changes-are-a-late-event-in-acute
-* data was not available at the read level
