@@ -243,3 +243,400 @@ rrbs_plot <- function(long_data, read_ids, cpgs = cg_sites) {
 ```
 
 
+# plotting layers
+* I'm borrowing from my previous work with Damsel
+* create ggplot2 layers that I can then pile up together
+* probably also want a function that just plots them all together - given that I'm having some trouble with layers
+
+## reads
+* coloured by alpha band
+
+```{r}
+rrbs_plot5 <- function(read_data, read_ids, cpgs = cg_sites, jit_amount = 0.1) {
+  set.seed(42) # For reproducibility
+  # Calculate a single jitter amount per row (segment)
+  read_data <- read_data %>% dplyr::filter(read_id %in% read_ids)
+  jitter_amount <- runif(nrow(read_data), -jit_amount, jit_amount)
+  read_data$alpha_jit <- read_data$alpha + jitter_amount
+  read_data <- data.frame(read_data)
+
+  # Add jittered coordinates to new columns in the data frame
+  long_data <- read_data %>%
+    mutate(meth_status = strsplit(meth_pattern, ""), start = strsplit(genom_positions, ",")) %>%
+    unnest(meth_status, start) %>%
+    mutate(start = as.double(start))
+  
+  chr <- unique(read_data$seqnames)
+  min_start <- min(read_data$read_start)
+  max_end <- max(read_data$read_end)
+  
+  read_data <- read_data %>% mutate(alpha_group = factor(alpha_group, levels = c("a < 0.2", "0.2 <= a <= 0.4", "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8")))
+  
+  plot <- read_data %>%
+    ggplot() +
+    geom_segment(aes(x = read_start, xend = read_end, y = alpha_jit, yend = alpha_jit, colour = alpha_group)) +
+    geom_point(data = long_data,
+               aes(x = start, y = alpha_jit, fill = meth_status, colour = alpha_group), shape = 21) +
+    scale_fill_manual(values = c("U" = "white", "M" = "black")) +
+    facet_wrap(~ type, nrow=2) +
+    labs(title = paste0(chr, ":", min_start, "-", max_end)) 
+  plot
+}
+```
+
+```{r}
+rrbs_plot5 <- function(read_data, read_ids, cpgs = cg_sites, jit_amount = 0.1) {
+  set.seed(42) # For reproducibility
+  # Calculate a single jitter amount per row (segment)
+  read_data <- read_data %>% dplyr::filter(read_id %in% read_ids)
+  jitter_amount <- runif(nrow(read_data), -jit_amount, jit_amount)
+  read_data$alpha_jit <- read_data$alpha + jitter_amount
+  read_data <- data.frame(read_data)
+
+  # Add jittered coordinates to new columns in the data frame
+  long_data <- read_data %>%
+    mutate(meth_status = strsplit(meth_pattern, ""), start = strsplit(genom_positions, ",")) %>%
+    unnest(meth_status, start) %>%
+    mutate(start = as.double(start))
+
+  chr <- unique(read_data$seqnames)
+  min_start <- min(read_data$read_start)
+  max_end <- max(read_data$read_end)
+
+  plot <- read_data %>%
+    ggplot() +
+    geom_segment(aes(x = read_start, xend = read_end,
+                     y = alpha_jit, yend = alpha_jit, colour = alpha_group)) +
+    geom_point(data = long_data,
+               aes(x = start, y = alpha_jit,
+                   fill = meth_status, colour = alpha_group), shape = 21) +
+    scale_fill_manual(values = c("U" = "white", "M" = "black")) +
+    facet_wrap(~ type, nrow=2) +
+    labs(title = paste0(chr, ":", min_start, "-", max_end))
+  plot
+}
+```
+
+*rewritten efficient function (hopefully)
+```{r}
+rrbs_plot5 <- function(read_data, read_ids, cpgs = cg_sites, jit_amount = 0.1) {
+  set.seed(42)
+
+  # ── 1. Fast filter ────────────────────────────────────────────────────────
+  # data.table key lookup is O(log n) vs dplyr's O(n) scan on 700M rows.
+  # Call setkey(read_data, read_id) ONCE after loading your data, outside
+  # this function, so the sort cost isn't paid on every plot call.
+  if (!inherits(read_data, "data.table")) {
+    data.table::setDT(read_data)          # in-place: no 700M-row copy
+  }
+
+  if (!is.null(data.table::key(read_data)) &&
+      data.table::key(read_data)[1] == "read_id") {
+    filtered <- read_data[.(read_ids), nomatch = NULL]   # binary-search join
+  } else {
+    filtered <- read_data[read_id %chin% read_ids]       # %chin% = fast string %in%
+  }
+
+  # ── 2. Jitter (in-place, no copy) ─────────────────────────────────────────
+  n <- nrow(filtered)
+  data.table::set(filtered, j = "alpha_jit",
+                  value = filtered$alpha + runif(n, -jit_amount, jit_amount))
+
+  # ── 3. Summary stats before expansion (cheap on filtered rows) ────────────
+  chr       <- filtered[, unique(seqnames)]
+  min_start <- filtered[, min(read_start)]
+  max_end   <- filtered[, max(read_end)]
+
+  # ── 4. Vectorised expansion — replaces strsplit+mutate+unnest ─────────────
+  # strsplit returns a list; unlist + rep lets us do it in one vectorised pass
+  # instead of unnest()'s slow row-by-row expansion.
+  ms_list <- strsplit(filtered$meth_pattern,  "")
+  st_list <- strsplit(filtered$genom_positions, ",")
+  lens    <- lengths(ms_list)              # number of CpGs per read
+  idx     <- rep(seq_len(n), lens)         # row index for each expanded position
+
+  long_data <- data.table::data.table(
+    meth_status = unlist(ms_list, use.names = FALSE),
+    start       = as.double(unlist(st_list, use.names = FALSE)),
+    alpha_jit   = filtered$alpha_jit[idx],
+    alpha_group = filtered$alpha_group[idx],
+    type        = filtered$type[idx]
+  )
+
+  # ── 5. Plot (ggplot works directly with data.table) ───────────────────────
+  ggplot(filtered) +
+    geom_segment(aes(x = read_start, xend = read_end,
+                     y = alpha_jit,  yend = alpha_jit,
+                     colour = alpha_group)) +
+    geom_point(data = long_data,
+               aes(x = start, y = alpha_jit,
+                   fill = meth_status, colour = alpha_group),
+               shape = 21) +
+    scale_fill_manual(values = c("U" = "white", "M" = "black")) +
+    facet_wrap(~ type, nrow = 2) +
+    labs(title = paste0(chr, ":", min_start, "-", max_end))
+}
+data.table::setDT(read_data)
+data.table::setkey(read_data, read_id)
+```
+
+* using paraquet for the read file because it's big
+* meaning that the read file won't be in memory - paraquet calls the bits that are needed each time
+```{r}
+rrbs_plot5 <- function(read_data_path, read_ids, cpgs = cg_sites,
+                       jit_amount = 0.1) {
+  set.seed(42)
+
+  # ── 1. Read only the matching rows — never loads unmatched data into RAM ───
+  filtered <- arrow::open_dataset(read_data_path) |>
+    dplyr::filter(read_id %in% read_ids) |>
+    dplyr::collect()                       # Arrow translates this to a
+                                           # pushdown predicate at read time
+
+  # ── 2. Jitter ─────────────────────────────────────────────────────────────
+  n <- nrow(filtered)
+  filtered$alpha_jit <- filtered$alpha + runif(n, -jit_amount, jit_amount)
+
+  # ── 3. Summary stats ──────────────────────────────────────────────────────
+  chr       <- unique(filtered$seqnames)
+  min_start <- min(filtered$read_start)
+  max_end   <- max(filtered$read_end)
+
+  # ── 4. Vectorised expansion ───────────────────────────────────────────────
+  ms_list <- strsplit(filtered$meth_pattern,    "")
+  st_list <- strsplit(filtered$genom_positions, ",")
+  lens    <- lengths(ms_list)
+  idx     <- rep(seq_len(n), lens)
+
+  long_data <- data.frame(
+    meth_status = unlist(ms_list, use.names = FALSE),
+    start       = as.double(unlist(st_list, use.names = FALSE)),
+    alpha_jit   = filtered$alpha_jit[idx],
+    alpha_group = filtered$alpha_group[idx],
+    type        = filtered$type[idx]
+  )
+
+  # ── 5. Plot ───────────────────────────────────────────────────────────────
+  ggplot(filtered) +
+    geom_segment(aes(x = read_start, xend = read_end,
+                     y = alpha_jit,  yend = alpha_jit,
+                     colour = alpha_group)) +
+    geom_point(data = long_data,
+               aes(x = start, y = alpha_jit,
+                   fill = meth_status, colour = alpha_group),
+               shape = 21) +
+    scale_fill_manual(values = c("U" = "white", "M" = "black")) +
+    facet_wrap(~ type, nrow = 2) +
+    labs(title = paste0(chr, ":", min_start, "-", max_end))
+}
+```
+
+
+## beta
+
+```{r}
+geom_beta <- function(all_b, plot.space=1, plot.height=1) {
+    structure(list(all_b = all_b, plot.space = plot.space,
+        plot.height = plot.height),
+        class = "beta"
+    )
+}
+
+ggplot_add.beta <- function(object, plot, object_name) {
+plot2 <- plot
+    while (inherits(plot2, "patchwork")) {
+        plot2 <- plot2[[1]]
+    }
+    plot.data <- plot2$labels$title
+    plot.data <- stringr::str_split_1(plot.data, ":")
+    # prepare plot range
+    # the plot region are not normal, so start is minimum value
+    plot.chr <- plot.data[1]
+    plot.data <- stringr::str_split_1(plot.data[2], "-")
+    plot.region.start <- plot.data[1] %>% as.numeric()
+    plot.region.end <- plot.data[2] %>% as.numeric()
+    
+    all_b <- object$all_b
+    plot.space <- object$plot.space
+    plot.height <- object$plot.height
+    
+    all_b <- all_b %>%
+  tidyr::pivot_longer(cols = c(cancer_0223, cancer_0224, cancer_0225, cancer_0454, cancer_0456, cancer_0457, healthy_036, healthy_037, healthy_785, healthy_786, healthy_787, healthy_789), names_to = "sample", values_to = "beta") %>% mutate(type = substr(sample, 1, 1)) %>% filter(seqnames.x %in% plot.chr,
+                                start.x >= plot.region.start,
+                                start.x <= plot.region.end)
+    
+    b_plot <- all_b %>%
+  ggplot(aes(x = start.x, y = beta, colour = type)) +
+  geom_point(alpha = 0.3) 
+  #    facet_wrap(~type, nrow = 2)
+    
+    patchwork::wrap_plots(plot + ggplot2::theme(plot.margin = ggplot2::margin(t = plot.space, b = plot.space)),
+        b_plot,
+        ncol = 1, heights = c(1, plot.height)
+    )
+}
+```
+
+
+## theme for dau/dmr
+```{r}
+..peakGatcTheme <- function(margin.len, x.range) {
+    list(
+        ggplot2::theme_classic(),
+        ggplot2::theme(
+            axis.line.y = ggplot2::element_blank(),
+            axis.text.y = ggplot2::element_blank(),
+            axis.title.y.right = ggplot2::element_text(color = "black", angle = 90, vjust = 0.5),
+            axis.ticks.y = ggplot2::element_blank(),
+            axis.text.x = ggplot2::element_blank(),
+            axis.title.x = ggplot2::element_blank(),
+            axis.ticks.x = ggplot2::element_blank(),
+            panel.border = ggplot2::element_rect(colour = "black", fill = NA, linewidth = 1),
+            plot.margin = ggplot2::margin(t = margin.len, b = margin.len)
+        ),
+        ggplot2::scale_y_continuous(
+            limits = c(1 - 0.1, 1 + 0.1),
+            expand = c(0, 0), position = "right"
+        ),
+        ggplot2::scale_x_continuous(expand = c(0, 0)),
+        ggplot2::coord_cartesian(xlim = x.range)
+    )
+}
+```
+
+## dau
+
+```{r}
+geom_dau <- function(
+    dau.df=NULL, dau.label=FALSE, dau.color="black", dau.size=5,
+    plot.space=0.1, plot.height=0.05) {
+    structure(
+        list(
+            dau.df = dau.df, dau.label = dau.label, dau.color = dau.color, dau.size = dau.size,
+            plot.space = plot.space, plot.height = plot.height
+        ),
+        class = "dau"
+    )
+}
+
+
+#' @export
+ggplot_add.dau <- function(object, plot, object_name) {
+    if (!is.data.frame(object$dau.df)) {
+        stop("data.frame of daus is required")
+    }
+    plot2 <- plot
+    while (inherits(plot2, "patchwork")) {
+        plot2 <- plot2[[1]]
+    }
+    plot.data <- plot2$labels$title
+    plot.data <- stringr::str_split_1(plot.data, ":")
+
+    plot.chr <- plot.data[1]
+    plot.data <- stringr::str_split_1(plot.data[2], "-")
+    plot.region.start <- plot.data[1] %>% as.numeric()
+    plot.region.end <- plot.data[2] %>% as.numeric()
+
+    # get parameters
+    dau.df <- object$dau.df
+    dau.label <- object$dau.label
+    dau.color <- object$dau.color
+    dau.size <- object$dau.size
+    plot.space <- object$plot.space
+    plot.height <- object$plot.height
+
+    dau.df <- dau.df %>% filter(seqnames %in% plot.chr,
+                                start >= plot.region.start,
+                                end <= plot.region.end, 
+                                FDR < 0.05) 
+  
+    dau.plot <- dau.df %>%
+            ggplot2::ggplot(ggplot2::aes(x = .data$start, y = 1)) +
+            ggplot2::geom_segment(
+                mapping = ggplot2::aes(
+                    x = .data$start, y = 1,
+                    xend = .data$end, yend = 1
+                ),
+                linewidth = dau.size, color = dau.color
+            ) +
+      labs(y = "dau") +
+      ..peakGatcTheme(margin.len = plot.space, x.range = c(plot.region.start, plot.region.end))
+
+    # assemble plot
+    patchwork::wrap_plots(plot + ggplot2::theme(plot.margin = ggplot2::margin(t = plot.space, b = plot.space)),
+        dau.plot,
+        ncol = 1, heights = c(1, plot.height)
+    )
+}
+```
+
+
+## dmr
+
+```{r}
+geom_dmr <- function(
+    dmr.df=NULL, dmr.label=FALSE, dmr.color="black", dmr.size=5,
+    plot.space=0.1, plot.height=0.05) {
+    structure(
+        list(
+            dmr.df = dmr.df, dmr.label = dmr.label, dmr.color = dmr.color, dmr.size = dmr.size,
+            plot.space = plot.space, plot.height = plot.height
+        ),
+        class = "dmr"
+    )
+}
+
+
+#' @export
+ggplot_add.dmr <- function(object, plot, object_name) {
+    if (!is.data.frame(object$dmr.df)) {
+        stop("data.frame of dmr is required")
+    }
+    plot2 <- plot
+    while (inherits(plot2, "patchwork")) {
+        plot2 <- plot2[[1]]
+    }
+    plot.data <- plot2$labels$title
+    plot.data <- stringr::str_split_1(plot.data, ":")
+
+    plot.chr <- plot.data[1]
+    plot.data <- stringr::str_split_1(plot.data[2], "-")
+    plot.region.start <- plot.data[1] %>% as.numeric()
+    plot.region.end <- plot.data[2] %>% as.numeric()
+
+    # get parameters
+    dmr.df <- object$dmr.df
+    dmr.label <- object$dmr.label
+    dmr.color <- object$dmr.color
+    dmr.size <- object$dmr.size
+    plot.space <- object$plot.space
+    plot.height <- object$plot.height
+    
+    dmr.df <- dmr.df %>% filter(seqnames %in% plot.chr,
+                                start >= plot.region.start,
+                                end <= plot.region.end)
+    
+   # dmr.df <-  dmr.df %>% mutate(score = c(1,1,1)) 
+    dmr.plot <- dmr.df %>%
+            ggplot2::ggplot(ggplot2::aes(x = .data$start, y = 1)) +
+            ggplot2::geom_segment(
+                mapping = ggplot2::aes(
+                    x = .data$start, y = 1,
+                    xend = .data$end, yend = 1
+                ),
+                linewidth = dmr.size, color = dmr.color
+            ) +
+      labs(y = "dmr") +
+      ..peakGatcTheme(margin.len = plot.space, x.range = c(plot.region.start, plot.region.end))
+
+    # assemble plot
+    patchwork::wrap_plots(plot + ggplot2::theme(plot.margin = ggplot2::margin(t = plot.space, b = plot.space)),
+        dmr.plot,
+        ncol = 1, heights = c(1, plot.height)
+    )
+}
+```
+
+
+## reads 
+
