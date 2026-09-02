@@ -21,6 +21,7 @@ library(tidyr)
 library(stringr)
 library(dplyr)
 library(ggplot2)
+library(edgeR)
 ```
 
 ## Tile genome
@@ -229,7 +230,7 @@ rm(cancer_samples)
 ```
 
 
-```{r}
+```{r, eval=FALSE}
 # overlap tiles and reads
 overlap_pos <- find_overlaps(as_granges(tiles_500bp_cg), as_granges(all_samples)) %>% data.frame()
 
@@ -241,7 +242,7 @@ dtu_optile <- overlap_pos %>%
                                  alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
                                  alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
                                  alpha <= 0.6 & alpha <= 0.8 ~ "0.6 <= a <= 0.8",
-                                 TRUE ~ "a > 0.8",), 
+                                 TRUE ~ "a > 0.8"), 
          transcript = paste0(tile_id, "_", alpha_group)) %>%
   group_by(sample, transcript) %>%
   summarise(transcript_count = n()) %>% ungroup() %>% data.frame()
@@ -270,11 +271,15 @@ saveRDS(dau_basictiles, "/researchers/caitlin.page/cf_nano/r_output/dtu_basictil
 
 ```
 
+```{r}
+dau_basictiles <- readRDS("/researchers/caitlin.page/cf_nano/r_output/dtu_basictiles_emseq_cancer_healthy.rds")
+```
 
 # Explore results
 
 ```{r}
 dau_basictiles %>% filter(FDR < 0.05) %>% nrow()
+dau_basictiles %>% filter(FDR >= 0.05) %>% nrow()
 ```
 
 
@@ -282,6 +287,31 @@ dau_basictiles %>% filter(FDR < 0.05) %>% nrow()
 dau_basictiles %>% mutate(signif = ifelse(FDR < 0.05, TRUE, FALSE), tile = "tile") %>%
   ggplot(aes(x = tile, fill = signif)) +
   geom_bar(position = "fill")
+```
+
+## which chromosomes?
+
+* see if I can have an easy subset of reads
+```{r}
+dau_basictiles %>% filter(FDR < 0.05) %>%
+  ggplot(aes(x = seqnames, fill = seqnames)) +
+  geom_bar() +
+  theme(legend.position = "none") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+dau_basictiles[1:10,] %>%
+  ggplot(aes(x = seqnames, fill = seqnames)) +
+  geom_bar() +
+  theme(legend.position = "none") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+dau_basictiles[1:200,] %>%
+  ggplot(aes(x = seqnames, fill = seqnames)) +
+  geom_bar() +
+  theme(legend.position = "none") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
 
@@ -306,12 +336,6 @@ rrbs_plot5 <- function(read_data, read_ids, cpgs = cg_sites, jit_amount = 0.1) {
   min_start <- min(read_data$read_start)
   max_end <- max(read_data$read_end)
 
-  read_data <- read_data %>%
-    mutate(alpha_group =
-             factor(alpha_group,
-                    levels = c("a < 0.2", "0.2 <= a <= 0.4",
-                               "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8")))
-
   plot <- read_data %>%
     ggplot() +
     geom_segment(aes(x = read_start, xend = read_end,
@@ -324,6 +348,23 @@ rrbs_plot5 <- function(read_data, read_ids, cpgs = cg_sites, jit_amount = 0.1) {
     labs(title = paste0(chr, ":", min_start, "-", max_end))
   plot
 }
+```
+
+```{r}
+all_samples <- all_samples %>% mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                 alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                 alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                 alpha <= 0.6 & alpha <= 0.8 ~ "0.6 <= a <= 0.8",
+                                 TRUE ~ "a > 0.8"),
+           alpha_group =
+             factor(alpha_group,
+                    levels = c("a < 0.2", "0.2 <= a <= 0.4",
+                               "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8")))
+```
+
+```{r}
+reads <- find_overlaps(dau_basictiles %>% filter(FDR < 0.05) %>% .[1,] %>% as_granges(), as_granges(all_samples)) %>% data.frame() %>% .$read_id
+rrbs_plot5(all_samples, reads)
 ```
 
 
@@ -367,6 +408,108 @@ dau_optiles <- readRDS("/researchers/caitlin.page/cf_nano/r_output/dtu_tiles_ems
 dau_basictiles %>% filter(FDR < 0.05) %>% nrow()
 dau_optiles %>% filter(FDR < 0.05) %>% nrow()
 ```
+
+```{r}
+tile_overlap <- find_overlaps(as_granges(mutate(dau_basictiles, tiling = "basic")), as_granges(mutate(dau_optiles, tiling = "optiles"))) %>% data.frame()
+```
+
+
+## compare the tile positions
+
+```{r}
+bas_gr <- as_granges(mutate(dau_basictiles, tiling = "basic"))
+op_gr <- as_granges(mutate(dau_optiles, tiling = "optiles"))
+```
+
+```{r}
+hits <- findOverlaps(as_granges(mutate(dau_basictiles, tiling = "basic")), as_granges(mutate(dau_optiles, tiling = "optiles")))
+
+cat("basic regions:", length(bas_gr), "\n")
+cat("optiles regions:", length(op_gr), "\n")
+cat("basic with ≥1 overlap:", length(unique(queryHits(hits))), "\n")
+cat("optiles with ≥1 overlap:", length(unique(subjectHits(hits))), "\n")
+```
+
+```{r}
+# Create a consensus locus set from the union of both
+consensus <- reduce(c(bas_gr, op_gr))  # merges all overlapping regions into one
+
+# For each consensus locus, find best FDR from method 1
+hits1 <- findOverlaps(consensus, bas_gr)
+best1 <- as.data.frame(hits1) %>%
+  mutate(fdr = bas_gr$FDR[subjectHits]) %>%
+  group_by(queryHits) %>%
+  slice_min(fdr, n = 1) %>%           # best (lowest) FDR per locus
+  rename(locus_idx = queryHits)
+
+# Same for method 2
+hits2 <- findOverlaps(consensus, op_gr)
+best2 <- as.data.frame(hits2) %>%
+  mutate(fdr = op_gr$FDR[subjectHits]) %>%
+  group_by(queryHits) %>%
+  slice_min(fdr, n = 1) %>%
+  rename(locus_idx = queryHits)
+
+# Join — NA where a locus has no coverage in one method
+comparison <- full_join(
+  best1 %>% select(locus_idx, fdr_m1 = fdr),
+  best2 %>% select(locus_idx, fdr_m2 = fdr),
+  by = "locus_idx"
+)
+
+# Loci covered by both methods only
+both_covered <- comparison %>% filter(!is.na(fdr_m1) & !is.na(fdr_m2))
+```
+
+```{r}
+# Rank correlation (robust to the heavy skew in FDR values)
+cor(-log10(both_covered$fdr_m1), -log10(both_covered$fdr_m2), method = "spearman")
+
+# Agreement on significant calls
+table(
+  sig_m1 = both_covered$fdr_m1 < 0.05,
+  sig_m2 = both_covered$fdr_m2 < 0.05
+)
+
+# Scatter
+ggplot(both_covered, aes(-log10(fdr_m1), -log10(fdr_m2))) +
+  geom_point(alpha = 0.2, size = 0.8) +
+  geom_abline(colour = "red", linetype = "dashed") +
+  labs(x = "Method 1  –log10(FDR)", y = "Method 2  –log10(FDR)",
+       title = sprintf("n = %d shared loci", nrow(both_covered)))
+```
+
+
+
+```{r}
+ggplot(both_covered, aes(-log10(fdr_m1), -log10(fdr_m2))) +
+  geom_point(alpha = 0.2, size = 0.8) +
+  geom_abline(colour = "red", linetype = "dashed") +
+  labs(x = "Basic  –log10(FDR)", y = "OPtiles  –log10(FDR)",
+       title = sprintf("n = %d shared loci", nrow(both_covered)))
+```
+
+```{r}
+tile_overlap
+```
+
+
+```{r}
+ggVennDiagram::ggVennDiagram(list(basic = tile))
+```
+
+
+```{r}
+overlap_df <- data.frame(
+  fdr_basic  = bas_gr$FDR[queryHits(hits)],
+  fdr_optiles  = op_gr$FDR[subjectHits(hits)],
+  pval_basic = bas_gr$PValue[queryHits(hits)],
+  pval_optiles = op_gr$PValue[subjectHits(hits)],
+  overlap_bp   = width(pintersect(bas_gr[queryHits(hits)], op_gr[subjectHits(hits)]))
+)
+```
+mmmmmmmmmmmmmmmmm
+
 
 
 ```{r}
