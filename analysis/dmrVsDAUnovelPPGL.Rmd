@@ -1,0 +1,1113 @@
+---
+title: "dmrVsDAUnovelPPGL"
+author: "caitlinpage"
+date: "2026-09-02"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+```{r}
+# ============================================================
+# DMR Novelty Analysis — Normal vs Cell-Free PPGL
+# ============================================================
+# Sections:
+#   0. Packages & setup
+#   1. EWAS Catalog overlap
+#   2. Published PPGL GEO datasets comparison
+#   3. LOLA — feature database enrichment
+#   4. Known PPGL-specific loci (imprinting, TSGs, SDHx)
+#   5. Tiered novelty classification & summary
+# ============================================================
+
+# ── 0. Packages & setup ──────────────────────────────────────
+
+
+# devtools::install_github("MRCIEU/ewascatalog")  # EWAS Catalog R client
+# If ewascatalog is unavailable, Section 1 uses the direct TSV download fallback
+
+library(GenomicRanges)
+library(IRanges)
+library(AnnotationHub)
+library(GEOquery)
+library(LOLA)
+library(TxDb.Hsapiens.UCSC.hg38.knownGene)
+library(org.Hs.eg.db)
+library(rtracklayer)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(patchwork)
+library(ggrepel)
+library(data.table)
+```
+
+```{r}
+dmr_emseq <- readRDS("/researchers/caitlin.page/cf_nano/r_output/dmr_emseq_strict.rds")
+dmr_emseq <- dmr_emseq %>% .[order(.$min_smoothed_fdr),] %>% mutate(dmr_rank = 1:n())
+```
+
+```{r}
+GENOME <- "hg38"   # change to "hg19" if your DMRs are GRCh37
+
+# ── Load DMRs (same as validity script) ─────────────────────
+# Replace with your actual DMR GRanges object.
+
+# dmrs_gr <- readRDS("your_dmrs.rds")
+# -- or rebuild from the validity script output --
+
+set.seed(42)
+dmrs_gr <- makeGRangesFromDataFrame(
+  dmr_emseq %>%
+    mutate(
+      direction = ifelse(meandiff > 0, "hyper", "hypo"),
+      dmr_id    = paste0("DMR_", dmr_rank)
+    ),
+  seqnames.field     = "seqnames",
+  start.field        = "start",
+  end.field          = "end",
+  strand.field       = "strand",
+  keep.extra.columns = TRUE
+)
+seqlevelsStyle(dmrs_gr) <- "UCSC"
+
+# Initialise a novelty label column — will be filled in section 5
+dmrs_gr$novelty_tier <- "unknown"
+```
+
+
+```{r}
+# ── 1. EWAS Catalog ─────────────────────────────────────────
+# Tests whether CpGs within your DMRs have previously reported
+# associations in published EWAS studies.
+# Absence of hits = novelty evidence.
+# Presence of hits = known biology to contextualise.
+
+cat("\n── Section 1: EWAS Catalog ──\n")
+
+## Option A: ewascatalog R package (preferred)
+ewas_hits <- tryCatch({
+  library(ewascatalog)
+  # Extract midpoints of DMRs as representative CpG positions
+  dmr_mids <- as.data.frame(dmrs_gr) %>%
+    mutate(pos = start + floor((end - start) / 2)) %>%
+    select(seqnames, pos, dmr_id)
+
+  # Query catalog for each chromosome/position
+  results <- lapply(seq_len(nrow(dmr_mids)), function(i) {
+    tryCatch(
+      ewascatalog(
+        chromosome = gsub("chr", "", dmr_mids$seqnames[i]),
+        position   = dmr_mids$pos[i],
+        radius     = 500   # bp window around DMR midpoint
+      ),
+      error = function(e) NULL
+    )
+  })
+  bind_rows(results)
+}, error = function(e) {
+  message("ewascatalog package not available — falling back to direct download")
+  NULL
+})
+
+## Option B: direct TSV download (fallback)
+if (is.null(ewas_hits) || nrow(ewas_hits) == 0) {
+  ewas_url  <- "https://www.ewascatalog.org/static/docs/ewascatalog-results.txt.gz"
+  ewas_file <- "ewascatalog_results.txt.gz"
+  if (!file.exists(ewas_file)) {
+    download.file(ewas_url, ewas_file)
+  }
+  ewas_all <- fread(ewas_file)
+
+  # Build GRanges for all EWAS CpG hits
+  # Columns vary by version; common names shown — inspect with names(ewas_all)
+  cpg_col <- intersect(c("cpg", "CpG", "probe"), names(ewas_all))[1]
+  chr_col  <- intersect(c("chromosome", "chr", "CHR"), names(ewas_all))[1]
+  pos_col  <- intersect(c("position", "pos", "BP"), names(ewas_all))[1]
+
+  ewas_gr <- GRanges(
+    seqnames = paste0("chr", ewas_all[[chr_col]]),
+    ranges   = IRanges(start = ewas_all[[pos_col]], width = 1)
+  )
+  mcols(ewas_gr) <- ewas_all[, !names(ewas_all) %in% c(chr_col, pos_col), with = FALSE]
+  seqlevelsStyle(ewas_gr) <- "UCSC"
+
+  # Overlap with DMRs
+  hits_ewas <- findOverlaps(ewas_gr, dmrs_gr)
+  ewas_hits <- as.data.frame(mcols(ewas_gr[queryHits(hits_ewas)])) %>%
+    mutate(dmr_id = dmrs_gr$dmr_id[subjectHits(hits_ewas)])
+}
+
+cat("EWAS Catalog hits overlapping DMRs:", nrow(ewas_hits), "\n")
+
+if (nrow(ewas_hits) > 0) {
+  # Trait summary
+  trait_col <- intersect(c("trait", "Trait", "phenotype"), names(ewas_hits))[1]
+  if (!is.na(trait_col)) {
+    trait_summary <- ewas_hits %>%
+      dplyr::count(.data[[trait_col]], sort = TRUE) %>%
+      head(20)
+    cat("\nTop EWAS traits:\n")
+    print(trait_summary)
+
+    p_ewas <- ggplot(head(trait_summary, 15),
+                     aes(x = reorder(.data[[trait_col]], n), y = n)) +
+      geom_col(fill = "#7b2d8b") +
+      coord_flip() +
+      labs(title = "EWAS Catalog traits overlapping PPGL cfDNA DMRs",
+           x = NULL, y = "Number of CpG associations") +
+      theme_bw(base_size = 11)
+    print(p_ewas)
+  }
+
+  # Mark DMRs with EWAS hits
+  ewas_dmr_ids <- unique(ewas_hits$dmr_id)
+  dmrs_gr$novelty_tier[dmrs_gr$dmr_id %in% ewas_dmr_ids] <- "known_ewas"
+}
+```
+
+
+```{r}
+# ── 2. Published PPGL GEO Datasets ──────────────────────────
+# Downloads published PPGL 450K/EPIC methylation datasets from GEO
+# and checks overlap of differentially methylated CpGs with your DMRs.
+# Replication in independent tissue data = validity + reduced novelty.
+# No overlap = cfDNA-specific or genuinely novel loci.
+#
+# Key PPGL GEO datasets:
+#   GSE93376  — EPIC methylation, various PPGL subtypes (Crona et al.)
+#   GSE19987  — 450K methylation, PPGL with SDH/VHL/RET subtypes
+#   GSE137034 — PPGL with MAML3 fusions
+# Add more as the literature grows.
+ 
+cat("\n── Section 2: Published PPGL GEO Datasets ──\n")
+ 
+# ── Notes on these datasets ──────────────────────────────────
+# GSE93376, GSE19987, GSE137034 are ALL tumour-only cohorts:
+# they compare PPGL molecular subtypes (e.g. SDHx vs RET/NF1/VHL).
+# There are no normal tissue controls, so the comparison used here is:
+#   Group A = SDHx/pseudohypoxia cluster (hypermethylator phenotype)
+#   Group B = kinase-signalling cluster (RET, NF1, TMEM127, MAX)
+# Probes with |delta beta| ≥ 0.1 between groups are treated as
+# "differentially methylated in PPGL tissue" for overlap purposes.
+#
+# Probe coordinates are hg19 → lifted to hg38 before overlapping.
+#
+# ── HPC / firewall note ──────────────────────────────────────
+# If getGEO() fails (network restrictions on HPC), download the
+# series matrix files manually on your local machine and copy them:
+#
+#   wget -P geo_data/ \
+#     "https://ftp.ncbi.nlm.nih.gov/geo/series/GSE93nnn/GSE93376/matrix/GSE93376_series_matrix.txt.gz"
+#   wget -P geo_data/ \
+#     "https://ftp.ncbi.nlm.nih.gov/geo/series/GSE19nnn/GSE19987/matrix/GSE19987_series_matrix.txt.gz"
+#   wget -P geo_data/ \
+#     "https://ftp.ncbi.nlm.nih.gov/geo/series/GSE137nnn/GSE137034/matrix/GSE137034_series_matrix.txt.gz"
+#
+# Then set: GEO_LOCAL_DIR <- "geo_data"
+# The script will use local files automatically when present.
+ 
+GEO_LOCAL_DIR <- "/researchers/caitlin.page/cf_nano/r_output/geo_data"   # set to NULL to force download
+ 
+library(rtracklayer)
+ 
+# ── Quick connectivity test ──────────────────────────────────
+geo_reachable <- tryCatch({
+  con <- url("https://ftp.ncbi.nlm.nih.gov/geo/", open = "r", timeout = 10)
+  close(con); TRUE
+}, error = function(e) FALSE, warning = function(w) FALSE)
+ 
+if (!geo_reachable) {
+  cat("⚠  GEO FTP is not reachable from this node.\n")
+  cat("   Download the series matrix files manually (see wget commands above)\n")
+  cat("   and place them in:", GEO_LOCAL_DIR, "\n")
+} else {
+  cat("GEO FTP reachable — will attempt live download.\n")
+}
+ 
+# Chain file (also used in validity script)
+chain_file <- "hg19ToHg38.over.chain"
+if (!file.exists(chain_file)) {
+  chain_url <- "https://hgdownload.soe.ucsc.edu/goldenPath/hg19/liftOver/hg19ToHg38.over.chain.gz"
+  tmp_gz <- paste0(chain_file, ".gz")
+  download.file(chain_url, tmp_gz, mode = "wb", quiet = FALSE)
+  R.utils::gunzip(tmp_gz, destname = chain_file, remove = TRUE)
+}
+chain_hg19_hg38 <- import.chain(chain_file)
+ 
+PPGL_GEO_IDS <- c("GSE93376", "GSE19987", "GSE137034")
+ 
+fetch_geo_dmps <- function(geo_id, delta_thresh = 0.1,
+                           local_dir = GEO_LOCAL_DIR) {
+  cat("  Fetching", geo_id, "...\n")
+  tryCatch({
+ 
+    # ── Try local file(s) first ─────────────────────────────
+    # A GEO series can have one file per platform (e.g. GPL10558, GPL18573).
+    # Try each; keep the first one that has methylation probe annotations
+    # (identified by a MAPINFO / position column in fData).
+    pick_methylation_gse <- function(files) {
+      for (f in sort(files)) {   # sort = alphabetical = reproducible
+        cat("    Trying:", basename(f), "\n")
+        g <- tryCatch(
+          { g <- getGEO(filename = f, GSEMatrix = TRUE, getGPL = FALSE)
+            if (is.list(g)) g <- g[[1]]
+            g },
+          error = function(e) { cat("    Load error:", conditionMessage(e), "\n"); NULL }
+        )
+        if (is.null(g)) next
+        fd <- fData(g)
+        has_meth <- any(grepl("MAPINFO|position|bp|start",
+                              names(fd), ignore.case = TRUE)) &&
+                    any(grepl("chrom|chr", names(fd), ignore.case = TRUE))
+        if (has_meth) {
+          cat("    Methylation columns found — using this file.\n")
+          return(g)
+        } else {
+          cat("    No methylation position columns — not a methylation platform, skipping.\n")
+          cat("    fData columns:", paste(head(names(fd), 10), collapse = ", "), "\n")
+        }
+      }
+      NULL
+    }
+ 
+    gse <- NULL
+    if (!is.null(local_dir) && dir.exists(local_dir)) {
+      candidates <- list.files(local_dir,
+                               pattern = paste0(geo_id, ".*matrix.*\\.gz$"),
+                               full.names = TRUE)
+      if (length(candidates) > 0) {
+        cat("  Found", length(candidates), "local file(s) for", geo_id, "\n")
+        gse <- pick_methylation_gse(candidates)
+      }
+    }
+ 
+    if (is.null(gse)) {
+      if (!geo_reachable) {
+        cat("  SKIPPING", geo_id, "— GEO not reachable and no usable local file.\n")
+        return(NULL)
+      }
+      cat("  Downloading from GEO...\n")
+      gse_list <- getGEO(geo_id, GSEMatrix = TRUE, getGPL = FALSE,
+                         destdir = ifelse(!is.null(local_dir), local_dir, tempdir()))
+      if (is.list(gse_list)) {
+        gse <- pick_methylation_gse(
+          list.files(ifelse(!is.null(local_dir), local_dir, tempdir()),
+                     pattern = paste0(geo_id, ".*matrix.*\\.gz$"),
+                     full.names = TRUE)
+        )
+        if (is.null(gse)) gse <- gse_list[[1]]
+      } else {
+        gse <- gse_list
+      }
+    }
+ 
+    if (is.null(gse)) {
+      cat("  No methylation platform found for", geo_id, "— skipping.\n")
+      return(NULL)
+    }
+ 
+    beta  <- exprs(gse)
+    pdata <- pData(gse)
+    fdata <- fData(gse)
+ 
+    # ── Diagnose available phenotype columns ──────────────────
+    cat("  Phenotype columns:", paste(names(pdata), collapse = ", "), "\n")
+ 
+    # ── Strategy 1: SDHx hypermethylator vs kinase-signalling ─
+    # Look for a cluster / subtype / mutation column
+    subtype_col <- grep("cluster|subtype|mutation|genotype|group|class",
+                        names(pdata), ignore.case = TRUE, value = TRUE)
+    subtype_col <- subtype_col[1]
+ 
+    groupA_idx <- integer(0)
+    groupB_idx <- integer(0)
+ 
+    if (!is.na(subtype_col)) {
+      cat("  Using subtype column:", subtype_col, "\n")
+      cat("  Levels:", paste(unique(pdata[[subtype_col]]), collapse = " | "), "\n")
+      groupA_idx <- grep("SDH|C1|cluster.?1|pseudohypoxia|hypermethyl",
+                         pdata[[subtype_col]], ignore.case = TRUE)
+      groupB_idx <- grep("RET|NF1|TMEM|MAX|C2|cluster.?2|kinase",
+                         pdata[[subtype_col]], ignore.case = TRUE)
+    }
+ 
+    # ── Strategy 2: tumour vs normal fallback ─────────────────
+    if (length(groupA_idx) < 2 || length(groupB_idx) < 2) {
+      tissue_col <- grep("tissue|type|source|status|disease",
+                         names(pdata), ignore.case = TRUE, value = TRUE)[1]
+      if (!is.na(tissue_col)) {
+        cat("  Falling back to tumour/normal using column:", tissue_col, "\n")
+        cat("  Levels:", paste(unique(pdata[[tissue_col]]), collapse = " | "), "\n")
+        groupA_idx <- grep("tumou?r|pheochrom|paraganglioma|PPGL|tumor",
+                           pdata[[tissue_col]], ignore.case = TRUE)
+        groupB_idx <- grep("normal|adjacent|non.tumor|healthy|control",
+                           pdata[[tissue_col]], ignore.case = TRUE)
+      }
+    }
+ 
+    # ── Strategy 3: any two largest groups ───────────────────
+    if (length(groupA_idx) < 2 || length(groupB_idx) < 2) {
+      cat("  Cannot determine standard groups — using two largest sample groups\n")
+      # Find the column with most variation
+      best_col <- names(which.max(sapply(pdata, function(x) length(unique(x)))))
+      lvls <- names(sort(table(pdata[[best_col]]), decreasing = TRUE))
+      if (length(lvls) >= 2) {
+        groupA_idx <- which(pdata[[best_col]] == lvls[1])
+        groupB_idx <- which(pdata[[best_col]] == lvls[2])
+        cat("  Groups:", lvls[1], "(n=", length(groupA_idx), ") vs",
+            lvls[2], "(n=", length(groupB_idx), ")\n")
+      }
+    }
+ 
+    if (length(groupA_idx) < 2 || length(groupB_idx) < 2) {
+      message("  Cannot form two groups with ≥2 samples for ", geo_id, " — skipping")
+      return(NULL)
+    }
+ 
+    # ── Delta beta ────────────────────────────────────────────
+    mean_a <- rowMeans(beta[, groupA_idx, drop = FALSE], na.rm = TRUE)
+    mean_b <- rowMeans(beta[, groupB_idx, drop = FALSE], na.rm = TRUE)
+    delta  <- mean_a - mean_b
+ 
+    sig_probes <- names(delta)[abs(delta) >= delta_thresh]
+    cat("  ", geo_id, ":", length(sig_probes), "probes with |delta| ≥",
+        delta_thresh, "\n")
+    if (length(sig_probes) == 0) {
+      message("  No probes above threshold for ", geo_id)
+      return(NULL)
+    }
+ 
+    # ── Extract hg19 positions ────────────────────────────────
+    pos_col <- grep("^(CHR_)?chrom|^chr$",
+                    names(fdata), ignore.case = TRUE, value = TRUE)[1]
+    bp_col  <- grep("^(MAPINFO|position|pos|start|bp)",
+                    names(fdata), ignore.case = TRUE, value = TRUE)[1]
+ 
+    cat("  Position columns found — chr:", pos_col, " bp:", bp_col, "\n")
+ 
+    if (is.na(pos_col) || is.na(bp_col)) {
+      # Try 450K annotation as fallback
+      library(IlluminaHumanMethylation450kanno.ilmn12.hg19)
+      anno450 <- getAnnotation(IlluminaHumanMethylation450kanno.ilmn12.hg19)
+      common  <- intersect(sig_probes, rownames(anno450))
+      cat("  Using 450K annotation fallback:", length(common), "probes\n")
+      if (length(common) == 0) return(NULL)
+      fdata_sig <- anno450[common, ]
+      pos_col <- "chr"; bp_col <- "pos"
+    } else {
+      fdata_sig <- fdata[sig_probes, , drop = FALSE]
+      fdata_sig <- fdata_sig[!is.na(fdata_sig[[bp_col]]) &
+                               as.character(fdata_sig[[bp_col]]) != "" &
+                               as.character(fdata_sig[[pos_col]]) != "", ]
+    }
+ 
+    chr_vals <- as.character(fdata_sig[[pos_col]])
+    chr_vals <- ifelse(grepl("^chr", chr_vals), chr_vals, paste0("chr", chr_vals))
+ 
+    gr_hg19 <- GRanges(
+      seqnames = chr_vals,
+      ranges   = IRanges(start = as.integer(fdata_sig[[bp_col]]), width = 1),
+      probe    = rownames(fdata_sig),
+      delta    = delta[rownames(fdata_sig)],
+      geo_id   = geo_id
+    )
+    seqlevelsStyle(gr_hg19) <- "UCSC"
+    gr_hg19 <- keepStandardChromosomes(gr_hg19, pruning.mode = "coarse")
+ 
+    # ── LiftOver hg19 → hg38 ─────────────────────────────────
+    gr_hg38 <- unlist(liftOver(gr_hg19, chain_hg19_hg38))
+    seqlevelsStyle(gr_hg38) <- "UCSC"
+    cat("  LiftOver:", length(gr_hg19), "hg19 →", length(gr_hg38), "hg38 probes\n")
+    gr_hg38
+ 
+  }, error = function(e) {
+    cat("  ERROR for", geo_id, ":", conditionMessage(e), "\n")
+    NULL
+  }, warning = function(w) {
+    cat("  WARNING for", geo_id, ":", conditionMessage(w), "\n")
+    NULL
+  })
+}
+ 
+# Create local dir for caching downloads
+if (!is.null(GEO_LOCAL_DIR)) dir.create(GEO_LOCAL_DIR, showWarnings = FALSE)
+ 
+geo_dmp_list <- lapply(PPGL_GEO_IDS, fetch_geo_dmps)
+names(geo_dmp_list) <- PPGL_GEO_IDS
+geo_dmp_list <- Filter(Negate(is.null), geo_dmp_list)
+ 
+cat("\nSuccessfully loaded", length(geo_dmp_list), "of",
+    length(PPGL_GEO_IDS), "GEO datasets\n")
+ 
+if (length(geo_dmp_list) == 0) {
+  cat("WARNING: No GEO datasets could be processed.\n")
+  cat("  This may mean the datasets have unusual phenotype metadata.\n")
+  cat("  Check the 'Phenotype columns' output above and adjust grep patterns.\n")
+  geo_overlap_summary <- data.frame(
+    geo_id = PPGL_GEO_IDS, n_geo_dmps = 0,
+    n_dmrs_with_hit = 0, pct_dmrs_hit = 0
+  )
+} else {
+ 
+  ## Overlap each GEO dataset with your DMRs
+  geo_overlap_summary <- bind_rows(lapply(names(geo_dmp_list), function(geo_id) {
+    hits <- findOverlaps(geo_dmp_list[[geo_id]], dmrs_gr)
+    overlapping_dmrs <- unique(subjectHits(hits))
+    data.frame(
+      geo_id           = geo_id,
+      n_geo_dmps       = length(geo_dmp_list[[geo_id]]),
+      n_dmrs_with_hit  = length(overlapping_dmrs),
+      pct_dmrs_hit     = round(length(overlapping_dmrs) / length(dmrs_gr) * 100, 1)
+    )
+  }))
+ 
+  cat("\nGEO PPGL dataset overlap summary:\n")
+  print(geo_overlap_summary)
+ 
+  # Mark DMRs replicated in tissue datasets
+  for (geo_id in names(geo_dmp_list)) {
+    hits    <- findOverlaps(geo_dmp_list[[geo_id]], dmrs_gr)
+    rep_idx <- unique(subjectHits(hits))
+    dmrs_gr$novelty_tier[rep_idx] <- ifelse(
+      dmrs_gr$novelty_tier[rep_idx] == "unknown",
+      paste0("known_tissue_", geo_id),
+      paste0(dmrs_gr$novelty_tier[rep_idx], "|", geo_id)
+    )
+  }
+ 
+  # Direction concordance plot (only if direction column exists and hits found)
+  all_geo_gr <- do.call(c, geo_dmp_list)
+  hits_all   <- findOverlaps(all_geo_gr, dmrs_gr)
+ 
+  has_direction <- "direction" %in% names(mcols(dmrs_gr))
+ 
+  if (length(hits_all) > 0 && has_direction) {
+    concordance_df <- data.frame(
+      geo_delta  = all_geo_gr$delta[queryHits(hits_all)],
+      dmr_dir    = dmrs_gr$direction[subjectHits(hits_all)],
+      geo_id     = all_geo_gr$geo_id[queryHits(hits_all)]
+    ) %>%
+      mutate(
+        geo_dir    = ifelse(geo_delta > 0, "hyper", "hypo"),
+        concordant = dmr_dir == geo_dir
+      )
+ 
+    pct_concordant <- mean(concordance_df$concordant, na.rm = TRUE) * 100
+    cat(sprintf("\nDirection concordance with GEO datasets: %.1f%%\n", pct_concordant))
+ 
+    p_concordance <- ggplot(concordance_df,
+                            aes(x = geo_delta, fill = concordant)) +
+      geom_histogram(bins = 40, colour = "white") +
+      facet_wrap(~geo_id) +
+      scale_fill_manual(values = c("TRUE" = "#2ca02c", "FALSE" = "#d62728"),
+                        labels = c("TRUE" = "Concordant", "FALSE" = "Discordant")) +
+      geom_vline(xintercept = 0, linetype = "dashed") +
+      labs(title = "Direction concordance: cfDNA DMRs vs published PPGL tissue",
+           x = "GEO delta beta (Group A – Group B)", y = "Count", fill = "") +
+      theme_bw(base_size = 11)
+    print(p_concordance)
+ 
+  } else if (length(hits_all) > 0) {
+    # No direction column — just show delta distribution for overlapping probes
+    concordance_df <- data.frame(
+      geo_delta = all_geo_gr$delta[queryHits(hits_all)],
+      geo_id    = all_geo_gr$geo_id[queryHits(hits_all)]
+    )
+    p_concordance <- ggplot(concordance_df, aes(x = geo_delta)) +
+      geom_histogram(bins = 40, fill = "#7b2d8b", colour = "white") +
+      facet_wrap(~geo_id) +
+      geom_vline(xintercept = 0, linetype = "dashed") +
+      labs(title = "GEO delta beta at overlapping cfDNA DMR positions",
+           x = "GEO delta beta (Group A – Group B)", y = "Count") +
+      theme_bw(base_size = 11)
+    print(p_concordance)
+  } else {
+    cat("No overlaps between GEO probes and your DMRs.\n")
+    cat("This suggests your cfDNA DMRs are at loci not captured by\n")
+    cat("450K/EPIC arrays, or they represent genuinely cfDNA-specific signal.\n")
+    p_concordance <- ggplot() + labs(title = "No GEO overlaps found") + theme_void()
+  }
+}
+```
+* mkdir /researchers/caitlin.page/cf_nano/r_output/geo_data
+
+```{r}
+# ── 3. LOLA — Feature Database Enrichment ───────────────────
+# Download LOLACore from a login node:
+#   wget -c "http://big.databio.org/regiondb/LOLACoreCaches_180412.tgz"
+#   tar -xzf LOLACoreCaches_180412.tgz
+#   mv scratch/LOLACore ./LOLACore
+ 
+cat("\n── Section 3: LOLA Enrichment ──\n")
+ 
+lola_db_path <- "LOLACore"
+ 
+if (!dir.exists(lola_db_path)) {
+  cat("LOLA database not found at:", lola_db_path, "\n")
+  cat("Download instructions (login node):\n")
+  cat('  wget -c "http://big.databio.org/regiondb/LOLACoreCaches_180412.tgz"\n')
+  cat('  tar -xzf LOLACoreCaches_180412.tgz && mv scratch/LOLACore ./LOLACore\n')
+  cat("Skipping LOLA section.\n")
+} else {
+  lola_db <- loadRegionDB(lola_db_path)
+ 
+  library(IlluminaHumanMethylation450kanno.ilmn12.hg19)
+  anno450 <- getAnnotation(IlluminaHumanMethylation450kanno.ilmn12.hg19)
+  universe_gr <- GRanges(
+    seqnames = anno450$chr,
+    ranges   = IRanges(start = anno450$pos, width = 1)
+  )
+  seqlevelsStyle(universe_gr) <- "UCSC"
+ 
+  lola_res <- runLOLA(
+    userSets     = dau_gr,
+    userUniverse = universe_gr,
+    regionDB     = lola_db,
+    minOverlap   = 1,
+    cores        = 1          # mc.cores = 1 for OOD
+  )
+ 
+  lola_top <- lola_res %>% filter(qValue < 0.05) %>% arrange(qValue) %>% head(30)
+  cat("\nTop LOLA enrichments (q < 0.05):\n")
+  print(lola_top[, c("collection", "filename", "oddsRatio", "pValueLog", "qValue")])
+ 
+  p_lola <- ggplot(head(lola_top, 20),
+                   aes(x = reorder(filename, oddsRatio),
+                       y = log2(oddsRatio), fill = collection)) +
+    geom_col() +
+    geom_hline(yintercept = 0, linetype = "dashed") +
+    coord_flip() +
+    labs(title = "LOLA enrichment of PPGL cfDNA DAUs",
+         x = NULL, y = "log2(Odds Ratio)", fill = "Collection") +
+    theme_bw(base_size = 11)
+  print(p_lola)
+ 
+  write.csv(lola_res, "/researchers/caitlin.page/cf_nano/r_output/dau_novelty_results/lola_enrichment.csv", row.names = FALSE)
+}
+```
+
+mmm
+```{r}
+# ── 4. Known PPGL-Specific Loci ─────────────────────────────
+# Curated catalogue of loci with established biological relevance
+# in PPGL. DMRs overlapping these are "known" in disease context.
+# Includes:
+#   (a) Driver gene promoters (SDHx, VHL, RET, NF1, TMEM127, MAX)
+#   (b) SDHD imprinting region
+#   (c) Known cancer CGI methylation targets in neuroendocrine tumours
+#   (d) PPGL methylation clusters (from Fishbein 2017 TCGA)
+
+cat("\n── Section 4: Known PPGL-Specific Loci ──\n")
+
+## 4a. Driver gene promoter regions — derived from TxDb (hg38)
+# Using TxDb avoids hardcoded coordinates that can be wrong.
+# Promoter window: ±2 kb around each gene's TSS.
+ppgl_driver_gene_names <- c(
+  "SDHA", "SDHB", "SDHC", "SDHD", "SDHAF2",
+  "VHL",  "RET",  "NF1",  "TMEM127", "MAX",
+  "EPAS1","FH",   "MDH2", "IDH1", "IDH2",
+  "HRAS", "MAML3","CSDE1"
+)
+ 
+library(TxDb.Hsapiens.UCSC.hg38.knownGene)
+library(org.Hs.eg.db)
+ 
+# Map gene symbols → Entrez IDs
+entrez_ids <- mapIds(org.Hs.eg.db,
+                     keys      = ppgl_driver_gene_names,
+                     column    = "ENTREZID",
+                     keytype   = "SYMBOL",
+                     multiVals = "first")
+entrez_ids <- entrez_ids[!is.na(entrez_ids)]
+cat("Driver genes mapped to Entrez:", length(entrez_ids), "of",
+    length(ppgl_driver_gene_names), "\n")
+ 
+# Pull TSS-based promoters (±2 kb)
+txdb <- TxDb.Hsapiens.UCSC.hg38.knownGene
+driver_promoters <- promoters(txdb,
+                              upstream    = 2000,
+                              downstream  = 200,
+                              filter      = list(gene_id = entrez_ids),
+                              columns     = c("tx_name", "gene_id"))
+ 
+# Add gene symbol back
+gene_symbol_map <- setNames(names(entrez_ids), entrez_ids)
+driver_promoters$gene <- gene_symbol_map[as.character(driver_promoters$gene_id)]
+driver_gr <- unique(driver_promoters)   # collapse duplicate transcripts
+seqlevelsStyle(driver_gr) <- "UCSC"
+driver_gr <- keepStandardChromosomes(driver_gr, pruning.mode = "coarse")
+ 
+cat("Promoter windows built:", length(driver_gr), "\n")
+cat("Chromosomes covered:", paste(sort(unique(as.character(seqnames(driver_gr)))), collapse = ", "), "\n")
+ 
+# Diagnostic: show the windows so you can verify they look sane
+cat("\nDriver promoter windows (first 5):\n")
+print(head(as.data.frame(driver_gr)[, c("seqnames","start","end","gene")], 5))
+
+hits_driver <- findOverlaps(dmrs_gr, driver_gr)
+driver_hit_df <- data.frame(
+  dmr_id = dmrs_gr$dmr_id[queryHits(hits_driver)],
+  gene   = driver_gr$gene[subjectHits(hits_driver)],
+  direction = dmrs_gr$direction[queryHits(hits_driver)]
+)
+
+cat("DMRs at PPGL driver gene promoters:\n")
+print(driver_hit_df)
+
+dmrs_gr$novelty_tier[queryHits(hits_driver)] <- paste0(
+  "known_ppgl_driver:",
+  driver_gr$gene[subjectHits(hits_driver)]
+)
+
+## 4b. SDHD imprinting region (chromosome 11q13)
+# SDHD shows maternal imprinting — paternal allele is expressed.
+# Methylation changes here may reflect imprinting disruption.
+sdhd_imprint_gr <- GRanges(
+  seqnames = "chr11",
+  ranges   = IRanges(start = 111960000, end = 112020000),
+  feature  = "SDHD_imprinting_region"
+)
+
+hits_imprint <- findOverlaps(dmrs_gr, sdhd_imprint_gr)
+if (length(hits_imprint) > 0) {
+  cat("\nDMRs overlapping SDHD imprinting region:",
+      length(unique(queryHits(hits_imprint))), "\n")
+  dmrs_gr$novelty_tier[queryHits(hits_imprint)] <- "known_sdhd_imprint"
+}
+
+## 4c. Known imprinted regions (genome-wide)
+# Pull from AnnotationHub — Baran et al. imprinting catalogue
+ah <- AnnotationHub()
+imprint_q <- query(ah, c("imprinting", "human"))
+
+# If available, use the catalogue; otherwise use geneimprint.com data
+imprint_gr <- tryCatch({
+  # Attempt to load a human imprinting resource from AnnotationHub
+  imp <- ah[[ names(imprint_q)[1] ]]
+  seqlevelsStyle(imp) <- "UCSC"
+  imp
+}, error = function(e) {
+  # Fallback: manually curated known imprinted loci (hg38 approximate)
+  known_imprinted <- data.frame(
+    chr   = c("chr11", "chr15", "chr14", "chr7",  "chr20", "chr6"),
+    start = c(1800000, 22750000,100500000,130000000,57400000,143800000),
+    end   = c(2800000, 28650000,101700000,130800000,57700000,144500000),
+    locus = c("H19/IGF2", "PWS/AS", "MEG3", "GRB10", "GNAS", "PLAGL1")
+  )
+  makeGRangesFromDataFrame(known_imprinted, keep.extra.columns = TRUE)
+})
+
+hits_imprint_gw <- findOverlaps(dmrs_gr, imprint_gr)
+cat("DMRs overlapping known imprinted loci (genome-wide):",
+    length(unique(queryHits(hits_imprint_gw))), "\n")
+
+dmrs_gr$novelty_tier[
+  queryHits(hits_imprint_gw)[dmrs_gr$novelty_tier[queryHits(hits_imprint_gw)] == "unknown"]
+] <- "known_imprinted_locus"
+
+## 4d. TCGA PPGL methylation cluster boundaries
+# Fishbein 2017 defined two major methylation clusters:
+# Cluster 1 (C1) = pseudohypoxia (SDHx, VHL) — hypermethylator
+# Cluster 2 (C2) = kinase signaling (RET, NF1, TMEM127)
+# The cluster-defining CpG probes are available in the supplement.
+# Here we flag DMRs at the top cluster-defining loci.
+# Replace probe IDs from Supplementary Table of Fishbein 2017.
+cluster_defining_probes <- c(
+  "cg00000029", "cg00000165", "cg00000236"   # placeholder — replace with real probes
+)
+
+# Map probes to GRanges using 450K annotation
+library(IlluminaHumanMethylation450kanno.ilmn12.hg19)
+anno450 <- getAnnotation(IlluminaHumanMethylation450kanno.ilmn12.hg19)
+cluster_probes_anno <- anno450[
+  rownames(anno450) %in% cluster_defining_probes, , drop = FALSE]
+
+if (nrow(cluster_probes_anno) > 0) {
+  cluster_gr <- GRanges(
+    seqnames = cluster_probes_anno$chr,
+    ranges   = IRanges(start = cluster_probes_anno$pos, width = 1),
+    probe    = rownames(cluster_probes_anno)
+  )
+  seqlevelsStyle(cluster_gr) <- "UCSC"
+  hits_cluster <- findOverlaps(cluster_gr, dmrs_gr)
+  cat("DMRs at TCGA PPGL cluster-defining probes:",
+      length(unique(subjectHits(hits_cluster))), "\n")
+  dmrs_gr$novelty_tier[subjectHits(hits_cluster)] <- "known_tcga_cluster"
+}
+```
+
+
+```{r}
+# ── 5. Tiered Novelty Classification & Summary ──────────────
+# After all sections, DMRs are assigned to tiers:
+#   Tier 1 — NOVEL:        no known association in any database
+#   Tier 2 — cfDNA NOVEL:  known in PPGL tissue but new in cfDNA context
+#   Tier 3 — KNOWN:        replicated in published PPGL methylation
+#   Tier 4 — EWAS KNOWN:   reported in non-PPGL EWAS (contextual)
+#   Tier 5 — DRIVER LOCUS: overlaps PPGL driver gene promoter
+#   Tier 6 — IMPRINTED:    overlaps known imprinted region
+
+cat("\n── Section 5: Novelty Classification ──\n")
+
+dmr_df <- as.data.frame(dmrs_gr)
+
+classify_novelty <- function(tier_string) {
+  case_when(
+    grepl("known_ppgl_driver",    tier_string) ~ "Tier 5: PPGL driver locus",
+    grepl("known_sdhd_imprint|known_imprinted", tier_string) ~ "Tier 6: Imprinted locus",
+    grepl("known_tcga_cluster",   tier_string) ~ "Tier 3: Known PPGL (TCGA)",
+    grepl("known_tissue_GSE",     tier_string) ~ "Tier 3: Known PPGL (GEO)",
+    grepl("known_ewas",           tier_string) ~ "Tier 4: EWAS association",
+    tier_string == "unknown"                   ~ "Tier 1: Novel",
+    TRUE                                       ~ "Tier 2: Partially novel"
+  )
+}
+
+dmr_df$novelty_class <- classify_novelty(dmr_df$novelty_tier)
+
+tier_summary <- dmr_df %>%
+  dplyr::count(novelty_class, direction) %>%
+  group_by(direction) %>%
+  mutate(pct = round(n / sum(n) * 100, 1)) %>%
+  arrange(novelty_class)
+
+cat("\nNovelty tier distribution:\n")
+print(tier_summary)
+
+# Stacked bar
+p_tiers <- ggplot(tier_summary,
+                  aes(x = direction, y = pct, fill = novelty_class)) +
+  geom_col() +
+  scale_fill_brewer(palette = "Set2") +
+  labs(title = "PPGL cfDNA DMR novelty classification",
+       x = "DMR direction", y = "% of DMRs", fill = "Novelty tier") +
+  theme_bw(base_size = 12) +
+  theme(legend.position = "right")
+
+# Lollipop: number of DMRs per tier
+tier_total <- dmr_df %>%
+  dplyr::count(novelty_class) %>%
+  arrange(desc(n))
+
+p_lollipop <- ggplot(tier_total, aes(x = reorder(novelty_class, n), y = n)) +
+  geom_segment(aes(xend = novelty_class, y = 0, yend = n), colour = "grey60") +
+  geom_point(size = 5, colour = "#7b2d8b") +
+  geom_text(aes(label = n), hjust = -0.5, size = 4) +
+  coord_flip() +
+  labs(title = "DMR count by novelty tier",
+       x = NULL, y = "Number of DMRs") +
+  theme_bw(base_size = 12)
+
+print(p_tiers / p_lollipop)
+
+## Final annotated DMR table
+final_table <- dmr_df %>%
+  select(seqnames, start, end, dmr_id, direction, meandiff,
+         novelty_tier, novelty_class) %>%
+  arrange(novelty_class, desc(abs(meandiff)))
+
+cat("\nTop novel DMRs (Tier 1):\n")
+print(head(final_table[final_table$novelty_class == "Tier 1: Novel", ], 20))
+
+## cfDNA-specific novelty statement
+n_novel       <- sum(dmr_df$novelty_class == "Tier 1: Novel")
+n_cfdna_novel <- sum(dmr_df$novelty_class == "Tier 2: Partially novel")
+n_known       <- sum(grepl("Tier 3|Tier 4|Tier 5|Tier 6", dmr_df$novelty_class))
+
+cat(sprintf(
+  "\nSummary:\n  Novel (Tier 1):              %d DMRs (%.1f%%)\n",
+  n_novel, n_novel / nrow(dmr_df) * 100
+))
+cat(sprintf(
+  "  cfDNA/partially novel (T2):  %d DMRs (%.1f%%)\n",
+  n_cfdna_novel, n_cfdna_novel / nrow(dmr_df) * 100
+))
+cat(sprintf(
+  "  Known/replicated (T3–T6):    %d DMRs (%.1f%%)\n",
+  n_known, n_known / nrow(dmr_df) * 100
+))
+```
+```{r}
+dmr_df
+```
+
+
+# repeat with filt
+
+* filt and without filt is same - just dau was wrong
+```{r}
+dmr_gr %>% plyranges::filter(min_smoothed_fdr < 0.05)
+```
+
+
+```{r}
+# ── 4. Known PPGL-Specific Loci ─────────────────────────────
+# Curated catalogue of loci with established biological relevance
+# in PPGL. DMRs overlapping these are "known" in disease context.
+# Includes:
+#   (a) Driver gene promoters (SDHx, VHL, RET, NF1, TMEM127, MAX)
+#   (b) SDHD imprinting region
+#   (c) Known cancer CGI methylation targets in neuroendocrine tumours
+#   (d) PPGL methylation clusters (from Fishbein 2017 TCGA)
+
+cat("\n── Section 4: Known PPGL-Specific Loci ──\n")
+
+## 4a. Driver gene promoter regions — derived from TxDb (hg38)
+# Using TxDb avoids hardcoded coordinates that can be wrong.
+# Promoter window: ±2 kb around each gene's TSS.
+ppgl_driver_gene_names <- c(
+  "SDHA", "SDHB", "SDHC", "SDHD", "SDHAF2",
+  "VHL",  "RET",  "NF1",  "TMEM127", "MAX",
+  "EPAS1","FH",   "MDH2", "IDH1", "IDH2",
+  "HRAS", "MAML3","CSDE1"
+)
+ 
+library(TxDb.Hsapiens.UCSC.hg38.knownGene)
+library(org.Hs.eg.db)
+ 
+# Map gene symbols → Entrez IDs
+entrez_ids <- mapIds(org.Hs.eg.db,
+                     keys      = ppgl_driver_gene_names,
+                     column    = "ENTREZID",
+                     keytype   = "SYMBOL",
+                     multiVals = "first")
+entrez_ids <- entrez_ids[!is.na(entrez_ids)]
+cat("Driver genes mapped to Entrez:", length(entrez_ids), "of",
+    length(ppgl_driver_gene_names), "\n")
+ 
+# Pull TSS-based promoters (±2 kb)
+txdb <- TxDb.Hsapiens.UCSC.hg38.knownGene
+driver_promoters <- promoters(txdb,
+                              upstream    = 2000,
+                              downstream  = 200,
+                              filter      = list(gene_id = entrez_ids),
+                              columns     = c("tx_name", "gene_id"))
+ 
+# Add gene symbol back
+gene_symbol_map <- setNames(names(entrez_ids), entrez_ids)
+driver_promoters$gene <- gene_symbol_map[as.character(driver_promoters$gene_id)]
+driver_gr <- unique(driver_promoters)   # collapse duplicate transcripts
+seqlevelsStyle(driver_gr) <- "UCSC"
+driver_gr <- keepStandardChromosomes(driver_gr, pruning.mode = "coarse")
+ 
+cat("Promoter windows built:", length(driver_gr), "\n")
+cat("Chromosomes covered:", paste(sort(unique(as.character(seqnames(driver_gr)))), collapse = ", "), "\n")
+ 
+# Diagnostic: show the windows so you can verify they look sane
+cat("\nDriver promoter windows (first 5):\n")
+print(head(as.data.frame(driver_gr)[, c("seqnames","start","end","gene")], 5))
+
+hits_driver <- findOverlaps(dmrs_gr, driver_gr)
+driver_hit_df <- data.frame(
+  dmr_id = dmrs_gr$dmr_id[queryHits(hits_driver)],
+  gene   = driver_gr$gene[subjectHits(hits_driver)],
+  direction = dmrs_gr$direction[queryHits(hits_driver)]
+)
+
+cat("DMRs at PPGL driver gene promoters:\n")
+print(driver_hit_df)
+
+dmrs_gr$novelty_tier[queryHits(hits_driver)] <- paste0(
+  "known_ppgl_driver:",
+  driver_gr$gene[subjectHits(hits_driver)]
+)
+
+## 4b. SDHD imprinting region (chromosome 11q13)
+# SDHD shows maternal imprinting — paternal allele is expressed.
+# Methylation changes here may reflect imprinting disruption.
+sdhd_imprint_gr <- GRanges(
+  seqnames = "chr11",
+  ranges   = IRanges(start = 111960000, end = 112020000),
+  feature  = "SDHD_imprinting_region"
+)
+
+hits_imprint <- findOverlaps(dmrs_gr, sdhd_imprint_gr)
+if (length(hits_imprint) > 0) {
+  cat("\nDMRs overlapping SDHD imprinting region:",
+      length(unique(queryHits(hits_imprint))), "\n")
+  dmrs_gr$novelty_tier[queryHits(hits_imprint)] <- "known_sdhd_imprint"
+}
+
+## 4c. Known imprinted regions (genome-wide)
+# Pull from AnnotationHub — Baran et al. imprinting catalogue
+ah <- AnnotationHub()
+imprint_q <- query(ah, c("imprinting", "human"))
+
+# If available, use the catalogue; otherwise use geneimprint.com data
+imprint_gr <- tryCatch({
+  # Attempt to load a human imprinting resource from AnnotationHub
+  imp <- ah[[ names(imprint_q)[1] ]]
+  seqlevelsStyle(imp) <- "UCSC"
+  imp
+}, error = function(e) {
+  # Fallback: manually curated known imprinted loci (hg38 approximate)
+  known_imprinted <- data.frame(
+    chr   = c("chr11", "chr15", "chr14", "chr7",  "chr20", "chr6"),
+    start = c(1800000, 22750000,100500000,130000000,57400000,143800000),
+    end   = c(2800000, 28650000,101700000,130800000,57700000,144500000),
+    locus = c("H19/IGF2", "PWS/AS", "MEG3", "GRB10", "GNAS", "PLAGL1")
+  )
+  makeGRangesFromDataFrame(known_imprinted, keep.extra.columns = TRUE)
+})
+
+hits_imprint_gw <- findOverlaps(dmrs_gr, imprint_gr)
+cat("DMRs overlapping known imprinted loci (genome-wide):",
+    length(unique(queryHits(hits_imprint_gw))), "\n")
+
+dmrs_gr$novelty_tier[
+  queryHits(hits_imprint_gw)[dmrs_gr$novelty_tier[queryHits(hits_imprint_gw)] == "unknown"]
+] <- "known_imprinted_locus"
+
+## 4d. TCGA PPGL methylation cluster boundaries
+# Fishbein 2017 defined two major methylation clusters:
+# Cluster 1 (C1) = pseudohypoxia (SDHx, VHL) — hypermethylator
+# Cluster 2 (C2) = kinase signaling (RET, NF1, TMEM127)
+# The cluster-defining CpG probes are available in the supplement.
+# Here we flag DMRs at the top cluster-defining loci.
+# Replace probe IDs from Supplementary Table of Fishbein 2017.
+cluster_defining_probes <- c(
+  "cg00000029", "cg00000165", "cg00000236"   # placeholder — replace with real probes
+)
+
+# Map probes to GRanges using 450K annotation
+library(IlluminaHumanMethylation450kanno.ilmn12.hg19)
+anno450 <- getAnnotation(IlluminaHumanMethylation450kanno.ilmn12.hg19)
+cluster_probes_anno <- anno450[
+  rownames(anno450) %in% cluster_defining_probes, , drop = FALSE]
+
+if (nrow(cluster_probes_anno) > 0) {
+  cluster_gr <- GRanges(
+    seqnames = cluster_probes_anno$chr,
+    ranges   = IRanges(start = cluster_probes_anno$pos, width = 1),
+    probe    = rownames(cluster_probes_anno)
+  )
+  seqlevelsStyle(cluster_gr) <- "UCSC"
+  hits_cluster <- findOverlaps(cluster_gr, dmrs_gr)
+  cat("DMRs at TCGA PPGL cluster-defining probes:",
+      length(unique(subjectHits(hits_cluster))), "\n")
+  dmrs_gr$novelty_tier[subjectHits(hits_cluster)] <- "known_tcga_cluster"
+}
+```
+
+
+```{r}
+# ── 5. Tiered Novelty Classification & Summary ──────────────
+# After all sections, DMRs are assigned to tiers:
+#   Tier 1 — NOVEL:        no known association in any database
+#   Tier 2 — cfDNA NOVEL:  known in PPGL tissue but new in cfDNA context
+#   Tier 3 — KNOWN:        replicated in published PPGL methylation
+#   Tier 4 — EWAS KNOWN:   reported in non-PPGL EWAS (contextual)
+#   Tier 5 — DRIVER LOCUS: overlaps PPGL driver gene promoter
+#   Tier 6 — IMPRINTED:    overlaps known imprinted region
+
+cat("\n── Section 5: Novelty Classification ──\n")
+
+dmr_df <- as.data.frame(dmrs_gr)
+
+classify_novelty <- function(tier_string) {
+  case_when(
+    grepl("known_ppgl_driver",    tier_string) ~ "Tier 5: PPGL driver locus",
+    grepl("known_sdhd_imprint|known_imprinted", tier_string) ~ "Tier 6: Imprinted locus",
+    grepl("known_tcga_cluster",   tier_string) ~ "Tier 3: Known PPGL (TCGA)",
+    grepl("known_tissue_GSE",     tier_string) ~ "Tier 3: Known PPGL (GEO)",
+    grepl("known_ewas",           tier_string) ~ "Tier 4: EWAS association",
+    tier_string == "unknown"                   ~ "Tier 1: Novel",
+    TRUE                                       ~ "Tier 2: Partially novel"
+  )
+}
+
+dmr_df$novelty_class <- classify_novelty(dmr_df$novelty_tier)
+
+tier_summary <- dmr_df %>%
+  dplyr::count(novelty_class, direction) %>%
+  group_by(direction) %>%
+  mutate(pct = round(n / sum(n) * 100, 1)) %>%
+  arrange(novelty_class)
+
+cat("\nNovelty tier distribution:\n")
+print(tier_summary)
+
+# Stacked bar
+p_tiers <- ggplot(tier_summary,
+                  aes(x = direction, y = pct, fill = novelty_class)) +
+  geom_col() +
+  scale_fill_brewer(palette = "Set2") +
+  labs(title = "PPGL cfDNA DMR novelty classification",
+       x = "DMR direction", y = "% of DMRs", fill = "Novelty tier") +
+  theme_bw(base_size = 12) +
+  theme(legend.position = "right")
+
+# Lollipop: number of DMRs per tier
+tier_total <- dmr_df %>%
+  dplyr::count(novelty_class) %>%
+  arrange(desc(n))
+
+p_lollipop <- ggplot(tier_total, aes(x = reorder(novelty_class, n), y = n)) +
+  geom_segment(aes(xend = novelty_class, y = 0, yend = n), colour = "grey60") +
+  geom_point(size = 5, colour = "#7b2d8b") +
+  geom_text(aes(label = n), hjust = -0.5, size = 4) +
+  coord_flip() +
+  labs(title = "DMR count by novelty tier",
+       x = NULL, y = "Number of DMRs") +
+  theme_bw(base_size = 12)
+
+print(p_tiers / p_lollipop)
+
+## Final annotated DMR table
+final_table <- dmr_df %>%
+  select(seqnames, start, end, dmr_id, direction, meandiff,
+         novelty_tier, novelty_class) %>%
+  arrange(novelty_class, desc(abs(meandiff)))
+
+cat("\nTop novel DMRs (Tier 1):\n")
+print(head(final_table[final_table$novelty_class == "Tier 1: Novel", ], 20))
+
+## cfDNA-specific novelty statement
+n_novel       <- sum(dmr_df$novelty_class == "Tier 1: Novel")
+n_cfdna_novel <- sum(dmr_df$novelty_class == "Tier 2: Partially novel")
+n_known       <- sum(grepl("Tier 3|Tier 4|Tier 5|Tier 6", dmr_df$novelty_class))
+
+cat(sprintf(
+  "\nSummary:\n  Novel (Tier 1):              %d DMRs (%.1f%%)\n",
+  n_novel, n_novel / nrow(dmr_df) * 100
+))
+cat(sprintf(
+  "  cfDNA/partially novel (T2):  %d DMRs (%.1f%%)\n",
+  n_cfdna_novel, n_cfdna_novel / nrow(dmr_df) * 100
+))
+cat(sprintf(
+  "  Known/replicated (T3–T6):    %d DMRs (%.1f%%)\n",
+  n_known, n_known / nrow(dmr_df) * 100
+))
+```
+
+
+
+```{r}
+# ── Save outputs ─────────────────────────────────────────────
+
+dir.create("/researchers/caitlin.page/cf_nano/r_output/dmr_novelty_results", showWarnings = FALSE)
+
+write.csv(final_table,     "/researchers/caitlin.page/cf_nano/r_output/dmr_novelty_results/dmr_novelty_classified.csv", row.names = FALSE)
+write.csv(tier_summary,    "/researchers/caitlin.page/cf_nano/r_output/dmr_novelty_results/novelty_tier_summary.csv",   row.names = FALSE)
+write.csv(driver_hit_df,   "/researchers/caitlin.page/cf_nano/r_output/dmr_novelty_results/driver_gene_hits.csv",       row.names = FALSE)
+if (exists("ewas_hits") && nrow(ewas_hits) > 0) {
+  write.csv(ewas_hits,     "/researchers/caitlin.page/cf_nano/r_output/dmr_novelty_results/ewas_catalog_hits.csv",      row.names = FALSE)
+}
+if (exists("geo_overlap_summary")) {
+  write.csv(geo_overlap_summary, "/researchers/caitlin.page/cf_nano/r_output/dmr_novelty_results/geo_overlap_summary.csv", row.names = FALSE)
+}
+
+ggsave("/researchers/caitlin.page/cf_nano/r_output/dmr_novelty_results/01_ewas_traits.pdf",        p_ewas,       width = 9, height = 5)
+ggsave("/researchers/caitlin.page/cf_nano/r_output/dmr_novelty_results/02_geo_concordance.pdf",    p_concordance, width = 10, height = 5)
+ggsave("/researchers/caitlin.page/cf_nano/r_output/dmr_novelty_results/03_novelty_tiers.pdf",
+       p_tiers / p_lollipop, width = 10, height = 10)
+
+saveRDS(dmrs_gr, "/researchers/caitlin.page/cf_nano/r_output/dmr_novelty_results/dmrs_annotated_final.rds")
+
+cat("\n✓ All novelty outputs saved to dmr_novelty_results/\n")
+cat("  Key file: dmr_novelty_results/dmr_novelty_classified.csv\n")
+```
+
+

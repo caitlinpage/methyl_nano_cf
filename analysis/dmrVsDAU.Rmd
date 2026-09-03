@@ -1,0 +1,1309 @@
+---
+title: "dmrVsDAU"
+author: "caitlinpage"
+date: "2026-09-02"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+```{r}
+library(plyranges)
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+library(stringr)
+library(TxDb.Hsapiens.UCSC.hg38.knownGene)
+```
+
+
+## compare the tile positions
+```{r}
+dau_basictiles <- readRDS("/researchers/caitlin.page/cf_nano/r_output/dtu_basictiles_emseq_cancer_healthy.rds")
+
+dau_optiles <- readRDS("/researchers/caitlin.page/cf_nano/r_output/dtu_tiles_emseq_cancer_healthy.rds")
+
+dmr_emseq <- readRDS("/researchers/caitlin.page/cf_nano/r_output/dmr_emseq_strict.rds")
+dmr_emseq <- dmr_emseq %>% .[order(.$min_smoothed_fdr),] %>% mutate(dmr_rank = 1:n())
+```
+
+```{r}
+dau_basictiles[1:5,]
+```
+
+
+```{r}
+dmr_emseq[1:5,]
+```
+
+# ppgl validity analysis (claude)
+```{r}
+library(GenomicRanges)
+library(annotatr)
+library(regioneR)
+library(AnnotationHub)
+library(TxDb.Hsapiens.UCSC.hg38.knownGene)
+library(org.Hs.eg.db)
+library(missMethyl)
+library(TCGAbiolinks)
+library(SummarizedExperiment)
+library(BiocParallel)
+library(ggplot2)
+library(dplyr)
+library(patchwork)
+```
+
+```{r}
+# ============================================================
+# DMR Validity Analysis — Normal vs Cell-Free PPGL
+# ============================================================
+# Sections:
+#   0. Packages
+#   1. Load DMRs
+#   2. Functional annotation (annotatr)
+#   3. Chromatin state enrichment (regioneR + Roadmap Epigenomics)
+#   4. TCGA PCPG replication
+#   5. Pathway enrichment (missMethyl)
+# ============================================================
+```
+
+## DMR
+
+```{r}
+# Set genome build — change to "hg19" if your data is GRCh37
+GENOME <- "hg38"
+
+# ── 1. Load DMRs ────────────────────────────────────────────
+
+dmrs_gr <- makeGRangesFromDataFrame(
+  dmr_emseq %>%
+    mutate(
+      direction = ifelse(meandiff > 0, "hyper", "hypo"),
+      dmr_id    = paste0("DMR_", dmr_rank)
+    ),
+  seqnames.field     = "seqnames",
+  start.field        = "start",
+  end.field          = "end",
+  strand.field       = "strand",
+  keep.extra.columns = TRUE
+)
+seqlevelsStyle(dmrs_gr) <- "UCSC"
+# Separate hyper and hypo DMRs for direction-aware analyses
+dmrs_hyper <- dmrs_gr[dmrs_gr$direction == "hyper"]
+dmrs_hypo  <- dmrs_gr[dmrs_gr$direction == "hypo"]
+
+cat("Total DMRs:", length(dmrs_gr), "\n")
+cat("  Hypermethylated:", length(dmrs_hyper), "\n")
+cat("  Hypomethylated: ", length(dmrs_hypo), "\n")
+
+
+# ── 2. Functional Annotation (annotatr) ─────────────────────
+# Annotates DMRs to CpG features (islands/shores/shelves/open sea)
+# and genic features (promoters/exons/introns/intergenic).
+# For PPGL, enrichment at CGI promoters supports the known
+# SDHx-driven hypermethylator phenotype.
+
+annot_types <- c(
+  # CpG features
+  paste0(GENOME, "_cpgs"),
+  # Genic features
+  paste0(GENOME, "_genes_promoters"),
+  paste0(GENOME, "_genes_5UTRs"),
+  paste0(GENOME, "_genes_exons"),
+  paste0(GENOME, "_genes_introns"),
+  paste0(GENOME, "_genes_3UTRs"),
+  paste0(GENOME, "_genes_intergenic")
+)
+
+annotations <- build_annotations(genome = GENOME, annotations = annot_types)
+
+dmr_annotated <- annotate_regions(
+  regions    = dmrs_gr,
+  annotations = annotations,
+  ignore.strand = TRUE,
+  quiet = FALSE
+)
+
+dmr_annotated_df <- as.data.frame(dmr_annotated)
+```
+
+
+```{r}
+## 2a. CpG context summary
+dmr_annotated_df <- dmr_annotated_df %>%
+  mutate(across(everything(), function(x) {
+    if (is.list(x) || inherits(x, "AsIs"))
+      sapply(x, function(v) if (length(v) == 0) NA_character_ else paste(as.character(v), collapse = ","))
+    else x
+  }))
+cpg_summary <- dmr_annotated_df %>%
+  mutate(
+    annot.type = as.character(annot.type),
+    direction  = as.character(direction)
+  ) %>%
+  filter(grepl("cpg", annot.type)) %>%
+  mutate(
+    cpg_context = case_when(
+      grepl("islands",  annot.type) ~ "CpG Island",
+      grepl("shores",   annot.type) ~ "Shore",
+      grepl("shelves",  annot.type) ~ "Shelf",
+      grepl("inter",    annot.type) ~ "Open Sea"
+    )
+  ) %>%
+  dplyr::count(cpg_context, direction) %>%
+  group_by(direction) %>%
+  mutate(pct = n / sum(n) * 100)
+
+p_cpg <- ggplot(cpg_summary, aes(x = cpg_context, y = pct, fill = direction)) +
+  geom_col(position = "dodge") +
+  scale_fill_manual(values = c(hyper = "#d62728", hypo = "#1f77b4")) +
+  labs(
+    title = "DMR distribution across CpG features",
+    subtitle = "Hyper = hypermethylated in PPGL cfDNA vs normal",
+    x = "CpG context", y = "% of DMRs", fill = "Direction"
+  ) +
+  theme_bw(base_size = 12)
+
+## 2b. Genic context summary
+gene_summary <- dmr_annotated_df %>%
+  filter(grepl("genes", annot.type)) %>%
+  mutate(
+    gene_context = case_when(
+      grepl("promoter",    annot.type) ~ "Promoter",
+      grepl("5UTR",        annot.type) ~ "5'UTR",
+      grepl("exon",        annot.type) ~ "Exon",
+      grepl("intron",      annot.type) ~ "Intron",
+      grepl("3UTR",        annot.type) ~ "3'UTR",
+      grepl("intergenic",  annot.type) ~ "Intergenic"
+    ),
+    direction = direction
+  ) %>%
+  dplyr::count(gene_context, direction) %>%
+  group_by(direction) %>%
+  mutate(pct = n / sum(n) * 100)
+
+p_gene <- ggplot(gene_summary, aes(x = gene_context, y = pct, fill = direction)) +
+  geom_col(position = "dodge") +
+  scale_fill_manual(values = c(hyper = "#d62728", hypo = "#1f77b4")) +
+  labs(title = "DMR distribution across genic features",
+       x = "Genic context", y = "% of DMRs", fill = "Direction") +
+  theme_bw(base_size = 12)
+
+print(p_cpg / p_gene)
+
+## 2c. Meandiff distribution & size vs effect
+p_meandiff <- ggplot(as.data.frame(dmrs_gr), aes(x = meandiff, fill = direction)) +
+  geom_histogram(bins = 50, colour = "white", alpha = 0.8) +
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  scale_fill_manual(values = c(hyper = "#d62728", hypo = "#1f77b4")) +
+  labs(title = "Distribution of meandiff across DMRs",
+       subtitle = "Positive = hypermethylated in PPGL cfDNA vs normal",
+       x = "meandiff", y = "Count", fill = "Direction") +
+  theme_bw(base_size = 12)
+
+p_size_effect <- ggplot(as.data.frame(dmrs_gr),
+                        aes(x = no.cpgs, y = abs(meandiff), colour = direction)) +
+  geom_point(alpha = 0.5, size = 1.5) +
+  geom_smooth(method = "lm", se = FALSE) +
+  scale_colour_manual(values = c(hyper = "#d62728", hypo = "#1f77b4")) +
+  scale_x_log10() +
+  labs(title = "DMR size vs effect magnitude",
+       x = "Number of CpGs (log scale)", y = "|meandiff|", colour = "Direction") +
+  theme_bw(base_size = 12)
+
+print(p_meandiff | p_size_effect)
+
+## 2c. Number/proportion of DMRs at CGI promoters (PPGL key check)
+cgi_promoter_dmrs <- dmr_annotated_df %>%
+  filter(grepl("island", annot.type) | grepl("promoter", annot.type)) %>%
+  pull(annot.symbol) %>%
+  unique()
+
+cat("\nDMRs overlapping CGI or promoter regions:",
+    length(unique(dmr_annotated_df$annot.name[
+      grepl("island|promoter", dmr_annotated_df$annot.type)])), "\n")
+```
+
+
+```{r}
+# ── 3. Chromatin State Enrichment (regioneR + Roadmap) ──────
+# Tests whether DMRs are enriched in regulatory regions of
+# PPGL-relevant cell types vs random expectation.
+# E080 = fetal adrenal gland (best available proxy for chromaffin cells)
+# E053/E054 = neural crest-derived neurospheres
+# E029 = monocytes (as a negative control — should NOT be enriched)
+
+ah <- AnnotationHub()
+
+## Helper to fetch Roadmap 15-state chromatin state BED for one sample
+fetch_roadmap_states <- function(ah, eid, active_states = c("1_TssA", "2_TssAFlnk",
+                                                             "6_EnhG", "7_Enh")) {
+  # Query AnnotationHub for the chromatin state segmentation
+  q <- query(ah, c("EpigenomeRoadMap", eid, "15_coreMarks", "bed"))
+  if (length(q) == 0) {
+    message("No Roadmap data found for ", eid)
+    return(NULL)
+  }
+  states_gr <- ah[[names(q)[1]]]
+  # Keep only active regulatory states
+  active_gr <- states_gr[states_gr$name %in% active_states]
+  seqlevelsStyle(active_gr) <- "UCSC"
+  active_gr
+}
+
+## Fetch reference epigenomes
+cat("Fetching Roadmap chromatin states (this caches locally after first run)...\n")
+roadmap_refs <- list(
+  fetal_adrenal  = fetch_roadmap_states(ah, "E080"),  # fetal adrenal gland
+  neurosphere_dr = fetch_roadmap_states(ah, "E053"),  # neural crest-derived
+  neurosphere_sp = fetch_roadmap_states(ah, "E054"),  # neural crest-derived
+  monocyte       = fetch_roadmap_states(ah, "E029")   # negative control
+)
+roadmap_refs <- Filter(Negate(is.null), roadmap_refs)
+
+## Genome mask for regioneR permutations (exclude gaps/unassembled regions)
+# Using a simplified mask — replace with BSgenome mask for production runs
+genome_mask <- filterChromosomes(getGenome(GENOME))
+
+library(rtracklayer)
+
+# Download the hg19 → hg38 chain file (once)
+chain_file <- "hg19ToHg38.over.chain"
+if (!file.exists(chain_file)) {
+  download.file(
+    "https://hgdownload.soe.ucsc.edu/goldenPath/hg19/liftOver/hg19ToHg38.over.chain.gz",
+    paste0(chain_file, ".gz")
+  )
+  R.utils::gunzip(paste0(chain_file, ".gz"))  # or: system(paste("gunzip", paste0(chain_file, ".gz")))
+}
+chain <- import.chain(chain_file)
+
+# LiftOver all Roadmap references from hg19 → hg38
+roadmap_refs_hg38 <- lapply(roadmap_refs, function(gr) {
+  gr_lifted <- unlist(liftOver(gr, chain))
+  seqlevelsStyle(gr_lifted) <- "UCSC"
+  gr_lifted
+})
+
+# Verify the liftover worked
+sapply(roadmap_refs_hg38, length)
+
+## Run permutation test for each reference
+set.seed(123)
+perm_results <- lapply(names(roadmap_refs), function(ref_name) {
+  cat("  Testing enrichment in:", ref_name, "\n")
+  tryCatch({
+    pt <- permTest(
+      A                  = dmrs_gr,
+      B                  = roadmap_refs_hg38[[ref_name]],
+      genome             = GENOME,           # "hg38" or "hg19" string
+      randomize.function = randomizeRegions, # no universe required
+      evaluate.function  = numOverlaps,
+      ntimes             = 1000,
+      mc.set.seed        = TRUE,
+      mc.cores           = 1
+    )
+    list(
+      ref      = ref_name,
+      observed = pt$numOverlaps$observed,
+      expected = mean(pt$numOverlaps$permuted),
+      pval     = pt$numOverlaps$pval,
+      zscore   = pt$numOverlaps$zscore,
+      result   = pt
+    )
+  }, error = function(e) {
+    message("  Failed for ", ref_name, ": ", conditionMessage(e))
+    NULL
+  })
+})
+perm_results <- Filter(Negate(is.null), perm_results)
+names(perm_results) <- sapply(perm_results, `[[`, "ref")
+
+## Summarise enrichment
+enrich_df <- bind_rows(lapply(perm_results, function(x) {
+  data.frame(
+    reference = x$ref,
+    observed  = x$observed,
+    expected  = round(x$expected, 1),
+    fold_enrich = round(x$observed / x$expected, 2),
+    zscore    = round(x$zscore, 2),
+    pval      = x$pval
+  )
+}))
+
+cat("\n── Chromatin State Enrichment Summary ──\n")
+print(enrich_df)
+
+p_enrich <- ggplot(enrich_df,
+                   aes(x = reorder(reference, fold_enrich),
+                       y = fold_enrich,
+                       fill = pval < 0.05)) +
+  geom_col() +
+  geom_hline(yintercept = 1, linetype = "dashed", colour = "grey40") +
+  coord_flip() +
+  scale_fill_manual(values = c("TRUE" = "#2ca02c", "FALSE" = "#aec7e8"),
+                    labels = c("TRUE" = "p < 0.05", "FALSE" = "n.s.")) +
+  labs(title = "DMR enrichment in active regulatory regions",
+       subtitle = "Roadmap Epigenomics chromatin states (active TSS + enhancers)",
+       x = NULL, y = "Fold enrichment over random", fill = "") +
+  theme_bw(base_size = 12)
+
+print(p_enrich)
+```
+
+
+```{r}
+# ── 4. TCGA PCPG Replication ────────────────────────────────
+# Downloads TCGA pheochromocytoma/paraganglioma 450K methylation data
+# and checks whether CpGs within your DMRs are differentially
+# methylated in TCGA tissue data — tissue replication of cfDNA signal.
+# Note: TCGA PCPG uses hg38; adjust liftOver if your DMRs are hg19.
+
+cat("\nDownloading TCGA PCPG 450K methylation data...\n")
+
+tcga_query <- GDCquery(
+  project            = "TCGA-PCPG",
+  data.category      = "DNA Methylation",
+  data.type          = "Methylation Beta Value",
+  platform           = "Illumina Human Methylation 450"
+)
+
+GDCdownload(tcga_query, method = "api", files.per.chunk = 10)
+
+tcga_data <- GDCprepare(tcga_query)   # SummarizedExperiment
+
+# Extract beta matrix and sample metadata
+beta_mat  <- assay(tcga_data)         # rows = CpGs, cols = samples
+col_data  <- as.data.frame(colData(tcga_data))
+row_data  <- as.data.frame(rowRanges(tcga_data))
+
+# TCGA PCPG includes both tumour and normal tissue
+# Classify samples
+col_data$sample_type_clean <- ifelse(
+  grepl("Normal", col_data$sample_type, ignore.case = TRUE),
+  "Normal", "Tumour"
+)
+
+cat("TCGA PCPG samples:\n")
+print(table(col_data$sample_type_clean))
+
+# Build GRanges for TCGA CpGs
+tcga_cpg_gr <- makeGRangesFromDataFrame(
+  row_data,
+  seqnames.field = "seqnames",
+  start.field    = "start",
+  end.field      = "end",
+  keep.extra.columns = FALSE
+)
+names(tcga_cpg_gr) <- rownames(row_data)
+seqlevelsStyle(tcga_cpg_gr) <- "UCSC"
+
+## Find CpGs that fall within your DMRs
+hits <- findOverlaps(tcga_cpg_gr, dmrs_gr)
+cpgs_in_dmrs <- names(tcga_cpg_gr)[queryHits(hits)]
+
+cat("\nTCGA CpGs overlapping your DMRs:", length(unique(cpgs_in_dmrs)), "\n")
+
+## Compare mean methylation for CpGs inside vs outside DMRs
+tumour_idx <- which(col_data$sample_type_clean == "Tumour")
+normal_idx <- which(col_data$sample_type_clean == "Normal")
+
+# Mean beta per CpG in tumour vs normal
+mean_tumour <- rowMeans(beta_mat[, tumour_idx], na.rm = TRUE)
+mean_normal <- rowMeans(beta_mat[, normal_idx], na.rm = TRUE)
+delta_beta   <- mean_tumour - mean_normal
+
+## Summarise delta beta for DMR-overlapping CpGs
+dmr_cpg_delta  <- delta_beta[cpgs_in_dmrs]
+bg_cpg_delta   <- delta_beta[setdiff(names(delta_beta), cpgs_in_dmrs)]
+
+replication_df <- data.frame(
+  group     = c(rep("DMR CpGs", length(dmr_cpg_delta)),
+                rep("Background CpGs", length(bg_cpg_delta))),
+  delta_beta = c(dmr_cpg_delta, bg_cpg_delta)
+)
+
+# Wilcoxon test: are DMR CpGs more differentially methylated in TCGA?
+wt <- wilcox.test(dmr_cpg_delta, bg_cpg_delta)
+cat(sprintf("\nWilcoxon test (DMR vs background CpGs in TCGA): p = %.3e\n", wt$p.value))
+
+p_replication <- ggplot(replication_df, aes(x = group, y = delta_beta, fill = group)) +
+  geom_violin(trim = FALSE, alpha = 0.7) +
+  geom_boxplot(width = 0.1, outlier.shape = NA, fill = "white") +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  scale_fill_manual(values = c("DMR CpGs" = "#d62728", "Background CpGs" = "#aec7e8")) +
+  annotate("text", x = 1.5, y = max(replication_df$delta_beta, na.rm = TRUE) * 0.9,
+           label = sprintf("Wilcoxon p = %.2e", wt$p.value), size = 4) +
+  labs(
+    title = "TCGA PCPG replication of cfDNA DMR signal",
+    subtitle = "Delta beta (Tumour – Normal) for CpGs inside vs outside DMRs",
+    x = NULL, y = "Delta beta (TCGA tissue)", fill = NULL
+  ) +
+  theme_bw(base_size = 12) +
+  theme(legend.position = "none")
+
+print(p_replication)
+
+## Scatter: cfDNA delta methylation vs TCGA delta beta (requires per-CpG cfDNA stats)
+# If you have per-CpG statistics from your own data (e.g., from DSS DMLtest),
+# uncomment and adapt:
+# cfdna_stats <- read.csv("your_dml_stats.csv")   # must have: chr, pos, diff (cfDNA delta)
+# cfdna_gr    <- makeGRangesFromDataFrame(cfdna_stats, seqnames="chr", start="pos", end="pos")
+# hits2       <- findOverlaps(tcga_cpg_gr, cfdna_gr)
+# concordance_df <- data.frame(
+#   tcga_delta  = delta_beta[queryHits(hits2)],
+#   cfdna_delta = cfdna_stats$diff[subjectHits(hits2)]
+# )
+# cor_val <- cor(concordance_df$tcga_delta, concordance_df$cfdna_delta,
+#                method = "spearman", use = "complete.obs")
+# ggplot(concordance_df, aes(x = tcga_delta, y = cfdna_delta)) +
+#   geom_point(alpha = 0.3, size = 0.8) +
+#   geom_smooth(method = "lm") +
+#   annotate("text", x = -0.3, y = 0.4,
+#            label = sprintf("Spearman r = %.2f", cor_val)) +
+#   labs(title = "cfDNA vs TCGA tissue methylation concordance",
+#        x = "TCGA delta beta", y = "cfDNA delta methylation") +
+#   theme_bw()
+```
+
+
+```{r}
+# ── 5. Pathway Enrichment (missMethyl) ──────────────────────
+# Tests whether genes near your DMRs are enriched in GO/KEGG terms.
+# missMethyl corrects for the number of CpGs per gene (critical for
+# 450K/EPIC arrays). For PPGL, expect enrichment in catecholamine
+# synthesis, neural crest development, HIF signalling (SDHx/VHL).
+
+# missMethyl works on array probe IDs. If you have WGBS DMRs, map
+# them to the nearest 450K/EPIC probe first (see commented code below).
+
+## If you have array data — provide the universe of tested probe IDs
+# all_cpgs <- rownames(beta_mat)   # all probes tested
+# sig_cpgs  <- cpgs_in_dmrs        # probes within DMRs
+
+## WGBS → array probe mapping (if needed)
+# library(IlluminaHumanMethylation450kanno.ilmn12.hg19)
+# anno450 <- getAnnotation(IlluminaHumanMethylation450kanno.ilmn12.hg19)
+# anno_gr  <- makeGRangesFromDataFrame(
+#   anno450[, c("chr","pos","pos")],
+#   seqnames.field = "chr", start.field = "pos", end.field = "pos"
+# )
+# names(anno_gr) <- rownames(anno450)
+# hits_wgbs <- findOverlaps(anno_gr, dmrs_gr)
+# sig_cpgs  <- names(anno_gr)[queryHits(hits_wgbs)]
+# all_cpgs  <- names(anno_gr)
+
+## Gene Ontology enrichment
+go_results <- gometh(
+  sig.cpg   = sig_cpgs,
+  all.cpg   = all_cpgs,
+  collection = "GO",
+  array.type = "450K",   # change to "EPIC" if applicable
+  prior.prob = TRUE
+)
+
+go_sig <- go_results %>%
+  filter(FDR < 0.05) %>%
+  arrange(FDR)
+
+cat("\nSignificant GO terms (FDR < 0.05):", nrow(go_sig), "\n")
+print(head(go_sig, 20))
+
+## KEGG pathway enrichment
+kegg_results <- gometh(
+  sig.cpg   = sig_cpgs,
+  all.cpg   = all_cpgs,
+  collection = "KEGG",
+  array.type = "450K",
+  prior.prob = TRUE
+)
+
+kegg_sig <- kegg_results %>%
+  filter(FDR < 0.05) %>%
+  arrange(FDR)
+
+cat("\nSignificant KEGG pathways (FDR < 0.05):", nrow(kegg_sig), "\n")
+print(head(kegg_sig, 20))
+
+## Visualise top GO terms
+top_go <- head(go_sig, 20)
+p_go <- ggplot(top_go,
+               aes(x = reorder(TERM, -log10(FDR)),
+                   y = -log10(FDR),
+                   size = N,
+                   colour = -log10(FDR))) +
+  geom_point() +
+  coord_flip() +
+  scale_colour_gradient(low = "#fdae6b", high = "#d62728") +
+  scale_size_continuous(range = c(3, 10)) +
+  labs(title = "GO enrichment — genes near PPGL cfDNA DMRs",
+       subtitle = "missMethyl (CpG density corrected)",
+       x = NULL, y = "-log10(FDR)", size = "N genes", colour = "-log10(FDR)") +
+  theme_bw(base_size = 11)
+
+print(p_go)
+```
+
+
+```{r}
+# ── Save outputs ─────────────────────────────────────────────
+
+dir.create("/researchers/caitlin.page/cf_nano/r_output/dmr_validity_results", showWarnings = FALSE)
+
+write.csv(dmr_annotated_df,     "/researchers/caitlin.page/cf_nano/r_output/dmr_validity_results/dmr_annotations.csv",     row.names = FALSE)
+write.csv(enrich_df,            "/researchers/caitlin.page/cf_nano/r_output/dmr_validity_results/chromatin_enrichment.csv", row.names = FALSE)
+write.csv(go_sig,               "/researchers/caitlin.page/cf_nano/r_output/dmr_validity_results/GO_enrichment.csv",        row.names = FALSE)
+write.csv(kegg_sig,             "/researchers/caitlin.page/cf_nano/r_output/dmr_validity_results/KEGG_enrichment.csv",      row.names = FALSE)
+
+ggsave("/researchers/caitlin.page/cf_nano/r_output/dmr_validity_results/01_cpg_context.pdf",       p_cpg,         width = 8, height = 4)
+ggsave("/researchers/caitlin.page/cf_nano/r_output/dmr_validity_results/02_gene_context.pdf",      p_gene,        width = 8, height = 4)
+ggsave("/researchers/caitlin.page/cf_nano/r_output/dmr_validity_results/03_chromatin_enrich.pdf",  p_enrich,      width = 7, height = 4)
+ggsave("/researchers/caitlin.page/cf_nano/r_output/dmr_validity_results/04_tcga_replication.pdf",  p_replication, width = 6, height = 5)
+ggsave("/researchers/caitlin.page/cf_nano/r_output/dmr_validity_results/05_go_enrichment.pdf",     p_go,          width = 10, height = 6)
+
+cat("\n✓ All outputs saved to dmr_validity_results/\n")
+```
+
+## DAU
+
+# ── 2. Functional Annotation (annotatr) ─────────────────────
+
+annot_types <- c(
+  paste0(GENOME, "_cpgs"),
+  paste0(GENOME, "_genes_promoters"),
+  paste0(GENOME, "_genes_5UTRs"),
+  paste0(GENOME, "_genes_exons"),
+  paste0(GENOME, "_genes_introns"),
+  paste0(GENOME, "_genes_3UTRs"),
+  paste0(GENOME, "_genes_intergenic")
+)
+
+annotations   <- build_annotations(genome = GENOME, annotations = annot_types)
+dmr_annotated <- annotate_regions(regions = dmrs_gr, annotations = annotations,
+                                  ignore.strand = TRUE, quiet = FALSE)
+dmr_annotated_df <- as.data.frame(dmr_annotated)
+
+# Force plain types — annotatr can produce list/AsIs columns
+dmr_annotated_df <- dmr_annotated_df %>%
+  mutate(across(everything(), function(x) {
+    if (is.list(x) || inherits(x, "AsIs"))
+      sapply(x, function(v) if (length(v) == 0) NA_character_
+                            else paste(as.character(v), collapse = ","))
+    else x
+  })) %>%
+  mutate(
+    annot.type = as.character(annot.type),
+    gene.F     = as.numeric(gene.F),
+    FDR        = as.numeric(FDR)
+  )
+
+## 2a. CpG context distribution
+cpg_summary <- dmr_annotated_df %>%
+  filter(grepl("cpg", annot.type)) %>%
+  mutate(cpg_context = case_when(
+    grepl("islands", annot.type) ~ "CpG Island",
+    grepl("shores",  annot.type) ~ "Shore",
+    grepl("shelves", annot.type) ~ "Shelf",
+    grepl("inter",   annot.type) ~ "Open Sea"
+  )) %>%
+  dplyr::count(cpg_context) %>%
+  mutate(pct = n / sum(n) * 100)
+
+p_cpg <- ggplot(cpg_summary, aes(x = reorder(cpg_context, pct), y = pct)) +
+  geom_col(fill = "#7b2d8b") +
+  coord_flip() +
+  labs(title = "Region distribution across CpG features",
+       x = NULL, y = "% of regions") +
+  theme_bw(base_size = 12)
+
+## 2b. Genic context distribution
+gene_summary <- dmr_annotated_df %>%
+  filter(grepl("genes", annot.type)) %>%
+  mutate(gene_context = case_when(
+    grepl("promoter",   annot.type) ~ "Promoter",
+    grepl("5UTR",       annot.type) ~ "5'UTR",
+    grepl("exon",       annot.type) ~ "Exon",
+    grepl("intron",     annot.type) ~ "Intron",
+    grepl("3UTR",       annot.type) ~ "3'UTR",
+    grepl("intergenic", annot.type) ~ "Intergenic"
+  )) %>%
+  dplyr::count(gene_context) %>%
+  mutate(pct = n / sum(n) * 100)
+
+p_gene <- ggplot(gene_summary, aes(x = reorder(gene_context, pct), y = pct)) +
+  geom_col(fill = "#2c7bb6") +
+  coord_flip() +
+  labs(title = "Region distribution across genic features",
+       x = NULL, y = "% of regions") +
+  theme_bw(base_size = 12)
+
+print(p_cpg / p_gene)
+
+## 2c. Effect size (gene.F) and significance (FDR) diagnostics
+p_fstat <- ggplot(as.data.frame(dmrs_gr),
+                  aes(x = gene.F, y = -log10(FDR))) +
+  geom_point(alpha = 0.5, size = 1.5, colour = "#7b2d8b") +
+  geom_hline(yintercept = -log10(0.05), linetype = "dashed", colour = "grey40") +
+  labs(title = "F-statistic vs significance",
+       subtitle = "Dashed line = FDR 0.05",
+       x = "gene.F", y = "-log10(FDR)") +
+  theme_bw(base_size = 12)
+
+p_nexons <- ggplot(as.data.frame(dmrs_gr),
+                   aes(x = NExons, y = gene.F)) +
+  geom_jitter(alpha = 0.4, width = 0.2, colour = "#2c7bb6") +
+  geom_smooth(method = "lm", se = FALSE, colour = "grey30") +
+  labs(title = "Region complexity vs effect size",
+       x = "NExons", y = "gene.F") +
+  theme_bw(base_size = 12)
+
+print(p_fstat | p_nexons)
+
+## 2d. CGI promoter overlap — PPGL key check
+n_cgi_promoter <- dmr_annotated_df %>%
+  filter(grepl("island|promoter", annot.type)) %>%
+  pull(dmr_id) %>% unique() %>% length()
+
+cat(sprintf("\nRegions overlapping CGI or promoter: %d (%.1f%%)\n",
+            n_cgi_promoter, n_cgi_promoter / length(dmrs_gr) * 100))
+
+
+# ── 3. Chromatin State Enrichment (regioneR + Roadmap) ──────
+# E080 = fetal adrenal gland, E053/E054 = neurospheres (neural crest),
+# E029 = monocytes (negative control)
+
+ah <- AnnotationHub()
+
+fetch_roadmap_states <- function(ah, eid,
+                                 active_states = c("1_TssA", "2_TssAFlnk",
+                                                   "6_EnhG", "7_Enh")) {
+  q <- query(ah, c("EpigenomeRoadMap", eid, "15_coreMarks", "bed"))
+  if (length(q) == 0) { message("No data for ", eid); return(NULL) }
+  gr <- ah[[names(q)[1]]]
+  gr <- gr[gr$name %in% active_states]
+  seqlevelsStyle(gr) <- "UCSC"
+  gr
+}
+
+roadmap_refs <- Filter(Negate(is.null), list(
+  fetal_adrenal  = fetch_roadmap_states(ah, "E080"),
+  neurosphere_dr = fetch_roadmap_states(ah, "E053"),
+  neurosphere_sp = fetch_roadmap_states(ah, "E054"),
+  monocyte       = fetch_roadmap_states(ah, "E029")
+))
+
+genome_mask <- filterChromosomes(getGenome(GENOME))
+
+set.seed(123)
+perm_results <- lapply(names(roadmap_refs), function(ref_name) {
+  cat("  Testing:", ref_name, "\n")
+  pt <- permTest(
+    A = dmrs_gr, B = roadmap_refs[[ref_name]],
+    genome = genome_mask,
+    randomize.function = resampleRegions,
+    evaluate.function  = numOverlaps,
+    ntimes   = 1000, mc.set.seed = TRUE,
+    mc.cores = max(1, parallel::detectCores() - 1)
+  )
+  data.frame(reference   = ref_name,
+             observed    = pt$numOverlaps$observed,
+             expected    = round(mean(pt$numOverlaps$permuted), 1),
+             fold_enrich = round(pt$numOverlaps$observed / mean(pt$numOverlaps$permuted), 2),
+             zscore      = round(pt$numOverlaps$zscore, 2),
+             pval        = pt$numOverlaps$pval)
+})
+enrich_df <- bind_rows(perm_results)
+
+cat("\n── Chromatin State Enrichment ──\n")
+print(enrich_df)
+
+p_enrich <- ggplot(enrich_df,
+                   aes(x = reorder(reference, fold_enrich), y = fold_enrich,
+                       fill = pval < 0.05)) +
+  geom_col() +
+  geom_hline(yintercept = 1, linetype = "dashed", colour = "grey40") +
+  coord_flip() +
+  scale_fill_manual(values = c("TRUE" = "#2ca02c", "FALSE" = "#aec7e8"),
+                    labels = c("TRUE" = "p < 0.05", "FALSE" = "n.s.")) +
+  labs(title = "Region enrichment in active regulatory states",
+       subtitle = "Roadmap Epigenomics (active TSS + enhancers)",
+       x = NULL, y = "Fold enrichment over random", fill = "") +
+  theme_bw(base_size = 12)
+
+print(p_enrich)
+
+
+# ── 4. TCGA PCPG Replication ────────────────────────────────
+# Tests whether CpGs within your regions are more differentially
+# methylated in TCGA PPGL tissue data than background CpGs.
+
+cat("\nDownloading TCGA PCPG 450K data...\n")
+
+tcga_query <- GDCquery(
+  project       = "TCGA-PCPG",
+  data.category = "DNA Methylation",
+  data.type     = "Methylation Beta Value",
+  platform      = "Illumina Human Methylation 450"
+)
+GDCdownload(tcga_query, method = "api", files.per.chunk = 10)
+tcga_data <- GDCprepare(tcga_query)
+
+beta_mat <- assay(tcga_data)
+col_data <- as.data.frame(colData(tcga_data))
+row_data <- as.data.frame(rowRanges(tcga_data))
+
+col_data$sample_type_clean <- ifelse(
+  grepl("Normal", col_data$sample_type, ignore.case = TRUE), "Normal", "Tumour"
+)
+cat("TCGA PCPG samples:\n"); print(table(col_data$sample_type_clean))
+
+tcga_cpg_gr <- makeGRangesFromDataFrame(
+  row_data, seqnames.field = "seqnames",
+  start.field = "start", end.field = "end"
+)
+names(tcga_cpg_gr) <- rownames(row_data)
+seqlevelsStyle(tcga_cpg_gr) <- "UCSC"
+
+hits         <- findOverlaps(tcga_cpg_gr, dmrs_gr)
+cpgs_in_dmrs <- names(tcga_cpg_gr)[queryHits(hits)]
+cat("TCGA CpGs overlapping your regions:", length(unique(cpgs_in_dmrs)), "\n")
+
+tumour_idx  <- which(col_data$sample_type_clean == "Tumour")
+normal_idx  <- which(col_data$sample_type_clean == "Normal")
+delta_beta  <- rowMeans(beta_mat[, tumour_idx], na.rm = TRUE) -
+               rowMeans(beta_mat[, normal_idx], na.rm = TRUE)
+
+dmr_cpg_delta <- delta_beta[cpgs_in_dmrs]
+bg_cpg_delta  <- delta_beta[setdiff(names(delta_beta), cpgs_in_dmrs)]
+
+wt <- wilcox.test(dmr_cpg_delta, bg_cpg_delta)
+cat(sprintf("Wilcoxon test (region CpGs vs background): p = %.3e\n", wt$p.value))
+
+replication_df <- data.frame(
+  group      = c(rep("Region CpGs",     length(dmr_cpg_delta)),
+                 rep("Background CpGs", length(bg_cpg_delta))),
+  delta_beta = c(dmr_cpg_delta, bg_cpg_delta)
+)
+
+p_replication <- ggplot(replication_df,
+                        aes(x = group, y = delta_beta, fill = group)) +
+  geom_violin(trim = FALSE, alpha = 0.7) +
+  geom_boxplot(width = 0.1, outlier.shape = NA, fill = "white") +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  scale_fill_manual(values = c("Region CpGs" = "#7b2d8b",
+                               "Background CpGs" = "#aec7e8")) +
+  annotate("text", x = 1.5,
+           y = max(replication_df$delta_beta, na.rm = TRUE) * 0.9,
+           label = sprintf("Wilcoxon p = %.2e", wt$p.value), size = 4) +
+  labs(title = "TCGA PCPG replication",
+       subtitle = "Delta beta (Tumour – Normal) for CpGs inside vs outside regions",
+       x = NULL, y = "Delta beta (TCGA tissue)") +
+  theme_bw(base_size = 12) + theme(legend.position = "none")
+
+print(p_replication)
+
+# Also test: do higher-F regions have larger TCGA delta beta?
+region_tcga_df <- as.data.frame(dmrs_gr) %>%
+  mutate(dmr_idx = seq_len(n())) %>%
+  rowwise() %>%
+  mutate(
+    mean_delta = {
+      idx <- subjectHits(hits)[subjectHits(hits) == dmr_idx]
+      cpg_ids <- names(tcga_cpg_gr)[queryHits(hits)[subjectHits(hits) == dmr_idx]]
+      if (length(cpg_ids) > 0) mean(abs(delta_beta[cpg_ids]), na.rm = TRUE) else NA_real_
+    }
+  ) %>% ungroup()
+
+p_fstat_tcga <- ggplot(region_tcga_df %>% filter(!is.na(mean_delta)),
+                       aes(x = gene.F, y = mean_delta)) +
+  geom_point(alpha = 0.5, size = 1.5, colour = "#7b2d8b") +
+  geom_smooth(method = "lm", se = TRUE, colour = "grey30") +
+  labs(title = "F-statistic vs TCGA methylation change",
+       subtitle = "Concordance between your effect size and tissue signal",
+       x = "gene.F", y = "Mean |delta beta| in TCGA") +
+  theme_bw(base_size = 12)
+
+print(p_fstat_tcga)
+
+
+# ── 5. Pathway Enrichment (missMethyl) ──────────────────────
+# Map your regions to 450K/EPIC probe space for CpG-corrected
+# GO/KEGG enrichment.
+
+library(IlluminaHumanMethylation450kanno.ilmn12.hg19)
+anno450 <- getAnnotation(IlluminaHumanMethylation450kanno.ilmn12.hg19)
+anno_gr <- GRanges(
+  seqnames = anno450$chr,
+  ranges   = IRanges(start = anno450$pos, width = 1)
+)
+names(anno_gr) <- rownames(anno450)
+seqlevelsStyle(anno_gr) <- "UCSC"
+
+hits_450 <- findOverlaps(anno_gr, dmrs_gr)
+sig_cpgs <- names(anno_gr)[queryHits(hits_450)]
+all_cpgs <- names(anno_gr)
+
+cat("\n450K probes overlapping regions:", length(unique(sig_cpgs)), "\n")
+
+go_results <- gometh(sig.cpg = sig_cpgs, all.cpg = all_cpgs,
+                     collection = "GO", array.type = "450K", prior.prob = TRUE)
+go_sig <- go_results %>% filter(FDR < 0.05) %>% arrange(FDR)
+cat("Significant GO terms (FDR < 0.05):", nrow(go_sig), "\n")
+print(head(go_sig, 20))
+
+kegg_results <- gometh(sig.cpg = sig_cpgs, all.cpg = all_cpgs,
+                       collection = "KEGG", array.type = "450K", prior.prob = TRUE)
+kegg_sig <- kegg_results %>% filter(FDR < 0.05) %>% arrange(FDR)
+cat("Significant KEGG pathways (FDR < 0.05):", nrow(kegg_sig), "\n")
+print(head(kegg_sig, 20))
+
+p_go <- ggplot(head(go_sig, 20),
+               aes(x = reorder(TERM, -log10(FDR)),
+                   y = -log10(FDR), size = N, colour = -log10(FDR))) +
+  geom_point() + coord_flip() +
+  scale_colour_gradient(low = "#fdae6b", high = "#d62728") +
+  scale_size_continuous(range = c(3, 10)) +
+  labs(title = "GO enrichment — genes near PPGL cfDNA regions",
+       subtitle = "missMethyl (CpG density corrected)",
+       x = NULL, y = "-log10(FDR)", size = "N genes") +
+  theme_bw(base_size = 11)
+
+print(p_go)
+
+
+
+```{r}
+# Set genome build — change to "hg19" if your data is GRCh37
+GENOME <- "hg38"
+
+# ── 1. Load daus ────────────────────────────────────────────
+daus_gr <- makeGRangesFromDataFrame(
+  dau_basictiles %>% mutate(dau_id = region_id),
+  seqnames.field     = "seqnames",
+  start.field        = "start",
+  end.field          = "end",
+  keep.extra.columns = TRUE
+)
+seqlevelsStyle(daus_gr) <- "UCSC"
+
+# Separate hyper and hypo daus for direction-aware analyses
+daus_hyper <- daus_gr[daus_gr$direction == "hyper"]
+daus_hypo  <- daus_gr[daus_gr$direction == "hypo"]
+
+cat("Total daus:", length(daus_gr), "\n")
+cat("  Hypermethylated:", length(daus_hyper), "\n")
+cat("  Hypomethylated: ", length(daus_hypo), "\n")
+
+
+# ── 2. Functional Annotation (annotatr) ─────────────────────
+# Annotates daus to CpG features (islands/shores/shelves/open sea)
+# and genic features (promoters/exons/introns/intergenic).
+# For PPGL, enrichment at CGI promoters supports the known
+# SDHx-driven hypermethylator phenotype.
+
+annot_types <- c(
+  # CpG features
+  paste0(GENOME, "_cpgs"),
+  # Genic features
+  paste0(GENOME, "_genes_promoters"),
+  paste0(GENOME, "_genes_5UTRs"),
+  paste0(GENOME, "_genes_exons"),
+  paste0(GENOME, "_genes_introns"),
+  paste0(GENOME, "_genes_3UTRs"),
+  paste0(GENOME, "_genes_intergenic")
+)
+
+annotations <- build_annotations(genome = GENOME, annotations = annot_types)
+
+dau_annotated <- annotate_regions(
+  regions    = daus_gr,
+  annotations = annotations,
+  ignore.strand = TRUE,
+  quiet = FALSE
+)
+
+dau_annotated_df <- as.data.frame(dau_annotated)
+```
+
+
+```{r}
+## 2a. CpG context distribution
+cpg_summary <- dau_annotated_df %>%
+  filter(grepl("cpg", annot.type)) %>%
+  mutate(cpg_context = case_when(
+    grepl("islands", annot.type) ~ "CpG Island",
+    grepl("shores",  annot.type) ~ "Shore",
+    grepl("shelves", annot.type) ~ "Shelf",
+    grepl("inter",   annot.type) ~ "Open Sea"
+  )) %>%
+  dplyr::count(cpg_context) %>%
+  mutate(pct = n / sum(n) * 100)
+
+p_cpg <- ggplot(cpg_summary, aes(x = reorder(cpg_context, pct), y = pct)) +
+  geom_col(fill = "#7b2d8b") +
+  coord_flip() +
+  labs(title = "Region distribution across CpG features",
+       x = NULL, y = "% of regions") +
+  theme_bw(base_size = 12)
+
+## 2b. Genic context distribution
+gene_summary <- dau_annotated_df %>%
+  filter(grepl("genes", annot.type)) %>%
+  mutate(gene_context = case_when(
+    grepl("promoter",   annot.type) ~ "Promoter",
+    grepl("5UTR",       annot.type) ~ "5'UTR",
+    grepl("exon",       annot.type) ~ "Exon",
+    grepl("intron",     annot.type) ~ "Intron",
+    grepl("3UTR",       annot.type) ~ "3'UTR",
+    grepl("intergenic", annot.type) ~ "Intergenic"
+  )) %>%
+  dplyr::count(gene_context) %>%
+  mutate(pct = n / sum(n) * 100)
+
+p_gene <- ggplot(gene_summary, aes(x = reorder(gene_context, pct), y = pct)) +
+  geom_col(fill = "#2c7bb6") +
+  coord_flip() +
+  labs(title = "Region distribution across genic features",
+       x = NULL, y = "% of regions") +
+  theme_bw(base_size = 12)
+
+print(p_cpg / p_gene)
+
+## 2c. Effect size (gene.F) and significance (FDR) diagnostics
+p_fstat <- ggplot(as.data.frame(daus_gr),
+                  aes(x = gene.F, y = -log10(FDR))) +
+  geom_point(alpha = 0.5, size = 1.5, colour = "#7b2d8b") +
+  geom_hline(yintercept = -log10(0.05), linetype = "dashed", colour = "grey40") +
+  labs(title = "F-statistic vs significance",
+       subtitle = "Dashed line = FDR 0.05",
+       x = "gene.F", y = "-log10(FDR)") +
+  theme_bw(base_size = 12)
+
+p_nexons <- ggplot(as.data.frame(daus_gr),
+                   aes(x = NExons, y = gene.F)) +
+  geom_jitter(alpha = 0.4, width = 0.2, colour = "#2c7bb6") +
+  geom_smooth(method = "lm", se = FALSE, colour = "grey30") +
+  labs(title = "Region complexity vs effect size",
+       x = "NExons", y = "gene.F") +
+  theme_bw(base_size = 12)
+
+print(p_fstat | p_nexons)
+
+## 2d. CGI promoter overlap — PPGL key check
+n_cgi_promoter <- dau_annotated_df %>%
+  filter(grepl("island|promoter", annot.type)) %>%
+  pull(dau_id) %>% unique() %>% length()
+
+cat(sprintf("\nRegions overlapping CGI or promoter: %d (%.1f%%)\n",
+            n_cgi_promoter, n_cgi_promoter / length(daus_gr) * 100))
+```
+
+
+```{r}
+# ── 3. Chromatin State Enrichment (regioneR + Roadmap) ──────
+# Tests whether daus are enriched in regulatory regions of
+# PPGL-relevant cell types vs random expectation.
+# E080 = fetal adrenal gland (best available proxy for chromaffin cells)
+# E053/E054 = neural crest-derived neurospheres
+# E029 = monocytes (as a negative control — should NOT be enriched)
+
+ah <- AnnotationHub()
+
+## Helper to fetch Roadmap 15-state chromatin state BED for one sample
+fetch_roadmap_states <- function(ah, eid, active_states = c("1_TssA", "2_TssAFlnk",
+                                                             "6_EnhG", "7_Enh")) {
+  # Query AnnotationHub for the chromatin state segmentation
+  q <- query(ah, c("EpigenomeRoadMap", eid, "15_coreMarks", "bed"))
+  if (length(q) == 0) {
+    message("No Roadmap data found for ", eid)
+    return(NULL)
+  }
+  states_gr <- ah[[names(q)[1]]]
+  # Keep only active regulatory states
+  active_gr <- states_gr[states_gr$name %in% active_states]
+  seqlevelsStyle(active_gr) <- "UCSC"
+  active_gr
+}
+
+## Fetch reference epigenomes
+cat("Fetching Roadmap chromatin states (this caches locally after first run)...\n")
+roadmap_refs <- list(
+  fetal_adrenal  = fetch_roadmap_states(ah, "E080"),  # fetal adrenal gland
+  neurosphere_dr = fetch_roadmap_states(ah, "E053"),  # neural crest-derived
+  neurosphere_sp = fetch_roadmap_states(ah, "E054"),  # neural crest-derived
+  monocyte       = fetch_roadmap_states(ah, "E029")   # negative control
+)
+roadmap_refs <- Filter(Negate(is.null), roadmap_refs)
+
+## Genome mask for regioneR permutations (exclude gaps/unassembled regions)
+# Using a simplified mask — replace with BSgenome mask for production runs
+genome_mask <- filterChromosomes(getGenome(GENOME))
+
+## Run permutation test for each reference
+set.seed(123)
+perm_results <- lapply(names(roadmap_refs), function(ref_name) {
+  cat("  Testing enrichment in:", ref_name, "\n")
+  pt <- permTest(
+    A                = daus_gr,
+    B                = roadmap_refs[[ref_name]],
+    genome           = genome_mask,
+    randomize.function = resampleRegions,
+    evaluate.function  = numOverlaps,
+    ntimes           = 1000,
+    mc.set.seed      = TRUE,
+    mc.cores         = 1
+  )
+  list(
+    ref      = ref_name,
+    observed = pt$numOverlaps$observed,
+    expected = mean(pt$numOverlaps$permuted),
+    pval     = pt$numOverlaps$pval,
+    zscore   = pt$numOverlaps$zscore,
+    result   = pt
+  )
+})
+names(perm_results) <- names(roadmap_refs)
+
+## Summarise enrichment
+enrich_df <- bind_rows(lapply(perm_results, function(x) {
+  data.frame(
+    reference = x$ref,
+    observed  = x$observed,
+    expected  = round(x$expected, 1),
+    fold_enrich = round(x$observed / x$expected, 2),
+    zscore    = round(x$zscore, 2),
+    pval      = x$pval
+  )
+}))
+
+cat("\n── Chromatin State Enrichment Summary ──\n")
+print(enrich_df)
+
+p_enrich <- ggplot(enrich_df,
+                   aes(x = reorder(reference, fold_enrich),
+                       y = fold_enrich,
+                       fill = pval < 0.05)) +
+  geom_col() +
+  geom_hline(yintercept = 1, linetype = "dashed", colour = "grey40") +
+  coord_flip() +
+  scale_fill_manual(values = c("TRUE" = "#2ca02c", "FALSE" = "#aec7e8"),
+                    labels = c("TRUE" = "p < 0.05", "FALSE" = "n.s.")) +
+  labs(title = "dau enrichment in active regulatory regions",
+       subtitle = "Roadmap Epigenomics chromatin states (active TSS + enhancers)",
+       x = NULL, y = "Fold enrichment over random", fill = "") +
+  theme_bw(base_size = 12)
+
+print(p_enrich)
+```
+
+
+```{r}
+# ── 4. TCGA PCPG Replication ────────────────────────────────
+# Downloads TCGA pheochromocytoma/paraganglioma 450K methylation data
+# and checks whether CpGs within your daus are differentially
+# methylated in TCGA tissue data — tissue replication of cfDNA signal.
+# Note: TCGA PCPG uses hg38; adjust liftOver if your daus are hg19.
+
+cat("\nDownloading TCGA PCPG 450K methylation data...\n")
+
+tcga_query <- GDCquery(
+  project            = "TCGA-PCPG",
+  data.category      = "DNA Methylation",
+  data.type          = "Methylation Beta Value",
+  platform           = "Illumina Human Methylation 450"
+)
+
+GDCdownload(tcga_query, method = "api", files.per.chunk = 10)
+
+tcga_data <- GDCprepare(tcga_query)   # SummarizedExperiment
+
+# Extract beta matrix and sample metadata
+beta_mat  <- assay(tcga_data)         # rows = CpGs, cols = samples
+col_data  <- as.data.frame(colData(tcga_data))
+row_data  <- as.data.frame(rowRanges(tcga_data))
+
+# TCGA PCPG includes both tumour and normal tissue
+# Classify samples
+col_data$sample_type_clean <- ifelse(
+  grepl("Normal", col_data$sample_type, ignore.case = TRUE),
+  "Normal", "Tumour"
+)
+
+cat("TCGA PCPG samples:\n")
+print(table(col_data$sample_type_clean))
+
+# Build GRanges for TCGA CpGs
+tcga_cpg_gr <- makeGRangesFromDataFrame(
+  row_data,
+  seqnames.field = "seqnames",
+  start.field    = "start",
+  end.field      = "end",
+  keep.extra.columns = FALSE
+)
+names(tcga_cpg_gr) <- rownames(row_data)
+seqlevelsStyle(tcga_cpg_gr) <- "UCSC"
+
+## Find CpGs that fall within your daus
+hits <- findOverlaps(tcga_cpg_gr, daus_gr)
+cpgs_in_daus <- names(tcga_cpg_gr)[queryHits(hits)]
+
+cat("\nTCGA CpGs overlapping your daus:", length(unique(cpgs_in_daus)), "\n")
+
+## Compare mean methylation for CpGs inside vs outside daus
+tumour_idx <- which(col_data$sample_type_clean == "Tumour")
+normal_idx <- which(col_data$sample_type_clean == "Normal")
+
+# Mean beta per CpG in tumour vs normal
+mean_tumour <- rowMeans(beta_mat[, tumour_idx], na.rm = TRUE)
+mean_normal <- rowMeans(beta_mat[, normal_idx], na.rm = TRUE)
+delta_beta   <- mean_tumour - mean_normal
+
+## Summarise delta beta for dau-overlapping CpGs
+dau_cpg_delta  <- delta_beta[cpgs_in_daus]
+bg_cpg_delta   <- delta_beta[setdiff(names(delta_beta), cpgs_in_daus)]
+
+replication_df <- data.frame(
+  group     = c(rep("dau CpGs", length(dau_cpg_delta)),
+                rep("Background CpGs", length(bg_cpg_delta))),
+  delta_beta = c(dau_cpg_delta, bg_cpg_delta)
+)
+
+# Wilcoxon test: are dau CpGs more differentially methylated in TCGA?
+wt <- wilcox.test(dau_cpg_delta, bg_cpg_delta)
+cat(sprintf("\nWilcoxon test (dau vs background CpGs in TCGA): p = %.3e\n", wt$p.value))
+
+p_replication <- ggplot(replication_df, aes(x = group, y = delta_beta, fill = group)) +
+  geom_violin(trim = FALSE, alpha = 0.7) +
+  geom_boxplot(width = 0.1, outlier.shape = NA, fill = "white") +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  scale_fill_manual(values = c("dau CpGs" = "#d62728", "Background CpGs" = "#aec7e8")) +
+  annotate("text", x = 1.5, y = max(replication_df$delta_beta, na.rm = TRUE) * 0.9,
+           label = sprintf("Wilcoxon p = %.2e", wt$p.value), size = 4) +
+  labs(
+    title = "TCGA PCPG replication of cfDNA dau signal",
+    subtitle = "Delta beta (Tumour – Normal) for CpGs inside vs outside daus",
+    x = NULL, y = "Delta beta (TCGA tissue)", fill = NULL
+  ) +
+  theme_bw(base_size = 12) +
+  theme(legend.position = "none")
+
+print(p_replication)
+
+## Scatter: cfDNA delta methylation vs TCGA delta beta (requires per-CpG cfDNA stats)
+# If you have per-CpG statistics from your own data (e.g., from DSS DMLtest),
+# uncomment and adapt:
+# cfdna_stats <- read.csv("your_dml_stats.csv")   # must have: chr, pos, diff (cfDNA delta)
+# cfdna_gr    <- makeGRangesFromDataFrame(cfdna_stats, seqnames="chr", start="pos", end="pos")
+# hits2       <- findOverlaps(tcga_cpg_gr, cfdna_gr)
+# concordance_df <- data.frame(
+#   tcga_delta  = delta_beta[queryHits(hits2)],
+#   cfdna_delta = cfdna_stats$diff[subjectHits(hits2)]
+# )
+# cor_val <- cor(concordance_df$tcga_delta, concordance_df$cfdna_delta,
+#                method = "spearman", use = "complete.obs")
+# ggplot(concordance_df, aes(x = tcga_delta, y = cfdna_delta)) +
+#   geom_point(alpha = 0.3, size = 0.8) +
+#   geom_smooth(method = "lm") +
+#   annotate("text", x = -0.3, y = 0.4,
+#            label = sprintf("Spearman r = %.2f", cor_val)) +
+#   labs(title = "cfDNA vs TCGA tissue methylation concordance",
+#        x = "TCGA delta beta", y = "cfDNA delta methylation") +
+#   theme_bw()
+```
+
+
+```{r}
+# ── 5. Pathway Enrichment (missMethyl) ──────────────────────
+# Tests whether genes near your daus are enriched in GO/KEGG terms.
+# missMethyl corrects for the number of CpGs per gene (critical for
+# 450K/EPIC arrays). For PPGL, expect enrichment in catecholamine
+# synthesis, neural crest development, HIF signalling (SDHx/VHL).
+
+# missMethyl works on array probe IDs. If you have WGBS daus, map
+# them to the nearest 450K/EPIC probe first (see commented code below).
+
+## If you have array data — provide the universe of tested probe IDs
+# all_cpgs <- rownames(beta_mat)   # all probes tested
+# sig_cpgs  <- cpgs_in_daus        # probes within daus
+
+## WGBS → array probe mapping (if needed)
+# library(IlluminaHumanMethylation450kanno.ilmn12.hg19)
+# anno450 <- getAnnotation(IlluminaHumanMethylation450kanno.ilmn12.hg19)
+# anno_gr  <- makeGRangesFromDataFrame(
+#   anno450[, c("chr","pos","pos")],
+#   seqnames.field = "chr", start.field = "pos", end.field = "pos"
+# )
+# names(anno_gr) <- rownames(anno450)
+# hits_wgbs <- findOverlaps(anno_gr, daus_gr)
+# sig_cpgs  <- names(anno_gr)[queryHits(hits_wgbs)]
+# all_cpgs  <- names(anno_gr)
+
+## Gene Ontology enrichment
+go_results <- gometh(
+  sig.cpg   = sig_cpgs,
+  all.cpg   = all_cpgs,
+  collection = "GO",
+  array.type = "450K",   # change to "EPIC" if applicable
+  prior.prob = TRUE
+)
+
+go_sig <- go_results %>%
+  filter(FDR < 0.05) %>%
+  arrange(FDR)
+
+cat("\nSignificant GO terms (FDR < 0.05):", nrow(go_sig), "\n")
+print(head(go_sig, 20))
+
+## KEGG pathway enrichment
+kegg_results <- gometh(
+  sig.cpg   = sig_cpgs,
+  all.cpg   = all_cpgs,
+  collection = "KEGG",
+  array.type = "450K",
+  prior.prob = TRUE
+)
+
+kegg_sig <- kegg_results %>%
+  filter(FDR < 0.05) %>%
+  arrange(FDR)
+
+cat("\nSignificant KEGG pathways (FDR < 0.05):", nrow(kegg_sig), "\n")
+print(head(kegg_sig, 20))
+
+## Visualise top GO terms
+top_go <- head(go_sig, 20)
+p_go <- ggplot(top_go,
+               aes(x = reorder(TERM, -log10(FDR)),
+                   y = -log10(FDR),
+                   size = N,
+                   colour = -log10(FDR))) +
+  geom_point() +
+  coord_flip() +
+  scale_colour_gradient(low = "#fdae6b", high = "#d62728") +
+  scale_size_continuous(range = c(3, 10)) +
+  labs(title = "GO enrichment — genes near PPGL cfDNA daus",
+       subtitle = "missMethyl (CpG density corrected)",
+       x = NULL, y = "-log10(FDR)", size = "N genes", colour = "-log10(FDR)") +
+  theme_bw(base_size = 11)
+
+print(p_go)
+
+
+# ── Save outputs ─────────────────────────────────────────────
+
+dir.create("/researchers/caitlin.page/cf_nano/r_output/dau_validity_results", showWarnings = FALSE)
+
+write.csv(dau_annotated_df,     "/researchers/caitlin.page/cf_nano/r_output/dau_validity_results/dau_annotations.csv",     row.names = FALSE)
+write.csv(enrich_df,            "/researchers/caitlin.page/cf_nano/r_output/dau_validity_results/chromatin_enrichment.csv", row.names = FALSE)
+write.csv(go_sig,               "/researchers/caitlin.page/cf_nano/r_output/dau_validity_results/GO_enrichment.csv",        row.names = FALSE)
+write.csv(kegg_sig,             "/researchers/caitlin.page/cf_nano/r_output/dau_validity_results/KEGG_enrichment.csv",      row.names = FALSE)
+
+ggsave("/researchers/caitlin.page/cf_nano/r_output/dau_validity_results/01_cpg_context.pdf",       p_cpg,         width = 8, height = 4)
+ggsave("/researchers/caitlin.page/cf_nano/r_output/dau_validity_results/02_gene_context.pdf",      p_gene,        width = 8, height = 4)
+ggsave("/researchers/caitlin.page/cf_nano/r_output/dau_validity_results/03_chromatin_enrich.pdf",  p_enrich,      width = 7, height = 4)
+ggsave("/researchers/caitlin.page/cf_nano/r_output/dau_validity_results/04_tcga_replication.pdf",  p_replication, width = 6, height = 5)
+ggsave("/researchers/caitlin.page/cf_nano/r_output/dau_validity_results/05_go_enrichment.pdf",     p_go,          width = 10, height = 6)
+
+cat("\n✓ All outputs saved to dau_validity_results/\n")
+```
+

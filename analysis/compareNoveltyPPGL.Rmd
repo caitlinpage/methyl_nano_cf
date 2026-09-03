@@ -1,0 +1,548 @@
+---
+title: "compareNoveltyPPGL"
+author: "caitlinpage"
+date: "2026-09-03"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+## Introduction
+
+```{r}
+dau_df_out
+```
+
+```{r}
+dmr_df
+```
+
+```{r}
+dau_gr %>% data.frame()
+```
+
+
+```{r}
+# ── Compare novelty results: DMR vs DAU (Known PPGL-Specific Loci) ─────────────
+
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(patchwork)
+library(ggvenn)
+library(GenomicRanges)
+```
+
+
+```{r}
+# ── 1. Novelty class summary ───────────────────────────────────────────────────
+novelty_summary <- bind_rows(
+  dmr_df     |> dplyr::count(novelty_class) |> mutate(method = "DMR"),
+  dau_df_out |> dplyr::count(novelty_class) |> mutate(method = "DAU")
+) |>
+  group_by(method) |>
+  mutate(pct = n / sum(n) * 100) |>
+  ungroup() |>
+  mutate(
+    novelty_class = factor(novelty_class),
+    method = factor(method, levels = c("DMR", "DAU"))
+  )
+
+print(novelty_summary)
+```
+
+
+```{r}
+# ── 2. Bar chart: novelty tier breakdown ──────────────────────────────────────
+tier_colours <- c(
+  "Tier 1: Novel"  = "#E07A5F",
+  "Tier 2: Novel"  = "#F2A65A",
+  "Tier 3: Known"  = "#4E8098",
+  "Tier 4: Known"  = "#81B29A"
+  # extend as needed — levels will auto-match from your data
+)
+
+p_bar <- novelty_summary |>
+  ggplot(aes(x = method, y = pct, fill = novelty_class)) +
+  geom_col(width = 0.6, colour = "white", linewidth = 0.4) +
+  geom_text(aes(label = sprintf("%d\n(%.1f%%)", n, pct)),
+            position = position_stack(vjust = 0.5),
+            size = 3.2, colour = "white", fontface = "bold") +
+  scale_fill_manual(values = tier_colours, name = NULL) +
+  labs(title = "Known PPGL loci: novelty tier distribution",
+       x = NULL, y = "% of significant hits") +
+  theme_bw(base_size = 13) +
+  theme(legend.position = "bottom",
+        legend.text = element_text(size = 9))
+p_bar
+```
+
+
+```{r}
+# ── 3. Gene-level comparison (DMR genes vs DAU-overlapping genes) ─────────────
+# Split comma-separated genes in DMR
+dmr_genes_long <- dmr_df |>
+  select(dmr_id, overlapping.genes, novelty_class) |>
+  separate_rows(overlapping.genes, sep = ",\\s*") |>
+  filter(overlapping.genes != "", !is.na(overlapping.genes)) |>
+  rename(gene = overlapping.genes)
+
+# Annotate DAU windows with overlapping DMR genes via genomic ranges
+dmr_gr <- makeGRangesFromDataFrame(dmr_df, keep.extra.columns = TRUE)
+dau_gr <- makeGRangesFromDataFrame(dau_df_out, keep.extra.columns = TRUE)
+
+hits <- findOverlaps(dau_gr, dmr_gr)
+
+dau_with_genes <- dau_df_out[queryHits(hits), c("dau_id", "novelty_class")] |>
+  bind_cols(
+    dmr_df[subjectHits(hits), "overlapping.genes", drop = FALSE] |>
+      rename(genes_from_dmr = overlapping.genes)
+  ) |>
+  separate_rows(genes_from_dmr, sep = ",\\s*") |>
+  filter(genes_from_dmr != "", !is.na(genes_from_dmr)) |>
+  rename(gene = genes_from_dmr) |>
+  distinct()
+
+# Novel genes per method
+novel_dmr_genes <- dmr_genes_long |>
+  filter(grepl("Novel", novelty_class)) |>
+  pull(gene) |> unique() |> sort()
+
+novel_dau_genes <- dau_with_genes |>
+  filter(grepl("Novel", novelty_class)) |>
+  pull(gene) |> unique() |> sort()
+
+known_dmr_genes <- dmr_genes_long |>
+  filter(grepl("Known", novelty_class)) |>
+  pull(gene) |> unique() |> sort()
+
+known_dau_genes <- dau_with_genes |>
+  filter(grepl("Known", novelty_class)) |>
+  pull(gene) |> unique() |> sort()
+```
+
+
+```{r}
+# ── 4. Venn diagrams ───────────────────────────────────────────────────────────
+p_venn_novel <- ggvenn(
+  list(DMR = novel_dmr_genes, DAU = novel_dau_genes),
+  fill_color = c("#E07A5F", "#81B29A"),
+  stroke_size = 0.5, set_name_size = 4.5, text_size = 4
+) + labs(title = "Novel genes")
+
+p_venn_known <- ggvenn(
+  list(DMR = known_dmr_genes, DAU = known_dau_genes),
+  fill_color = c("#4E8098", "#F2CC8F"),
+  stroke_size = 0.5, set_name_size = 4.5, text_size = 4
+) + labs(title = "Known PPGL genes recovered")
+p_venn_novel
+p_venn_known
+```
+
+
+```{r}
+# ── 5. Genomic overlap: novel DMR regions vs novel DAU windows ─────────────────
+novel_dmr_gr <- dmr_gr[grepl("Novel", dmr_gr$novelty_class)]
+novel_dau_gr <- dau_gr[grepl("Novel", dau_gr$novelty_class)]
+
+novel_overlaps <- findOverlaps(novel_dmr_gr, novel_dau_gr)
+
+cat(sprintf(
+  "\nNovel DMR regions:     %d\nNovel DAU windows:     %d\nDMR regions with ≥1 novel DAU window: %d (%.1f%%)\n",
+  length(novel_dmr_gr),
+  length(novel_dau_gr),
+  length(unique(queryHits(novel_overlaps))),
+  100 * length(unique(queryHits(novel_overlaps))) / length(novel_dmr_gr)
+))
+```
+
+
+```{r}
+# ── 6. Print gene lists ────────────────────────────────────────────────────────
+novel_both  <- intersect(novel_dmr_genes, novel_dau_genes)
+novel_dmr_only <- setdiff(novel_dmr_genes, novel_dau_genes)
+novel_dau_only <- setdiff(novel_dau_genes, novel_dmr_genes)
+
+cat("\n── Novel in BOTH (high-confidence) n =", length(novel_both), "──\n")
+print(novel_both)
+
+cat("\n── Novel in DMR only n =", length(novel_dmr_only), "──\n")
+print(novel_dmr_only)
+
+cat("\n── Novel in DAU only n =", length(novel_dau_only), "──\n")
+print(novel_dau_only)
+```
+
+
+```{r}
+# ── 7. Assemble figure ─────────────────────────────────────────────────────────
+p_final <- p_bar | (p_venn_novel / p_venn_known)
+p_final + plot_annotation(
+  title = "Known PPGL-Specific Loci: DMR vs DAU novelty comparison",
+  theme = theme(plot.title = element_text(size = 14, face = "bold"))
+)
+```
+
+
+# repeat on the filtered dau results - was wrong before
+```{r}
+dau_df_out
+dau_df_out2
+```
+
+
+```{r}
+# ── 1. Novelty class summary ───────────────────────────────────────────────────
+novelty_summary <- bind_rows(
+  dmr_df     |> dplyr::count(novelty_class) |> mutate(method = "DMR"),
+  dau_df_out2 |> dplyr::count(novelty_class) |> mutate(method = "DAU")
+) |>
+  group_by(method) |>
+  mutate(pct = n / sum(n) * 100) |>
+  ungroup() |>
+  mutate(
+    novelty_class = factor(novelty_class),
+    method = factor(method, levels = c("DMR", "DAU"))
+  )
+
+print(novelty_summary)
+```
+
+
+```{r}
+# ── 2. Bar chart: novelty tier breakdown ──────────────────────────────────────
+tier_colours <- c(
+  "Tier 1: Novel"  = "#E07A5F",
+  "Tier 2: Novel"  = "#F2A65A",
+  "Tier 3: Known"  = "#4E8098",
+  "Tier 4: Known"  = "#81B29A"
+  # extend as needed — levels will auto-match from your data
+)
+
+p_bar <- novelty_summary |>
+  ggplot(aes(x = method, y = pct, fill = novelty_class)) +
+  geom_col(width = 0.6, colour = "white", linewidth = 0.4) +
+  geom_text(aes(label = sprintf("%d\n(%.1f%%)", n, pct)),
+            position = position_stack(vjust = 0.5),
+            size = 3.2, colour = "white", fontface = "bold") +
+  scale_fill_manual(values = tier_colours, name = NULL) +
+  labs(title = "Known PPGL loci: novelty tier distribution",
+       x = NULL, y = "% of significant hits") +
+  theme_bw(base_size = 13) +
+  theme(legend.position = "bottom",
+        legend.text = element_text(size = 9))
+p_bar
+```
+
+
+```{r}
+# ── 3. Gene-level comparison (DMR genes vs DAU-overlapping genes) ─────────────
+# Split comma-separated genes in DMR
+dmr_genes_long <- dmr_df |>
+  select(dmr_id, overlapping.genes, novelty_class) |>
+  separate_rows(overlapping.genes, sep = ",\\s*") |>
+  filter(overlapping.genes != "", !is.na(overlapping.genes)) |>
+  rename(gene = overlapping.genes)
+
+# Annotate DAU windows with overlapping DMR genes via genomic ranges
+dmr_gr <- makeGRangesFromDataFrame(dmr_df, keep.extra.columns = TRUE)
+dau_gr <- makeGRangesFromDataFrame(dau_df_out2, keep.extra.columns = TRUE)
+
+hits <- findOverlaps(dau_gr, dmr_gr)
+
+dau_with_genes <- dau_df_out2[queryHits(hits), c("dau_id", "novelty_class")] |>
+  bind_cols(
+    dmr_df[subjectHits(hits), "overlapping.genes", drop = FALSE] |>
+      rename(genes_from_dmr = overlapping.genes)
+  ) |>
+  separate_rows(genes_from_dmr, sep = ",\\s*") |>
+  filter(genes_from_dmr != "", !is.na(genes_from_dmr)) |>
+  rename(gene = genes_from_dmr) |>
+  distinct()
+
+# Novel genes per method
+novel_dmr_genes <- dmr_genes_long |>
+  filter(grepl("Novel", novelty_class)) |>
+  pull(gene) |> unique() |> sort()
+
+novel_dau_genes <- dau_with_genes |>
+  filter(grepl("Novel", novelty_class)) |>
+  pull(gene) |> unique() |> sort()
+
+known_dmr_genes <- dmr_genes_long |>
+  filter(grepl("Known", novelty_class)) |>
+  pull(gene) |> unique() |> sort()
+
+known_dau_genes <- dau_with_genes |>
+  filter(grepl("Known", novelty_class)) |>
+  pull(gene) |> unique() |> sort()
+```
+
+
+```{r}
+# ── 4. Venn diagrams ───────────────────────────────────────────────────────────
+p_venn_novel <- ggvenn(
+  list(DMR = novel_dmr_genes, DAU = novel_dau_genes),
+  fill_color = c("#E07A5F", "#81B29A"),
+  stroke_size = 0.5, set_name_size = 4.5, text_size = 4
+) + labs(title = "Novel genes")
+
+p_venn_known <- ggvenn(
+  list(DMR = known_dmr_genes, DAU = known_dau_genes),
+  fill_color = c("#4E8098", "#F2CC8F"),
+  stroke_size = 0.5, set_name_size = 4.5, text_size = 4
+) + labs(title = "Known PPGL genes recovered")
+p_venn_novel
+p_venn_known
+```
+
+
+```{r}
+# ── 5. Genomic overlap: novel DMR regions vs novel DAU windows ─────────────────
+novel_dmr_gr <- dmr_gr[grepl("Novel", dmr_gr$novelty_class)]
+novel_dau_gr <- dau_gr[grepl("Novel", dau_gr$novelty_class)]
+
+novel_overlaps <- findOverlaps(novel_dmr_gr, novel_dau_gr)
+
+cat(sprintf(
+  "\nNovel DMR regions:     %d\nNovel DAU windows:     %d\nDMR regions with ≥1 novel DAU window: %d (%.1f%%)\n",
+  length(novel_dmr_gr),
+  length(novel_dau_gr),
+  length(unique(queryHits(novel_overlaps))),
+  100 * length(unique(queryHits(novel_overlaps))) / length(novel_dmr_gr)
+))
+```
+
+
+```{r}
+# ── 6. Print gene lists ────────────────────────────────────────────────────────
+novel_both  <- intersect(novel_dmr_genes, novel_dau_genes)
+novel_dmr_only <- setdiff(novel_dmr_genes, novel_dau_genes)
+novel_dau_only <- setdiff(novel_dau_genes, novel_dmr_genes)
+
+cat("\n── Novel in BOTH (high-confidence) n =", length(novel_both), "──\n")
+print(novel_both)
+
+cat("\n── Novel in DMR only n =", length(novel_dmr_only), "──\n")
+print(novel_dmr_only)
+
+cat("\n── Novel in DAU only n =", length(novel_dau_only), "──\n")
+print(novel_dau_only)
+```
+
+
+```{r}
+# ── 7. Assemble figure ─────────────────────────────────────────────────────────
+p_final <- p_bar | (p_venn_novel / p_venn_known)
+p_final + plot_annotation(
+  title = "Known PPGL-Specific Loci: DMR vs DAU novelty comparison",
+  theme = theme(plot.title = element_text(size = 14, face = "bold"))
+)
+```
+
+
+# compare novel only (use filtered dau though)
+
+```{r}
+# ── Novel-only comparison: DMR vs DAU ─────────────────────────────────────────
+
+# DMR: split overlapping.genes
+dmr_genes_long <- dmr_df |>
+  select(dmr_id, overlapping.genes, direction, meandiff) |>
+  separate_rows(overlapping.genes, sep = ",\\s*") |>
+  filter(overlapping.genes != "", !is.na(overlapping.genes)) |>
+  rename(gene = overlapping.genes)
+
+# DAU: inherit genes from overlapping DMR regions
+dmr_gr <- makeGRangesFromDataFrame(dmr_df, keep.extra.columns = TRUE)
+dau_gr <- makeGRangesFromDataFrame(dau_df_out2, keep.extra.columns = TRUE)
+hits   <- findOverlaps(dau_gr, dmr_gr)
+
+dau_with_genes <- dau_df_out2[queryHits(hits), c("dau_id", "FDR", "gene.F")] |>
+  bind_cols(dmr_df[subjectHits(hits), "overlapping.genes", drop = FALSE]) |>
+  separate_rows(overlapping.genes, sep = ",\\s*") |>
+  filter(overlapping.genes != "", !is.na(overlapping.genes)) |>
+  rename(gene = overlapping.genes) |>
+  distinct()
+
+# DAU windows with NO overlapping DMR region
+dau_no_dmr <- dau_df_out2[-unique(queryHits(hits)), ] |>
+  select(dau_id, FDR, gene.F)
+
+# ── Gene sets ─────────────────────────────────────────────────────────────────
+genes_dmr <- unique(dmr_genes_long$gene)
+genes_dau <- unique(dau_with_genes$gene)
+
+genes_both     <- intersect(genes_dmr, genes_dau)
+genes_dmr_only <- setdiff(genes_dmr, genes_dau)
+genes_dau_only <- setdiff(genes_dau, genes_dmr)
+
+cat("Novel genes in DMR:           ", length(genes_dmr), "\n")
+cat("Novel genes in DAU (via DMR): ", length(genes_dau), "\n")
+cat("Shared:                       ", length(genes_both), "\n")
+cat("DMR only:                     ", length(genes_dmr_only), "\n")
+cat("DAU only (in a DMR region):   ", length(genes_dau_only), "\n")
+cat("DAU windows outside any DMR:  ", nrow(dau_no_dmr), "\n\n")
+
+cat("── Shared genes ──\n"); print(sort(genes_both))
+cat("\n── DMR only ──\n");   print(sort(genes_dmr_only))
+cat("\n── DAU only ──\n");   print(sort(genes_dau_only))
+
+# ── Venn ──────────────────────────────────────────────────────────────────────
+ggvenn(
+  list(DMR = genes_dmr, DAU = genes_dau),
+  fill_color = c("#E07A5F", "#81B29A"),
+  stroke_size = 0.5, set_name_size = 5, text_size = 4.5
+) +
+  labs(title = "Novel genes: DMR vs DAU overlap",
+       subtitle = sprintf("DMR=%d  DAU=%d  shared=%d",
+                          length(genes_dmr), length(genes_dau), length(genes_both)))
+```
+
+
+
+```{r}
+# ── Rank concordance for shared genes ─────────────────────────────────────────
+# (do the genes found by both methods rank similarly in each?)
+shared_ranks <- dmr_genes_long |>
+  filter(gene %in% genes_both) |>
+  left_join(dmr_df |> select(dmr_id, dmr_rank), by = "dmr_id") |>
+  group_by(gene) |>
+  slice_min(dmr_rank, n = 1) |>
+  ungroup() |>
+  select(gene, dmr_rank, direction, meandiff) |>
+  left_join(
+    dau_with_genes |>
+      filter(gene %in% genes_both) |>
+      left_join(dau_df_out |> select(dau_id, dtu_rank), by = "dau_id") |>
+      group_by(gene) |>
+      slice_min(dtu_rank, n = 1) |>
+      ungroup() |>
+      select(gene, dtu_rank, FDR),   # FDR already in dau_with_genes
+    by = "gene"
+  ) |>
+  arrange(dmr_rank)
+
+print(shared_ranks, n = Inf)
+
+ggplot(shared_ranks, aes(x = dmr_rank, y = dtu_rank, label = gene)) +
+  geom_point(aes(colour = direction), size = 3) +
+  ggrepel::geom_text_repel(size = 3, max.overlaps = 20) +
+  scale_colour_manual(values = c(hypo = "#4E8098", hyper = "#E07A5F")) +
+  labs(title = "Rank concordance for shared novel genes",
+       x = "DMR rank", y = "DAU rank") +
+  theme_bw(base_size = 12)
+```
+
+
+
+
+```{r}
+dau_no_dmr
+```
+
+
+
+
+
+
+```{r}
+dau_optiles %>% filter(FDR < 0.05)
+dau_df_out2
+```
+
+```{r}
+dau_df_out %>%
+  ggplot(aes(x = FDR)) +
+  geom_histogram(bins = 75)
+```
+
+# gene ontology 
+
+
+```{r}
+# ── Gene Ontology enrichment ───────────────────────────────────────────────────
+
+library(clusterProfiler)
+library(org.Hs.eg.db)
+library(enrichplot)
+
+# ── Helper: symbol → Entrez, run GO, return result ────────────────────────────
+run_go <- function(gene_symbols, label,
+                   ont = "BP",        # BP / MF / CC or "ALL"
+                   pval = 0.05,
+                   universe_symbols = NULL) {
+
+  ids <- bitr(gene_symbols,
+              fromType = "SYMBOL", toType = "ENTREZID",
+              OrgDb = org.Hs.eg.db)
+
+  cat(sprintf("\n── %s: %d symbols → %d mapped ──\n",
+              label, length(gene_symbols), nrow(ids)))
+
+  uni <- if (!is.null(universe_symbols)) {
+    bitr(universe_symbols,
+         fromType = "SYMBOL", toType = "ENTREZID",
+         OrgDb = org.Hs.eg.db)$ENTREZID
+  } else NULL
+
+  enrichGO(
+    gene          = ids$ENTREZID,
+    universe      = uni,
+    OrgDb         = org.Hs.eg.db,
+    ont           = ont,
+    pAdjustMethod = "BH",
+    pvalueCutoff  = pval,
+    qvalueCutoff  = 0.2,
+    readable      = TRUE   # converts Entrez back to symbols in output
+  )
+}
+
+# Background = all genes tested by DMR (all overlapping.genes)
+universe_genes <- dmr_genes_long$gene |> unique()
+
+# ── Run GO ────────────────────────────────────────────────────────────────────
+go_shared   <- run_go(genes_both,     "Shared (DMR ∩ DAU)", universe_symbols = universe_genes)
+go_dmr_only <- run_go(genes_dmr_only, "DMR only",           universe_symbols = universe_genes)
+
+# Quick look at top terms
+as.data.frame(go_shared)   |> select(Description, GeneRatio, p.adjust, geneID) |> head(10)
+as.data.frame(go_dmr_only) |> select(Description, GeneRatio, p.adjust, geneID) |> head(10)
+
+# ── Dotplots ──────────────────────────────────────────────────────────────────
+p_go_shared <- dotplot(go_shared, showCategory = 15, font.size = 10) +
+  labs(title = "GO:BP — Shared genes (DMR ∩ DAU)")
+
+p_go_dmr <- dotplot(go_dmr_only, showCategory = 15, font.size = 10) +
+  labs(title = "GO:BP — DMR-only genes")
+
+p_go_shared
+p_go_dmr
+
+# ── Side-by-side comparison if both have results ──────────────────────────────
+if (nrow(as.data.frame(go_shared)) > 0 & nrow(as.data.frame(go_dmr_only)) > 0) {
+
+  go_compare <- compareCluster(
+    geneClusters = list(
+      "DMR ∩ DAU" = bitr(genes_both,     "SYMBOL", "ENTREZID", org.Hs.eg.db)$ENTREZID,
+      "DMR only"  = bitr(genes_dmr_only, "SYMBOL", "ENTREZID", org.Hs.eg.db)$ENTREZID
+    ),
+    fun           = "enrichGO",
+    universe      = bitr(universe_genes, "SYMBOL", "ENTREZID", org.Hs.eg.db)$ENTREZID,
+    OrgDb         = org.Hs.eg.db,
+    ont           = "BP",
+    pAdjustMethod = "BH",
+    pvalueCutoff  = 0.05,
+    readable      = TRUE
+  )
+
+  dotplot(go_compare, showCategory = 15, font.size = 10) +
+    labs(title = "GO:BP comparison: shared vs DMR-only novel genes")
+}
+```
+
+
+
+
+
+
