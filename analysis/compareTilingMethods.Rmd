@@ -1256,3 +1256,444 @@ datatable(
 )
 ```
  
+
+
+
+```{r}
+basic_tiles_genes
+op_tiles_genes
+```
+
+```{r}
+b <- basic_tiles_genes %>% group_by(gene_id) %>% summarise(basic_tiles = n()) %>% data.frame()
+o <- op_tiles_genes %>% group_by(gene_id) %>% summarise(op_tiles = n()) %>% data.frame()
+```
+
+```{r}
+data.frame(gene_id = unique(c(basic_tiles_genes$gene_id, op_tiles_genes$gene_id))) %>%
+  mutate(basic_tiles = b[match(.$gene_id, b$gene_id), "basic_tiles"],
+         op_tiles = o[match(.$gene_id, o$gene_id), "op_tiles"]) %>%
+  ggplot(aes(x = op_tiles, y = basic_tiles)) +
+  geom_point(alpha = 0.3)
+```
+
+```{r}
+dau_basictiles
+dau_optiles
+```
+
+```{r}
+dau_basictiles %>% filter(FDR < 0.05)
+```
+
+#################################
+
+# basic comparisons between tiling approaches
+
+* how many cpgs
+* how many left out 
+etc from there
+
+```{r}
+nrow(optiles_all)
+```
+```{r}
+tiles_500bp_cg
+```
+
+
+```{r}
+optiles <- find_overlaps(as_granges(optiles_all), as_granges(cg_sites)) %>% data.frame() %>% group_by(seqnames, start, end, region_id) %>% summarise(n_cg = n()) %>% ungroup()
+```
+
+```{r}
+optiles %>%
+  ggplot(aes(x = n_cg)) +
+  geom_histogram(bins = 50)
+
+tiles_500bp_cg %>%
+  ggplot(aes(x = n_cg)) +
+  geom_histogram(bins = 50)
+```
+* cpgs not in tiles
+```{r}
+as_granges(cg_sites) %>% plyranges::filter_by_non_overlaps(as_granges(optiles))
+```
+* how close/far?
+```{r}
+cgs_missed <- as_granges(cg_sites) %>% plyranges::filter_by_non_overlaps(as_granges(optiles))
+```
+
+```{r}
+nn_dist <- distanceToNearest(cgs_missed)
+
+# Summarise
+summary(mcols(nn_dist)$distance)
+hist(mcols(nn_dist)$distance, breaks = 50,
+     main = "Nearest-neighbour distances", xlab = "Distance (bp)")
+```
+* appear to be clustered
+```{r}
+nn_dist %>% data.frame() %>% 
+  ggplot(aes(x = distance)) +
+  geom_histogram(bins = 50) +
+  scale_x_continuous(limits = c(0,100))
+```
+*it's missing a lot
+
+```{r}
+#library(regioneR)
+
+mean_nn_dist <- function(A, ...) {
+  if (length(A) < 2) return(NA)
+  mean(mcols(distanceToNearest(A))$distance)
+}
+
+pt <- permTest(
+  A = cgs_missed,
+  ntimes = 1000,
+  randomize.function = resampleRegions,
+  universe = as_granges(cg_sites),
+  evaluate.function = mean_nn_dist,
+  mc.cores = 1
+)
+
+summary(pt)
+plot(pt)
+```
+```{r}
+system.time({
+  A_rand <- resampleRegions(A = cgs_missed, universe = as_granges(cg_sites))
+  mean_nn_dist(A_rand)
+})
+```
+
+
+```{r}
+as_granges(cg_sites) %>% plyranges::filter_by_non_overlaps(as_granges(tiles_500bp_cg))
+```
+
+
+```{r}
+as_granges(cg_sites) %>% plyranges::filter_by_non_overlaps(as_granges(dau_optiles))
+```
+
+```{r}
+as_granges(cg_sites) %>% plyranges::filter_by_non_overlaps(as_granges(dau_basictiles))
+```
+
+
+* so optiles is missing a lot of cpgs
+* but are these cpgs interesting?
+
+```{r}
+optiles %>% mutate(tile_signif = ifelse(region_id %in% filter(dau_optiles, FDR < 0.05)$region_id, TRUE, FALSE), nrow_tile = 1:nrow(.))
+```
+
+```{r}
+optiles %>% mutate(tile_signif = ifelse(region_id %in% filter(dau_optiles, FDR < 0.05)$region_id, TRUE, FALSE), nrow_tile = 1:nrow(.)) %>% 
+  filter(tile_signif == TRUE)
+```
+
+* this is 3 tiles in a row that are signif
+* so now look for cpgs in between
+```{r}
+optiles[611:613,]
+```
+
+```{r}
+gaps(as_granges(optiles[611:613,]))[2:3]
+as_granges(cg_sites) %>% plyranges::filter_by_overlaps(gaps(as_granges(optiles[611:613,]))[2])
+as_granges(cg_sites) %>% plyranges::filter_by_overlaps(gaps(as_granges(optiles[611:613,]))[3])
+```
+* so gap between 611 and 612 has 1 cpg
+* and gap between 612 and 613 has 27 cpgs
+
+* but this is based on the reference - my data may not have any coverage there - in which case it's ok to filter them out
+* need to do both
+
+```{r}
+signif_runs <- optiles %>% mutate(tile_signif = ifelse(region_id %in% filter(dau_optiles, FDR < 0.05)$region_id, TRUE, FALSE), nrow_tile = 1:nrow(.)) %>%
+  group_by(seqnames) %>%
+  arrange(nrow_tile) %>%
+  filter(
+    tile_signif,
+    # check previous tile is both adjacent and significant
+    (lag(tile_signif, default = FALSE) & lag(nrow_tile, default = 0) == nrow_tile - 1) |
+    # OR next tile is both adjacent and significant  
+    (lead(tile_signif, default = FALSE) & lead(nrow_tile, default = 0) == nrow_tile + 1)
+  ) %>%
+  ungroup() %>%
+  group_by(seqnames) %>%
+  mutate(
+    run_id = cumsum(nrow_tile - lag(nrow_tile, default = first(nrow_tile) - 1) != 1)
+  ) %>%
+  ungroup()
+```
+```{r}
+signif_runs %>% filter(seqnames == "chr5")
+```
+
+```{r}
+# Start from tile-level data with run_id assigned
+tiles_with_runs <- signif_runs %>%
+  group_by(seqnames) %>%
+  arrange(nrow_tile) %>%
+  mutate(run_id = cumsum(nrow_tile - lag(nrow_tile, default = first(nrow_tile) - 1) != 1)) %>%
+  ungroup()
+
+# Find genomic gaps between tiles within each run
+intra_run_gaps <- tiles_with_runs %>%
+  group_by(seqnames, run_id) %>%
+  arrange(start) %>%
+  mutate(
+    gap_start = lag(end) + 1,
+    gap_end   = start - 1
+  ) %>%
+  filter(!is.na(gap_start), gap_end >= gap_start) %>%
+  ungroup()
+
+# Count CpGs in each gap
+intra_run_gaps_gr <- intra_run_gaps %>%
+  select(seqnames, start = gap_start, end = gap_end, run_id, nrow_tile) %>%
+  as_granges() %>%
+  mutate(n_cgs = count_overlaps(., as_granges(cg_sites)))
+
+as_tibble(intra_run_gaps_gr)
+```
+
+
+```{r}
+intra_run_gaps_gr %>% data.frame() %>%
+  ggplot(aes(x = n_cgs)) +
+  geom_histogram(bins = 50)
+```
+
+```{r}
+intra_run_gaps_gr %>% data.frame() %>%
+  ggplot(aes(x = width)) +
+  geom_histogram(bins = 50)
+```
+
+```{r}
+intra_run_gaps_gr %>% data.frame() %>% mutate(cg_density = n_cgs/width) %>%
+  ggplot(aes(x = cg_density)) +
+  geom_histogram(bins = 50) +
+  scale_y_continuous(limits = c(0,100))
+
+optiles %>%
+  ggplot(aes(x = n_cg/500)) +
+  geom_histogram(bins = 50) +
+  scale_y_continuous(limits = c(0,100))
+
+tiles_500bp_cg %>%
+  ggplot(aes(x = n_cg/500)) +
+  geom_histogram(bins = 50) +
+  scale_y_continuous(limits = c(0,100))
+```
+
+```{r}
+optiles %>%
+  ggplot(aes(x = n_cg/500)) +
+  geom_histogram(bins = 50)
+
+tiles_500bp_cg %>%
+  ggplot(aes(x = n_cg/500)) +
+  geom_histogram(bins = 50)
+```
+
+* ok so established that in between the significant optiles - there are variable amounts of cpgs being missed
+
+* important next question - are there gaps between significant tiles in the basic tiles?
+** we know that as the tiles themselves - there are no cpgs missing
+** but - if like a tile gets skipped over significance - how do we feel about that?
+
+```{r}
+run_signif_check <- tiles_500bp_cg %>% mutate(tile_signif = ifelse(tile_id %in% filter(dau_basictiles, FDR < 0.05)$region_id, TRUE, FALSE), nrow_tile = 1:nrow(.)) %>%
+  group_by(seqnames) %>%
+  arrange(nrow_tile) %>%
+  filter(
+    tile_signif,
+    # check previous tile is both adjacent and significant
+    (lag(tile_signif, default = FALSE) & lag(nrow_tile, default = 0) == nrow_tile - 1) |
+    # OR next tile is both adjacent and significant  
+    (lead(tile_signif, default = FALSE) & lead(nrow_tile, default = 0) == nrow_tile + 1)
+  ) %>%
+  ungroup() %>%
+  group_by(seqnames) %>%
+  mutate(
+    run_id = cumsum(nrow_tile - lag(nrow_tile, default = first(nrow_tile) - 1) != 1)
+  ) %>%
+  ungroup()
+
+# Start from tile-level data with run_id assigned
+tiles_with_runs_check <- run_signif_check %>%
+  group_by(seqnames) %>%
+  arrange(nrow_tile) %>%
+  mutate(run_id = cumsum(nrow_tile - lag(nrow_tile, default = first(nrow_tile) - 1) != 1)) %>%
+  ungroup()
+
+# Find genomic gaps between tiles within each run
+intra_run_gaps_check <- tiles_with_runs_check %>%
+  group_by(seqnames, run_id) %>%
+  arrange(start) %>%
+  mutate(
+    gap_start = lag(end) + 1,
+    gap_end   = start - 1
+  ) %>%
+  filter(!is.na(gap_start), gap_end >= gap_start) %>%
+  ungroup()
+
+# Count CpGs in each gap
+intra_run_gaps_gr_check <- intra_run_gaps_check %>%
+  select(seqnames, start = gap_start, end = gap_end, run_id, nrow_tile) %>%
+  as_granges() %>%
+  mutate(n_cgs = count_overlaps(., as_granges(cg_sites)))
+
+as_tibble(intra_run_gaps_gr_check)
+```
+
+* nothing - that's good
+
+# now on the actual cpgs from the data
+
+* because different to reference
+* next version is doing it with the cpgs I have data for
+* and seeing if the numbers of cpgs change - because more important if things got missed that actually have coverage
+
+```{r}
+betas_h <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_betas_healthy.rds")
+betas_c <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_betas_cancer.rds")
+```
+
+```{r}
+betas_h %>% filter(meth_count_pos == 0, unmeth_count_pos == 0)
+```
+
+```{r}
+cg_data <- rbind(betas_c[,2:3], betas_h[,2:3]) %>% distinct()
+cg_data$end <- cg_data$start + 1
+```
+
+```{r}
+optiles <- find_overlaps(as_granges(optiles), as_granges(cg_data)) %>% data.frame() %>% group_by(seqnames, start, end, region_id) %>% summarise(n_cg_data = n()) %>% ungroup()
+```
+
+```{r}
+as_granges(cg_data) %>% plyranges::filter_by_non_overlaps(as_granges(optiles))
+```
+
+```{r}
+as_granges(cg_data) %>% plyranges::filter_by_overlaps(as_granges(optiles))
+```
+```{r}
+as_granges(cg_data) %>% plyranges::filter_by_non_overlaps(as_granges(tiles_500bp_cg))
+as_granges(cg_sites) %>% plyranges::filter_by_non_overlaps(as_granges(tiles_500bp_cg))
+```
+* well oops 
+* there should be nothing there
+* could be more though
+
+*check cg sites vs cg data
+```{r}
+as_granges(cg_data) %>% plyranges::filter_by_non_overlaps(as_granges(cg_sites))
+as_granges(cg_sites) %>% plyranges::filter_by_non_overlaps(as_granges(cg_data))
+```
+
+
+```{r}
+run_signif_check <- optiles %>% mutate(tile_signif = ifelse(region_id %in% filter(dau_optiles, FDR < 0.05)$region_id, TRUE, FALSE), nrow_tile = 1:nrow(.)) %>%
+  group_by(seqnames) %>%
+  arrange(nrow_tile) %>%
+  filter(
+    tile_signif,
+    # check previous tile is both adjacent and significant
+    (lag(tile_signif, default = FALSE) & lag(nrow_tile, default = 0) == nrow_tile - 1) |
+    # OR next tile is both adjacent and significant  
+    (lead(tile_signif, default = FALSE) & lead(nrow_tile, default = 0) == nrow_tile + 1)
+  ) %>%
+  ungroup() %>%
+  group_by(seqnames) %>%
+  mutate(
+    run_id = cumsum(nrow_tile - lag(nrow_tile, default = first(nrow_tile) - 1) != 1)
+  ) %>%
+  ungroup()
+
+# Start from tile-level data with run_id assigned
+tiles_with_runs_check <- run_signif_check %>%
+  group_by(seqnames) %>%
+  arrange(nrow_tile) %>%
+  mutate(run_id = cumsum(nrow_tile - lag(nrow_tile, default = first(nrow_tile) - 1) != 1)) %>%
+  ungroup()
+
+# Find genomic gaps between tiles within each run
+intra_run_gaps_check <- tiles_with_runs_check %>%
+  group_by(seqnames, run_id) %>%
+  arrange(start) %>%
+  mutate(
+    gap_start = lag(end) + 1,
+    gap_end   = start - 1
+  ) %>%
+  filter(!is.na(gap_start), gap_end >= gap_start) %>%
+  ungroup()
+
+# Count CpGs in each gap
+intra_run_gaps_gr_check <- intra_run_gaps_check %>%
+  select(seqnames, start = gap_start, end = gap_end, run_id, nrow_tile) %>%
+  as_granges() %>%
+  mutate(n_cgs = count_overlaps(., as_granges(cg_data)))
+
+as_tibble(intra_run_gaps_gr_check)
+```
+
+```{r}
+intra_run_gaps_gr %>% data.frame() %>%
+  ggplot(aes(x = n_cgs)) +
+  geom_histogram(bins = 50)
+
+intra_run_gaps_gr %>% data.frame() %>%
+  ggplot(aes(x = width)) +
+  geom_histogram(bins = 50)
+```
+* plot still looks similar which is good, given that positions have done weird things
+```{r}
+cg_sites
+```
+
+
+* also sense check
+```{r}
+tiles_500bp_cg %>% mutate(tile_signif = ifelse(tile_id %in% filter(dau_basictiles, FDR < 0.05)$region_id, TRUE, FALSE)) %>%
+  ggplot(aes(x = n_cg, colour = tile_signif)) +
+  geom_density()
+```
+```{r}
+optiles %>% mutate(tile_signif = ifelse(region_id %in% filter(dau_optiles, FDR < 0.05)$region_id, TRUE, FALSE), nrow_tile = 1:nrow(.)) %>%
+  ggplot(aes(x = n_cg, colour = tile_signif)) +
+  geom_density()
+```
+* yeah - more cpgs, more likely significant
+
+```{r}
+cg_sites 
+```
+
+```{r}
+optiles
+```
+
+
+
+
+
+* tested tiles - dudde just filter it 
+
+```{r}
+dau_basictiles <- find_overlaps(as_granges(dau_basictiles), as_granges(cg_sites)) %>% data.frame() 
+dau_optiles <- find_overlaps(as_granges(dau_optiles), as_granges(cg_sites)) %>% data.frame() 
+```
+
+```{r}
+dau_basictiles %>% group_by(region_id) %>% count()
+```
+
