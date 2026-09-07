@@ -192,6 +192,47 @@ for_beta <- for_beta %>% filter(seqnames == "chr22")
 rrbs_for_beta_pat <- pat_for_wgbs(for_beta)
 ```
 
+# dau analysis
+```{r}
+# overlap tiles and reads
+overlap_pos <- find_overlaps(as_granges(tiles_500bp_cg), as_granges(all_samples)) %>% data.frame()
+
+# dtu
+
+dtu_optile <- overlap_pos %>%
+  distinct(sample, read_id, read_start, read_end, alpha, tile_id, type) %>%
+  mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                 alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                 alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                 alpha <= 0.6 & alpha <= 0.8 ~ "0.6 <= a <= 0.8",
+                                 TRUE ~ "a > 0.8"), 
+         transcript = paste0(tile_id, "_", alpha_group)) %>%
+  group_by(sample, transcript) %>%
+  summarise(transcript_count = n()) %>% ungroup() %>% data.frame()
+
+# build matrix of "transcript" counts - transcript rows, sample as columns
+dtu_optile <- dtu_optile %>% pivot_wider(names_from = sample, values_from = transcript_count, values_fill = 0)
+dtu_optile$gene_id <- sub("_.*", "", dtu_optile$transcript)
+
+# DTU analysis with edgeR
+## Alicia prefers gene method over Simes method (documentation slightly confusing about difference)
+y <- DGEList(as.matrix(dtu_optile[,2:13]), group = c(1,1,1,1,1,1,2,2,2,2,2,2), genes = dtu_optile[,c("gene_id", "transcript")])
+design <- model.matrix(~ c(1,1,1,1,1,1,2,2,2,2,2,2), data = y$samples)
+fit <- glmQLFit(y, design, robust=TRUE)
+ds <- diffSpliceDGE(fit, coef = 2, geneid = "gene_id", exonid = "transcript")
+dau_basictiles <- topSpliceDGE(ds, test = "gene", number = Inf)
+
+
+dau_basictiles <- dau_basictiles %>%
+  mutate(region_id = gene_id) %>%
+  separate_wider_delim(gene_id, delim = ":", names = c("seqnames", "gene_id")) %>%
+  separate_wider_delim(gene_id, delim = "-", names = c("start", "end"))
+dau_basictiles$start <- as.double(dau_basictiles$start)
+dau_basictiles$end <- as.double(dau_basictiles$end)
+dau_basictiles$dtu_rank <- 1:nrow(dau_basictiles)
+```
+
+
 
 # plotting
 
@@ -382,17 +423,28 @@ data.table::setkey(read_data, read_id)
 
 * using paraquet for the read file because it's big
 * meaning that the read file won't be in memory - paraquet calls the bits that are needed each time
+* oops except can't be using the read ids - don't have them without the file which I don't want to read in
+* could give region id though
 ```{r}
-rrbs_plot5 <- function(read_data_path, read_ids, cpgs = cg_sites,
+rrbs_plot5 <- function(read_data_path, chrom, region_start, region_end, cpgs = cg_sites,
                        jit_amount = 0.1) {
   set.seed(42)
 
   # ── 1. Read only the matching rows — never loads unmatched data into RAM ───
-  filtered <- arrow::open_dataset(read_data_path) |>
-    dplyr::filter(read_id %in% read_ids) |>
-    dplyr::collect()                       # Arrow translates this to a
-                                           # pushdown predicate at read time
-
+  con <- dbConnect(duckdb())
+  on.exit(dbDisconnect(con))
+  
+  filtered <- dbGetQuery(con, glue::glue("
+    SELECT *
+    FROM read_parquet('{read_data_path}')
+    WHERE seqnames = '{chrom}'
+      AND \"start\" >= {region_start}
+      AND \"end\"   <= {region_end}
+  "))
+  
+  healthy_samples <- c("a1", "a2", "a3", "b1", "b2", "b3")
+  filtered$type   <- ifelse(filtered$sample %in% healthy_samples, "healthy", "cancer")
+  
   # ── 2. Jitter ─────────────────────────────────────────────────────────────
   n <- nrow(filtered)
   filtered$alpha_jit <- filtered$alpha + runif(n, -jit_amount, jit_amount)
@@ -403,10 +455,27 @@ rrbs_plot5 <- function(read_data_path, read_ids, cpgs = cg_sites,
   max_end   <- max(filtered$read_end)
 
   # ── 4. Vectorised expansion ───────────────────────────────────────────────
-  ms_list <- strsplit(filtered$meth_pattern,    "")
-  st_list <- strsplit(filtered$genom_positions, ",")
-  lens    <- lengths(ms_list)
-  idx     <- rep(seq_len(n), lens)
+  ms_list <- strsplit(filtered$meth_pattern, "")
+  st_list <- strsplit(gsub(",+$", "", filtered$genom_positions), ",")  # strip trailing commas
+  
+  # Drop any rows where lengths still don't match
+  lens_ms <- lengths(ms_list)
+  lens_st <- lengths(st_list)
+  keep    <- lens_ms == lens_st
+  
+  if (!all(keep)) {
+    message(sprintf("Dropping %d rows with mismatched meth_pattern/genom_positions lengths",
+                    sum(!keep)))
+    filtered  <- filtered[keep, ]
+    ms_list   <- ms_list[keep]
+    st_list   <- st_list[keep]
+    lens      <- lens_ms[keep]
+  } else {
+    lens <- lens_ms
+  }
+  
+  n   <- nrow(filtered)
+  idx <- rep(seq_len(n), lens)
 
   long_data <- data.frame(
     meth_status = unlist(ms_list, use.names = FALSE),
@@ -428,6 +497,116 @@ rrbs_plot5 <- function(read_data_path, read_ids, cpgs = cg_sites,
     scale_fill_manual(values = c("U" = "white", "M" = "black")) +
     facet_wrap(~ type, nrow = 2) +
     labs(title = paste0(chr, ":", min_start, "-", max_end))
+}
+```
+
+* mix of claude to get the reads in - and then back to my og because more "efficient" is not running
+```{r}
+rrbs_plot5 <- function(read_data_path_a, read_data_path_b, chrom, region_start, region_end, cpgs = cg_sites,
+                       jit_amount = 0.1) {
+  set.seed(42)
+
+  # ── 1. Read only the matching rows — never loads unmatched data into RAM ───
+  con <- dbConnect(duckdb())
+  on.exit(dbDisconnect(con))
+  
+  read_data_a <- dbGetQuery(con, glue::glue("
+    SELECT *
+    FROM read_parquet('{read_data_path_a}')
+    WHERE seqnames = '{chrom}'
+      AND \"start\" >= {region_start}
+      AND \"end\"   <= {region_end}
+  "))
+  
+  read_data_b <- dbGetQuery(con, glue::glue("
+    SELECT *
+    FROM read_parquet('{read_data_path_b}')
+    WHERE seqnames = '{chrom}'
+      AND \"start\" >= {region_start}
+      AND \"end\"   <= {region_end}
+  "))
+  
+  read_data_a$type <- "healthy"
+  read_data_b$type <- "cancer"
+  
+  read_data <- rbind(read_data_a, read_data_b)
+  
+  jitter_amount <- runif(nrow(read_data), -jit_amount, jit_amount)
+  read_data$alpha_jit <- read_data$alpha + jitter_amount
+  read_data <- data.frame(read_data)
+  
+  read_data <- read_data %>% mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                 alpha > 0.8 ~ "a > 0.8",
+                                 alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                 alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                 TRUE ~ "0.6 <= a <= 0.8"))
+  read_data <- read_data %>% mutate(alpha_group = factor(alpha_group, levels = c("a < 0.2", "0.2 <= a <= 0.4", "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8")))
+  
+  # Add jittered coordinates to new columns in the data frame
+  long_data <- read_data %>%
+    mutate(meth_status = strsplit(meth_pattern, ""), start = strsplit(genom_positions, ",")) %>%
+    unnest(meth_status, start) %>%
+    mutate(start = as.double(start))
+
+  chr <- unique(read_data$seqnames)
+  min_start <- min(read_data$read_start)
+  max_end <- max(read_data$read_end)
+  
+  plot <- read_data %>%
+    ggplot() +
+    geom_segment(aes(x = read_start, xend = read_end,
+                     y = alpha_jit, yend = alpha_jit, colour = alpha_group)) +
+    geom_point(data = long_data,
+               aes(x = start, y = alpha_jit,
+                   fill = meth_status, colour = alpha_group), shape = 21) +
+    scale_fill_manual(values = c("U" = "white", "M" = "black")) +
+    facet_wrap(~ type, nrow=2) +
+    labs(title = paste0(chr, ":", min_start, "-", max_end))
+  plot
+}
+```
+```{r}
+rrbs_plotdata <- function(read_data_path, chrom, region_start, region_end, cpgs = cg_sites,
+                       jit_amount = 0.1) {
+  set.seed(42)
+
+  # ── 1. Read only the matching rows — never loads unmatched data into RAM ───
+  con <- dbConnect(duckdb())
+  on.exit(dbDisconnect(con))
+  
+  read_data <- dbGetQuery(con, glue::glue("
+    SELECT *
+    FROM read_parquet('{read_data_path}')
+    WHERE seqnames = '{chrom}'
+      AND \"start\" >= {region_start}
+      AND \"end\"   <= {region_end}
+  "))
+  
+  healthy_samples <- c("a1", "a2", "a3", "b1", "b2", "b3")
+  read_data$type   <- ifelse(read_data$sample %in% healthy_samples, "healthy", "cancer")
+  
+  jitter_amount <- runif(nrow(read_data), -jit_amount, jit_amount)
+  read_data$alpha_jit <- read_data$alpha + jitter_amount
+  read_data <- data.frame(read_data)
+  
+  read_data <- read_data %>% mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                 alpha > 0.8 ~ "a > 0.8",
+                                 alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                 alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                 TRUE ~ "0.6 <= a <= 0.8"))
+  read_data <- read_data %>% mutate(alpha_group = factor(alpha_group, levels = c("a < 0.2", "0.2 <= a <= 0.4", "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8")))
+  
+  # Add jittered coordinates to new columns in the data frame
+  long_data <- read_data %>%
+    mutate(meth_status = strsplit(meth_pattern, ""), start = strsplit(genom_positions, ",")) %>%
+    unnest(meth_status, start) %>%
+    mutate(start = as.double(start))
+
+  chr <- unique(read_data$seqnames)
+  min_start <- min(read_data$read_start)
+  max_end <- max(read_data$read_end)
+  
+  read_data
 }
 ```
 
