@@ -13,10 +13,15 @@ editor_options:
 library(plyranges)
 library(stringr)
 library(BSgenome.Hsapiens.UCSC.hg38)
+library(TxDb.Hsapiens.UCSC.hg38.knownGene)
 library(tidyr)
+library(stringr)
 library(dplyr)
 library(ggplot2)
 library(data.table)
+library(duckdb)
+library(arrow)
+
 ```
 
 * starting a new file because outputs from modkit (nanopore) and bismark (wgbs + rrbs) are very very different
@@ -561,12 +566,16 @@ rrbs_plot5 <- function(read_data_path_a, read_data_path_b, chrom, region_start, 
                    fill = meth_status, colour = alpha_group), shape = 21) +
     scale_fill_manual(values = c("U" = "white", "M" = "black")) +
     facet_wrap(~ type, nrow=2) +
-    labs(title = paste0(chr, ":", min_start, "-", max_end))
+    labs(title = paste0(chr, ":", min_start, "-", max_end)) +
+    theme_bw() +
+    labs(x = "genomic position")
   plot
 }
 ```
+
 ```{r}
-rrbs_plotdata <- function(read_data_path, chrom, region_start, region_end, cpgs = cg_sites,
+#library(ggrastr)
+rrbs_plot5_poster_svg <- function(read_data_path_a, read_data_path_b, chrom, region_start, region_end, cpgs = cg_sites,
                        jit_amount = 0.1) {
   set.seed(42)
 
@@ -574,16 +583,26 @@ rrbs_plotdata <- function(read_data_path, chrom, region_start, region_end, cpgs 
   con <- dbConnect(duckdb())
   on.exit(dbDisconnect(con))
   
-  read_data <- dbGetQuery(con, glue::glue("
+  read_data_a <- dbGetQuery(con, glue::glue("
     SELECT *
-    FROM read_parquet('{read_data_path}')
+    FROM read_parquet('{read_data_path_a}')
     WHERE seqnames = '{chrom}'
       AND \"start\" >= {region_start}
       AND \"end\"   <= {region_end}
   "))
   
-  healthy_samples <- c("a1", "a2", "a3", "b1", "b2", "b3")
-  read_data$type   <- ifelse(read_data$sample %in% healthy_samples, "healthy", "cancer")
+  read_data_b <- dbGetQuery(con, glue::glue("
+    SELECT *
+    FROM read_parquet('{read_data_path_b}')
+    WHERE seqnames = '{chrom}'
+      AND \"start\" >= {region_start}
+      AND \"end\"   <= {region_end}
+  "))
+  
+  read_data_a$type <- "healthy"
+  read_data_b$type <- "cancer"
+  
+  read_data <- rbind(read_data_a, read_data_b)
   
   jitter_amount <- runif(nrow(read_data), -jit_amount, jit_amount)
   read_data$alpha_jit <- read_data$alpha + jitter_amount
@@ -606,7 +625,19 @@ rrbs_plotdata <- function(read_data_path, chrom, region_start, region_end, cpgs 
   min_start <- min(read_data$read_start)
   max_end <- max(read_data$read_end)
   
-  read_data
+  plot <- read_data %>%
+    ggplot() +
+    rasterise(geom_segment(aes(x = read_start, xend = read_end,
+                     y = alpha_jit, yend = alpha_jit, colour = alpha_group)), dpi = 300) +
+    rasterise(geom_point(data = long_data,
+               aes(x = start, y = alpha_jit,
+                   fill = meth_status, colour = alpha_group), shape = 21), dpi = 300) +
+    scale_fill_manual(values = c("U" = "white", "M" = "black")) +
+    facet_wrap(~ type, nrow=2) +
+    labs(title = paste0(chr, ":", min_start, "-", max_end)) +
+    theme_bw() +
+    labs(x = "genomic position")
+  plot
 }
 ```
 
@@ -614,8 +645,8 @@ rrbs_plotdata <- function(read_data_path, chrom, region_start, region_end, cpgs 
 ## beta
 
 ```{r}
-geom_beta <- function(all_b, plot.space=1, plot.height=1) {
-    structure(list(all_b = all_b, plot.space = plot.space,
+geom_beta <- function(all_b, style = "line", plot.space=1, plot.height=1) {
+    structure(list(all_b = all_b, style = style, plot.space = plot.space,
         plot.height = plot.height),
         class = "beta"
     )
@@ -638,16 +669,44 @@ plot2 <- plot
     all_b <- object$all_b
     plot.space <- object$plot.space
     plot.height <- object$plot.height
+    style <- object$style
     
+ #   all_b <- all_b %>%
+#  tidyr::pivot_longer(cols = c(cancer_0223, cancer_0224, cancer_0225, cancer_0454, cancer_0456, cancer_0457, healthy_036, healthy_037, healthy_785, healthy_786, healthy_787, healthy_789), names_to = "sample", values_to = "beta") %>% mutate(type = substr(sample, 1, 1)) %>% filter(seqnames.x %in% plot.chr,
+       #                         start.x >= plot.region.start,
+      #                          start.x <= plot.region.end)
     all_b <- all_b %>%
-  tidyr::pivot_longer(cols = c(cancer_0223, cancer_0224, cancer_0225, cancer_0454, cancer_0456, cancer_0457, healthy_036, healthy_037, healthy_785, healthy_786, healthy_787, healthy_789), names_to = "sample", values_to = "beta") %>% mutate(type = substr(sample, 1, 1)) %>% filter(seqnames.x %in% plot.chr,
-                                start.x >= plot.region.start,
-                                start.x <= plot.region.end)
+      mutate(type = substr(sample, 1, 1)) %>%
+      filter(seqnames %in% plot.chr,
+                                start >= plot.region.start,
+                                start <= plot.region.end)
     
+    if(style == "line") {
+      b_plot <- all_b %>%
+  ggplot(aes(x = start, y = beta, colour = type)) +
+  geom_line() +
+  theme_bw() +
+        scale_color_manual(values = c("c" = "#C0622A", "h" = "#1B3A6B"),
+                           labels = c("c" = "cancer", "h" = "healthy")) +
+        labs(x = "genomic position")
+    } else if (style == "smooth") {
+      b_plot <- all_b %>%
+  ggplot(aes(x = start, y = beta, colour = type)) +
+        geom_smooth() +
+        theme_bw() +
+        scale_color_manual(values = c("c" = "#C0622A", "h" = "#1B3A6B"),
+                           labels = c("c" = "cancer", "h" = "healthy")) +
+        labs(x = "genomic position")
+    }
+    else {
     b_plot <- all_b %>%
-  ggplot(aes(x = start.x, y = beta, colour = type)) +
-  geom_point(alpha = 0.3) 
-  #    facet_wrap(~type, nrow = 2)
+  ggplot(aes(x = start, y = beta, colour = type)) +
+  geom_point(alpha = 0.3) +
+      theme_bw() +
+      scale_color_manual(values = c("c" = "#C0622A", "h" = "#1B3A6B"),
+                         labels = c("c" = "cancer", "h" = "healthy")) +
+      labs(x = "genomic position")
+    }
     
     patchwork::wrap_plots(plot + ggplot2::theme(plot.margin = ggplot2::margin(t = plot.space, b = plot.space)),
         b_plot,
@@ -659,8 +718,9 @@ plot2 <- plot
 
 ## theme for dau/dmr
 ```{r}
-..peakGatcTheme <- function(margin.len, x.range) {
+..peakGatcTheme <- function(margin.len, x.start, x.end) {
     list(
+        ggplot2::scale_x_continuous(limits = c(x.start, x.end)),
         ggplot2::theme_classic(),
         ggplot2::theme(
             axis.line.y = ggplot2::element_blank(),
@@ -676,9 +736,9 @@ plot2 <- plot
         ggplot2::scale_y_continuous(
             limits = c(1 - 0.1, 1 + 0.1),
             expand = c(0, 0), position = "right"
-        ),
-        ggplot2::scale_x_continuous(expand = c(0, 0)),
-        ggplot2::coord_cartesian(xlim = x.range)
+        )
+        #ggplot2::scale_x_continuous(expand = c(0, 0)),
+        #ggplot2::coord_cartesian(xlim = x.range)
     )
 }
 ```
@@ -739,7 +799,8 @@ ggplot_add.dau <- function(object, plot, object_name) {
                 linewidth = dau.size, color = dau.color
             ) +
       labs(y = "dau") +
-      ..peakGatcTheme(margin.len = plot.space, x.range = c(plot.region.start, plot.region.end))
+      scale_x_continuous(limits = c(plot.region.start, plot.region.end)) +
+      ..peakGatcTheme(margin.len = plot.space, x.start = plot.region.start, x.end = plot.region.end)
 
     # assemble plot
     patchwork::wrap_plots(plot + ggplot2::theme(plot.margin = ggplot2::margin(t = plot.space, b = plot.space)),
@@ -806,7 +867,7 @@ ggplot_add.dmr <- function(object, plot, object_name) {
                 linewidth = dmr.size, color = dmr.color
             ) +
       labs(y = "dmr") +
-      ..peakGatcTheme(margin.len = plot.space, x.range = c(plot.region.start, plot.region.end))
+      ..peakGatcTheme(margin.len = plot.space, x.start = plot.region.start, x.end = plot.region.end)
 
     # assemble plot
     patchwork::wrap_plots(plot + ggplot2::theme(plot.margin = ggplot2::margin(t = plot.space, b = plot.space)),
