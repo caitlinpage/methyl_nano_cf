@@ -1,0 +1,1038 @@
+---
+title: "epiaIdeas"
+author: "caitlinpage"
+date: "2026-09-18"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+## Introduction
+"/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", "/researchers/caitlin.page/cf_nano/r_output/emseq_all_cancer.parquet",
+```{r}
+library(BSgenome.Hsapiens.UCSC.hg38)
+library(TxDb.Hsapiens.UCSC.hg38.knownGene)
+library(plyranges)
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+library(stringr)
+library(data.table)
+library(duckdb)
+library(arrow)
+```
+
+```{r}
+rrbs_plot5 <- function(read_data_path_a, read_data_path_b, chrom, region_start, region_end, cpgs = cg_sites,
+                       jit_amount = 0.1) {
+  set.seed(42)
+
+  # ── 1. Read only the matching rows — never loads unmatched data into RAM ───
+  con <- dbConnect(duckdb())
+  on.exit(dbDisconnect(con))
+  
+  read_data_a <- dbGetQuery(con, glue::glue("
+    SELECT *
+    FROM read_parquet('{read_data_path_a}')
+    WHERE seqnames = '{chrom}'
+      AND \"start\" >= {region_start}
+      AND \"end\"   <= {region_end}
+  "))
+  
+  read_data_b <- dbGetQuery(con, glue::glue("
+    SELECT *
+    FROM read_parquet('{read_data_path_b}')
+    WHERE seqnames = '{chrom}'
+      AND \"start\" >= {region_start}
+      AND \"end\"   <= {region_end}
+  "))
+  
+  read_data_a$type <- "healthy"
+  read_data_b$type <- "cancer"
+  
+  read_data <- rbind(read_data_a, read_data_b)
+  
+  jitter_amount <- runif(nrow(read_data), -jit_amount, jit_amount)
+  read_data$alpha_jit <- read_data$alpha + jitter_amount
+  read_data <- data.frame(read_data)
+  
+  read_data <- read_data %>% mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                 alpha > 0.8 ~ "a > 0.8",
+                                 alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                 alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                 TRUE ~ "0.6 <= a <= 0.8"))
+  read_data <- read_data %>% mutate(alpha_group = factor(alpha_group, levels = c("a < 0.2", "0.2 <= a <= 0.4", "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8")))
+  
+  # Add jittered coordinates to new columns in the data frame
+  long_data <- read_data %>%
+    mutate(meth_status = strsplit(meth_pattern, ""), start = strsplit(genom_positions, ",")) %>%
+    unnest(meth_status, start) %>%
+    mutate(start = as.double(start))
+
+  chr <- unique(read_data$seqnames)
+  min_start <- min(read_data$read_start)
+  max_end <- max(read_data$read_end)
+  
+  plot <- read_data %>%
+    ggplot() +
+    geom_segment(aes(x = read_start, xend = read_end,
+                     y = alpha_jit, yend = alpha_jit, colour = alpha_group)) +
+    geom_point(data = long_data,
+               aes(x = start, y = alpha_jit,
+                   fill = meth_status, colour = alpha_group), shape = 21) +
+    scale_fill_manual(values = c("U" = "white", "M" = "black")) +
+    facet_wrap(~ type, nrow=2) +
+    labs(title = paste0(chr, ":", min_start, "-", max_end)) +
+    theme_bw() +
+    labs(x = "genomic position")
+  plot
+}
+```
+
+
+
+# what does X chromosome alpha distribution look like?
+* someone thought it might look different because of X inactivation
+```{r}
+cg_sites <- cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38[["chr22"]])), seqnames = "chr22") %>% 
+  mutate(pos = paste0(seqnames, "-", start)) %>%
+  relocate(pos, seqnames)
+cg_sites$index <- 1:nrow(cg_sites)
+c(number_of_sites = nrow(cg_sites))
+head(cg_sites)
+```
+
+```{r}
+betas_c %>% distinct(seqnames)
+```
+
+"/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", "/researchers/caitlin.page/cf_nano/r_output/emseq_all_cancer.parquet",
+```{r}
+con <- dbConnect(duckdb())
+read_healthy <- dbGetQuery(con, glue::glue("
+    SELECT *
+    FROM read_parquet('/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet')
+    WHERE seqnames IN  (
+    'chr1','chr2','chr3','chr4','chr5','chr6','chr7','chr8','chr9','chr10',
+    'chr11','chr12','chr13','chr14','chr15','chr16','chr17','chr18','chr19',
+    'chr20','chr21','chr22','chrX','chrY'
+  )
+  "))
+```
+```{r}
+read_healthy %>%
+  filter(total > 2) %>%
+  ggplot(aes(x = alpha)) +
+  geom_density() +
+  facet_wrap(~seqnames)
+```
+
+```{r}
+read_healthy[1:1000,] %>%
+  filter(total > 2) %>%
+  ggplot(aes(x = alpha)) +
+  geom_density() +
+  facet_wrap(~seqnames)
+```
+
+
+  on.exit(dbDisconnect(con))
+```{r}
+read_cancer <- dbGetQuery(con, glue::glue("
+    SELECT *
+    FROM read_parquet('/researchers/caitlin.page/cf_nano/r_output/emseq_all_cancer.parquet')
+    WHERE seqnames IN  (
+    'chr1','chr2','chr3','chr4','chr5','chr6','chr7','chr8','chr9','chr10',
+    'chr11','chr12','chr13','chr14','chr15','chr16','chr17','chr18','chr19',
+    'chr20','chr21','chr22','chrX','chrY'
+  )
+  "))
+```
+
+
+```{r}
+read_cancer %>%
+  filter(total > 2) %>%
+  ggplot(aes(x = alpha)) +
+  geom_density() +
+  facet_wrap(~seqnames)
+```
+
+* oh well don't have the x chromosome here to actually check
+* but it doesn't happen in the healthy, it all looks about the same
+
+```{r}
+read_healthy[1:1000,] %>%
+  filter(total > 2) %>%
+  
+```
+
+
+```{r}
+read_healthy$type <- "healthy"
+read_cancer$type <- "cancer"
+
+read_data <- rbind(read_data_a, read_data_b)
+```
+
+########
+
+# new
+
+* other questions I thought of up there
+
+** what's the minimum coverage I need to trust my results?
+* calculate coverage in each tile, add that to the delta
+* and look at the tiles
+* this is going to be harder to determine
+* adding coverage one thing - doing something with it another
+
+
+* do I have dau when betas are about the same for conditions?
+** basically the tiles that don't overlap - what do the betas look like?
+** could do an average beta and sd per tile
+** then that's the one stat - ooh I like that
+* this should be simpler - or at least more direct
+
+```{r}
+setDT(dau_basictiles)
+dau_basictiles <- dau_basictiles[, .N, by = names(dau_basictiles)]
+```
+
+```{r}
+find_overlaps(as_granges(cg_sites), dau_basictiles %>% filter(region_id == "chr1:154602501-154603000") %>% .[1,] %>% as_granges()) %>% data.frame()
+```
+
+* yep correct
+* also oops that means I need to filter the tiles based on the number of CpGs they cover
+* because getting high significance in ones with not many cpgs
+
+```{r}
+dau_basictiles %>%
+  ggplot(aes(x = N, y = dtu_rank)) +
+  geom_point(alpha = 0.3)
+```
+
+```{r}
+betas_c %>% filter(meth_count_pos < 3 | unmeth_count_pos < 3)
+betas_c %>% filter(meth_count_pos < 3 , unmeth_count_pos < 3)
+```
+```{r}
+betas_c %>% mutate(coverage = meth_count_pos + unmeth_count_pos) %>% filter(coverage < 10)
+```
+
+```{r}
+dau_basictiles %>%
+  ggplot(aes(x = log2(N))) +
+  geom_histogram(bins = 100) +
+  labs(x = "Number CpGs on tile")
+```
+
+
+```{r}
+dau_basictiles
+```
+
+```{r}
+tile_beta <- find_overlaps(as_granges(dau_basictiles), betas_c %>% mutate(coverage = meth_count_pos + unmeth_count_pos) %>% filter(coverage > 10) %>% group_by(seqnames, start) %>% summarise(beta_cancer = mean(beta)) %>% mutate(width = 1) %>% as_granges()) %>% data.frame()
+```
+
+dau_basictiles <- dau_basictiles[, .N, by = names(dau_basictiles)]
+```{r}
+setDT(tile_beta)
+tile_beta <- tile_beta[, .(mean_beta_cancer = mean(beta_cancer)), by = eval(names(tile_beta)[1:13])]
+```
+
+```{r}
+tile_beta <- find_overlaps(as_granges(tile_beta), betas_h %>% mutate(coverage = meth_count_pos + unmeth_count_pos) %>% filter(coverage > 10) %>% group_by(seqnames, start) %>% summarise(beta_healthy = mean(beta)) %>% mutate(width = 1) %>% as_granges()) %>% data.frame()
+
+setDT(tile_beta)
+tile_beta <- tile_beta[, .(mean_beta_healthy = mean(beta_healthy)), by = eval(names(tile_beta)[1:14])]
+```
+* how to see if the beta value for the tile is similar?
+* difference between them? - yeah, then that's delta
+* cancer - normal
+
+```{r}
+tile_beta <- tile_beta %>% mutate(delta_beta = mean_beta_cancer - mean_beta_healthy)
+```
+
+* I am hoping to see significance in a small delta situation
+* and for that tile to look cool
+* let's check top 100 tiles: order by small delta
+```{r}
+tile_beta[1:100,] %>% .[order(abs(.$delta_beta)),]
+```
+
+* ok some promising stuff
+* 78 that are abs(delta) < 0.2
+
+* visualise ranked 12 (has 52 cpgs) 	chr2:232419501-232420000
+```{r}
+betas_c$type <- "cancer"
+betas_h$type <- "healthy"
+betas_all <- rbind(betas_c, betas_h)
+```
+
+```{r}
+rrbs_plot5("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", "/researchers/caitlin.page/cf_nano/r_output/emseq_all_cancer.parquet", "chr2", 232419500, 232420001) +
+  geom_beta(betas_all, plot.height = 0.5, style = "smooth") 
+```
+* not sure how convincing this is
+* need the proportions
+```{r}
+props_from_test %>% filter(dtu_rank == 12)
+```
+
+```{r}
+props_from_test %>% filter(dtu_rank == 12) %>% mutate(alpha_group = factor(alpha_group, levels = c("a < 0.2", "0.2 <= a <= 0.4", "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8"))) %>% pivot_longer(cols = c(cancer, healthy), names_to = "type", values_to = "percent") %>%
+  ggplot(aes(x = alpha_group, y = percent, fill = type)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  scale_fill_manual(values = c("cancer" = "#C0622A", "healthy" = "#1B3A6B")) +
+  scale_x_discrete(labels = c("Low", "Low-med", "Med", "Med-high", "High")) +
+  labs(x = "alpha band") +
+  facet_wrap(~region_id) +
+  theme_bw()
+```
+* there's a change, but could be more convincing
+* repeat with other tiles
+
+```{r}
+ranks <- tile_beta[1:100,] %>% .[order(abs(.$delta_beta)),] %>% filter(N > 10, abs(delta_beta) < 0.2) %>% .[order(.$dtu_rank),] %>% .$dtu_rank
+```
+
+
+```{r}
+props <- tile_prop("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", "/researchers/caitlin.page/cf_nano/r_output/emseq_all_cancer.parquet", 
+          dau_basictiles[ranks,])
+props <- props[,c(1:14,16:24)]
+props <- props %>%
+  mutate(
+    alpha_group = case_when(
+      alpha < 0.2  ~ "a < 0.2",
+      alpha > 0.8  ~ "a > 0.8",
+      alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+      alpha < 0.6  ~ "0.4 < a < 0.6",
+      TRUE         ~ "0.6 <= a <= 0.8"
+    )
+  ) %>% mutate(alpha_group = factor(alpha_group, levels = c("a < 0.2", "0.2 <= a <= 0.4", "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8"))) %>%
+  count(type, dtu_rank, region_id, alpha_group, name = "tile_band_count") %>%
+  group_by(region_id, dtu_rank, type) %>%
+  mutate(prop_alpha_in_tile = tile_band_count / sum(tile_band_count)) %>%
+  ungroup() %>%
+  select(region_id, dtu_rank, alpha_group, type, prop_alpha_in_tile) %>%
+  pivot_wider(names_from = type, values_from = prop_alpha_in_tile) %>%
+  mutate(prop_change = cancer - healthy)
+```
+
+```{r}
+props %>% .[order(abs(.$prop_change), decreasing = TRUE),]
+props %>% filter(dtu_rank == 97)
+```
+
+```{r}
+props %>% filter(abs(prop_change) > 0.15) %>% group_by(region_id, dtu_rank) %>% summarise(n=n()) %>% filter(n > 1)
+```
+```{r}
+props %>% filter(dtu_rank %in% c(65, 76, 41, 88, 21))
+```
+* these 5 tiles might be slightly stronger
+* also wait do any of these overlap dmrs? (would expect no because of my mean beta thing)
+```{r}
+find_overlaps(as_granges(dau_basictiles[c(21,41,65,76,88)]), as_granges(dmr_emseq)) %>% data.frame()
+```
+* one overlap
+
+```{r}
+# tile 21, chr5:159105001-159105500
+rrbs_plot5("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", "/researchers/caitlin.page/cf_nano/r_output/emseq_all_cancer.parquet", "chr5", 159105001, 159105500) +
+  geom_beta(betas_all, plot.height = 0.5, style = "smooth") +
+  geom_dmr(dmr_emseq)
+
+props %>% filter(dtu_rank == 21) %>% mutate(alpha_group = factor(alpha_group, levels = c("a < 0.2", "0.2 <= a <= 0.4", "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8"))) %>% pivot_longer(cols = c(cancer, healthy), names_to = "type", values_to = "percent") %>%
+  ggplot(aes(x = alpha_group, y = percent, fill = type)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  scale_fill_manual(values = c("cancer" = "#C0622A", "healthy" = "#1B3A6B")) +
+  scale_x_discrete(labels = c("Low", "Low-med", "Med", "Med-high", "High")) +
+  labs(x = "alpha band") +
+  facet_wrap(~region_id) +
+  theme_bw()
+```
+
+
+```{r}
+# tile 41, chr4:4033001-4033500
+rrbs_plot5("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", "/researchers/caitlin.page/cf_nano/r_output/emseq_all_cancer.parquet", "chr4", 4033001, 4033500) +
+  geom_beta(betas_all, plot.height = 0.5, style = "smooth") 
+
+props %>% filter(dtu_rank == 41) %>% mutate(alpha_group = factor(alpha_group, levels = c("a < 0.2", "0.2 <= a <= 0.4", "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8"))) %>% pivot_longer(cols = c(cancer, healthy), names_to = "type", values_to = "percent") %>%
+  ggplot(aes(x = alpha_group, y = percent, fill = type)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  scale_fill_manual(values = c("cancer" = "#C0622A", "healthy" = "#1B3A6B")) +
+  scale_x_discrete(labels = c("Low", "Low-med", "Med", "Med-high", "High")) +
+  labs(x = "alpha band") +
+  facet_wrap(~region_id) +
+  theme_bw()
+```
+
+
+```{r}
+# tile 65, chr18:74458001-74458500
+rrbs_plot5("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", "/researchers/caitlin.page/cf_nano/r_output/emseq_all_cancer.parquet", "chr18", 74458001, 74458500) +
+  geom_beta(betas_all, plot.height = 0.5, style = "smooth") 
+
+props %>% filter(dtu_rank == 65) %>% mutate(alpha_group = factor(alpha_group, levels = c("a < 0.2", "0.2 <= a <= 0.4", "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8"))) %>% pivot_longer(cols = c(cancer, healthy), names_to = "type", values_to = "percent") %>%
+  ggplot(aes(x = alpha_group, y = percent, fill = type)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  scale_fill_manual(values = c("cancer" = "#C0622A", "healthy" = "#1B3A6B")) +
+  scale_x_discrete(labels = c("Low", "Low-med", "Med", "Med-high", "High")) +
+  labs(x = "alpha band") +
+  facet_wrap(~region_id) +
+  theme_bw()
+```
+
+
+```{r}
+# tile 76 chr2:237371501-237372000
+rrbs_plot5("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", "/researchers/caitlin.page/cf_nano/r_output/emseq_all_cancer.parquet", "chr2", 237371501, 237372000) +
+  geom_beta(betas_all, plot.height = 0.5, style = "smooth") 
+
+props %>% filter(dtu_rank == 76) %>% mutate(alpha_group = factor(alpha_group, levels = c("a < 0.2", "0.2 <= a <= 0.4", "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8"))) %>% pivot_longer(cols = c(cancer, healthy), names_to = "type", values_to = "percent") %>%
+  ggplot(aes(x = alpha_group, y = percent, fill = type)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  scale_fill_manual(values = c("cancer" = "#C0622A", "healthy" = "#1B3A6B")) +
+  scale_x_discrete(labels = c("Low", "Low-med", "Med", "Med-high", "High")) +
+  labs(x = "alpha band") +
+  facet_wrap(~region_id) +
+  theme_bw()
+```
+
+
+```{r}
+# tile 88, chr5:1548501-1549000
+rrbs_plot5("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", "/researchers/caitlin.page/cf_nano/r_output/emseq_all_cancer.parquet", "chr5", 1548501, 1549000) +
+  geom_beta(betas_all, plot.height = 0.5, style = "smooth") 
+
+props %>% filter(dtu_rank == 88) %>% mutate(alpha_group = factor(alpha_group, levels = c("a < 0.2", "0.2 <= a <= 0.4", "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8"))) %>% pivot_longer(cols = c(cancer, healthy), names_to = "type", values_to = "percent") %>%
+  ggplot(aes(x = alpha_group, y = percent, fill = type)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  scale_fill_manual(values = c("cancer" = "#C0622A", "healthy" = "#1B3A6B")) +
+  scale_x_discrete(labels = c("Low", "Low-med", "Med", "Med-high", "High")) +
+  labs(x = "alpha band") +
+  facet_wrap(~region_id) +
+  theme_bw()
+```
+* none of these are super convincing
+
+```{r}
+tile_beta[1:1000,] %>%
+  ggplot(aes(x = dtu_rank, y = delta_beta)) +
+  geom_point(alpha = 0.2) +
+  geom_hline(yintercept = 0)
+```
+* so this doesn't look like much
+*BUT - what about what it's overlap to dmr is like? - because if dmr overlap is in the tiles that have high delta - but not in low delta - I'll take it
+* then just back to figuring out if they're interesting
+* also can do an average beta across the dmrs (because I don't understand maxdiff/meandiff)
+
+```{r}
+dmr_emseq
+tile_dmr <- find_overlaps(as_granges(dmr_emseq), as_granges(dau_basictiles)) %>% data.frame()
+```
+
+```{r}
+tile_beta %>% mutate(overlap_dmr = ifelse(dtu_rank %in% tile_dmr$dtu_rank, TRUE, FALSE)) %>%
+  .[1:1000,] %>%
+  ggplot(aes(x = dtu_rank, y = delta_beta, colour = overlap_dmr)) +
+  geom_point(alpha = 0.2) +
+  geom_hline(yintercept = 0)
+
+tile_beta %>% mutate(overlap_dmr = ifelse(dtu_rank %in% tile_dmr$dtu_rank, TRUE, FALSE)) %>%
+  ggplot(aes(x = dtu_rank, y = delta_beta, colour = overlap_dmr)) +
+  geom_point(alpha = 0.2) +
+  geom_hline(yintercept = 0)
+```
+```{r}
+tile_beta %>% mutate(overlap_dmr = ifelse(dtu_rank %in% tile_dmr$dtu_rank, TRUE, FALSE)) %>%
+  ggplot(aes(x = dtu_rank, y = delta_beta, colour = overlap_dmr)) +
+  geom_point(alpha = 0.2) +
+  geom_hline(yintercept = 0) +
+  facet_wrap(~overlap_dmr)
+```
+* so that doesn't tell me much
+* but I guess it's interesting that there's regions of big delta change that don't overlap a dmr
+
+```{r}
+tile_beta <- tile_beta %>% mutate(overlap_dmr = ifelse(dtu_rank %in% tile_dmr$dtu_rank, TRUE, FALSE))
+```
+
+```{r}
+tile_beta %>%
+  ggplot(aes(x = delta_beta, colour = overlap_dmr)) +
+  geom_density()
+
+tile_beta %>%
+  ggplot(aes(x = overlap_dmr, y = delta_beta, fill = overlap_dmr)) +
+  geom_boxplot()
+```
+
+```{r}
+tile_beta %>% filter(FDR < 0.05) %>%
+  ggplot(aes(x = delta_beta, colour = overlap_dmr)) +
+  geom_density()
+
+tile_beta %>% filter(FDR < 0.05) %>%
+  ggplot(aes(x = overlap_dmr, y = delta_beta, fill = overlap_dmr)) +
+  geom_boxplot()
+```
+* this distribution is interesting...
+* has a little swapsies to it
+```{r}
+tile_beta %>% filter(FDR < 0.05) %>%
+  ggplot(aes(x = abs(delta_beta), colour = overlap_dmr)) +
+  geom_density()
+```
+* doing abs makes them samesiesish
+* the little bumps are in the dmr/ tiles - oh wait those are the outliers (looked at the boxplot)
+* ok that means the dau is pulling out kinda like the opposite stuff
+* i did cancer - healthy, meaning +ve delta cancer hypermeth, -ve delta cancer hypometh (more meth in healthy)
+
+* so the red (which is the novel ones) are more -ve, higher meth in healthy for beta
+
+
+# look at dau when beta mid range in conditions
+
+## both
+
+
+
+```{r}
+dau_basictiles
+```
+
+```{r}
+ranks <- tile_beta %>% filter(abs(mean_beta_cancer) >= 0.4, abs(mean_beta_cancer) <= 0.6,
+                     abs(mean_beta_healthy) >= 0.4, abs(mean_beta_healthy) <= 0.6) %>%
+  filter(FDR < 0.05) %>% filter(N > 10) %>% .$dtu_rank
+```
+```{r}
+tile_beta %>% filter(abs(mean_beta_cancer) >= 0.4, abs(mean_beta_cancer) <= 0.6,
+                     abs(mean_beta_healthy) >= 0.4, abs(mean_beta_healthy) <= 0.6) %>%
+  filter(FDR < 0.05) %>% filter(N > 10) %>%
+  ggplot(aes(x = delta_beta)) +
+  geom_density()
+```
+
+```{r}
+props_med <- tile_prop("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", "/researchers/caitlin.page/cf_nano/r_output/emseq_all_cancer.parquet", 
+          dau_basictiles[ranks,])
+props_med <- props_med[,c(1:14,16:24)]
+props_med <- props_med %>%
+  mutate(
+    alpha_group = case_when(
+      alpha < 0.2  ~ "a < 0.2",
+      alpha > 0.8  ~ "a > 0.8",
+      alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+      alpha < 0.6  ~ "0.4 < a < 0.6",
+      TRUE         ~ "0.6 <= a <= 0.8"
+    )
+  ) %>% mutate(alpha_group = factor(alpha_group, levels = c("a < 0.2", "0.2 <= a <= 0.4", "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8"))) %>%
+  count(type, dtu_rank, region_id, alpha_group, name = "tile_band_count") %>%
+  group_by(region_id, dtu_rank, type) %>%
+  mutate(prop_alpha_in_tile = tile_band_count / sum(tile_band_count)) %>%
+  ungroup() %>%
+  select(region_id, dtu_rank, alpha_group, type, prop_alpha_in_tile) %>%
+  pivot_wider(names_from = type, values_from = prop_alpha_in_tile) %>%
+  mutate(prop_change = cancer - healthy)
+```
+
+* plot all the dsitributions first
+```{r}
+ranks[2]
+```
+
+```{r}
+for (i in 1:length(ranks)) {
+  p <- props_med %>% filter(dtu_rank == ranks[i]) %>% mutate(alpha_group = factor(alpha_group, levels = c("a < 0.2", "0.2 <= a <= 0.4", "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8"))) %>%
+    pivot_longer(cols = c(cancer, healthy), names_to = "type", values_to = "percent") %>%
+  ggplot(aes(x = alpha_group, y = percent, fill = type)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  scale_fill_manual(values = c("cancer" = "#C0622A", "healthy" = "#1B3A6B")) +
+  scale_x_discrete(labels = c("Low", "Low-med", "Med", "Med-high", "High")) +
+  labs(x = "alpha band") +
+  facet_wrap(~region_id) +
+  theme_bw()
+  print(p)
+}
+```
+
+```{r}
+ranks[13] # this one has a cute distribution
+tile_beta %>% filter(dtu_rank == ranks[13])
+
+
+rrbs_plot5("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", "/researchers/caitlin.page/cf_nano/r_output/emseq_all_cancer.parquet", "chr2", 94871501, 94872000) +
+  geom_beta(betas_all, plot.height = 0.5, style = "smooth") 
+
+props_med %>% filter(dtu_rank == ranks[13]) %>% mutate(alpha_group = factor(alpha_group, levels = c("a < 0.2", "0.2 <= a <= 0.4", "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8"))) %>% pivot_longer(cols = c(cancer, healthy), names_to = "type", values_to = "percent") %>%
+  ggplot(aes(x = alpha_group, y = percent, fill = type)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  scale_fill_manual(values = c("cancer" = "#C0622A", "healthy" = "#1B3A6B")) +
+  scale_x_discrete(labels = c("Low", "Low-med", "Med", "Med-high", "High")) +
+  labs(x = "alpha band") +
+  facet_wrap(~region_id) +
+  theme_bw()
+```
+* I'm not sure if the ~15% change is enough to be of interest
+
+```{r}
+find_overlaps(genes_txdb, tile_beta %>% filter(dtu_rank == ranks[13]) %>% as_granges()) %>% data.frame()
+```
+* ooh overlaps 2 gene - a big gene
+* but it's overlapping in the middle, not as like a promoter in front of the gene
+```{r}
+find_overlaps(genes_txdb, as_granges(dmr_emseq)) %>% data.frame() %>% filter(gene_id %in% c("150483", "442028"))
+```
+* new genes (claude is providing info)
+* claude: 150483 = TEKT4
+** it is connected to PPGL - if hypermethylated, may be relevant
+** except it's hypomethylated - and in the middle of the gene
+** unless of course I have a significant tile in front of the gene?
+** no I don't
+```{r}
+tile_beta %>% filter(seqnames == "chr2", start >= 94870430) %>% .[order(.$start),] %>% .[1:5,]
+```
+
+# gene promoters instead of gene body
+
+```{r}
+promoters_txdb <- promoters(genes_txdb, upstream = 1000, downstream = 500)
+```
+
+```{r}
+find_overlaps(promoters_txdb, tile_beta %>% filter(dtu_rank == ranks[13]) %>% as_granges()) %>% data.frame()
+find_overlaps(promoters_txdb, tile_beta %>% filter(dtu_rank %in% ranks) %>% as_granges()) %>% data.frame() %>% distinct()
+```
+* hey 150483 again
+* maybe because I included some downstream in it
+
+* plot just these 5 tiles
+```{r}
+ranks_ <- find_overlaps(promoters_txdb, tile_beta %>% filter(dtu_rank %in% ranks) %>% as_granges()) %>% data.frame() %>% .$dtu_rank
+```
+
+```{r}
+#chr19:30668501-30669000
+rrbs_plot5("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", "/researchers/caitlin.page/cf_nano/r_output/emseq_all_cancer.parquet", "chr19", 30668501, 30669000) +
+  geom_beta(betas_all, plot.height = 0.5, style = "smooth") 
+
+props_med %>% filter(dtu_rank == ranks_[1]) %>% mutate(alpha_group = factor(alpha_group, levels = c("a < 0.2", "0.2 <= a <= 0.4", "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8"))) %>% pivot_longer(cols = c(cancer, healthy), names_to = "type", values_to = "percent") %>%
+  ggplot(aes(x = alpha_group, y = percent, fill = type)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  scale_fill_manual(values = c("cancer" = "#C0622A", "healthy" = "#1B3A6B")) +
+  scale_x_discrete(labels = c("Low", "Low-med", "Med", "Med-high", "High")) +
+  labs(x = "alpha band") +
+  facet_wrap(~region_id) +
+  theme_bw()
+```
+
+```{r}
+#chr2:94871501-94872000
+rrbs_plot5("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", "/researchers/caitlin.page/cf_nano/r_output/emseq_all_cancer.parquet", "chr2", 94871501, 94872000) +
+  geom_beta(betas_all, plot.height = 0.5, style = "smooth") 
+
+props_med %>% filter(dtu_rank == ranks_[2]) %>% mutate(alpha_group = factor(alpha_group, levels = c("a < 0.2", "0.2 <= a <= 0.4", "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8"))) %>% pivot_longer(cols = c(cancer, healthy), names_to = "type", values_to = "percent") %>%
+  ggplot(aes(x = alpha_group, y = percent, fill = type)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  scale_fill_manual(values = c("cancer" = "#C0622A", "healthy" = "#1B3A6B")) +
+  scale_x_discrete(labels = c("Low", "Low-med", "Med", "Med-high", "High")) +
+  labs(x = "alpha band") +
+  facet_wrap(~region_id) +
+  theme_bw()
+```
+
+```{r}
+#chr16:1226501-1227000
+rrbs_plot5("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", "/researchers/caitlin.page/cf_nano/r_output/emseq_all_cancer.parquet", "chr16", 1226501, 1227000) +
+  geom_beta(betas_all, plot.height = 0.5, style = "smooth") 
+
+props_med %>% filter(dtu_rank == ranks_[3]) %>% mutate(alpha_group = factor(alpha_group, levels = c("a < 0.2", "0.2 <= a <= 0.4", "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8"))) %>% pivot_longer(cols = c(cancer, healthy), names_to = "type", values_to = "percent") %>%
+  ggplot(aes(x = alpha_group, y = percent, fill = type)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  scale_fill_manual(values = c("cancer" = "#C0622A", "healthy" = "#1B3A6B")) +
+  scale_x_discrete(labels = c("Low", "Low-med", "Med", "Med-high", "High")) +
+  labs(x = "alpha band") +
+  facet_wrap(~region_id) +
+  theme_bw()
+```
+
+```{r}
+#chr5:1201001-1201500
+rrbs_plot5("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", "/researchers/caitlin.page/cf_nano/r_output/emseq_all_cancer.parquet", "chr5", 1201001, 1201500) +
+  geom_beta(betas_all, plot.height = 0.5, style = "smooth") 
+
+props_med %>% filter(dtu_rank == ranks_[4]) %>% mutate(alpha_group = factor(alpha_group, levels = c("a < 0.2", "0.2 <= a <= 0.4", "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8"))) %>% pivot_longer(cols = c(cancer, healthy), names_to = "type", values_to = "percent") %>%
+  ggplot(aes(x = alpha_group, y = percent, fill = type)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  scale_fill_manual(values = c("cancer" = "#C0622A", "healthy" = "#1B3A6B")) +
+  scale_x_discrete(labels = c("Low", "Low-med", "Med", "Med-high", "High")) +
+  labs(x = "alpha band") +
+  facet_wrap(~region_id) +
+  theme_bw()
+```
+
+```{r}
+#chr16:3012001-3012500
+rrbs_plot5("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", "/researchers/caitlin.page/cf_nano/r_output/emseq_all_cancer.parquet", "chr16", 3012001, 3012500) +
+  geom_beta(betas_all, plot.height = 0.5, style = "smooth") 
+
+props_med %>% filter(dtu_rank == ranks_[5]) %>% mutate(alpha_group = factor(alpha_group, levels = c("a < 0.2", "0.2 <= a <= 0.4", "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8"))) %>% pivot_longer(cols = c(cancer, healthy), names_to = "type", values_to = "percent") %>%
+  ggplot(aes(x = alpha_group, y = percent, fill = type)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  scale_fill_manual(values = c("cancer" = "#C0622A", "healthy" = "#1B3A6B")) +
+  scale_x_discrete(labels = c("Low", "Low-med", "Med", "Med-high", "High")) +
+  labs(x = "alpha band") +
+  facet_wrap(~region_id) +
+  theme_bw()
+```
+
+
+
+```{r}
+for (i in 1:length(ranks)) {
+  p <- props_med %>% filter(dtu_rank == ranks[i]) %>% mutate(alpha_group = factor(alpha_group, levels = c("a < 0.2", "0.2 <= a <= 0.4", "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8"))) %>%
+    pivot_longer(cols = c(cancer, healthy), names_to = "type", values_to = "percent") %>%
+  ggplot(aes(x = alpha_group, y = percent, fill = type)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  scale_fill_manual(values = c("cancer" = "#C0622A", "healthy" = "#1B3A6B")) +
+  scale_x_discrete(labels = c("Low", "Low-med", "Med", "Med-high", "High")) +
+  labs(x = "alpha band") +
+  facet_wrap(~region_id) +
+  theme_bw()
+  print(p)
+}
+```
+
+
+
+```{r}
+unique(ranks)
+```
+
+
+# gene bodies should be hypometh in cancer
+
+```{r}
+tile_gene <- find_overlaps(genes_txdb, tile_beta %>% as_granges()) %>% data.frame()
+```
+* significant tiles in gene body would be good - as long as it's hypometh to cancer
+* problem though - gene locations and tile positions are not going to line up neatly
+* but that's ok - I don't need to do the dau analysis to just get the count proportions
+
+```{r}
+rrbs_plot5("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", "/researchers/caitlin.page/cf_nano/r_output/emseq_all_cancer.parquet", "chr19", 58345178, 58362751) +
+  geom_beta(betas_all, plot.height = 0.5, style = "smooth") 
+```
+* beta bit funky looking there
+
+
+* get counts for alpha in gene bodies and for promoters (1000bp upstream)
+* and then it's just making sure reads overlap genes
+
+* but then how am I visualising this? - because I'm not about to look at 20k bar plots
+* all I can think of is the like per base plot where it gets closer to TSS
+* but I don't want a position based thing that's too beta
+* a density/boxplot of all the counts across genes for the alpha band
+* and facet for cancer/normal
+* maybe
+```{r}
+genes_txdb
+```
+
+```{r}
+reads_region <- function(read_data_path_a, read_data_path_b, genes, cpgs = cg_sites,
+                       jit_amount = 0.1) {
+  set.seed(42)
+
+  # ── 1. Read only the matching rows — never loads unmatched data into RAM ───
+  con <- dbConnect(duckdb())
+  on.exit(dbDisconnect(con))
+  
+  genes_df <- as.data.frame(genes)[, c("seqnames", "start", "end", "gene_id")]
+  genes_df$seqnames <- as.character(genes_df$seqnames)
+  duckdb_register(con, "genes", genes_df)
+  
+  overlap_query <- function(path) {
+    dbGetQuery(con, glue::glue("
+      SELECT DISTINCT r.*, g.gene_id
+      FROM read_parquet('{path}') r
+      JOIN genes g
+        ON r.seqnames = g.seqnames
+       AND r.start >= g.start
+       AND r.end   <= g.end
+    "))
+  }
+  
+  read_data_a <- overlap_query(read_data_path_a)
+  
+  read_data_b <- overlap_query(read_data_path_b)
+  
+  read_data_a$type <- "healthy"
+  read_data_b$type <- "cancer"
+  
+  read_data <- rbind(read_data_a, read_data_b)
+  
+  jitter_amount <- runif(nrow(read_data), -jit_amount, jit_amount)
+  read_data$alpha_jit <- read_data$alpha + jitter_amount
+  read_data <- data.frame(read_data)
+  
+  read_data <- read_data %>% mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                 alpha > 0.8 ~ "a > 0.8",
+                                 alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                 alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                 TRUE ~ "0.6 <= a <= 0.8"))
+  read_data <- read_data %>% mutate(alpha_group = factor(alpha_group, levels = c("a < 0.2", "0.2 <= a <= 0.4", "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8"))) %>%
+    count(type, gene_id, alpha_group, name = "tile_band_count") %>% 
+  group_by(gene_id, type) %>% mutate(percent = tile_band_count/sum(tile_band_count)) %>% ungroup()
+  read_data
+}
+reads_genebody <- reads_region("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", "/researchers/caitlin.page/cf_nano/r_output/emseq_all_cancer.parquet", genes_txdb)
+```
+
+```{r}
+saveRDS(reads_genebody, "/researchers/caitlin.page/cf_nano/r_output/emseq_readcounts_genebody.rds")
+```
+
+```{r}
+reads_genebody <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_readcounts_genebody.rds")
+```
+
+
+```{r}
+reads_genebody %>%
+  ggplot(aes(x = percent, colour = alpha_group)) +
+  geom_density() +
+  facet_wrap(~type)
+```
+
+```{r}
+reads_genebody %>%
+  ggplot(aes(x = alpha_group, y=percent, fill = type)) +
+  geom_boxplot()
+```
+* technically the low alpha does have higher average in cancer than healthy - so could call that the hypo
+* maybe this is something that is cleaner with betas
+
+```{r}
+betas_all %>% mutate(coverage = meth_count_pos + unmeth_count_pos) %>% filter(coverage > 10) %>%
+  select(sample, seqnames, start, beta) %>%
+  pivot_wider(
+    id_cols = c(seqnames, start),
+    names_from = sample,
+    values_from = beta
+  )
+```
+
+```{r}
+betas_all %>% filter(sample == "cancer_0454", seqnames == "chr1", start == 13528)
+```
+```{r}
+genes_betas <- find_overlaps(genes_txdb, betas_all %>% mutate(coverage = meth_count_pos + unmeth_count_pos) %>% filter(coverage > 10) %>%
+  select(sample, seqnames, start, beta) %>%
+  pivot_wider(
+    id_cols = c(seqnames, start),
+    names_from = sample,
+    values_from = beta
+  ) %>% mutate(width = 1) %>% as_granges()) %>% data.frame()
+```
+
+```{r}
+setDT(genes_betas)
+
+sample_cols <- grep("^cancer_|^healthy_", names(genes_betas), value = TRUE)
+
+genes_betas2 <- melt(
+    genes_betas,
+    id.vars = "gene_id",          # only keep what you need downstream
+    measure.vars = sample_cols,
+    variable.name = "sample",
+    value.name = "beta",
+    na.rm = TRUE                  # drops NAs during melt, not after
+  )[,
+    type := sub("_[0-9]+$", "", sample)
+  ][,
+    alpha_group := cut(beta,
+      breaks = c(-Inf, 0.2, 0.4, 0.6, 0.8, Inf),
+      labels = c("a < 0.2", "0.2 <= a <= 0.4", "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8"),
+      right = FALSE)
+  ][,
+    .(tile_band_count = .N), by = .(type, gene_id, alpha_group)
+  ]
+
+genes_betas2 <- genes_betas2 %>% group_by(type, gene_id) %>% mutate(percent = tile_band_count/sum(tile_band_count)) %>% ungroup() %>% 
+  mutate(alpha_group = factor(alpha_group, levels = c("a < 0.2", "0.2 <= a <= 0.4", "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8")))
+```
+
+```{r}
+genes_betas2 %>%
+  ggplot(aes(x = alpha_group, y=percent, fill = type)) +
+  geom_boxplot() +
+  labs(x = "beta_group")
+```
+* oops mislabelled
+* also huh looks different
+* but this does say hypomethylation in cancer and normal - whereas alpha was leaning hypermeth
+```{r}
+reads_genebody
+```
+
+
+```{r}
+betas_all
+```
+
+
+
+```{r}
+reads_genebody %>%
+  ggplot(aes(x = alpha_group, y=percent, fill = type)) +
+  geom_violin()
+```
+
+# promoters and tiles
+
+```{r}
+promoters_tiles <- find_overlaps(promoters_txdb, tile_beta %>% as_granges()) %>% data.frame()
+```
+
+```{r}
+tile_beta %>% mutate(overlap_promoter = ifelse(region_id %in% promoters_tiles$region_id, TRUE, FALSE)) %>%
+  ggplot(aes(x = overlap_promoter, y = delta_beta)) +
+  geom_boxplot()
+
+tile_beta %>% mutate(overlap_promoter = ifelse(region_id %in% promoters_tiles$region_id, TRUE, FALSE)) %>%
+  ggplot(aes(x = delta_beta, colour = overlap_promoter)) +
+  geom_density()
+```
+```{r}
+tile_beta %>% mutate(overlap_promoter = ifelse(region_id %in% promoters_tiles$region_id, TRUE, FALSE), tile_sig = ifelse(FDR < 0.05, TRUE, FALSE)) %>%
+  ggplot(aes(x = tile_sig, fill = overlap_promoter)) +
+  geom_bar(position = "dodge")
+
+tile_beta %>% mutate(overlap_promoter = ifelse(region_id %in% promoters_tiles$region_id, TRUE, FALSE), tile_sig = ifelse(FDR < 0.05, TRUE, FALSE)) %>% 
+  filter(overlap_promoter == TRUE) %>%
+  ggplot(aes(x = tile_sig, fill = overlap_promoter)) +
+  geom_bar(position = "dodge")
+```
+```{r}
+tile_beta %>% mutate(overlap_promoter = ifelse(region_id %in% promoters_tiles$region_id, TRUE, FALSE), tile_sig = ifelse(FDR < 0.05, TRUE, FALSE)) %>% 
+  filter(overlap_promoter == TRUE, FDR < 0.05)
+```
+
+
+```{r}
+tile_beta %>%
+  ggplot(aes(x = dtu_rank, y = delta_beta)) +
+  geom_point(alpha = 0.2)
+```
+
+
+```{r}
+tile_prop <- function(read_data_path_a, read_data_path_b, tiles, cols_from_tiles = NULL) {
+
+  # ── 1. Read only the matching rows — never loads unmatched data into RAM ───
+  con <- dbConnect(duckdb())
+  duckdb::dbWriteTable(con, "tiles_temp", tiles, overwrite = TRUE)
+  on.exit(duckdb::dbRemoveTable(con, "tiles_temp"), add = TRUE)
+  
+  
+  # Build SELECT clause for tile columns
+  if (is.null(cols_from_tiles)) {
+    # Exclude coordinate cols to avoid clashes with parquet
+    tile_cols <- setdiff(colnames(tiles), c("seqnames", "start", "end"))
+  } else {
+    tile_cols <- cols_from_tiles
+  }
+  
+  tile_select <- if (length(tile_cols) > 0) {
+    paste(glue::glue(', t."{tile_cols}"'), collapse = "")
+  } else ""
+  
+  read_data_a <- dbGetQuery(con, glue::glue("
+    SELECT b.*{tile_select}
+    FROM read_parquet('{read_data_path_a}') b
+    JOIN tiles_temp t
+      ON b.seqnames = t.seqnames
+     AND b.start <= t.end
+     AND b.end   >= t.start
+  "))
+  
+  read_data_b <- dbGetQuery(con, glue::glue("
+    SELECT b.*{tile_select}
+    FROM read_parquet('{read_data_path_b}') b
+    JOIN tiles_temp t
+      ON b.seqnames = t.seqnames
+     AND b.start <= t.end
+     AND b.end   >= t.start
+  "))
+  
+  read_data_a$type <- "healthy"
+  read_data_b$type <- "cancer"
+    read_data <- rbind(read_data_a, read_data_b)
+  read_data
+}
+```
+
+
+```{r}
+props <- tile_prop("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", "/researchers/caitlin.page/cf_nano/r_output/emseq_all_cancer.parquet", 
+          dau_basictiles[1:20,])
+```
+
+
+
+```{r}
+tile_props %>% filter(region_id %in% c("chr1:147077001-147077500", "chr1:147077501-147078000")) %>%
+  mutate(
+    alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                 alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                 alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                 alpha <= 0.6 & alpha <= 0.8 ~ "0.6 <= a <= 0.8",
+                                 TRUE ~ "a > 0.8")
+  ) %>% mutate(alpha_group = factor(alpha_group, levels = c("a < 0.2", "0.2 <= a <= 0.4", "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8"))) %>%
+  count(type, region_id, alpha_group, name = "tile_band_count") %>% 
+  group_by(region_id, type) %>% mutate(percent = tile_band_count/sum(tile_band_count)) %>%
+  ggplot(aes(x = alpha_group, y = percent, fill = type)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  scale_fill_manual(values = c("cancer" = "#C0622A", "healthy" = "#1B3A6B")) +
+  scale_x_discrete(labels = c("Low", "Low-med", "Med", "Med-high", "High")) +
+  labs(x = "alpha band") +
+  facet_wrap(~region_id) +
+  theme_bw()
+```
+
+
+```{r}
+props_from_test <- tile_props %>%
+  mutate(
+    alpha_group = case_when(
+      alpha < 0.2  ~ "a < 0.2",
+      alpha > 0.8  ~ "a > 0.8",
+      alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+      alpha < 0.6  ~ "0.4 < a < 0.6",
+      TRUE         ~ "0.6 <= a <= 0.8"
+    )
+  ) %>%
+  count(type, dtu_rank, region_id, alpha_group, name = "tile_band_count") %>%
+  group_by(region_id, dtu_rank, type) %>%
+  mutate(prop_alpha_in_tile = tile_band_count / sum(tile_band_count)) %>%
+  ungroup() %>%
+  select(region_id, dtu_rank, alpha_group, type, prop_alpha_in_tile) %>%
+  pivot_wider(names_from = type, values_from = prop_alpha_in_tile) %>%
+  mutate(prop_change = cancer - healthy)
+```
+
+
+
+
+
