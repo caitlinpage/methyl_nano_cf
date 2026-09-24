@@ -738,6 +738,308 @@ rrbs_plot5("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", "
   geom_dmr(dmr_emseq)
 ```
 
+```{r}
+rrbs_plot5("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", "/researchers/caitlin.page/cf_nano/r_output/emseq_all_cancer.parquet", "chr16", 54932000, 54934485) +
+  geom_beta(betas_all, plot.height = 0.5) +
+  geom_dau(dau_basictiles) +
+  geom_dmr(dmr_emseq)
+```
+
+```{r}
+dau_basictiles %>% filter(seqnames == "chr16", start >= 54932000) %>% .[order(.$start),] %>% distinct()
+```
+
+```{r}
+rrbs_plot5("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", "/researchers/caitlin.page/cf_nano/r_output/emseq_all_cancer.parquet", "chr16", 54932500, 54934485) +
+  geom_beta(betas_all, plot.height = 0.5) +
+  geom_dau(dau_basictiles) +
+  geom_dmr(dmr_emseq)
+```
+```{r}
+
+rrbs_plot5("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", "/researchers/caitlin.page/cf_nano/r_output/emseq_all_cancer.parquet", "chr16", 54932500, 54934485) +
+  geom_beta(betas_all, plot.height = 0.25) +
+  geom_dau(dau_basictiles) +
+  geom_dmr(dmr_emseq)
+```
+
+```{r}
+rrbs_plot5("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", "/researchers/caitlin.page/cf_nano/r_output/emseq_all_cancer.parquet", "chr16", 54932500, 54934485) +
+  geom_beta(betas_all, style = "line", plot.height = 0.25) +
+  geom_dau(dau_basictiles) +
+  geom_dmr(dmr_emseq)
+```
+
+```{r}
+rrbs_plot5("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", "/researchers/caitlin.page/cf_nano/r_output/emseq_all_cancer.parquet", "chr16", 54932500, 54934485) +
+  geom_beta(betas_all, style = "smooth", plot.height = 0.25) +
+  geom_dau(dau_basictiles) +
+  geom_dmr(dmr_emseq)
+```
+* I think we want the smoothed - cleaner visual
+
+* alicia suggested finding a region that has 2 dau and overlaps a dmr
+
+* now to find a better region
+
+```{r}
+dau_dmr <- as_granges(rbind(distinct(filter(dau_basictiles, FDR < 0.05)[,1:5]), dmr_emseq[,1:5]))
+dau_dmr %>% data.frame()
+```
+
+```{r}
+findOverlaps(dau_dmr, dau_dmr) %>% data.frame() %>% filter(queryHits != subjectHits)
+```
+
+```{r}
+dau_dmr %>% data.frame() %>% .[c(1,2,3,4,4985),]
+```
+
+```{r}
+hits <- findOverlaps(dau_dmr, drop.self = TRUE, drop.redundant = TRUE)
+
+overlapping_idx     <- unique(c(queryHits(hits), subjectHits(hits)))
+non_overlapping_idx <- setdiff(seq_along(dau_dmr), overlapping_idx)
+
+overlapping_ranges     <- dau_dmr[overlapping_idx]
+non_overlapping_ranges <- dau_dmr[non_overlapping_idx]
+
+# Distance from each non-overlapping range to its nearest overlapping range
+dist_hits <- distanceToNearest(non_overlapping_ranges, overlapping_ranges)
+
+# "Adjacent" = directly touching (distance == 0) but not overlapping
+adjacent_mask <- mcols(dist_hits)$distance == 0
+adjacent_ranges <- non_overlapping_ranges[queryHits(dist_hits)[adjacent_mask]]
+
+adjacent_ranges
+```
+
+```{r}
+dau_dmr %>% data.frame() %>% filter(seqnames == "chr1", start >= 147077001) %>% .[order(.$start),]
+```
+
+```{r}
+dau_basictiles %>% data.frame() %>% filter(seqnames == "chr1", start >= 147077001, end <= 147080500) %>% .[order(.$start),] %>% distinct()
+```
+
+```{r}
+dmr_emseq %>% data.frame() %>% filter(seqnames == "chr1", start >= 147077001) %>% .[order(.$start),] %>% distinct()
+```
+
+
+```{r}
+rrbs_plot5("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", "/researchers/caitlin.page/cf_nano/r_output/emseq_all_cancer.parquet", 
+           "chr1", 147076900, 147080500) +
+  geom_beta(betas_all, style = "smooth", plot.height = 0.2) +
+  geom_dau(distinct(dau_basictiles)) +
+  geom_dmr(dmr_emseq)
+```
+
+* now that's a string of dau
+* now I need proportion plots
+* this is across 6 different tiles though - intense
+```{r}
+rrbs_plot5("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", "/researchers/caitlin.page/cf_nano/r_output/emseq_all_cancer.parquet", 
+           "chr1", 147077000, 147080500) +
+  geom_beta(betas_all, style = "smooth", plot.height = 0.2) +
+  geom_dau(distinct(dau_basictiles)) +
+  geom_dmr(dmr_emseq)
+```
+* oh I don't think the dau/dmr blocks are lining up properly with the above plots
+* because dau should finish before 800000 :(
+
+
+```{r}
+rrbs_plot5("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", "/researchers/caitlin.page/cf_nano/r_output/emseq_all_cancer.parquet", 
+           "chr1", 147077000, 147080500) +
+  geom_beta(betas_all, style = "smooth", plot.height = 0.2) +
+  geom_dau(distinct(dau_basictiles))
+```
+
+```{r}
+rrbs_plot5("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", "/researchers/caitlin.page/cf_nano/r_output/emseq_all_cancer.parquet", 
+           "chr1", 147077000, 147080500) +
+  geom_beta(betas_all, style = "smooth", plot.height = 0.2) +
+  geom_dau(distinct(dau_basictiles))
+```
+
+* I think the expand x axis was part of the problem - removed that so should line up
+
+```{r}
+rrbs_plot5("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", "/researchers/caitlin.page/cf_nano/r_output/emseq_all_cancer.parquet", 
+           "chr1", 147077000, 147080500) +
+  geom_beta(betas_all, style = "smooth", plot.height = 0.2) +
+  geom_dau(distinct(dau_basictiles)) +
+  geom_dmr(dmr_emseq)
+```
+* yay fixed
+* now where did I have the delta - becasue that's the counts and I need that
+
+```{r}
+poster_plot <- rrbs_plot5("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", "/researchers/caitlin.page/cf_nano/r_output/emseq_all_cancer.parquet", 
+           "chr1", 147076921, 147080500) +
+  geom_beta(betas_all, style = "smooth", plot.height = 0.2) +
+  geom_dau(distinct(dau_basictiles)) +
+  geom_dmr(dmr_emseq)
+```
+
+```{r}
+print(poster_plot)
+```
+
+```{r}
+poster_plot2 <- rrbs_plot5_poster_svg("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", "/researchers/caitlin.page/cf_nano/r_output/emseq_all_cancer.parquet", 
+           "chr1", 147076921, 147080500) +
+  geom_beta(betas_all, style = "smooth", plot.height = 0.2) +
+  geom_dau(distinct(dau_basictiles)) +
+  geom_dmr(dmr_emseq)
+out_file <- "../output/methylation_chr1_147076921.svg"
+Cairo::CairoSVG(
+  filename = out_file,
+  width    = 16,    # inches — wide enough for ~3500 bp genomic span
+  height   = 10,
+  bg       = "white"
+)
+print(poster_plot2)
+dev.off()
+```
+
+```{r}
+poster_plot2
+```
+
+
+
+* lol just below here
+```{r}
+tile_props <- tile_prop("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", "/researchers/caitlin.page/cf_nano/r_output/emseq_all_cancer.parquet", 
+          distinct(dau_basictiles)[c(1,2,3,4,15),])
+```
+
+```{r}
+names(tile_props)[duplicated(names(tile_props))]
+```
+
+```{r}
+tile_props <- tile_props[, !duplicated(names(tile_props))]
+```
+
+
+```{r}
+tile_props %>%
+  mutate(
+    alpha_group = case_when(
+      alpha < 0.2  ~ "a < 0.2",
+      alpha > 0.8  ~ "a > 0.8",
+      alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+      alpha < 0.6  ~ "0.4 < a < 0.6",
+      TRUE         ~ "0.6 <= a <= 0.8"
+    )
+  ) %>%
+  count(type, region_id, alpha_group, name = "tile_band_count") %>%
+  group_by(region_id, type) %>%
+  mutate(prop_alpha_in_tile = tile_band_count / sum(tile_band_count)) %>%
+  ungroup() %>%
+  select(region_id, alpha_group, type, prop_alpha_in_tile) %>%
+  pivot_wider(names_from = type, values_from = prop_alpha_in_tile) %>%
+  mutate(prop_change = cancer - healthy)
+```
+
+
+```{r}
+tile_props %>%
+  mutate(
+    alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                 alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                 alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                 alpha <= 0.6 & alpha <= 0.8 ~ "0.6 <= a <= 0.8",
+                                 TRUE ~ "a > 0.8")
+  ) %>% mutate(alpha_group = factor(alpha_group, levels = c("a < 0.2", "0.2 <= a <= 0.4", "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8"))) %>%
+  count(type, region_id, alpha_group, name = "tile_band_count") %>% 
+  group_by(region_id, type) %>% mutate(percent = tile_band_count/sum(tile_band_count)) %>%
+  ggplot(aes(x = type, y = percent, fill = alpha_group, linetype = type)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  scale_linetype_manual(values = c("cancer" = "solid", "healthy" = "dashed")) +
+  facet_wrap(~region_id) +
+  theme_bw()
+```
+
+```{r}
+tile_props %>%
+  mutate(
+    alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                 alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                 alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                 alpha <= 0.6 & alpha <= 0.8 ~ "0.6 <= a <= 0.8",
+                                 TRUE ~ "a > 0.8")
+  ) %>% mutate(alpha_group = factor(alpha_group, levels = c("a < 0.2", "0.2 <= a <= 0.4", "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8"))) %>%
+  count(type, region_id, alpha_group, name = "tile_band_count") %>% 
+  group_by(region_id, type) %>% mutate(percent = tile_band_count/sum(tile_band_count)) %>%
+  ggplot(aes(x = alpha_group, y = percent, fill = type)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  scale_fill_manual(values = c("cancer" = "#C0622A", "healthy" = "#1B3A6B")) +
+  facet_wrap(~region_id) +
+  theme_bw()
+```
+
+```{r}
+tile_props %>% filter(region_id %in% c("chr1:147077001-147077500", "chr1:147077501-147078000")) %>%
+  mutate(
+    alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                 alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                 alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                 alpha <= 0.6 & alpha <= 0.8 ~ "0.6 <= a <= 0.8",
+                                 TRUE ~ "a > 0.8")
+  ) %>% mutate(alpha_group = factor(alpha_group, levels = c("a < 0.2", "0.2 <= a <= 0.4", "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8"))) %>%
+  count(type, region_id, alpha_group, name = "tile_band_count") %>% 
+  group_by(region_id, type) %>% mutate(percent = tile_band_count/sum(tile_band_count)) %>%
+  ggplot(aes(x = alpha_group, y = percent, fill = type)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  scale_fill_manual(values = c("cancer" = "#C0622A", "healthy" = "#1B3A6B")) +
+  scale_x_discrete(labels = c("Low", "Low-med", "Med", "Med-high", "High")) +
+  labs(x = "alpha band") +
+  facet_wrap(~region_id) +
+  theme_bw()
+```
+
+
+
+```{r}
+tile_props %>%
+  mutate(
+    alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                 alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                 alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                 alpha <= 0.6 & alpha <= 0.8 ~ "0.6 <= a <= 0.8",
+                                 TRUE ~ "a > 0.8")
+  ) %>%
+  ggplot(aes(x = type, fill = alpha_group)) +
+  geom_bar(position = "dodge") +
+  facet_wrap(~region_id)
+```
+
+
+```{r}
+props_from_test <- tile_props %>%
+  mutate(
+    alpha_group = case_when(
+      alpha < 0.2  ~ "a < 0.2",
+      alpha > 0.8  ~ "a > 0.8",
+      alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+      alpha < 0.6  ~ "0.4 < a < 0.6",
+      TRUE         ~ "0.6 <= a <= 0.8"
+    )
+  ) %>%
+  count(type, dtu_rank, region_id, alpha_group, name = "tile_band_count") %>%
+  group_by(region_id, dtu_rank, type) %>%
+  mutate(prop_alpha_in_tile = tile_band_count / sum(tile_band_count)) %>%
+  ungroup() %>%
+  select(region_id, dtu_rank, alpha_group, type, prop_alpha_in_tile) %>%
+  pivot_wider(names_from = type, values_from = prop_alpha_in_tile) %>%
+  mutate(prop_change = cancer - healthy)
+```
+
+
 * finally
 ```{r}
 genes_interest
@@ -802,6 +1104,10 @@ tile_prop <- function(read_data_path_a, read_data_path_b, chrom, region_start, r
   read_data <- rbind(read_data_a, read_data_b)
   read_data
 }
+```
+
+
+```{r}
 test_tile <- tile_prop("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", "/researchers/caitlin.page/cf_nano/r_output/emseq_all_cancer.parquet", 
           "chr1", 147079001, 147079500)
 ```
@@ -916,6 +1222,10 @@ tile_prop <- function(read_data_path_a, read_data_path_b, tiles, cols_from_tiles
     read_data <- rbind(read_data_a, read_data_b)
   read_data
 }
+```
+
+
+```{r}
 test_multip_tile_more <- tile_prop("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", "/researchers/caitlin.page/cf_nano/r_output/emseq_all_cancer.parquet", 
           dau_basictiles[1:20,])
 ```
@@ -1030,3 +1340,65 @@ dtu_optile <- find_overlaps(as_granges(all_samples), as_granges(optiles_all)) %>
          prop_alpha_in_tile = tile_band_count/sum(tile_band_count)) %>%
   m
   
+
+# want to add in the beta plot
+* and then add it to my poster
+* and send poster to alicia/jovana
+
+
+```{r}
+betas_c %>% distinct(seqnames)
+betas_h
+```
+```{r}
+betas_all <- rbind(betas_c, betas_h)
+```
+
+```{r}
+betas_c
+betas_h
+```
+```{r}
+betas_all %>% mutate(type = substr(sample, 1, 1))
+```
+
+```{r}
+rrbs_plot5("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", "/researchers/caitlin.page/cf_nano/r_output/emseq_all_cancer.parquet", 
+           "chr11", 126851501, 126852000) +
+  geom_beta(betas_all)
+```
+
+```{r}
+rrbs_plot5("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", "/researchers/caitlin.page/cf_nano/r_output/emseq_all_cancer.parquet", 
+           "chr11", 126851501, 126852000) +
+  geom_beta(betas_all, plot.height = 0.5)
+```
+* better - now need a better example region
+
+
+```{r}
+rrbs_plot5("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", "/researchers/caitlin.page/cf_nano/r_output/emseq_all_cancer.parquet", 
+           "chr1", 147077410, 147080600) +
+  geom_beta(betas_all, plot.height = 0.5)
+```
+
+
+```{r}
+dau_basictiles %>% filter(seqnames == "chr1", start >= 1470774) %>% distinct() %>% .[order(.$start),]
+```
+
+```{r}
+rrbs_plot5("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", "/researchers/caitlin.page/cf_nano/r_output/emseq_all_cancer.parquet", 
+           "chr1", 147077501, 147078000) +
+  geom_beta(betas_all, plot.height = 0.5) +
+  geom_dau(distinct(dau_basictiles)) +
+  geom_dmr(dmr_emseq)
+```
+
+
+
+```{r}
+rrbs_plot5("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", "/researchers/caitlin.page/cf_nano/r_output/emseq_all_cancer.parquet", 
+           "chr1", 147077501, 147078000) +
+  geom_beta(betas_all, plot.height = 0.5)
+```
