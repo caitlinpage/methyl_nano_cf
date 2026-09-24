@@ -1,0 +1,456 @@
+---
+title: "plotDmrDAU"
+author: "caitlinpage"
+date: "2026-09-03"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+```{r}
+library(plyranges)
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+library(stringr)
+library(TxDb.Hsapiens.UCSC.hg38.knownGene)
+```
+
+
+## compare the tile positions
+```{r}
+dau_basictiles <- readRDS("/researchers/caitlin.page/cf_nano/r_output/dtu_basictiles_emseq_cancer_healthy.rds")
+
+dau_optiles <- readRDS("/researchers/caitlin.page/cf_nano/r_output/dtu_tiles_emseq_cancer_healthy.rds")
+
+dmr_emseq <- readRDS("/researchers/caitlin.page/cf_nano/r_output/dmr_emseq_strict.rds")
+dmr_emseq <- dmr_emseq %>% .[order(.$min_smoothed_fdr),] %>% mutate(dmr_rank = 1:n())
+```
+
+
+
+```{r}
+genes_txdb <- genes(TxDb.Hsapiens.UCSC.hg38.knownGene)
+```
+
+```{r}
+basic_tiles_genes <- find_overlaps(as_granges(dau_basictiles), genes_txdb) %>% data.frame()
+op_tiles_genes <- find_overlaps(as_granges(dau_optiles), genes_txdb) %>% data.frame()
+dmr_genes <- find_overlaps(as_granges(dmr_emseq), genes_txdb) %>% data.frame()
+```
+
+
+```{r}
+ggVennDiagram::ggVennDiagram(list(basic = basic_tiles_genes$gene_id, optiles = op_tiles_genes$gene_id, dmr = dmr_genes$gene_id))
+```
+
+```{r}
+ggVennDiagram::ggVennDiagram(list(basic = filter(basic_tiles_genes, FDR < 0.05)$gene_id, optiles = filter(op_tiles_genes, FDR < 0.05)$gene_id, dmr = dmr_genes$gene_id))
+```
+
+
+# repeat the compareTilingMethods genes analysis coz why not
+```{r libraries}
+library(TxDb.Hsapiens.UCSC.hg38.knownGene)
+library(org.Hs.eg.db)
+library(GenomicFeatures)
+library(AnnotationDbi)
+library(clusterProfiler)
+library(enrichplot)
+library(plyranges)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(purrr)
+library(stringr)
+library(DT)
+library(pheatmap)
+library(ggrepel)
+library(ComplexUpset)
+library(RColorBrewer)
+ 
+txdb <- TxDb.Hsapiens.UCSC.hg38.knownGene
+```
+ 
+---
+ 
+# Gene lists  ← edit here
+ 
+Add or remove lists freely. Names become labels throughout the report.
+All IDs are **Entrez** (character strings).
+ 
+```{r gene-lists}
+gene_lists <- list(
+  op_genes = filter(op_tiles_genes, FDR < 0.05) %>% distinct(gene_id) %>% .$gene_id,  
+  basic_genes = filter(basic_tiles_genes, FDR < 0.05) %>% distinct(gene_id) %>% .$gene_id,
+  dmr_genes = dmr_genes %>% distinct(gene_id) %>% .$gene_id)
+ 
+# Palette — one colour per list (extend if you have more than 8 lists)
+list_colours <- setNames(
+  brewer.pal(max(4, length(gene_lists)), "Set2")[seq_along(gene_lists)],
+  names(gene_lists)
+)
+gene_lists
+```
+ 
+ 
+ 
+```{r helpers, include=FALSE}
+# Retrieve gene symbols for a vector of Entrez IDs
+entrez_to_symbol <- function(ids) {
+  AnnotationDbi::select(
+    org.Hs.eg.db,
+    keys    = ids,
+    columns = c("SYMBOL", "GENENAME"),
+    keytype = "ENTREZID"
+  )
+}
+ 
+# All unique IDs across lists
+all_ids <- unique(unlist(gene_lists))
+all_anno <- entrez_to_symbol(all_ids)
+```
+ 
+---
+ 
+# 1  List overview
+ 
+```{r list-overview}
+overview <- purrr::imap_dfr(gene_lists, function(ids, name) {
+  tibble(
+    List        = name,
+    n_genes     = length(ids),
+    genes       = paste(
+      all_anno$SYMBOL[match(ids, all_anno$ENTREZID)],
+      collapse = ", "
+    )
+  )
+})
+ 
+knitr::kable(overview, caption = "Gene list contents")
+```
+ 
+---
+ 
+# 2  Pairwise similarity
+ 
+Two complementary metrics are shown:
+ 
+- **Jaccard index** — intersection / union (penalises size differences)
+- **Overlap coefficient** — intersection / min(|A|, |B|) (asks "is one list a subset of the other?")
+ 
+```{r similarity}
+list_names <- names(gene_lists)
+n <- length(list_names)
+ 
+jaccard_mat  <- matrix(NA_real_, n, n, dimnames = list(list_names, list_names))
+overlap_mat  <- matrix(NA_real_, n, n, dimnames = list(list_names, list_names))
+ 
+for (i in seq_len(n)) {
+  for (j in seq_len(n)) {
+    a <- gene_lists[[i]]
+    b <- gene_lists[[j]]
+    isect <- length(intersect(a, b))
+    jaccard_mat[i, j] <- isect / length(union(a, b))
+    overlap_mat[i, j] <- isect / min(length(a), length(b))
+  }
+}
+ 
+# Long form for ggplot
+to_long <- function(mat, metric) {
+  as.data.frame(mat) %>%
+    tibble::rownames_to_column("List_A") %>%
+    pivot_longer(-List_A, names_to = "List_B", values_to = metric)
+}
+ 
+sim_long <- left_join(
+  to_long(jaccard_mat,  "Jaccard"),
+  to_long(overlap_mat,  "Overlap"),
+  by = c("List_A", "List_B")
+)
+ 
+datatable(
+  sim_long %>% mutate(across(c(Jaccard, Overlap), \(x) round(x, 3))),
+  caption  = "Pairwise similarity metrics",
+  rownames = FALSE,
+  filter   = "top",
+  options  = list(pageLength = 20)
+)
+```
+ 
+## Jaccard heatmap
+ 
+```{r jaccard-heatmap, fig.height=4}
+pheatmap(
+  jaccard_mat,
+  display_numbers = TRUE,
+  number_format   = "%.2f",
+  color           = colorRampPalette(c("white", "#2166ac"))(50),
+  main            = "Jaccard similarity",
+  fontsize         = 12,
+  angle_col        = 45
+)
+```
+ 
+## Overlap coefficient heatmap
+ 
+```{r overlap-heatmap, fig.height=4}
+pheatmap(
+  overlap_mat,
+  display_numbers = TRUE,
+  number_format   = "%.2f",
+  color           = colorRampPalette(c("white", "#b2182b"))(50),
+  main            = "Overlap coefficient (intersection / min set size)",
+  fontsize         = 12,
+  angle_col        = 45
+)
+```
+ 
+---
+ 
+# 3  Gene membership (UpSet plot)
+ 
+UpSet plots scale well beyond what Venn diagrams can show cleanly.
+Each bar represents a specific combination of lists.
+ 
+```{r upset, fig.height=5}
+# Binary membership matrix
+membership <- purrr::map_dfc(gene_lists, function(ids) {
+  as.integer(all_ids %in% ids)
+}) %>%
+  mutate(gene = all_ids) %>%
+  left_join(all_anno %>% select(ENTREZID, SYMBOL),
+            by = c("gene" = "ENTREZID")) %>%
+  select(SYMBOL, everything(), -gene)
+ 
+upset_mat <- membership %>%
+  select(all_of(list_names)) %>%
+  as.data.frame()
+ 
+ComplexUpset::upset(
+  upset_mat,
+  intersect        = list_names,
+  name             = "Gene list combination",
+  min_size         = 1,
+  width_ratio      = 0.2,
+  base_annotations = list(
+    "Intersection size" = intersection_size(text = list(size = 3.5))
+  ),
+  themes = upset_modify_themes(list("default" = theme_minimal(base_size = 11)))
+)
+```
+ 
+## Genes per intersection
+ 
+```{r intersection-table}
+membership %>%
+  mutate(
+    combination = apply(select(., all_of(list_names)), 1,
+                        function(r) paste(list_names[as.logical(r)], collapse = " ∩ "))
+  ) %>%
+  group_by(combination) %>%
+  summarise(
+    n_genes = dplyr::n(),
+    genes   = paste(SYMBOL, collapse = ", "),
+    .groups = "drop"
+  ) %>%
+  arrange(desc(n_genes)) %>%
+  datatable(
+    caption  = "Genes in each list combination",
+    rownames = FALSE,
+    filter   = "top",
+    options  = list(pageLength = 20, scrollX = TRUE)
+  )
+```
+ 
+---
+ 
+# 4  Comparative enrichment
+ 
+`clusterProfiler::compareCluster()` runs ORA on each list simultaneously,
+enabling direct visual comparison.
+ 
+## GO Biological Process
+ 
+```{r compare-go-bp, fig.height=8}
+# Build a data frame of gene + group for compareCluster
+gene_group_df <- purrr::imap_dfr(gene_lists, function(ids, name) {
+  tibble(ENTREZID = ids, group = name)
+})
+ 
+cmp_go <- compareCluster(
+  ENTREZID ~ group,
+  data          = gene_group_df,
+  fun           = "enrichGO",
+  OrgDb         = org.Hs.eg.db,
+  keyType       = "ENTREZID",
+  ont           = "BP",
+  pAdjustMethod = "BH",
+  pvalueCutoff  = 0.05,
+  qvalueCutoff  = 0.20,
+  readable      = TRUE
+)
+ 
+if (!is.null(cmp_go) && nrow(as.data.frame(cmp_go)) > 0) {
+  dotplot(cmp_go, showCategory = 15, title = "GO BP — comparison across lists") +
+    theme(axis.text.y = element_text(size = 9),
+          legend.position = "right")
+} else {
+  message("No significant GO BP terms found across any list.")
+}
+```
+ 
+```{r compare-go-table}
+if (!is.null(cmp_go) && nrow(as.data.frame(cmp_go)) > 0) {
+  as.data.frame(cmp_go) %>%
+    select(Cluster, Description, GeneRatio, BgRatio, p.adjust, geneID) %>%
+    datatable(
+      caption  = "GO BP enrichment per list",
+      rownames = FALSE,
+      filter   = "top",
+      options  = list(pageLength = 20, scrollX = TRUE)
+    )
+}
+```
+ 
+## KEGG pathways
+ 
+```{r compare-kegg, fig.height=7}
+cmp_kegg <- compareCluster(
+  ENTREZID ~ group,
+  data          = gene_group_df,
+  fun           = "enrichKEGG",
+  organism      = "hsa",
+  pAdjustMethod = "BH",
+  pvalueCutoff  = 0.05,
+  qvalueCutoff  = 0.20
+)
+ 
+if (!is.null(cmp_kegg) && nrow(as.data.frame(cmp_kegg)) > 0) {
+  cmp_kegg <- setReadable(cmp_kegg, OrgDb = org.Hs.eg.db, keyType = "ENTREZID")
+  dotplot(cmp_kegg, showCategory = 15, title = "KEGG — comparison across lists") +
+    theme(axis.text.y = element_text(size = 9),
+          legend.position = "right")
+} else {
+  message("No significant KEGG pathways found across any list.")
+}
+```
+ 
+## Enrichment heatmap (shared terms)
+ 
+Shows which GO BP terms are significant in which lists.
+ 
+```{r enrich-heatmap, fig.height=7}
+if (!is.null(cmp_go) && nrow(as.data.frame(cmp_go)) > 0) {
+  go_wide <- as.data.frame(cmp_go) %>%
+    select(Cluster, Description, p.adjust) %>%
+    mutate(neg_log10_padj = -log10(p.adjust)) %>%
+    pivot_wider(
+      id_cols     = Description,
+      names_from  = Cluster,
+      values_from = neg_log10_padj,
+      values_fill = 0
+    ) %>%
+    tibble::column_to_rownames("Description")
+ 
+  # Keep top 30 terms by max score across lists
+  top_terms <- names(sort(apply(go_wide, 1, max), decreasing = TRUE))[1:min(30, nrow(go_wide))]
+  go_wide   <- go_wide[top_terms, , drop = FALSE]
+ 
+  pheatmap(
+    go_wide,
+    color        = colorRampPalette(c("#f7f7f7", "#4393c3", "#053061"))(50),
+    main         = "GO BP enrichment across lists\n(-log10 adjusted p-value)",
+    angle_col    = 45,
+    fontsize_row = 8,
+    fontsize_col = 11,
+    border_color = NA,
+    na_col       = "grey95"
+  )
+}
+```
+ 
+---
+ 
+# 5  Chromosomal distribution
+ 
+```{r genomic-locs}
+# Pull locations for all genes
+all_ranges <- genes(txdb, filter = list(gene_id = all_ids))
+ 
+loc_all <- as.data.frame(all_ranges) %>%
+  rename(entrezid = gene_id, chr = seqnames,
+         start_bp = start, end_bp = end) %>%
+  left_join(all_anno, by = c("entrezid" = "ENTREZID")) %>%
+  left_join(
+    purrr::imap_dfr(gene_lists, function(ids, nm) tibble(entrezid = ids, list = nm)),
+    by = "entrezid"
+  ) %>%
+  filter(!is.na(list))
+ 
+chr_order <- paste0("chr", c(1:22, "X", "Y"))
+loc_all   <- loc_all %>%
+  filter(chr %in% chr_order) %>%
+  mutate(chr = factor(chr, levels = rev(chr_order)),
+         list = factor(list, levels = names(gene_lists)))
+```
+ 
+## Strip plot — all lists together
+ 
+```{r strip-plot, fig.height=7}
+ggplot(loc_all, aes(x = start_bp / 1e6, y = chr,
+                    colour = list, shape = list)) +
+  geom_point(size = 3, alpha = 0.8,
+             position = position_jitter(height = 0.15, seed = 42)) +
+  geom_text_repel(aes(label = SYMBOL), size = 2.5, max.overlaps = 15,
+                  show.legend = FALSE) +
+  scale_colour_manual(values = list_colours) +
+  scale_shape_manual(values = c(16, 17, 15, 18, 8, 9)[seq_along(gene_lists)]) +
+  labs(title    = "Gene positions across chromosomes (hg38)",
+       x        = "Position (Mb)",
+       y        = NULL,
+       colour   = "List",
+       shape    = "List") +
+  theme_minimal(base_size = 11) +
+  theme(legend.position = "bottom")
+```
+ 
+## Per-list faceted view
+ 
+```{r facet-strip, fig.height=7}
+ggplot(loc_all, aes(x = start_bp / 1e6, y = chr, colour = list)) +
+  geom_point(size = 2.5, alpha = 0.9) +
+  geom_text_repel(aes(label = SYMBOL), size = 2.2, max.overlaps = 10,
+                  show.legend = FALSE) +
+  scale_colour_manual(values = list_colours) +
+  facet_wrap(~list, ncol = 1) +
+  labs(title  = "Gene positions — faceted by list",
+       x      = "Position (Mb)",
+       y      = NULL,
+       colour = "List") +
+  theme_minimal(base_size = 10) +
+  theme(legend.position = "none",
+        strip.text      = element_text(face = "bold", size = 11))
+```
+ 
+## Chromosome enrichment — which chromosomes are over-represented?
+ 
+```{r chr-bar, fig.height=5}
+loc_all %>%
+  dplyr::count(list, chr) %>%
+  ggplot(aes(x = chr, y = n, fill = list)) +
+  geom_col(position = "dodge") +
+  scale_fill_manual(values = list_colours) +
+  labs(title = "Gene count per chromosome by list",
+       x = NULL, y = "Gene count", fill = "List") +
+  coord_flip() +
+  theme_minimal(base_size = 11) +
+  theme(legend.position = "bottom")
+```
+
+
+
+```{r}
+cmp_go@compareClusterResult
+```
+
