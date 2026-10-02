@@ -1,0 +1,474 @@
+---
+title: "methWithinTile"
+author: "caitlinpage"
+date: "2026-09-24"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+## Introduction
+
+* can I distinguish between interesting vs like uniform methylation in a tile
+* so within the group (because means more summarised than cancer)
+* like with the counts of the tiles
+* wait is that just the proportion test but within itself
+* dude
+```{r}
+library(BSgenome.Hsapiens.UCSC.hg38)
+library(TxDb.Hsapiens.UCSC.hg38.knownGene)
+library(edgeR)
+library(plyranges)
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+library(stringr)
+library(data.table)
+library(duckdb)
+library(arrow)
+```
+
+```{r}
+dtu_emseq <- readRDS("/researchers/caitlin.page/cf_nano/r_output/dtu_tiles_emseq_cancer_healthy.rds")
+dmr_emseq <- readRDS("/researchers/caitlin.page/cf_nano/r_output/dmr_emseq_strict.rds")
+dmr_emseq <- dmr_emseq %>% .[order(.$min_smoothed_fdr),] %>% mutate(dmr_rank = 1:n())
+```
+
+
+```{r}
+dau_basictiles
+```
+
+```{r}
+tile_beta <- find_overlaps(as_granges(dau_basictiles), betas_c %>% mutate(coverage = meth_count_pos + unmeth_count_pos) %>% filter(coverage > 10) %>% group_by(seqnames, start) %>% summarise(beta_cancer = mean(beta)) %>% mutate(width = 1) %>% as_granges()) %>% data.frame()
+
+setDT(tile_beta)
+tile_beta <- tile_beta[, .(mean_beta_cancer = mean(beta_cancer)), by = eval(names(tile_beta)[1:13])]
+
+tile_beta <- find_overlaps(as_granges(tile_beta), betas_h %>% mutate(coverage = meth_count_pos + unmeth_count_pos) %>% filter(coverage > 10) %>% group_by(seqnames, start) %>% summarise(beta_healthy = mean(beta)) %>% mutate(width = 1) %>% as_granges()) %>% data.frame()
+
+setDT(tile_beta)
+tile_beta <- tile_beta[, .(mean_beta_healthy = mean(beta_healthy)), by = eval(names(tile_beta)[1:14])]
+
+tile_beta <- tile_beta %>% mutate(delta_beta = mean_beta_cancer - mean_beta_healthy)
+```
+
+```{r}
+betas_c$type <- "cancer"
+betas_h$type <- "healthy"
+betas_all <- rbind(betas_c, betas_h)
+```
+
+
+```{r}
+tile_beta
+```
+
+```{r}
+props_from_test
+```
+
+
+```{r}
+reads_region <- function(read_data_path_a, read_data_path_b, genes, cpgs = cg_sites,
+                       jit_amount = 0.1) {
+  set.seed(42)
+
+  # ── 1. Read only the matching rows — never loads unmatched data into RAM ───
+  con <- dbConnect(duckdb())
+  on.exit(dbDisconnect(con))
+  
+  genes_df <- as.data.frame(genes)[, c("seqnames", "start", "end", "gene_id")]
+  genes_df$seqnames <- as.character(genes_df$seqnames)
+  duckdb_register(con, "genes", genes_df)
+  
+  overlap_query <- function(path) {
+    dbGetQuery(con, glue::glue("
+      SELECT DISTINCT r.*, g.gene_id
+      FROM read_parquet('{path}') r
+      JOIN genes g
+        ON r.seqnames = g.seqnames
+       AND r.start >= g.start
+       AND r.end   <= g.end
+    "))
+  }
+  
+  read_data_a <- overlap_query(read_data_path_a)
+  
+  read_data_b <- overlap_query(read_data_path_b)
+  
+  read_data_a$type <- "healthy"
+  read_data_b$type <- "cancer"
+  
+  read_data <- rbind(read_data_a, read_data_b)
+  
+  jitter_amount <- runif(nrow(read_data), -jit_amount, jit_amount)
+  read_data$alpha_jit <- read_data$alpha + jitter_amount
+  read_data <- data.frame(read_data)
+  
+  read_data <- read_data %>% mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                 alpha > 0.8 ~ "a > 0.8",
+                                 alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                 alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                 TRUE ~ "0.6 <= a <= 0.8"))
+  read_data <- read_data %>% mutate(alpha_group = factor(alpha_group, levels = c("a < 0.2", "0.2 <= a <= 0.4", "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8"))) %>%
+    count(type, gene_id, alpha_group, name = "tile_band_count") %>% 
+  group_by(gene_id, type) %>% mutate(percent = tile_band_count/sum(tile_band_count)) %>% ungroup()
+  read_data
+}
+reads_genebody <- reads_region("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", "/researchers/caitlin.page/cf_nano/r_output/emseq_all_cancer.parquet", genes_txdb)
+```
+
+```{r}
+reads_genebody
+```
+
+
+* find me a noise to signal region
+
+* ie medium alpha to not
+
+```{r}
+tile_beta %>% filter(abs(mean_beta_cancer) >= 0.4, abs(mean_beta_cancer) <= 0.6 | 
+                     abs(mean_beta_healthy) >= 0.4, abs(mean_beta_healthy) <= 0.6) %>%
+  filter(FDR < 0.05) %>% filter(N > 10) %>% .[order(abs(.$delta_beta), decreasing = TRUE),]
+```
+
+tile_beta %>% filter(abs(mean_beta_cancer) >= 0.4, abs(mean_beta_cancer) <= 0.6,
+                     abs(mean_beta_healthy) >= 0.4, abs(mean_beta_healthy) <= 0.6) %>%
+  filter(FDR < 0.05) %>% filter(N > 10)
+
+```{r}
+ranks <- tile_beta %>% filter(abs(mean_beta_cancer) >= 0.4, abs(mean_beta_cancer) <= 0.6 | 
+                     abs(mean_beta_healthy) >= 0.4, abs(mean_beta_healthy) <= 0.6) %>%
+  filter(FDR < 0.05) %>% filter(N > 10) %>% .[order(abs(.$delta_beta), decreasing = TRUE),] %>% .$dtu_rank
+```
+
+
+```{r}
+props_a_med <- tile_prop("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", "/researchers/caitlin.page/cf_nano/r_output/emseq_all_cancer.parquet", 
+          dau_basictiles[ranks,])
+```
+
+
+```{r}
+#chr10:132232001-132232500
+dau_basictiles[251,]
+
+rrbs_plot5("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", "/researchers/caitlin.page/cf_nano/r_output/emseq_all_cancer.parquet", "chr10", 132232001, 132232500) +
+  geom_beta(betas_all, plot.height = 0.5, style = "smooth") 
+
+props_a_med %>% filter(dtu_rank == 251) %>% mutate(alpha_group = factor(alpha_group, levels = c("a < 0.2", "0.2 <= a <= 0.4", "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8"))) %>% pivot_longer(cols = c(cancer, healthy), names_to = "type", values_to = "percent") %>%
+  ggplot(aes(x = alpha_group, y = percent, fill = type)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  scale_fill_manual(values = c("cancer" = "#C0622A", "healthy" = "#1B3A6B")) +
+  scale_x_discrete(labels = c("Low", "Low-med", "Med", "Med-high", "High")) +
+  labs(x = "alpha band") +
+  facet_wrap(~region_id) +
+  theme_bw()
+```
+
+* this doesn't look like much at all
+* how did I find it in the rrbs...
+
+* oh I looked at strings of betas - then did some other stuff
+* no it was from the alpha band level dau results
+* looking at tiles where medium to low/high was significant
+* I haven't done that version with the emseq
+
+```{r}
+optiles_all <- readRDS("/researchers/caitlin.page/cf_nano/r_output/optiles_all_emseq.rds")
+```
+
+```{r}
+tiles_500bp_cg
+```
+
+
+## Tile genome
+
+```{r}
+# Get chromosome lengths for standard chromosomes only
+seqinfo_hg38 <- seqlengths(BSgenome.Hsapiens.UCSC.hg38)
+std_chroms <- grepl("^chr([1-9]|1[0-9]|2[0-2]|X|Y|M)$", names(seqinfo_hg38))
+seqinfo_hg38 <- seqinfo_hg38[std_chroms]
+
+# Tile into 500 bp non-overlapping windows
+tiles_500bp <- GenomicRanges::tileGenome(seqinfo_hg38, tilewidth = 500, cut.last.tile.in.chrom = TRUE)
+
+# Add a tile number column
+tiles_500bp <- tiles_500bp %>%
+  data.frame() %>%
+  mutate(tile_num = 1:n()) %>%
+  as_granges()
+
+
+# cpgs
+seqs <- seqnames(BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38)[1:22]
+
+cg_sites <- lapply(seqs, function(x) {
+  cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38[[x]])),
+        seqnames = x
+  )}) %>% bind_rows()
+
+tiles_500bp_cg <- find_overlaps(tiles_500bp, as_granges(cg_sites)) %>% data.frame() %>%
+  group_by(tile_num) %>% mutate(n_cg = n())
+tiles_500bp_cg <- tiles_500bp_cg %>% ungroup() %>% distinct()
+tiles_500bp_cg$tile_id <- paste0(tiles_500bp_cg$seqnames, ":", tiles_500bp_cg$start, "-", tiles_500bp_cg$end)
+```
+
+```{r}
+load_counts <- function(read_data_path_a, read_data_path_b, tiles) {
+#overlap_pos <- find_overlaps(as_granges(optiles_all), as_granges(all_samples)) %>% data.frame()
+  con <- dbConnect(duckdb())
+  on.exit(dbDisconnect(con))
+  
+  tiles_df <- as.data.frame(tiles)[, c("seqnames", "start", "end", "tile_id")]
+  tiles_df$seqnames <- as.character(tiles_df$seqnames)
+  duckdb_register(con, "tiles", tiles_df)
+  
+  overlap_query <- function(path) {
+    dbGetQuery(con, glue::glue("
+      SELECT DISTINCT r.*, t.tile_id
+      FROM read_parquet('{path}') r
+      JOIN tiles t
+        ON r.seqnames = t.seqnames
+       AND r.start >= t.start
+       AND r.end   <= t.end
+    "))
+  }
+  
+  read_data_a <- overlap_query(read_data_path_a)
+  
+  read_data_b <- overlap_query(read_data_path_b)
+  
+  read_data_a$type <- "healthy"
+  read_data_b$type <- "cancer"
+  
+  read_data <- rbind(read_data_a, read_data_b)
+# dtu
+  read_counts <- read_data %>% mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                 alpha > 0.8 ~ "a > 0.8",
+                                 alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                 alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                 TRUE ~ "0.6 <= a <= 0.8"))
+  read_counts <- read_counts %>% mutate(alpha_group = factor(alpha_group, levels = c("a < 0.2", "0.2 <= a <= 0.4", "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8"))) %>%
+    count(type, tile_id, alpha_group, name = "tile_band_count") %>% 
+  group_by(tile_id, type) %>% mutate(percent = tile_band_count/sum(tile_band_count)) %>% ungroup()
+  
+dtu_optile <- read_data %>%
+  distinct(sample, read_id, read_start, read_end, alpha, tile_id, type) %>%
+  mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                 alpha > 0.8 ~ "a > 0.8",
+                                 alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                 alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                 TRUE ~ "0.6 <= a <= 0.8"), 
+         transcript = paste0(tile_id, "_", alpha_group)) %>%
+  group_by(sample, transcript) %>%
+  summarise(transcript_count = n()) %>% ungroup() %>% data.frame()
+
+# build matrix of "transcript" counts - transcript rows, sample as columns
+dtu_optile <- dtu_optile %>% pivot_wider(names_from = sample, values_from = transcript_count, values_fill = 0)
+dtu_optile$gene_id <- sub("_.*", "", dtu_optile$transcript)
+
+
+
+# DTU analysis with edgeR
+## Alicia prefers gene method over Simes method (documentation slightly confusing about difference)
+y <- DGEList(as.matrix(dtu_optile[,2:13]), group = c(1,1,1,1,1,1,2,2,2,2,2,2), genes = dtu_optile[,c("gene_id", "transcript")])
+design <- model.matrix(~ c(1,1,1,1,1,1,2,2,2,2,2,2), data = y$samples)
+fit <- glmQLFit(y, design, robust=TRUE)
+ds <- diffSpliceDGE(fit, coef = 2, geneid = "gene_id", exonid = "transcript")
+dau_simes <- topSpliceDGE(ds, test = "Simes", number = Inf)
+dau_exon <- topSpliceDGE(ds, test = "exon", number = Inf)
+list(dau_simes, dau_exon, read_counts)
+}
+
+dau_band_level <- load_counts("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", "/researchers/caitlin.page/cf_nano/r_output/emseq_all_cancer.parquet", tiles_500bp_cg)
+```
+
+
+```{r}
+saveRDS(dau_band_level, "/researchers/caitlin.page/cf_nano/r_output/emseq_dau_band_level.rds")
+```
+
+
+```{r}
+ts.gene_optiles <- ts.gene_optiles %>%
+  mutate(region_id = gene_id) %>%
+  separate_wider_delim(gene_id, delim = ":", names = c("seqnames", "gene_id")) %>%
+  mutate(seqnames = gsub("chrchr", "chr", seqnames)) %>%
+  separate_wider_delim(gene_id, delim = "-", names = c("start", "end"))
+ts.gene_optiles$start <- as.double(ts.gene_optiles$start)
+ts.gene_optiles$end <- as.double(ts.gene_optiles$end)
+ts.gene_optiles$dtu_rank <- 1:nrow(ts.gene_optiles)
+saveRDS(ts.gene_optiles, "/researchers/caitlin.page/cf_nano/r_output/dtu_tiles_emseq_cancer_healthy.rds")
+
+```
+
+
+```{r}
+tile_prop <- function(read_data_path_a, read_data_path_b, tiles, cols_from_tiles = NULL) {
+
+  # ── 1. Read only the matching rows — never loads unmatched data into RAM ───
+  con <- dbConnect(duckdb())
+  duckdb::dbWriteTable(con, "tiles_temp", tiles, overwrite = TRUE)
+  on.exit(duckdb::dbRemoveTable(con, "tiles_temp"), add = TRUE)
+  
+  
+  # Build SELECT clause for tile columns
+  if (is.null(cols_from_tiles)) {
+    # Exclude coordinate cols to avoid clashes with parquet
+    tile_cols <- setdiff(colnames(tiles), c("seqnames", "start", "end"))
+  } else {
+    tile_cols <- cols_from_tiles
+  }
+  
+  tile_select <- if (length(tile_cols) > 0) {
+    paste(glue::glue(', t."{tile_cols}"'), collapse = "")
+  } else ""
+  
+  read_data_a <- dbGetQuery(con, glue::glue("
+    SELECT b.*{tile_select}
+    FROM read_parquet('{read_data_path_a}') b
+    JOIN tiles_temp t
+      ON b.seqnames = t.seqnames
+     AND b.start <= t.end
+     AND b.end   >= t.start
+  "))
+  
+  read_data_b <- dbGetQuery(con, glue::glue("
+    SELECT b.*{tile_select}
+    FROM read_parquet('{read_data_path_b}') b
+    JOIN tiles_temp t
+      ON b.seqnames = t.seqnames
+     AND b.start <= t.end
+     AND b.end   >= t.start
+  "))
+  
+  read_data_a$type <- "healthy"
+  read_data_b$type <- "cancer"
+  props_med <- rbind(read_data_a, read_data_b)
+
+  props_med <- props_med[,c(1:14,16:24)]
+  props_med <- props_med %>%
+  mutate(
+    alpha_group = case_when(
+      alpha < 0.2  ~ "a < 0.2",
+      alpha > 0.8  ~ "a > 0.8",
+      alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+      alpha < 0.6  ~ "0.4 < a < 0.6",
+      TRUE         ~ "0.6 <= a <= 0.8"
+    )
+  ) %>% mutate(alpha_group = factor(alpha_group, levels = c("a < 0.2", "0.2 <= a <= 0.4", "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8"))) %>%
+  count(type, dtu_rank, region_id, alpha_group, name = "tile_band_count") %>%
+  group_by(region_id, dtu_rank, type) %>%
+  mutate(prop_alpha_in_tile = tile_band_count / sum(tile_band_count)) %>%
+  ungroup() %>%
+  select(region_id, dtu_rank, alpha_group, type, prop_alpha_in_tile) %>%
+  pivot_wider(names_from = type, values_from = prop_alpha_in_tile) %>%
+  mutate(prop_change = cancer - healthy)
+  props_med
+}
+```
+
+
+```{r}
+reads_eg <- function(read_data_path_a, read_data_path_b, chrom, region_start, region_end,
+                       jit_amount = 0.1) {
+  set.seed(42)
+
+  # ── 1. Read only the matching rows — never loads unmatched data into RAM ───
+  con <- dbConnect(duckdb())
+  on.exit(dbDisconnect(con))
+  
+  read_data_a <- dbGetQuery(con, glue::glue("
+    SELECT *
+    FROM read_parquet('{read_data_path_a}')
+    WHERE seqnames = '{chrom}'
+      AND \"start\" >= {region_start}
+      AND \"end\"   <= {region_end}
+  "))
+  
+  read_data_b <- dbGetQuery(con, glue::glue("
+    SELECT *
+    FROM read_parquet('{read_data_path_b}')
+    WHERE seqnames = '{chrom}'
+      AND \"start\" >= {region_start}
+      AND \"end\"   <= {region_end}
+  "))
+  
+  read_data_a$type <- "healthy"
+  read_data_b$type <- "cancer"
+  
+  read_data <- rbind(read_data_a, read_data_b)
+  
+  read_data <- data.frame(read_data)
+  
+  read_data <- read_data %>% mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                 alpha > 0.8 ~ "a > 0.8",
+                                 alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                 alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                 TRUE ~ "0.6 <= a <= 0.8"))
+  read_data <- read_data %>% mutate(alpha_group = factor(alpha_group, levels = c("a < 0.2", "0.2 <= a <= 0.4", "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8")))
+  
+  # Add jittered coordinates to new columns in the data frame
+  long_data <- read_data %>%
+    mutate(meth_status = strsplit(meth_pattern, ""), start = strsplit(genom_positions, ",")) %>%
+    unnest(meth_status, start) %>%
+    mutate(start = as.double(start))
+  
+  list(read_data, long_data)
+}
+
+```
+
+rrbs_plot5("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", "/researchers/caitlin.page/cf_nano/r_output/emseq_all_cancer.parquet", "chr10", 132232001, 132232500) +
+  geom_beta(betas_all, plot.height = 0.5, style = "smooth")
+```{r}
+nrow(arrow::open_dataset('/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet'))
+nrow(arrow::open_dataset('/researchers/caitlin.page/cf_nano/r_output/emseq_all_cancer.parquet'))
+```
+
+```{r}
+123043398 + 718729496
+```
+
+
+```{r}
+read_example <- reads_eg("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", "/researchers/caitlin.page/cf_nano/r_output/emseq_all_cancer.parquet", "chr1", 100000, 110000)
+```
+
+```{r}
+read_example[[1]] %>% filter(total > 2) %>% mutate(strand = "*") %>% distinct()
+```
+
+```{r}
+read_example[[2]] %>% filter(total > 2)
+```
+
+```{r}
+knitr::kable(read_example[[1]] %>% filter(total > 2) %>% mutate(strand = "*") %>% distinct(), format = "html") |>
+  writeLines("table.html")
+
+knitr::kable(read_example[[2]] %>% filter(total > 2) %>% mutate(strand = "*") %>% distinct(), format = "html") |>
+  writeLines("table.html")
+```
+
+```{r}
+dau_basictiles <- distinct(dau_basictiles)
+```
+
+```{r}
+knitr::kable(dau_basictiles[1:10,], format = "html") |>
+  writeLines("table.html")
+```
+
+```{r}
+dau_basictiles %>% filter(seqnames == "chr1") %>% .[order(.$start),]
+```
+
+```{r}
+dtu_emseq %>% filter(seqnames == "chr1") %>% .[order(.$start),]
+```
+
