@@ -1,0 +1,311 @@
+---
+title: "sexBasedHealthyAnalysis"
+author: "caitlinpage"
+date: "2026-09-30"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+## Introduction
+
+```{r}
+library(BSgenome.Hsapiens.UCSC.hg38)
+library(plyranges)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(stringr)
+library(edgeR)
+library(duckdb)
+library(arrow)
+```
+```{r}
+# Get chromosome lengths for standard chromosomes only
+seqinfo_hg38 <- seqlengths(BSgenome.Hsapiens.UCSC.hg38)
+std_chroms <- grepl("^chr([1-9]|1[0-9]|2[0-2]|X|Y|M)$", names(seqinfo_hg38))
+seqinfo_hg38 <- seqinfo_hg38[std_chroms]
+
+# Tile into 500 bp non-overlapping windows
+tiles_500bp <- GenomicRanges::tileGenome(seqinfo_hg38, tilewidth = 500, cut.last.tile.in.chrom = TRUE)
+
+# Add a tile number column
+tiles_500bp <- tiles_500bp %>%
+  data.frame() %>%
+  mutate(tile_num = 1:n()) %>%
+  as_granges()
+
+# cpgs
+seqs <- c(seqnames(BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38)[1:22], "chrX", "chrY")
+
+cg_sites <- lapply(seqs, function(x) {
+  cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38[[x]])),
+        seqnames = x
+  )}) %>% bind_rows()
+
+tiles_500bp_cg <- find_overlaps(tiles_500bp, as_granges(cg_sites)) %>% data.frame() %>%
+  group_by(tile_num) %>% mutate(n_cg = n())
+tiles_500bp_cg <- tiles_500bp_cg %>% ungroup() %>% distinct()
+
+tiles_500bp_cg$tile_id <- paste0(tiles_500bp_cg$seqnames, ":", tiles_500bp_cg$start, "-", tiles_500bp_cg$end)
+
+tiles_500bp_cg
+```
+
+```{r}
+reads_chr <- function(read_data_path_a, tiles,
+                       jit_amount = 0.1) {
+  set.seed(42)
+
+  # ── 1. Read only the matching rows — never loads unmatched data into RAM ───
+  con <- dbConnect(duckdb())
+  on.exit(dbDisconnect(con))
+  
+  tiles_df <- as.data.frame(tiles)[, c("seqnames", "start", "end", "tile_id")]
+  tiles_df$seqnames <- as.character(tiles_df$seqnames)
+  duckdb_register(con, "tiles", tiles_df)
+  
+  overlap_query <- function(path) {
+    dbGetQuery(con, glue::glue("
+      SELECT DISTINCT r.*, t.tile_id
+      FROM read_parquet('{path}') r
+      JOIN tiles t
+        ON r.seqnames = t.seqnames
+       AND r.start >= t.start
+       AND r.end   <= t.end
+    "))
+  }
+  
+  
+  read_data <- overlap_query(read_data_path_a)
+
+  
+  read_data$type <- "healthy"
+
+  read_data <- read_data %>% mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                 alpha > 0.8 ~ "a > 0.8",
+                                 alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                 alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                 TRUE ~ "0.6 <= a <= 0.8"))
+  read_data <- read_data %>% mutate(alpha_group = factor(alpha_group, levels = c("a < 0.2", "0.2 <= a <= 0.4", "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8")))
+#  read_data <- read_data %>% count(type, region_id, alpha_group, name = "tile_band_count") %>% group_by(region_id, type) %>% mutate(percent = tile_band_count/sum(tile_band_count)) %>% ungroup()
+  sample_names <- unique(read_data$sample)
+  read_data <- read_data %>% filter(total >= 3) %>% 
+    mutate(transcript = paste0(region_id, "_", alpha_group)) %>%
+  group_by(sample, transcript) %>%
+  summarise(transcript_count = n()) %>% ungroup() %>% data.frame()
+  
+  read_data <- read_data %>% pivot_wider(names_from = sample, values_from = transcript_count)
+  read_data[is.na(read_data)] <- 0
+  read_data$gene_id <- sub("_.*", "", read_data$transcript)
+  
+  c(read_data, sample_names)
+}
+reads_sex <- reads_chr("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", "/researchers/caitlin.page/cf_nano/r_output/emseq_all_cancer.parquet", c("chrX", "chrY"))
+```
+* ok so in my processed I left out the sex chromosomes - whoopsies that's bad science
+```{r}
+reads_sex <- reads_chr("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", "/researchers/caitlin.page/cf_nano/r_output/emseq_all_cancer.parquet", c("chr22"))
+```
+
+```{r}
+reads_chr <- function(read_data_path_a, tiles) {
+
+  # ── 1. Read only the matching rows — never loads unmatched data into RAM ───
+  con <- dbConnect(duckdb())
+  on.exit(dbDisconnect(con))
+  
+  tiles_df <- as.data.frame(tiles)[, c("seqnames", "start", "end", "tile_id")]
+  tiles_df$seqnames <- as.character(tiles_df$seqnames)
+  duckdb_register(con, "tiles", tiles_df)
+  
+  overlap_query <- function(path) {
+    dbGetQuery(con, glue::glue("
+      SELECT DISTINCT r.*, t.tile_id
+      FROM read_parquet('{path}') r
+      JOIN tiles t
+        ON r.seqnames = t.seqnames
+       AND r.start >= t.start
+       AND r.end   <= t.end
+    "))
+  }
+  
+  
+  read_data <- overlap_query(read_data_path_a)
+
+  
+  read_data$type <- "healthy"
+
+  read_data <- read_data %>% mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                 alpha > 0.8 ~ "a > 0.8",
+                                 alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                 alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                 TRUE ~ "0.6 <= a <= 0.8"))
+  read_data <- read_data %>% mutate(alpha_group = factor(alpha_group, levels = c("a < 0.2", "0.2 <= a <= 0.4", "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8")))
+#  read_data <- read_data %>% count(type, region_id, alpha_group, name = "tile_band_count") %>% group_by(region_id, type) %>% mutate(percent = tile_band_count/sum(tile_band_count)) %>% ungroup()
+  
+  read_data
+}
+reads_sex <- reads_chr("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", sex_tiles)
+```
+
+```{r}
+reads_sex %>% group_by(sample, seqnames) %>% summarise(n_reads = n()) 
+```
+* so read counts in X should be double in females than males
+* plot
+mm
+```{r}
+reads_sex %>% 
+  ggplot(aes(x = sample, fill = seqnames)) +
+  geom_bar(position = "dodge")
+```
+* and prop of sex from total reads
+* because yes from this a2 and b2 kinda look male - but also maybe they just have less reads overall
+* because it's about the proportion of sex to autosome
+
+
+```{r}
+reads_healthy <- reads_chr("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", tiles_500bp_cg)
+```
+
+```{r}
+con <- dbConnect(duckdb())
+
+counts_df <- dbGetQuery(con, "
+  SELECT seqnames, sample, COUNT(*) AS n
+  FROM read_parquet('/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet')
+  GROUP BY seqnames, sample
+  ORDER BY seqnames, sample
+")
+dbDisconnect(con)
+
+```
+
+```{r}
+counts_df %>% filter(seqnames %in% seqs) %>% group_by(sample) %>% mutate(prop = n/sum(n)) %>% 
+  ggplot(aes(x = sample, y = n, fill = seqnames)) +
+  geom_bar(stat = "identity")
+```
+* yeah so a2 and b2 do have the lowest counts
+
+```{r}
+counts_df %>% filter(seqnames %in% seqs) %>% group_by(sample) %>% mutate(prop = n/sum(n)) %>%
+  ggplot(aes(x = sample, y = prop, fill = seqnames)) +
+  geom_bar(stat = "identity")
+
+counts_df %>% filter(seqnames %in% seqs) %>% group_by(sample) %>% mutate(prop = n/sum(n)) %>%
+  ggplot(aes(x = sample, y = prop, fill = seqnames)) +
+  geom_bar(stat = "identity") +
+  facet_wrap(~seqnames)
+```
+```{r}
+counts_df %>% filter(seqnames %in% seqs) %>% group_by(sample) %>% mutate(prop = n/sum(n)) %>% filter(seqnames %in% c("chr7", "chrX", "chrY")) %>%
+  ggplot(aes(x = sample, y = prop, fill = seqnames)) +
+  geom_bar(stat = "identity") +
+  facet_wrap(~seqnames)
+```
+* claude keeps changing its mind about which samples are male/female
+* before thought a split
+* now thinks all 6 are male
+```{r}
+reads_sex %>% 
+  ggplot(aes(x = alpha, colour = sample)) +
+  geom_density() +
+  facet_wrap(~seqnames)
+```
+of the significant regions, what proportion of them are on X
+- it's a true positive test
+* compare to dmrs again -see if better sensitivity / coverage of x dmr vs dau
+* look if pulling up known cometh regions
+```{r}
+sex_tiles <- tiles_500bp_cg %>% filter(seqnames %in% c("chrX", "chrY"))
+```
+
+```{r}
+overlap_pos <- find_overlaps(as_granges(filter(optiles_all, seqnames == "chr1")), as_granges(all_samples)) %>% data.frame()
+```
+
+```{r}
+# dtu
+dtu_optile <- overlap_pos %>% filter(total >= 3) %>%
+  distinct(sample, read_id, alpha, region_id) %>%
+  mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                 alpha > 0.8 ~ "a > 0.8",
+                                 alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                 alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                 TRUE ~ "0.6 <= a <= 0.8"))
+
+dtu_optile <- dtu_optile %>%
+  mutate(transcript = paste0(region_id, "_", alpha_group)) %>%
+  group_by(sample, transcript) %>%
+  summarise(transcript_count = n()) %>% ungroup() %>% data.frame()
+
+# build matrix of "transcript" counts - transcript rows, sample as columns
+dtu_optile <- dtu_optile %>% pivot_wider(names_from = sample, values_from = transcript_count)
+dtu_optile[is.na(dtu_optile)] <- 0
+dtu_optile$gene_id <- sub("_.*", "", dtu_optile$transcript)
+```
+
+```{r}
+unique(all_samples$sample)
+```
+
+
+```{r}
+samples <- c(unique(all_samples$sample))  # your 7 sample names
+
+# --- Analysis function ---
+run_analysis <- function(combo) {
+  cols <- c(combo$g1, combo$g2)
+  group <- c(1, 1, 1, 2, 2, 2)
+
+  y <- DGEList(
+    as.matrix(dtu_optile[, cols]),
+    group = group,
+    genes = dtu_optile[, c("gene_id", "transcript")]
+  )
+  design <- model.matrix(~ group)
+  fit <- glmQLFit(y, design, robust = TRUE)
+  ds  <- diffSpliceDGE(fit, coef = 2, geneid = "gene_id", exonid = "transcript")
+
+  topSpliceDGE(ds, test = "gene", number = Inf) %>%
+    mutate(
+      region_id = gene_id,
+      excluded  = combo$excluded,
+      group1    = paste(combo$g1, collapse = ","),
+      group2    = paste(combo$g2, collapse = ",")
+    ) %>%
+    separate_wider_delim(gene_id, delim = ":", names = c("seqnames", "gene_id")) %>%
+    mutate(seqnames = gsub("chrchr", "chr", seqnames)) %>%
+    separate_wider_delim(gene_id, delim = "-", names = c("start", "end")) %>%
+    mutate(
+      start    = as.double(start),
+      end      = as.double(end),
+      dtu_rank = row_number()
+    )
+}
+
+# --- Generate 70 combinations ---
+all_combos <- unlist(
+  lapply(seq_along(samples), function(excl_i) {
+    remaining <- samples[-excl_i]
+    splits <- combn(remaining, 3, simplify = FALSE)
+    splits <- Filter(function(g1) g1[1] < setdiff(remaining, g1)[1], splits)
+    lapply(splits, function(g1) {
+      list(g1 = g1, g2 = setdiff(remaining, g1), excluded = samples[excl_i])
+    })
+  }),
+  recursive = FALSE
+)
+
+# --- Run across all 70 combinations ---
+results <- lapply(all_combos, run_analysis)
+
+# --- Combine into one data frame ---
+results_df <- bind_rows(results)
+
+saveRDS(results_df, "/researchers/caitlin.page/cf_nano/r_output/dtu_tiles_emseq_healthy_all_fp.rds")
+```
+
+
