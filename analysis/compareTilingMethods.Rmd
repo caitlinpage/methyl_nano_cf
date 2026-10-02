@@ -145,6 +145,10 @@ ggVennDiagram::ggVennDiagram(list(basic = filter(basic_tiles_genes, FDR < 0.05)$
 ggVennDiagram::ggVennDiagram(list(basic_filt = filter(basic_tiles_genes, FDR < 0.05)$gene_id, basic = basic_tiles_genes$gene_id))
 ```
 
+```{r}
+ggVennDiagram::ggVennDiagram(list(basic_filt = filter(basic_tiles_genes, FDR < 0.05)$gene_id, basic = dmr_genes$gene_id))
+```
+
 ```{r libraries}
 library(TxDb.Hsapiens.UCSC.hg38.knownGene)
 library(org.Hs.eg.db)
@@ -1696,4 +1700,7 @@ dau_optiles <- find_overlaps(as_granges(dau_optiles), as_granges(cg_sites)) %>% 
 ```{r}
 dau_basictiles %>% group_by(region_id) %>% count()
 ```
+
+# give me a nice new version of the reads plotting
+
 
