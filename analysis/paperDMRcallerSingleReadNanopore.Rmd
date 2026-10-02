@@ -1,0 +1,52 @@
+---
+title: "paperDMRcallerSingleReadNanopore"
+author: "caitlinpage"
+date: "2026-09-28"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+## Introduction
+
+```{r}
+
+```
+
+*super cool and relevant paper - basically they did it
+* and bioconductor, so can run their appproach
+https://www.biorxiv.org/content/10.64898/2026.09.07.749820v1.full
+https://www.bioconductor.org/packages/release/bioc/vignettes/DMRcaller/inst/doc/DMRcaller.html#39_Calling_partially_methylated_domains_(PMDs)
+https://github.com/nrzabet/DMRcaller/tree/master/R
+
+
+
+* has some stuff about partially methylated domains (alpha between 0.4-0.6)
+* and some stuff about comethylation - but over a larger distance
+
+
+* oops I don't think my version of R is new enough to run these functions
+
+
+# PMDs Partially methylated domains
+* this is finding regions of meth 0.4-0.6 mean beta value
+* per sample
+* calculated in bins
+
+"Partially methylated domains (PMDs), which represent extended genomic regions of intermediate methylation, have emerged as hallmarks of epigenetic heterogeneity in specific biological contexts, including cancer cells, the placenta, and cultured cell lines (12; 13). Within tumours, methylation heterogeneity acts as an independent driver of clonal evolution, metastasis, and resistance to therapy, functioning as a non-genetic mechanism of cancer progression that is distinct from, yet complementary to, somatic mutation :
+
+# VMDs Variably methylated domains
+* uses the variance
+
+* uses per read methylation - calculates sd and a weighted sd
+ede elbow-detection algorithm from the R package inflection to the empirical SD distribution to identify knee points separating high-variance from low-variance bins. VMD detection was restricted to the PMD search space
+
+"provide a complementary framework for quantifying the degree of read-level stochasticity within partially methylated regions, offering a finer-grained view of epigenetic heterogeneity that is not accessible through population-averaged methylation summaries"
+
+# VMRs Variably methylated regions
+
+# CMPs Calling co-methylated positions
+
+# CMRs Calling co-methylated regions
+
+
