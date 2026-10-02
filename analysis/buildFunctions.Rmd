@@ -21,7 +21,7 @@ library(ggplot2)
 library(data.table)
 library(duckdb)
 library(arrow)
-
+library(edgeR)
 ```
 
 * starting a new file because outputs from modkit (nanopore) and bismark (wgbs + rrbs) are very very different
@@ -879,4 +879,50 @@ ggplot_add.dmr <- function(object, plot, object_name) {
 
 
 ## reads 
+
+```{r}
+tile_prop <- function(read_data_path_a, read_data_path_b, tiles, cols_from_tiles = NULL) {
+
+  # ── 1. Read only the matching rows — never loads unmatched data into RAM ───
+  con <- dbConnect(duckdb())
+  duckdb::dbWriteTable(con, "tiles_temp", tiles, overwrite = TRUE)
+  on.exit(duckdb::dbRemoveTable(con, "tiles_temp"), add = TRUE)
+  
+  
+  # Build SELECT clause for tile columns
+  if (is.null(cols_from_tiles)) {
+    # Exclude coordinate cols to avoid clashes with parquet
+    tile_cols <- setdiff(colnames(tiles), c("seqnames", "start", "end"))
+  } else {
+    tile_cols <- cols_from_tiles
+  }
+  
+  tile_select <- if (length(tile_cols) > 0) {
+    paste(glue::glue(', t."{tile_cols}"'), collapse = "")
+  } else ""
+  
+  read_data_a <- dbGetQuery(con, glue::glue("
+    SELECT b.*{tile_select}
+    FROM read_parquet('{read_data_path_a}') b
+    JOIN tiles_temp t
+      ON b.seqnames = t.seqnames
+     AND b.start <= t.end
+     AND b.end   >= t.start
+  "))
+  
+  read_data_b <- dbGetQuery(con, glue::glue("
+    SELECT b.*{tile_select}
+    FROM read_parquet('{read_data_path_b}') b
+    JOIN tiles_temp t
+      ON b.seqnames = t.seqnames
+     AND b.start <= t.end
+     AND b.end   >= t.start
+  "))
+  
+  read_data_a$type <- "healthy"
+  read_data_b$type <- "cancer"
+    read_data <- rbind(read_data_a, read_data_b)
+  read_data
+}
+```
 
