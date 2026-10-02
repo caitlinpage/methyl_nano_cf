@@ -61,7 +61,7 @@ saveRDS(tiles_500bp, "/researchers/caitlin.page/cf_nano/r_output/tiles_500bp_hg3
 
 ```{r}
 # cpgs
-seqs <- seqnames(BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38)[1:22]
+seqs <- c(seqnames(BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38)[1:22], "chrX", "chrY")
 
 cg_sites <- lapply(seqs, function(x) {
   cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38[[x]])),
@@ -490,12 +490,12 @@ ggplot(both_covered, aes(-log10(fdr_m1), -log10(fdr_m2))) +
 ```
 
 ```{r}
-tile_overlap
+tile_overlap[1:5,]
 ```
 
 
 ```{r}
-ggVennDiagram::ggVennDiagram(list(basic = tile))
+#ggVennDiagram::ggVennDiagram(list(basic = tile))
 ```
 
 
@@ -508,7 +508,7 @@ overlap_df <- data.frame(
   overlap_bp   = width(pintersect(bas_gr[queryHits(hits)], op_gr[subjectHits(hits)]))
 )
 ```
-mmmmmmmmmmmmmmmmm
+mmmmmmmmmmmmmmmmmmm
 
 
 
