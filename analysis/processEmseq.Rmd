@@ -28,6 +28,7 @@ CpG_OT_PRJ240785_LPRJ240785_S1_L004_R1_001_bismark_bt2_pe.txt
 
 ```{r}
 bis <- fread("/researchers/caitlin.page/cf_nano/fastq_tothill_emseq_healthy/CpG_OT_PRJ240785_LPRJ240785_S1_L004_R1_001_bismark_bt2_pe.txt")
+bis %>% filter(V3 %in% c("chrX", "chrY"))
 bis[1:5,]
 ```
 
@@ -128,6 +129,7 @@ em_healthy_037 <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_heal
 ```{r}
 # cpgs
 seqs <- seqnames(BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38)[1:22]
+seqs <- c(seqs, "chrX", "chrY")
 
 cg_sites <- lapply(seqs, function(x) {
   cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38[[x]])),
@@ -143,12 +145,12 @@ em_healthy_786 <- data.frame(em_healthy_786)
 em_healthy_787 <- data.frame(em_healthy_787)
 em_healthy_789 <- data.frame(em_healthy_789)
 
-em_healthy_785$sample <- "a1"
-em_healthy_036$sample <- "a2"
-em_healthy_787$sample <- "a3"
-em_healthy_786$sample <- "b1"
-em_healthy_037$sample <- "b2"
-em_healthy_789$sample <- "b3"
+em_healthy_785$sample <- "healthy_785" #a1
+em_healthy_036$sample <- "healthy_036" #a2
+em_healthy_787$sample <- "healthy_787" #a3
+em_healthy_786$sample <- "healthy_786" #b1
+em_healthy_037$sample <- "healthy_037" #b2
+em_healthy_789$sample <- "healthy_789" #b3
 ```
 
 
@@ -164,7 +166,21 @@ all_samples <- rbind(em_healthy_785[,cols],
                      em_healthy_037[,cols],
                      em_healthy_789[,cols])
 colnames(all_samples)[2:3] <- c("start", "end")
+write_parquet(all_samples, "/researchers/caitlin.page/cf_nano/r_output/emseq_all_healthy.parquet")
 
+```
+```{r}
+rm(em_healthy_036)
+rm(em_healthy_037)
+rm(em_healthy_785)
+rm(em_healthy_786)
+rm(em_healthy_787) 
+rm(em_healthy_789)
+rm(all_samples)
+```
+
+
+```{r, eval=FALSE}
 saveRDS(all_samples, "/researchers/caitlin.page/cf_nano/r_output/emseq_all_healthy.rds")
 ```
 ```{r}
@@ -480,12 +496,15 @@ library(OpTiles)
 library(edgeR)
 
 seqs <- seqnames(BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38)[1:22]
-
+seqs <- c(seqs, "chrX", "chrY")
 cg_sites <- lapply(seqs, function(x) {
   cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38[[x]])),
         seqnames = x
   )}) %>% bind_rows()
+```
 
+
+```{r}
 process_wgbs_short <- function(bismark, bed = NULL) {
   read <- bismark
   names(read) <- c("read_id", "strand", "seqnames", "start", "meth_status")
@@ -567,7 +586,7 @@ all_samples <- rbind(a1[,cols],
                      a4[,cols],
                      a5[,cols],
                      a6[,cols])
-saveRDS(all_samples, "/researchers/caitlin.page/cf_nano/r_output/emseq_all_cancer.rds")
+write_parquet(all_samples, "/researchers/caitlin.page/cf_nano/r_output/emseq_all_cancer.parquet")
 
 
 ```
@@ -580,6 +599,7 @@ rm(a4)
 rm(a5)
 rm(a6)
 ```
+
 
 
 # cheat the tiles for now by using the tiles from the healthy 
