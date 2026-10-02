@@ -124,14 +124,14 @@ process_wgbs <- function(bismark, bed = NULL) {
 }
 
 betas_for_wgbs <- function(bismark_processed) {
-  res <- bismark_processed %>% group_by(start, meth_status) %>%
+  res <- bismark_processed %>% group_by(sample, seqnames, start, meth_status) %>%
     .[order(.$start),] %>%
     mutate(meth_count_pos = n(), unmeth_count_pos = n()) %>%
     mutate(meth_count_pos = ifelse(meth_status == "M", meth_count_pos, NA),
            unmeth_count_pos = ifelse(meth_status == "U", unmeth_count_pos, NA)) %>%
     ungroup() %>%
     distinct(seqnames, start, end, meth_count_pos, unmeth_count_pos) %>%
-    group_by(start) %>%
+    group_by(seqnames, start) %>%
     .[order(.$meth_count_pos),] %>%
     fill(meth_count_pos, .direction = "down") %>%
     fill(unmeth_count_pos, .direction = "up") %>%
