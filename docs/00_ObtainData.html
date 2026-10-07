@@ -15,7 +15,7 @@
 
 <title>00_ObtainData</title>
 
-<script src="site_libs/header-attrs-2.29/header-attrs.js"></script>
+<script src="site_libs/header-attrs-2.30/header-attrs.js"></script>
 <script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
@@ -390,7 +390,7 @@ class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span>
 <div class="tab-content">
 <div id="summary" class="tab-pane fade in active">
 <p>
-<strong>Last updated:</strong> 2025-11-07
+<strong>Last updated:</strong> 2026-10-07
 </p>
 <p>
 <strong>Checks:</strong> <span
@@ -399,7 +399,7 @@ class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 7
 aria-hidden="true"></span> 0
 </p>
 <p>
-<strong>Knit directory:</strong> <code>methyl_nano_cf/</code> <span
+<strong>Knit directory:</strong> <code>3_cf_nano/analysis/</code> <span
 class="glyphicon glyphicon-question-sign" aria-hidden="true"
 title="This is the local directory in which the code in this file was executed.">
 </span>
@@ -408,7 +408,7 @@ title="This is the local directory in which the code in this file was executed."
 This reproducible <a href="https://rmarkdown.rstudio.com">R Markdown</a>
 analysis was created with <a
   href="https://github.com/workflowr/workflowr">workflowr</a> (version
-1.7.1). The <em>Checks</em> tab describes the reproducibility checks
+1.7.2). The <em>Checks</em> tab describes the reproducibility checks
 that were applied when the results were created. The <em>Past
 versions</em> tab lists the development history.
 </p>
@@ -521,15 +521,15 @@ project makes it easier to run your code on other machines.</p>
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpagemethylnanocftree4917c1fca1a13fac04d3c429ae37df88a71e7825targetblank4917c1fa">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpage3cfnanotreeb59aa416ba68d3b61815400c650e7562ae48dedctargetblankb59aa41a">
 <span class="glyphicon glyphicon-ok text-success"
 aria-hidden="true"></span> <strong>Repository version:</strong>
-<a href="https://github.com/caitlinpage/methyl_nano_cf/tree/4917c1fca1a13fac04d3c429ae37df88a71e7825" target="_blank">4917c1f</a>
+<a href="https://github.com/caitlinpage/3_cf_nano/tree/b59aa416ba68d3b61815400c650e7562ae48dedc" target="_blank">b59aa41</a>
 </a>
 </p>
 </div>
 <div
-id="strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpagemethylnanocftree4917c1fca1a13fac04d3c429ae37df88a71e7825targetblank4917c1fa"
+id="strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpage3cfnanotreeb59aa416ba68d3b61815400c650e7562ae48dedctargetblankb59aa41a"
 class="panel-collapse collapse">
 <div class="panel-body">
 <p>
@@ -539,7 +539,7 @@ reproducibility.
 </p>
 <p>
 The results in this page were generated with repository version
-<a href="https://github.com/caitlinpage/methyl_nano_cf/tree/4917c1fca1a13fac04d3c429ae37df88a71e7825" target="_blank">4917c1f</a>.
+<a href="https://github.com/caitlinpage/3_cf_nano/tree/b59aa416ba68d3b61815400c650e7562ae48dedc" target="_blank">b59aa41</a>.
 See the <em>Past versions</em> tab to see a history of the changes made
 to the R Markdown and HTML files.
 </p>
@@ -554,16 +554,43 @@ were generated:
 </p>
 <pre><code>
 Ignored files:
+    Ignored:    .DS_Store
     Ignored:    .Rhistory
     Ignored:    .Rproj.user/
+    Ignored:    analysis/.DS_Store
+    Ignored:    analysis/claude_log/
+    Ignored:    analysis/figure/
+    Ignored:    data/atlas/
+    Ignored:    data/cfnano_paper/
+    Ignored:    data/ncbi_dataset/
+    Ignored:    data/rrbs/
+    Ignored:    data/ruining_twist/
+    Ignored:    other_people_code/
+    Ignored:    output/bedtools/
+    Ignored:    output/biscuit/
+    Ignored:    output/cluster_files/
+    Ignored:    output/html docs - versions/
+    Ignored:    output/modkit/
+    Ignored:    output/nanoplot/
+    Ignored:    output/poster_plots/
+    Ignored:    output/research_sprint/
+    Ignored:    output/samtools/
+    Ignored:    output/schematics/
+    Ignored:    output/tothill_data/
+    Ignored:    output/wgbs_tools_ref/
     Ignored:    renv.lock
     Ignored:    renv/
+
+Untracked files:
+    Untracked:  analysis/messAroundLocal.Rmd
+    Untracked:  analysis/posterPlots.Rmd
 
 Unstaged changes:
     Modified:   .Rprofile
     Modified:   .gitignore
-    Modified:   analysis/rrbsData.Rmd
-    Modified:   code/seqFastqToReadMeth.txt
+    Modified:   3_cf_nano.Rproj
+    Modified:   _workflowr.yml
+    Modified:   analysis/01a_bedFileCorrelation.Rmd
 
 </code></pre>
 <p>
@@ -613,7 +640,75 @@ Message
 Rmd
 </td>
 <td>
-<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/4917c1fca1a13fac04d3c429ae37df88a71e7825/analysis/00_ObtainData.Rmd" target="_blank">4917c1f</a>
+<a href="https://github.com/caitlinpage/3_cf_nano/blob/b59aa416ba68d3b61815400c650e7562ae48dedc/analysis/00_ObtainData.Rmd" target="_blank">b59aa41</a>
+</td>
+<td>
+Caitlin Page
+</td>
+<td>
+2026-10-07
+</td>
+<td>
+wflow_publish("analysis/00_ObtainData.Rmd")
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/caitlinpage/3_cf_nano/blob/8580eb0946e0f3e873ec2f7fc97f09bd4514a0ae/analysis/00_ObtainData.Rmd" target="_blank">8580eb0</a>
+</td>
+<td>
+Caitlin Page
+</td>
+<td>
+2026-09-02
+</td>
+<td>
+tidy
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/caitlinpage/3_cf_nano/blob/f77a431ad239efab04071da452a229eab551ec63/analysis/00_ObtainData.Rmd" target="_blank">f77a431</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2026-02-20
+</td>
+<td>
+details of another sample
+</td>
+</tr>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/caitlinpage/3_cf_nano/f20f068d499a78eb1dda08e4953ea9e8b5193ff5/docs/00_ObtainData.html" target="_blank">f20f068</a>
+</td>
+<td>
+caitlinpage
+</td>
+<td>
+2025-11-07
+</td>
+<td>
+Build site.
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/caitlinpage/3_cf_nano/blob/4917c1fca1a13fac04d3c429ae37df88a71e7825/analysis/00_ObtainData.Rmd" target="_blank">4917c1f</a>
 </td>
 <td>
 caitlinpage
@@ -630,7 +725,7 @@ wflow_publish("analysis/00_ObtainData.Rmd")
 Rmd
 </td>
 <td>
-<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/2b9e16ec82fa06e9b8241b43393ebc545079c50f/analysis/00_ObtainData.Rmd" target="_blank">2b9e16e</a>
+<a href="https://github.com/caitlinpage/3_cf_nano/blob/2b9e16ec82fa06e9b8241b43393ebc545079c50f/analysis/00_ObtainData.Rmd" target="_blank">2b9e16e</a>
 </td>
 <td>
 caitlinpage
@@ -647,7 +742,7 @@ update of tf
 Rmd
 </td>
 <td>
-<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/77733c9d774d4eb8704f8ed6700f2df8fce75379/analysis/00_ObtainData.Rmd" target="_blank">77733c9</a>
+<a href="https://github.com/caitlinpage/3_cf_nano/blob/77733c9d774d4eb8704f8ed6700f2df8fce75379/analysis/00_ObtainData.Rmd" target="_blank">77733c9</a>
 </td>
 <td>
 caitlinpage
@@ -664,7 +759,7 @@ update with samples
 html
 </td>
 <td>
-<a href="https://rawcdn.githack.com/caitlinpage/methyl_nano_cf/59166fd20661f9af4d097277d03c5fce8b94954a/docs/00_ObtainData.html" target="_blank">59166fd</a>
+<a href="https://rawcdn.githack.com/caitlinpage/3_cf_nano/59166fd20661f9af4d097277d03c5fce8b94954a/docs/00_ObtainData.html" target="_blank">59166fd</a>
 </td>
 <td>
 caitlinpage
@@ -681,7 +776,7 @@ Build site.
 Rmd
 </td>
 <td>
-<a href="https://github.com/caitlinpage/methyl_nano_cf/blob/1b7294c3c959a697eabf653dc019d2e4cecbdb55/analysis/00_ObtainData.Rmd" target="_blank">1b7294c</a>
+<a href="https://github.com/caitlinpage/3_cf_nano/blob/1b7294c3c959a697eabf653dc019d2e4cecbdb55/analysis/00_ObtainData.Rmd" target="_blank">1b7294c</a>
 </td>
 <td>
 Caitlin Page
@@ -700,20 +795,181 @@ document where data is coming from - first is nanopore cf
 </div>
 </div>
 </div>
-<div id="nanopore" class="section level2">
-<h2>Nanopore</h2>
-<ol style="list-style-type: decimal">
-<li>Nanopore cell-free Methylation Paper: <a
+<p>This file describes the datasets used in this project. They span
+different technologies and biology, and have come from different
+sources.</p>
+<div id="rrbs-encode-cell-line" class="section level1">
+<h1>RRBS ENCODE cell-line</h1>
+<p><a
+href="https://www.encodeproject.org/search/?type=Experiment&amp;control_type%21=%2A&amp;related_series.%40type=ReferenceEpigenome&amp;replicates.library.biosample.donor.organism.scientific_name=Homo+sapiens&amp;status=released&amp;assay_title=RRBS">encode
+rrbs fastqs avail</a> * has 13 rrbs data sets</p>
+<p><a
+href="https://www.encodeproject.org/experiments/ENCSR000DFT/">GM12878
+cell line</a> * hg19 * lymphoblastoid cell line * single-end * 2
+technical replicates</p>
+<p><a href="https://www.encodeproject.org/experiments/ENCSR000DFK/">K562
+cell line</a> * hg19 * erythroleukaemia cell line * patient with CML -
+chronic myeloid leukaemia * bcr-abl1 positive * 2 technical
+replicates</p>
+<p>Processing details of fastq files can be found [here]</p>
+<div id="summary" class="section level2">
+<h2>Summary</h2>
+<p>Used for: * Developing data structures * Developing differential
+approach Advantages: * Short read lengths (fast to process and analyse)
+Disadvantages: * 2 replicates limits analysis (3 is more robust) * can’t
+do false positive testing * reads are extremely short which is
+unrealistic</p>
+</div>
+</div>
+<div id="emseq-normal-and-cell-free-ppgl" class="section level1">
+<h1>EMSeq Normal and cell-free PPGL</h1>
+<p><em>Data provided by Richard Tothill lab Melb Uni </em> 7 healthy
+samples * 21 cancer samples</p>
+<p>Processing details of fastq files can be found [here]</p>
+<div id="summary-1" class="section level2">
+<h2>Summary</h2>
+<p>Used for: * Evaluating differential alpha method Advantages: * Enough
+samples for robust analysis and false positives Disadvantages: * Massive
+files - more time to load and analyse</p>
+</div>
+<div id="overview-of-cancer-samples" class="section level2">
+<h2>Overview of cancer samples</h2>
+<pre class="r"><code>df &lt;- read.csv(&quot;../data/PPGL_twist_annotated.csv&quot;)
+df</code></pre>
+<pre><code>       lib_ID sample_id patient sample_no age sex            tissue
+1  LPRJ230221 PPGL01_04       1         4  52   M phaeochromocytoma
+2  LPRJ230222 PPGL01_05       1         5  52   M phaeochromocytoma
+3  LPRJ230459 PPGL03_02       3         2  71   F phaeochromocytoma
+4  LPRJ241031 PPGL05_03       5         3  80   M phaeochromocytoma
+5  LPRJ230223 PPGL09_01       9         1  45   M phaeochromocytoma
+6  LPRJ230224 PPGL09_03       9         3  45   M phaeochromocytoma
+7  LPRJ230225 PPGL09_04       9         4  45   M phaeochromocytoma
+8  LPRJ230456 PPGL12_02      12         2  68   M phaeochromocytoma
+9  LPRJ241035 PPGL12_03      12         3  68   M phaeochromocytoma
+10 LPRJ240791 PPGL14_01      14         1  72   F  HN_paraganglioma
+11 LPRJ230457 PPGL15_01      15         1  88   M phaeochromocytoma
+12 LPRJ230455 PPGL16_01      16         1  46   M phaeochromocytoma
+13 LPRJ241033 PPGL16_02      16         2  46   M phaeochromocytoma
+14 LPRJ230458 PPGL21_01      21         1  76   M phaeochromocytoma
+15 LPRJ230460 PPGL22_01      22         1  80   M  HN_paraganglioma
+16 LPRJ230454 PPGL23_01      23         1  61   F  HN_paraganglioma
+17 LPRJ241032 PPGL29_02      29         2  62   M  AP_paraganglioma
+18 LPRJ240790 PPGL30_01      30         1  79   F  HN_paraganglioma
+19 LPRJ241030 PPGL30_02      30         2  79   F  HN_paraganglioma
+20 LPRJ240792 PPGL32_01      32         1  56   F  HN_paraganglioma
+21 LPRJ241034 PPGL36_01      36         1  38   M  AP_paraganglioma
+         genotype ichor_fraction
+1            SDHB           15.7
+2            SDHB           45.0
+3  unknown_tested            4.2
+4  unknown_tested            6.4
+5  unknown_tested           31.0
+6  unknown_tested           19.0
+7  unknown_tested           17.8
+8             RET            8.9
+9             RET           59.6
+10           SDHD            0.0
+11 unknown_tested            3.1
+12           SDHB            3.1
+13           SDHB            3.5
+14           SDHB            2.6
+15 unknown_tested            3.9
+16           SDHD            0.0
+17      CCND1_amp            3.2
+18           SDHD            0.0
+19           SDHD            3.7
+20           SDHD            0.0
+21           SDHA            3.0</code></pre>
+<pre class="r"><code>library(dplyr)</code></pre>
+<pre><code>Warning: package &#39;dplyr&#39; was built under R version 4.4.3</code></pre>
+<pre><code>
+Attaching package: &#39;dplyr&#39;</code></pre>
+<pre><code>The following objects are masked from &#39;package:stats&#39;:
+
+    filter, lag</code></pre>
+<pre><code>The following objects are masked from &#39;package:base&#39;:
+
+    intersect, setdiff, setequal, union</code></pre>
+<pre class="r"><code>library(ggplot2)</code></pre>
+<pre><code>Warning: package &#39;ggplot2&#39; was built under R version 4.4.3</code></pre>
+<pre class="r"><code>df %&gt;% group_by(patient) %&gt;% summarise(n_samples = n()) %&gt;% t()</code></pre>
+<pre><code>          [,1] [,2] [,3] [,4] [,5] [,6] [,7] [,8] [,9] [,10] [,11] [,12] [,13]
+patient      1    3    5    9   12   14   15   16   21    22    23    29    30
+n_samples    2    1    1    3    2    1    1    2    1     1     1     1     2
+          [,14] [,15]
+patient      32    36
+n_samples     1     1</code></pre>
+<pre class="r"><code>df %&gt;% distinct(patient, sex) %&gt;% t()</code></pre>
+<pre><code>        [,1] [,2] [,3] [,4] [,5] [,6] [,7] [,8] [,9] [,10] [,11] [,12] [,13]
+patient &quot; 1&quot; &quot; 3&quot; &quot; 5&quot; &quot; 9&quot; &quot;12&quot; &quot;14&quot; &quot;15&quot; &quot;16&quot; &quot;21&quot; &quot;22&quot;  &quot;23&quot;  &quot;29&quot;  &quot;30&quot; 
+sex     &quot;M&quot;  &quot;F&quot;  &quot;M&quot;  &quot;M&quot;  &quot;M&quot;  &quot;F&quot;  &quot;M&quot;  &quot;M&quot;  &quot;M&quot;  &quot;M&quot;   &quot;F&quot;   &quot;M&quot;   &quot;F&quot;  
+        [,14] [,15]
+patient &quot;32&quot;  &quot;36&quot; 
+sex     &quot;F&quot;   &quot;M&quot;  </code></pre>
+<pre class="r"><code>df %&gt;% distinct(patient, tissue) %&gt;% t()</code></pre>
+<pre><code>        [,1]                [,2]                [,3]               
+patient &quot; 1&quot;                &quot; 3&quot;                &quot; 5&quot;               
+tissue  &quot;phaeochromocytoma&quot; &quot;phaeochromocytoma&quot; &quot;phaeochromocytoma&quot;
+        [,4]                [,5]                [,6]              
+patient &quot; 9&quot;                &quot;12&quot;                &quot;14&quot;              
+tissue  &quot;phaeochromocytoma&quot; &quot;phaeochromocytoma&quot; &quot;HN_paraganglioma&quot;
+        [,7]                [,8]                [,9]               
+patient &quot;15&quot;                &quot;16&quot;                &quot;21&quot;               
+tissue  &quot;phaeochromocytoma&quot; &quot;phaeochromocytoma&quot; &quot;phaeochromocytoma&quot;
+        [,10]              [,11]              [,12]             
+patient &quot;22&quot;               &quot;23&quot;               &quot;29&quot;              
+tissue  &quot;HN_paraganglioma&quot; &quot;HN_paraganglioma&quot; &quot;AP_paraganglioma&quot;
+        [,13]              [,14]              [,15]             
+patient &quot;30&quot;               &quot;32&quot;               &quot;36&quot;              
+tissue  &quot;HN_paraganglioma&quot; &quot;HN_paraganglioma&quot; &quot;AP_paraganglioma&quot;</code></pre>
+<pre class="r"><code>df %&gt;% distinct(patient, genotype) %&gt;% t()</code></pre>
+<pre><code>         [,1]   [,2]             [,3]             [,4]             [,5]  [,6]  
+patient  &quot; 1&quot;   &quot; 3&quot;             &quot; 5&quot;             &quot; 9&quot;             &quot;12&quot;  &quot;14&quot;  
+genotype &quot;SDHB&quot; &quot;unknown_tested&quot; &quot;unknown_tested&quot; &quot;unknown_tested&quot; &quot;RET&quot; &quot;SDHD&quot;
+         [,7]             [,8]   [,9]   [,10]            [,11]  [,12]      
+patient  &quot;15&quot;             &quot;16&quot;   &quot;21&quot;   &quot;22&quot;             &quot;23&quot;   &quot;29&quot;       
+genotype &quot;unknown_tested&quot; &quot;SDHB&quot; &quot;SDHB&quot; &quot;unknown_tested&quot; &quot;SDHD&quot; &quot;CCND1_amp&quot;
+         [,13]  [,14]  [,15] 
+patient  &quot;30&quot;   &quot;32&quot;   &quot;36&quot;  
+genotype &quot;SDHD&quot; &quot;SDHD&quot; &quot;SDHA&quot;</code></pre>
+<pre class="r"><code>df %&gt;%
+  ggplot(aes(x = patient, y= ichor_fraction, colour = as.factor(patient))) +
+  geom_point()</code></pre>
+<p><img src="figure/00_ObtainData.Rmd/unnamed-chunk-7-1.png" alt="" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>df %&gt;%
+ggplot(aes(x = reorder(sample_id, ichor_fraction), 
+                    y = ichor_fraction, fill = as.factor(patient))) +
+  geom_col(alpha = 0.85) +
+ # geom_errorbar(aes(ymin = tf_lower, ymax = tf_upper), width = 0.3) +
+  geom_hline(yintercept = 0.03, linetype = &quot;dashed&quot;, colour = &quot;red&quot;) + # detection threshold
+  coord_flip() +
+  scale_y_continuous(labels = scales::percent) +
+  labs(x = NULL, y = &quot;Tumor fraction&quot;, title = &quot;ichorCNA estimates&quot;)</code></pre>
+<p><img src="figure/00_ObtainData.Rmd/unnamed-chunk-8-1.png" alt="" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>df %&gt;% ggplot(aes(x = sample_no, y = ichor_fraction, group = patient)) +
+  geom_line(colour = &quot;grey70&quot;, linewidth = 0.7) +
+  geom_point(aes(colour = as.factor(patient)), size = 3) +
+  geom_hline(yintercept = 0.03, linetype = &quot;dashed&quot;, colour = &quot;red&quot;, linewidth = 0.5) +
+  scale_x_continuous(breaks = sort(unique(df$sample_no))) +
+  scale_y_continuous(labels = scales::percent, limits = c(0, NA)) +
+  labs(x = &quot;Sample&quot;, y = &quot;Tumor fraction&quot;, colour = &quot;Patient&quot;) +
+  theme_bw() +
+  theme(legend.position = &quot;right&quot;)</code></pre>
+<p><img src="figure/00_ObtainData.Rmd/unnamed-chunk-9-1.png" alt="" width="672" style="display: block; margin: auto;" /></p>
+<ul>
+<li>select mix of male and female samples for analysis</li>
+</ul>
+</div>
+</div>
+<div id="nanopore-cell-free-methylation" class="section level1">
+<h1>Nanopore cell-free methylation</h1>
+<p>Paper: <a
 href="https://genomebiology.biomedcentral.com/articles/10.1186/s13059-022-02710-1#availability-of-data-and-materials">Detecting
 cell-of-origin and cancer-specific methylation features of cell-free DNA
-from Nanopore sequencing</a> Data: Data located:</li>
-</ol>
-<ul>
-<li><a href="https://zenodo.org/records/6642503">Zenodo</a></li>
-<li><a
+from Nanopore sequencing</a> Data: * <a
+href="https://zenodo.org/records/6642503">Zenodo</a> * <a
 href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE185307">GEO</a>
-Zenodo is the method recommended by the authors Data accessed by:</li>
-</ul>
+Zenodo is the method recommended by the authors</p>
 <p>Samples: 13 files: (main one - epiread format) hu5.10</p>
 <p>Healthy samples * hu5.10 * hu5.11 * hu5.12 * ispro.bc2 * ispro.bc3 *
 ispro.bc4 * ispro.bc5</p>
@@ -722,40 +978,14 @@ ispro.bc10 * ispro.bc11</p>
 <p>bc8 and bc9 have the lowest tumour fraction of the samples bc10 and
 bc11 have the highest tumour fraction</p>
 </div>
-<div id="rrbs" class="section level2">
-<h2>RRBS</h2>
-<ol start="2" style="list-style-type: decimal">
-<li>Encode RRBS cell-line</li>
-</ol>
-<p><a
-href="https://www.encodeproject.org/search/?type=Experiment&amp;control_type%21=%2A&amp;related_series.%40type=ReferenceEpigenome&amp;replicates.library.biosample.donor.organism.scientific_name=Homo+sapiens&amp;status=released&amp;assay_title=RRBS">encode
-rrbs fastqs avail</a> * has 13 rrbs data sets</p>
-<p><a
-href="https://www.encodeproject.org/experiments/ENCSR000DFT/">GM12878
-cell line</a> * it’s a lymphoblastoid cell line * picked it because it
-has no cancer or anything else - a few had cancer * also immune cells -
-nice and have used before * also it’s blood - which ties in with my cell
-free analysis</p>
-<ul>
-<li><p>has 2 technical replicates</p></li>
-<li><p>single end this time</p></li>
-<li><p>processed fastq with bismark</p></li>
-</ul>
-</div>
-<div id="wgbs" class="section level2">
-<h2>WGBS</h2>
-<ol start="3" style="list-style-type: decimal">
-<li>BSseq pancreatic cancer Paper: <a
-href="https://www.nature.com/articles/ng.3753">Epigenomic reprogramming
-during pancreatic cancer progression links anabolic glucose metabolism
-to distant metastasis</a> <a
+<div id="wgbs-pancreatic-cancer-and-normal" class="section level1">
+<h1>WGBS Pancreatic cancer and normal</h1>
+<p>Paper: <a href="https://www.nature.com/articles/ng.3753">Epigenomic
+reprogramming during pancreatic cancer progression links anabolic
+glucose metabolism to distant metastasis</a> <a
 href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE63123">GEO</a>
-has 19 samples</li>
-</ol>
-<ul>
-<li>4 individuals, diff replicates and situations</li>
-<li>processed with hg19</li>
-</ul>
+has 19 samples * 4 individuals, diff replicates and situations *
+processed with hg19</p>
 <p>with bams available to download through SRA toolkit</p>
 <p>downloading 4 samples via tmux and file transfer server all from
 sample A_38 Lg is lung metastasis Per is peritoneal metastasis</p>
@@ -788,8 +1018,8 @@ steps</a> <a href="code/seqFastqToReadMeth.txt">steps</a></p>
 <p>Z: methylation z: unmethylated <a
 href="https://toolshed.g2.bx.psu.edu/repository/display_tool?repository_id=0df2df1072d600d7&amp;tool_config=%2Fsrv%2Ftoolshed-repos%2Fmain%2F000%2Frepo_463%2Fbismark_methylation_extractor.xml&amp;changeset_revision=8c191acde702&amp;render_repository_actions_for=tool_shed">source</a></p>
 </div>
-<div id="maybe-use" class="section level2">
-<h2>maybe use</h2>
+<div id="other-datasets" class="section level1">
+<h1>Other datasets</h1>
 <p><a href="https://egg2.wustl.edu/roadmap/web_portal/">roadmap
 epigenome</a> * still need to do some digging to find the files * the
 paper data is used in the BSmooth paper <a
@@ -797,10 +1027,9 @@ href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE16256">GEO</a>
 <a
 href="https://www.nature.com/articles/nature08514#accession-codes">paper</a>
 2009</p>
-</div>
 <div id="cancer-cell-line-encyclopedia-come-back-to-this-one"
-class="section level1">
-<h1>cancer cell line encyclopedia = come back to this one</h1>
+class="section level2">
+<h2>cancer cell line encyclopedia = come back to this one</h2>
 <p><a href="https://sites.broadinstitute.org/ccle/datasets"
 class="uri">https://sites.broadinstitute.org/ccle/datasets</a> <a
 href="https://depmap.org/portal/data_page/?tab=allData"
@@ -808,45 +1037,20 @@ class="uri">https://depmap.org/portal/data_page/?tab=allData</a>
 promoter data</p>
 <p><a href="https://www.ncbi.nlm.nih.gov/sra/?term=PRJNA523380+rrbs">raw
 data</a> * fastq files</p>
-<div id="identified-but-unused-data-sets" class="section level2">
-<h2>Identified but unused data sets</h2>
 </div>
-</div>
-<div id="breast-cancer" class="section level1">
-<h1>breast cancer</h1>
+<div id="breast-cancer" class="section level2">
+<h2>breast cancer</h2>
 <p><a
-href="https://www.nature.com/articles/s41467-021-25661-w#data-availability">paper</a></p>
-<p>just has a link to download processed methylation values so we’ll see
-also has fastq upon request</p>
+href="https://www.nature.com/articles/s41467-021-25661-w#data-availability">paper</a>
+* fastqs on request</p>
 </div>
-<div id="healthy-indiv-neutrophils-rrbs" class="section level1">
-<h1>healthy indiv neutrophils rrbs</h1>
+<div id="healthy-indiv-neutrophils-rrbs" class="section level2">
+<h2>healthy indiv neutrophils rrbs</h2>
 <p>Genome-scale DNA methylome and transcriptome profiling of human
 neutrophils <a
 href="https://www.nature.com/articles/sdata201619#Sec12">paper</a> <a
 href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE59163">GEO</a>
 * potentially 13 samples * GSE table files</p>
-<pre class="r"><code>#read.table(&quot;../data/rrbs/neutrophil_paper_2016/GSE59163_RAW/GSM1429638_X9006_ad3tr65.fastq_bismark.sam_methpcNF2t10.txt.gz&quot;)</code></pre>
-<ul>
-<li>no column names</li>
-<li>guess: v4 = num meth, v5 = num unmeth, v7 = beta as %</li>
-</ul>
-<pre class="r"><code>(92)/(92+8) * 100</code></pre>
-<pre><code>[1] 92</code></pre>
-<pre class="r"><code>52/(52+3)*100</code></pre>
-<pre><code>[1] 94.54545</code></pre>
-<ul>
-<li>nope they don’t match</li>
-</ul>
-</div>
-<div id="rrbsdata-bioconductor-package" class="section level1">
-<h1><a
-href="https://bioconductor.org/packages/release/data/experiment/html/RRBSdata.html">rrbsdata
-(bioconductor package)</a></h1>
-<p>has 12 samples this is the paper they got the data from: <a
-href="https://ashpublications.org/blood/article/121/1/178/31062/DNA-methylation-changes-are-a-late-event-in-acute"
-class="uri">https://ashpublications.org/blood/article/121/1/178/31062/DNA-methylation-changes-are-a-late-event-in-acute</a>
-* data was not available at the read level</p>
 <br>
 <p>
 <button type="button" class="btn btn-default btn-workflowr btn-workflowr-sessioninfo" data-toggle="collapse" data-target="#workflowr-sessioninfo" style="display: block;">
@@ -856,41 +1060,47 @@ Session information
 </p>
 <div id="workflowr-sessioninfo" class="collapse">
 <pre class="r"><code>sessionInfo()</code></pre>
-<pre><code>R version 4.4.1 (2024-06-14)
-Platform: x86_64-pc-linux-gnu
-Running under: Rocky Linux 9.6 (Blue Onyx)
+<pre><code>R version 4.4.2 (2024-10-31)
+Platform: aarch64-apple-darwin20
+Running under: macOS Sequoia 15.7.9
 
 Matrix products: default
-BLAS/LAPACK: FlexiBLAS OPENBLAS-OPENMP;  LAPACK version 3.9.0
+BLAS:   /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/lib/libRblas.0.dylib 
+LAPACK: /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.12.0
 
 locale:
- [1] LC_CTYPE=en_AU.UTF-8       LC_NUMERIC=C              
- [3] LC_TIME=en_AU.UTF-8        LC_COLLATE=en_AU.UTF-8    
- [5] LC_MONETARY=en_AU.UTF-8    LC_MESSAGES=en_AU.UTF-8   
- [7] LC_PAPER=en_AU.UTF-8       LC_NAME=C                 
- [9] LC_ADDRESS=C               LC_TELEPHONE=C            
-[11] LC_MEASUREMENT=en_AU.UTF-8 LC_IDENTIFICATION=C       
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
 
 time zone: Australia/Melbourne
-tzcode source: system (glibc)
+tzcode source: internal
 
 attached base packages:
 [1] stats     graphics  grDevices datasets  utils     methods   base     
 
+other attached packages:
+[1] ggplot2_4.0.2   dplyr_1.2.0     workflowr_1.7.2
+
 loaded via a namespace (and not attached):
- [1] vctrs_0.6.5         cli_3.6.5           knitr_1.50         
- [4] rlang_1.1.6         xfun_0.52           stringi_1.8.7      
- [7] renv_1.1.5          promises_1.3.3      jsonlite_2.0.0     
-[10] workflowr_1.7.1     glue_1.8.0          rprojroot_2.1.0    
-[13] git2r_0.36.2        htmltools_0.5.8.1   httpuv_1.6.16      
-[16] sass_0.4.10         rmarkdown_2.29      jquerylib_0.1.4    
-[19] evaluate_1.0.4      tibble_3.3.0        fastmap_1.2.0      
-[22] yaml_2.3.10         lifecycle_1.0.4     whisker_0.4.1      
-[25] BiocManager_1.30.26 stringr_1.5.1       compiler_4.4.1     
-[28] fs_1.6.6            Rcpp_1.1.0          pkgconfig_2.0.3    
-[31] rstudioapi_0.17.1   later_1.4.2         digest_0.6.37      
-[34] R6_2.6.1            pillar_1.11.0       magrittr_2.0.3     
-[37] bslib_0.9.0         tools_4.4.1         cachem_1.1.0       </code></pre>
+ [1] sass_0.4.10         generics_0.1.4      renv_1.1.8         
+ [4] stringi_1.8.7       digest_0.6.39       magrittr_2.0.4     
+ [7] evaluate_1.0.5      grid_4.4.2          RColorBrewer_1.1-3 
+[10] fastmap_1.2.0       rprojroot_2.1.1     jsonlite_2.0.0     
+[13] processx_3.8.6      whisker_0.4.1       ps_1.9.1           
+[16] promises_1.5.0      BiocManager_1.30.27 httr_1.4.8         
+[19] scales_1.4.0        jquerylib_0.1.4     cli_3.6.5          
+[22] rlang_1.1.7         withr_3.0.2         cachem_1.1.0       
+[25] yaml_2.3.12         otel_0.2.0          tools_4.4.2        
+[28] httpuv_1.6.17       vctrs_0.7.2         R6_2.6.1           
+[31] lifecycle_1.0.5     git2r_0.36.2        stringr_1.6.0      
+[34] fs_1.6.7            pkgconfig_2.0.3     callr_3.7.6        
+[37] pillar_1.11.1       bslib_0.10.0        later_1.4.8        
+[40] gtable_0.3.6        glue_1.8.0          Rcpp_1.1.1         
+[43] xfun_0.57           tibble_3.3.1        tidyselect_1.2.1   
+[46] rstudioapi_0.18.0   knitr_1.51          dichromat_2.0-0.1  
+[49] farver_2.1.2        htmltools_0.5.9     rmarkdown_2.30     
+[52] labeling_0.4.3      compiler_4.4.2      getPass_0.2-4      
+[55] S7_0.2.1           </code></pre>
+</div>
 </div>
 </div>
 </div>
