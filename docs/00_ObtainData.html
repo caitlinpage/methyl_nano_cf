@@ -521,15 +521,15 @@ project makes it easier to run your code on other machines.</p>
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpage3cfnanotreeb59aa416ba68d3b61815400c650e7562ae48dedctargetblankb59aa41a">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpage3cfnanotreecfab95a8f8f4a83aa486045f15eddf0c093dc8c3targetblankcfab95aa">
 <span class="glyphicon glyphicon-ok text-success"
 aria-hidden="true"></span> <strong>Repository version:</strong>
-<a href="https://github.com/caitlinpage/3_cf_nano/tree/b59aa416ba68d3b61815400c650e7562ae48dedc" target="_blank">b59aa41</a>
+<a href="https://github.com/caitlinpage/3_cf_nano/tree/cfab95a8f8f4a83aa486045f15eddf0c093dc8c3" target="_blank">cfab95a</a>
 </a>
 </p>
 </div>
 <div
-id="strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpage3cfnanotreeb59aa416ba68d3b61815400c650e7562ae48dedctargetblankb59aa41a"
+id="strongRepositoryversionstrongahrefhttpsgithubcomcaitlinpage3cfnanotreecfab95a8f8f4a83aa486045f15eddf0c093dc8c3targetblankcfab95aa"
 class="panel-collapse collapse">
 <div class="panel-body">
 <p>
@@ -539,7 +539,7 @@ reproducibility.
 </p>
 <p>
 The results in this page were generated with repository version
-<a href="https://github.com/caitlinpage/3_cf_nano/tree/b59aa416ba68d3b61815400c650e7562ae48dedc" target="_blank">b59aa41</a>.
+<a href="https://github.com/caitlinpage/3_cf_nano/tree/cfab95a8f8f4a83aa486045f15eddf0c093dc8c3" target="_blank">cfab95a</a>.
 See the <em>Past versions</em> tab to see a history of the changes made
 to the R Markdown and HTML files.
 </p>
@@ -559,7 +559,6 @@ Ignored files:
     Ignored:    .Rproj.user/
     Ignored:    analysis/.DS_Store
     Ignored:    analysis/claude_log/
-    Ignored:    analysis/figure/
     Ignored:    data/atlas/
     Ignored:    data/cfnano_paper/
     Ignored:    data/ncbi_dataset/
@@ -635,6 +634,40 @@ Message
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/caitlinpage/3_cf_nano/blob/cfab95a8f8f4a83aa486045f15eddf0c093dc8c3/analysis/00_ObtainData.Rmd" target="_blank">cfab95a</a>
+</td>
+<td>
+Caitlin Page
+</td>
+<td>
+2026-10-07
+</td>
+<td>
+wflow_publish("analysis/00_ObtainData.Rmd")
+</td>
+</tr>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/caitlinpage/3_cf_nano/988b3187c3a6ea62401797cb6c63e6166f5b11ef/docs/00_ObtainData.html" target="_blank">988b318</a>
+</td>
+<td>
+Caitlin Page
+</td>
+<td>
+2026-10-07
+</td>
+<td>
+Build site.
+</td>
+</tr>
 <tr>
 <td>
 Rmd
@@ -933,29 +966,97 @@ genotype &quot;unknown_tested&quot; &quot;SDHB&quot; &quot;SDHB&quot; &quot;unkn
 patient  &quot;30&quot;   &quot;32&quot;   &quot;36&quot;  
 genotype &quot;SDHD&quot; &quot;SDHD&quot; &quot;SDHA&quot;</code></pre>
 <pre class="r"><code>df %&gt;%
-  ggplot(aes(x = patient, y= ichor_fraction, colour = as.factor(patient))) +
-  geom_point()</code></pre>
-<p><img src="figure/00_ObtainData.Rmd/unnamed-chunk-7-1.png" alt="" width="672" style="display: block; margin: auto;" /></p>
-<pre class="r"><code>df %&gt;%
 ggplot(aes(x = reorder(sample_id, ichor_fraction), 
                     y = ichor_fraction, fill = as.factor(patient))) +
   geom_col(alpha = 0.85) +
  # geom_errorbar(aes(ymin = tf_lower, ymax = tf_upper), width = 0.3) +
   geom_hline(yintercept = 0.03, linetype = &quot;dashed&quot;, colour = &quot;red&quot;) + # detection threshold
   coord_flip() +
-  scale_y_continuous(labels = scales::percent) +
-  labs(x = NULL, y = &quot;Tumor fraction&quot;, title = &quot;ichorCNA estimates&quot;)</code></pre>
-<p><img src="figure/00_ObtainData.Rmd/unnamed-chunk-8-1.png" alt="" width="672" style="display: block; margin: auto;" /></p>
+  labs(x = NULL, y = &quot;Tumor fraction (%)&quot;, title = &quot;ichorCNA estimates&quot;)</code></pre>
+<p><img src="figure/00_ObtainData.Rmd/unnamed-chunk-7-1.png" alt="" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-7-1">
+Past versions of unnamed-chunk-7-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-7-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/3_cf_nano/blob/988b3187c3a6ea62401797cb6c63e6166f5b11ef/docs/figure/00_ObtainData.Rmd/unnamed-chunk-7-1.png" target="_blank">988b318</a>
+</td>
+<td>
+Caitlin Page
+</td>
+<td>
+2026-10-07
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>df %&gt;% ggplot(aes(x = sample_no, y = ichor_fraction, group = patient)) +
   geom_line(colour = &quot;grey70&quot;, linewidth = 0.7) +
   geom_point(aes(colour = as.factor(patient)), size = 3) +
   geom_hline(yintercept = 0.03, linetype = &quot;dashed&quot;, colour = &quot;red&quot;, linewidth = 0.5) +
   scale_x_continuous(breaks = sort(unique(df$sample_no))) +
-  scale_y_continuous(labels = scales::percent, limits = c(0, NA)) +
-  labs(x = &quot;Sample&quot;, y = &quot;Tumor fraction&quot;, colour = &quot;Patient&quot;) +
+  labs(x = &quot;Sample&quot;, y = &quot;Tumor fraction (%)&quot;, colour = &quot;Patient&quot;) +
   theme_bw() +
   theme(legend.position = &quot;right&quot;)</code></pre>
-<p><img src="figure/00_ObtainData.Rmd/unnamed-chunk-9-1.png" alt="" width="672" style="display: block; margin: auto;" /></p>
+<p><img src="figure/00_ObtainData.Rmd/unnamed-chunk-8-1.png" alt="" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-8-1">
+Past versions of unnamed-chunk-8-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-8-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/caitlinpage/3_cf_nano/blob/988b3187c3a6ea62401797cb6c63e6166f5b11ef/docs/figure/00_ObtainData.Rmd/unnamed-chunk-8-1.png" target="_blank">988b318</a>
+</td>
+<td>
+Caitlin Page
+</td>
+<td>
+2026-10-07
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <ul>
 <li>select mix of male and female samples for analysis</li>
 </ul>
