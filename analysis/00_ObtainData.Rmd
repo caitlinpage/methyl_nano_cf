@@ -58,6 +58,63 @@ Advantages:
 Disadvantages:
 * Massive files - more time to load and analyse
 
+## Overview of cancer samples
+
+```{r}
+df <- read.csv("../data/PPGL_twist_annotated.csv")
+df
+```
+```{r}
+library(dplyr)
+library(ggplot2)
+```
+
+```{r}
+df %>% group_by(patient) %>% summarise(n_samples = n()) %>% t()
+```
+
+```{r}
+df %>% distinct(patient, sex) %>% t()
+```
+
+```{r}
+df %>% distinct(patient, tissue) %>% t()
+```
+```{r}
+df %>% distinct(patient, genotype) %>% t()
+```
+
+```{r}
+df %>%
+  ggplot(aes(x = patient, y= ichor_fraction, colour = as.factor(patient))) +
+  geom_point()
+```
+
+```{r}
+df %>%
+ggplot(aes(x = reorder(sample_id, ichor_fraction), 
+                    y = ichor_fraction, fill = as.factor(patient))) +
+  geom_col(alpha = 0.85) +
+ # geom_errorbar(aes(ymin = tf_lower, ymax = tf_upper), width = 0.3) +
+  geom_hline(yintercept = 0.03, linetype = "dashed", colour = "red") + # detection threshold
+  coord_flip() +
+  scale_y_continuous(labels = scales::percent) +
+  labs(x = NULL, y = "Tumor fraction", title = "ichorCNA estimates")
+```
+```{r}
+df %>% ggplot(aes(x = sample_no, y = ichor_fraction, group = patient)) +
+  geom_line(colour = "grey70", linewidth = 0.7) +
+  geom_point(aes(colour = as.factor(patient)), size = 3) +
+  geom_hline(yintercept = 0.03, linetype = "dashed", colour = "red", linewidth = 0.5) +
+  scale_x_continuous(breaks = sort(unique(df$sample_no))) +
+  scale_y_continuous(labels = scales::percent, limits = c(0, NA)) +
+  labs(x = "Sample", y = "Tumor fraction", colour = "Patient") +
+  theme_bw() +
+  theme(legend.position = "right")
+```
+
+
+* select mix of male and female samples for analysis
 
 # Nanopore cell-free methylation
 
