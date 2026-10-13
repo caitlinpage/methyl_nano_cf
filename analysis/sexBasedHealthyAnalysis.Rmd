@@ -12,6 +12,7 @@ editor_options:
 ```{r}
 library(BSgenome.Hsapiens.UCSC.hg38)
 library(plyranges)
+library(data.table)
 library(dplyr)
 library(tidyr)
 library(ggplot2)
@@ -101,7 +102,7 @@ reads_chr <- function(read_data_path_a, tiles,
   
   c(read_data, sample_names)
 }
-reads_sex <- reads_chr("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", "/researchers/caitlin.page/cf_nano/r_output/emseq_all_cancer.parquet", c("chrX", "chrY"))
+#reads_sex <- reads_chr("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", "/researchers/caitlin.page/cf_nano/r_output/emseq_all_cancer.parquet", c("chrX", "chrY"))
 ```
 * ok so in my processed I left out the sex chromosomes - whoopsies that's bad science
 ```{r}
@@ -166,10 +167,6 @@ reads_sex %>%
 
 
 ```{r}
-reads_healthy <- reads_chr("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", tiles_500bp_cg)
-```
-
-```{r}
 con <- dbConnect(duckdb())
 
 counts_df <- dbGetQuery(con, "
@@ -205,15 +202,20 @@ counts_df %>% filter(seqnames %in% seqs) %>% group_by(sample) %>% mutate(prop = 
   geom_bar(stat = "identity") +
   facet_wrap(~seqnames)
 ```
-* claude keeps changing its mind about which samples are male/female
-* before thought a split
-* now thinks all 6 are male
+* can clearly see a2 and b2 have half the reads
+* and they have a visible proportion of Y
+* they are male
+
+* if the 7th sample is male - then can run good 3 x 3
+
 ```{r}
 reads_sex %>% 
   ggplot(aes(x = alpha, colour = sample)) +
   geom_density() +
   facet_wrap(~seqnames)
 ```
+* can clearly see a2 and b2 have half the reads
+
 of the significant regions, what proportion of them are on X
 - it's a true positive test
 * compare to dmrs again -see if better sensitivity / coverage of x dmr vs dau
@@ -223,13 +225,296 @@ sex_tiles <- tiles_500bp_cg %>% filter(seqnames %in% c("chrX", "chrY"))
 ```
 
 ```{r}
-overlap_pos <- find_overlaps(as_granges(filter(optiles_all, seqnames == "chr1")), as_granges(all_samples)) %>% data.frame()
+em_healthy_788 <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy_788.rds")
+```
+
+```{r}
+#em_healthy_788 <- em_healthy_788[,c(1,3,7:13)] %>% distinct()
+```
+
+```{r}
+em_healthy_788 %>% filter(seqnames %in% seqs) %>% count(seqnames) %>%
+  mutate(prop = n/sum(n))
+```
+
+
+```{r}
+em_healthy_788 %>% filter(seqnames %in% seqs) %>% count(seqnames) %>%
+  mutate(prop = n/sum(n)) %>%
+  ggplot(aes(x = seqnames, y = prop, fill = seqnames)) +
+  geom_bar(stat = "identity") 
+```
+
+```{r}
+counts_df %>% filter(seqnames %in% seqs) %>% group_by(sample) %>% mutate(prop = n/sum(n)) %>%
+  ggplot(aes(x = seqnames, y = prop, fill = seqnames)) +
+  geom_bar(stat = "identity") +
+  facet_wrap(~sample)
+```
+
+
+```{r}
+em_healthy_788 %>% filter(seqnames %in% seqs) %>% count(seqnames) %>%
+  mutate(prop = n/sum(n)) %>% filter(seqnames %in% c("chrX", "chrY")) %>%
+  ggplot(aes(x = seqnames, y = prop, fill = seqnames)) +
+  geom_bar(stat = "identity") 
+```
+
+
+```{r}
+em_healthy_788 %>% filter(seqnames %in% seqs) %>% count(seqnames) %>%
+  mutate(prop = n/sum(n)) %>% filter(seqnames %in% c("chr7", "chrX", "chrY")) %>%
+  ggplot(aes(x = seqnames, y = prop, fill = seqnames)) +
+  geom_bar(stat = "identity") 
+```
+
+* I believe this sample is female - X has a higher proportion than it does in a2 and b2
+
+* confirm via mds plot
+* need betas
+```{r}
+betas %>% filter(seqnames == "chrX")
+```
+
+```{r}
+betas <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_betas_healthy.rds")
+betas %>% filter(seqnames == "chrX")
+```
+```{r}
+betas_788 <- em_healthy_788 %>%
+    mutate(meth_status = strsplit(meth_pattern, ""), start = strsplit(genom_positions, ",")) %>%
+    unnest(meth_status, start) %>%
+    mutate(start = as.double(start))
+```
+
+```{r}
+all_samples <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_all_healthy.rds")
+all_samples <- all_samples %>%
+  mutate(sample = case_when(sample == "a1" ~ "healthy_785",
+                            sample == "a2" ~ "healthy_036",
+                            sample == "a3" ~ "healthy_787",
+                            sample == "b1" ~ "healthy_786",
+                            sample == "b2" ~ "healthy_037",
+                            TRUE ~ "healthy_789"))
+```
+
+
+```{r}
+betas_for_wgbs <- function(reads) {
+  # Split entire columns at once (vectorised, not row-wise)
+  meth_split <- strsplit(reads$meth_pattern, "")
+  pos_split  <- lapply(strsplit(reads$genom_positions, ","), as.double)
+  n          <- lengths(meth_split)   # CpGs per read
+
+  # Unnest with rep/unlist — much faster than tidyr::unnest
+  dt <- data.table(
+    sample      = rep(reads$sample,   n),
+    seqnames    = rep(reads$seqnames, n),
+    start       = unlist(pos_split,   use.names = FALSE),
+    meth_status = unlist(meth_split,  use.names = FALSE)
+  )
+
+  # Count M/U and compute beta in one grouped pass
+  result <- dt[, {
+    m <- sum(meth_status == "M")
+    u <- sum(meth_status == "U")
+    list(meth_count_pos = m, unmeth_count_pos = u, beta = m / (m + u))
+  }, keyby = .(sample, seqnames, start)]
+
+  # Collapse across samples (matches original behaviour)
+  unique(result[, .(sample, seqnames, start, meth_count_pos, unmeth_count_pos, beta)])
+}
+```
+
+```{r}
+"sample" %in% colnames(em_healthy_788)
+```
+
+```{r}
+em_healthy_788$sample <- "healthy_788"
+```
+
+
+```{r}
+betas_788 <- betas_for_wgbs(em_healthy_788)
+```
+* failed because I made it short - removed the long aspect to it
+* and it didn't have a sample column
+```{r}
+betas <- rbind(betas, betas_788)
+```
+
+
+```{r}
+beta_matrix <- betas %>% filter(seqnames %in% seqs) %>%
+  select(sample, seqnames, start, beta) %>%
+  pivot_wider(names_from = sample, values_from = beta) %>%
+  select(-seqnames, -start) %>%
+  as.matrix()
+
+beta_matrix <- beta_matrix[complete.cases(beta_matrix), ]
+
+# plotMDS uses top 500 most variable CpGs by default
+plotMDS(beta_matrix, labels = colnames(beta_matrix), main = "MDS of Beta Values")
+```
+sample = case_when(sample == "a1" ~ "healthy_785",
+                            sample == "a2" ~ "healthy_036",
+                            sample == "a3" ~ "healthy_787",
+                            sample == "b1" ~ "healthy_786",
+                            sample == "b2" ~ "healthy_037",
+                            TRUE ~ "healthy_789")
+                            
+036 and 037 are a2 and b2 that from counts look male
+* except mds is not convincing
+* maybe it's because it picked the top cpgs? - maybe it filtered out sex?
+
+```{r}
+plotMDS(beta_matrix, top = 10000000, labels = colnames(beta_matrix), main = "MDS of Beta Values")
+```
+
+```{r}
+plotMDS(beta_matrix, top = 100000, labels = colnames(beta_matrix), main = "MDS of Beta Values")
+```
+
+
+```{r}
+betas_m <- betas %>% filter(seqnames %in% seqs) %>%
+  select(sample, seqnames, start, beta) %>%
+  pivot_wider(names_from = sample, values_from = beta)
+```
+
+```{r}
+beta_matrix
+```
+
+
+```{r}
+reads_sex %>% 
+  ggplot(aes(x = alpha, colour = sample)) +
+  geom_density() +
+  facet_wrap(~seqnames)
+```
+* can clearly see a2 and b2 have half the reads
+
+of the significant regions, what proportion of them are on X
+- it's a true positive test
+* compare to dmrs again -see if better sensitivity / coverage of x dmr vs dau
+* look if pulling up known cometh regions
+```{r}
+sex_tiles <- tiles_500bp_cg %>% filter(seqnames %in% c("chrX", "chrY"))
+```
+
+# Run DAU testing, grouping by sex
+
+* Hope is most DAU will be on sex chromosomes
+* working with healthy so still just 
+
+```{r}
+seqs <- c(seqnames(BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38)[1:22], "chrX", "chrY")
+
+cg_sites <- lapply(seqs, function(x) {
+  cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38[[x]])),
+        seqnames = x
+  )}) %>% bind_rows()
+```
+
+
+```{r}
+process_wgbs_short <- function(bismark, bed = NULL) {
+  read <- bismark
+  names(read) <- c("read_id", "strand", "seqnames", "start", "meth_status")
+  read$end <- read$start
+
+  read_overlap <- read
+  read_overlap[, meth_status := ifelse(meth_status == "Z", "M", "U")]
+  read_overlap[, meth_pattern := paste0(meth_status, collapse = ""), by = read_id]
+  read_overlap[, num_meth := str_count(meth_pattern, pattern = "M")]
+  read_overlap[, total := str_length(meth_pattern)]
+  read_overlap[, alpha := num_meth/total]
+  read_overlap[, genom_positions := paste0(start, collapse = ","), by = read_id]
+
+  read_overlap <- read_overlap %>% .[order(.$read_id),]
+
+  read_overlap[, read_start := min(start), by = read_id]
+  read_overlap[, read_end := max(start), by = read_id]
+
+  read_overlap
+}
+
+bis <- fread("/researchers/caitlin.page/cf_nano/fastq_tothill_emseq_healthy/CpG_OT_PRJ240788_LPRJ240788_S4_L004_R1_001_bismark_bt2_pe.txt")
+em_healthy_788 <- process_wgbs_short(bis)
+saveRDS(em_healthy_788, "/researchers/caitlin.page/cf_nano/r_output/emseq_healthy_788.rds")
+```
+```{r}
+em_healthy_788 <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy_788.rds")
+```
+```{r}
+em_healthy_788 <- em_healthy_788 %>% data.frame() %>% filter(seqnames %in% seqs)
+em_healthy_788$start <- em_healthy_788$read_start
+em_healthy_788$end <- em_healthy_788$read_end
+em_healthy_788$sample <- "healthy_788"
+em_healthy_788$sex <- "female"
+
+cols <- c("seqnames", "read_start", "read_end", "strand", "read_id", "sample", "meth_pattern", "num_meth", "total", "alpha", "genom_positions", "sex")
+
+
+em_healthy_788 <- distinct(em_healthy_788[,cols])
+em_healthy_788$start <- em_healthy_788$read_start
+em_healthy_788$end <- em_healthy_788$read_end
+write_parquet(em_healthy_788, "/researchers/caitlin.page/cf_nano/r_output/emseq_healthy_788.parquet")
+```
+
+```{r}
+em_healthy_788
+```
+
+
+
+CpG_OT_PRJ240788_LPRJ240788_S4_L004_R1_001_bismark_bt2_pe.txt
+```{r}
+all_samples <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_all_healthy.rds")
+```
+
+```{r}
+all_samples <- all_samples %>% data.frame() %>% filter(seqnames %in% seqs)
+em_healthy_788 <- em_healthy_788 %>% data.frame() %>% filter(seqnames %in% seqs)
+em_healthy_788$start <- em_healthy_788$read_start
+em_healthy_788$end <- em_healthy_788$read_end
+em_healthy_788$sample <- "healthy_788"
+```
+
+
+```{r}
+cols <- c("seqnames", "read_start", "read_end", "strand", "read_id", "sample", "meth_pattern", "num_meth", "total", "alpha", "genom_positions")
+```
+
+
+```{r}
+all_samples <- all_samples %>%
+  mutate(sample = case_when(sample == "a1" ~ "healthy_785",
+                            sample == "a2" ~ "healthy_036",
+                            sample == "a3" ~ "healthy_787",
+                            sample == "b1" ~ "healthy_786",
+                            sample == "b2" ~ "healthy_037",
+                            TRUE ~ "healthy_789"))
+
+all_samples <- rbind(all_samples, distinct(em_healthy_788[,colnames(all_samples)]))
+```
+
+
+
+
+
+#####
+
+```{r}
+overlap_pos <- find_overlaps(as_granges(tiles_500bp_cg), as_granges(all_samples)) %>% data.frame()
 ```
 
 ```{r}
 # dtu
 dtu_optile <- overlap_pos %>% filter(total >= 3) %>%
-  distinct(sample, read_id, alpha, region_id) %>%
+  distinct(sample, read_id, alpha, tile_id) %>%
   mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
                                  alpha > 0.8 ~ "a > 0.8",
                                  alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
@@ -237,7 +522,7 @@ dtu_optile <- overlap_pos %>% filter(total >= 3) %>%
                                  TRUE ~ "0.6 <= a <= 0.8"))
 
 dtu_optile <- dtu_optile %>%
-  mutate(transcript = paste0(region_id, "_", alpha_group)) %>%
+  mutate(transcript = paste0(tile_id, "_", alpha_group)) %>%
   group_by(sample, transcript) %>%
   summarise(transcript_count = n()) %>% ungroup() %>% data.frame()
 
@@ -251,61 +536,842 @@ dtu_optile$gene_id <- sub("_.*", "", dtu_optile$transcript)
 unique(all_samples$sample)
 ```
 
+036 + 037 1 group
+maybe pick 3 from the other, rather than all 5 - worse
 
 ```{r}
-samples <- c(unique(all_samples$sample))  # your 7 sample names
+saveRDS(dtu_optile, "/researchers/caitlin.page/cf_nano/r_output/sex_healthy_test_tile_counts.rds")
+```
 
-# --- Analysis function ---
-run_analysis <- function(combo) {
-  cols <- c(combo$g1, combo$g2)
-  group <- c(1, 1, 1, 2, 2, 2)
 
-  y <- DGEList(
-    as.matrix(dtu_optile[, cols]),
-    group = group,
-    genes = dtu_optile[, c("gene_id", "transcript")]
-  )
-  design <- model.matrix(~ group)
-  fit <- glmQLFit(y, design, robust = TRUE)
-  ds  <- diffSpliceDGE(fit, coef = 2, geneid = "gene_id", exonid = "transcript")
+```{r}
+dau_counts <- readRDS("/researchers/caitlin.page/cf_nano/r_output/sex_healthy_test_tile_counts.rds")
+```
 
-  topSpliceDGE(ds, test = "gene", number = Inf) %>%
-    mutate(
-      region_id = gene_id,
-      excluded  = combo$excluded,
-      group1    = paste(combo$g1, collapse = ","),
-      group2    = paste(combo$g2, collapse = ",")
-    ) %>%
-    separate_wider_delim(gene_id, delim = ":", names = c("seqnames", "gene_id")) %>%
-    mutate(seqnames = gsub("chrchr", "chr", seqnames)) %>%
-    separate_wider_delim(gene_id, delim = "-", names = c("start", "end")) %>%
-    mutate(
-      start    = as.double(start),
-      end      = as.double(end),
-      dtu_rank = row_number()
+* Groups are Male | Female
+
+036 and 037 are a2 and b2 that from counts look male
+* 786 (b1) also looked funny in the mds plot
+
+so from counts table groups are
+
+1 1 2 2 2 2 2
+
+* should I use all 5?
+* claude says limma is fine with it
+* maybe also run other ways (maybe a version without 786 - because weird looking)
+
+## V1 - use all the samples
+
+```{r}
+colnames(dtu_optile)[c(1:9)]
+```
+
+
+```{r}
+y <- DGEList(as.matrix(dtu_optile[,2:8]), group = c(1,1,2,2,2,2,2), genes = dtu_optile[,c("gene_id", "transcript")])
+design <- model.matrix(~ c(1,1,2,2,2,2,2), data = y$samples)
+fit <- glmQLFit(y, design, robust=TRUE)
+ds <- diffSpliceDGE(fit, coef = 2, geneid = "gene_id", exonid = "transcript")
+ts.gene_optiles <- topSpliceDGE(ds, test = "gene", number = Inf)
+
+
+ts.gene_optiles <- ts.gene_optiles %>%
+  mutate(region_id = gene_id) %>%
+  separate_wider_delim(gene_id, delim = ":", names = c("seqnames", "gene_id")) %>%
+  mutate(seqnames = gsub("chrchr", "chr", seqnames)) %>%
+  separate_wider_delim(gene_id, delim = "-", names = c("start", "end"))
+ts.gene_optiles$start <- as.double(ts.gene_optiles$start)
+ts.gene_optiles$end <- as.double(ts.gene_optiles$end)
+ts.gene_optiles$dtu_rank <- 1:nrow(ts.gene_optiles)
+saveRDS(ts.gene_optiles, "/researchers/caitlin.page/cf_nano/r_output/dtu_basictiles_emseq_healthy_sex.rds")
+```
+```{r}
+dau_counts
+dtu_optile <- dau_counts
+```
+
+```{r}
+y <- DGEList(as.matrix(dtu_optile[,c(2:4,6:8)]), group = c(1,1,2,2,2,2), genes = dtu_optile[,c("gene_id", "transcript")])
+design <- model.matrix(~ c(1,1,2,2,2,2), data = y$samples)
+fit <- glmQLFit(y, design, robust=TRUE)
+ds <- diffSpliceDGE(fit, coef = 2, geneid = "gene_id", exonid = "transcript")
+ts.gene_optiles <- topSpliceDGE(ds, test = "gene", number = Inf)
+
+
+ts.gene_optiles <- ts.gene_optiles %>%
+  mutate(region_id = gene_id) %>%
+  separate_wider_delim(gene_id, delim = ":", names = c("seqnames", "gene_id")) %>%
+  mutate(seqnames = gsub("chrchr", "chr", seqnames)) %>%
+  separate_wider_delim(gene_id, delim = "-", names = c("start", "end"))
+ts.gene_optiles$start <- as.double(ts.gene_optiles$start)
+ts.gene_optiles$end <- as.double(ts.gene_optiles$end)
+ts.gene_optiles$dtu_rank <- 1:nrow(ts.gene_optiles)
+saveRDS(ts.gene_optiles, "/researchers/caitlin.page/cf_nano/r_output/dtu_basictiles_emseq_healthy_sex_exlcude_786.rds")
+```
+
+```{r}
+y <- DGEList(as.matrix(dtu_optile[,2:8]), group = c(1,1,2,2,2,2,2), genes = dtu_optile[,c("gene_id", "transcript")])
+design <- model.matrix(~ c(1,1,2,2,2,2,2), data = y$samples)
+fit <- glmQLFit(y, design, robust=TRUE)
+ds <- diffSpliceDGE(fit, coef = 2, geneid = "gene_id", exonid = "transcript")
+ts.gene_optiles <- topSpliceDGE(ds, test = "exon", number = Inf)
+
+
+ts.gene_optiles <- ts.gene_optiles %>%
+  mutate(region_id = gene_id) %>%
+  separate_wider_delim(gene_id, delim = ":", names = c("seqnames", "gene_id")) %>%
+  mutate(seqnames = gsub("chrchr", "chr", seqnames)) %>%
+  separate_wider_delim(gene_id, delim = "-", names = c("start", "end"))
+ts.gene_optiles$start <- as.double(ts.gene_optiles$start)
+ts.gene_optiles$end <- as.double(ts.gene_optiles$end)
+ts.gene_optiles$dtu_rank <- 1:nrow(ts.gene_optiles)
+saveRDS(ts.gene_optiles, "/researchers/caitlin.page/cf_nano/r_output/dtu_basictiles_emseq_healthy_sex_aband.rds")
+```
+
+# analyse results - are regions reasonable?
+
+
+```{r}
+dau_healthy_sex <- readRDS("/researchers/caitlin.page/cf_nano/r_output/dtu_basictiles_emseq_healthy_sex.rds")
+```
+
+* Groups are Male | Female
+
+036 and 037 are a2 and b2 that from counts look male
+* 786 (b1) also looked funny in the mds plot
+
+so from counts table groups are
+
+1 1 2 2 2 2 2
+
+## expectation: majority of DAU regions would be expected to be on X chromosome
+
+```{r}
+dau_healthy_sex %>% filter(FDR < 0.05) %>% mutate(seqnames = factor(seqnames, levels = seqs)) %>%
+  ggplot(aes(x = seqnames, fill = seqnames)) +
+  geom_bar() +
+  scale_y_continuous(breaks = c(0,15,100,200,300,400,500)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  theme(legend.position = "none")
+```
+```{r}
+dau_healthy_sex %>% filter(FDR < 0.05) %>% mutate(seqnames = factor(seqnames, levels = seqs)) %>% group_by(seqnames) %>% summarise(n_dau = n()) %>% t()
+```
+
+```{r}
+dau_healthy_sex %>% filter(FDR < 0.05) %>% filter(seqnames == "chrY")
+```
+```{r}
+con <- dbConnect(duckdb())
+on.exit(dbDisconnect(con))
+read_data_b <- dbGetQuery(con, glue::glue("
+    SELECT *
+    FROM read_parquet('{read_data_path_b}')
+    WHERE seqnames = '{chrom}'
+      AND \"start\" >= {region_start}
+      AND \"end\"   <= {region_end}
+  "))
+```
+emseq_healthy_788.parquet
+```{r}
+pq <- arrow::read_parquet("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy_788.parquet")
+```
+
+```{r}
+rrbs_plot5_sex <- function(read_data_path_a, read_data_path_b, chrom, region_start, region_end,
+                       jit_amount = 0.1) {
+  set.seed(42)
+
+  # ── 1. Read only the matching rows — never loads unmatched data into RAM ───
+  con <- dbConnect(duckdb())
+  on.exit(dbDisconnect(con))
+  
+  read_data_a <- dbGetQuery(con, glue::glue("
+    SELECT *
+    FROM read_parquet('{read_data_path_a}')
+    WHERE seqnames = '{chrom}'
+      AND \"start\" >= {region_start}
+      AND \"end\"   <= {region_end}
+  "))
+  
+  read_data_b <- dbGetQuery(con, glue::glue("
+    SELECT *
+    FROM read_parquet('{read_data_path_b}')
+    WHERE seqnames = '{chrom}'
+      AND \"start\" >= {region_start}
+      AND \"end\"   <= {region_end}
+  "))
+  
+  read_data_a <- read_data_a %>% 
+  mutate(sample = case_when(sample == "a1" ~ "healthy_785",
+                            sample == "a2" ~ "healthy_036",
+                            sample == "a3" ~ "healthy_787",
+                            sample == "b1" ~ "healthy_786",
+                            sample == "b2" ~ "healthy_037",
+                            TRUE ~ "healthy_789")) %>%
+    mutate(sex = ifelse(sample %in% c("healthy_036", "healthy_037"), "male", "female"))
+  read_data_b$sex <- "female"
+  
+  read_data <- rbind(read_data_a, read_data_b)
+  
+  jitter_amount <- runif(nrow(read_data), -jit_amount, jit_amount)
+  read_data$alpha_jit <- read_data$alpha + jitter_amount
+  read_data <- data.frame(read_data)
+  
+  read_data <- read_data %>% mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                 alpha > 0.8 ~ "a > 0.8",
+                                 alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                 alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                 TRUE ~ "0.6 <= a <= 0.8"))
+  read_data <- read_data %>% mutate(alpha_group = factor(alpha_group, levels = c("a < 0.2", "0.2 <= a <= 0.4", "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8")))
+  
+  # Add jittered coordinates to new columns in the data frame
+  long_data <- read_data %>%
+    mutate(meth_status = strsplit(meth_pattern, ""), start = strsplit(genom_positions, ",")) %>%
+    unnest(meth_status, start) %>%
+    mutate(start = as.double(start))
+
+  chr <- unique(read_data$seqnames)
+  min_start <- min(read_data$read_start)
+  max_end <- max(read_data$read_end)
+  
+  plot <- read_data %>%
+    ggplot() +
+    geom_segment(aes(x = read_start, xend = read_end,
+                     y = alpha_jit, yend = alpha_jit, colour = alpha_group)) +
+    geom_point(data = long_data,
+               aes(x = start, y = alpha_jit,
+                   fill = meth_status, colour = alpha_group), shape = 21) +
+    scale_fill_manual(values = c("U" = "white", "M" = "black")) +
+    facet_wrap(~ sex, nrow=2) +
+    labs(title = paste0(chr, ":", min_start, "-", max_end)) +
+    theme_bw() +
+    labs(x = "genomic position")
+  plot
+}
+```
+
+```{r}
+geom_beta_sex <- function(all_b, style = "line", plot.space=1, plot.height=1) {
+    structure(list(all_b = all_b, style = style, plot.space = plot.space,
+        plot.height = plot.height),
+        class = "beta_sex"
     )
 }
 
-# --- Generate 70 combinations ---
-all_combos <- unlist(
-  lapply(seq_along(samples), function(excl_i) {
-    remaining <- samples[-excl_i]
-    splits <- combn(remaining, 3, simplify = FALSE)
-    splits <- Filter(function(g1) g1[1] < setdiff(remaining, g1)[1], splits)
-    lapply(splits, function(g1) {
-      list(g1 = g1, g2 = setdiff(remaining, g1), excluded = samples[excl_i])
-    })
-  }),
-  recursive = FALSE
+ggplot_add.beta_sex <- function(object, plot, object_name) {
+plot2 <- plot
+    while (inherits(plot2, "patchwork")) {
+        plot2 <- plot2[[1]]
+    }
+    plot.data <- plot2$labels$title
+    plot.data <- stringr::str_split_1(plot.data, ":")
+    # prepare plot range
+    # the plot region are not normal, so start is minimum value
+    plot.chr <- plot.data[1]
+    plot.data <- stringr::str_split_1(plot.data[2], "-")
+    plot.region.start <- plot.data[1] %>% as.numeric()
+    plot.region.end <- plot.data[2] %>% as.numeric()
+    
+    all_b <- object$all_b
+    plot.space <- object$plot.space
+    plot.height <- object$plot.height
+    style <- object$style
+    
+ #   all_b <- all_b %>%
+#  tidyr::pivot_longer(cols = c(cancer_0223, cancer_0224, cancer_0225, cancer_0454, cancer_0456, cancer_0457, healthy_036, healthy_037, healthy_785, healthy_786, healthy_787, healthy_789), names_to = "sample", values_to = "beta") %>% mutate(type = substr(sample, 1, 1)) %>% filter(seqnames.x %in% plot.chr,
+       #                         start.x >= plot.region.start,
+      #                          start.x <= plot.region.end)
+    all_b <- all_b %>%
+    mutate(sex = ifelse(sample %in% c("healthy_036", "healthy_037"), "male", "female"))
+    all_b <- all_b %>%
+      mutate(type = substr(sample, 1, 1)) %>%
+      filter(seqnames %in% plot.chr,
+                                start >= plot.region.start,
+                                start <= plot.region.end)
+    
+    if(style == "line") {
+      b_plot <- all_b %>%
+  ggplot(aes(x = start, y = beta, colour = sex)) +
+  geom_line() +
+  theme_bw() +
+        labs(x = "genomic position")
+    } else if (style == "smooth") {
+      b_plot <- all_b %>%
+  ggplot(aes(x = start, y = beta, colour = sex)) +
+        geom_smooth() +
+        theme_bw() +
+        labs(x = "genomic position")
+    }
+    else {
+    b_plot <- all_b %>%
+  ggplot(aes(x = start, y = beta, colour = sex)) +
+  geom_point(alpha = 0.3) +
+      theme_bw() +
+      labs(x = "genomic position")
+    }
+    
+    patchwork::wrap_plots(plot + ggplot2::theme(plot.margin = ggplot2::margin(t = plot.space, b = plot.space)),
+        b_plot,
+        ncol = 1, heights = c(1, plot.height)
+    )
+}
+```
+
+```{r}
+betas
+```
+
+036 and 037 are a2 and b2 that from counts look male - all the rest are female
+```{r}
+dau_counts[1:5,1:5] %>% t() %>% data.frame() %>% mutate(row = rownames(.)) %>% filter(row %in% c("transcript", "healthy_036"))
+```
+```{r}
+dau_healthy_sex
+```
+
+```{r}
+props_sex <- dau_counts %>% filter(gene_id %in% filter(dau_healthy_sex, FDR < 0.05)$region_id) %>% 
+  mutate(alpha_group = sub(".*_", "", .$transcript), alpha_group = factor(alpha_group, levels = c("a < 0.2", "0.2 <= a <= 0.4", "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8"))) %>%
+  mutate(female = rowSums(.[, c("healthy_785", "healthy_786", "healthy_787", "healthy_788", "healthy_789")], na.rm = TRUE),
+         male = rowSums(.[, c("healthy_036", "healthy_037")], na.rm = TRUE)) %>% .[,9:12] %>% 
+  group_by(gene_id) %>% mutate(female = female/sum(female), male = male/sum(male)) %>%
+  pivot_longer(cols = c(female, male), names_to = "sex", values_to = "percent")
+```
+
+```{r}
+rrbs_plot5_sex("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", "/researchers/caitlin.page/cf_nano/r_output/emseq_healthy_788.parquet", "chrX", 118973501, 118974000) +
+  geom_beta_sex(betas, plot.height = 0.5, style = "smooth") 
+```
+```{r}
+props_sex %>% filter(gene_id == dau_healthy_sex$region_id[1]) %>% mutate(alpha_group = factor(alpha_group, levels = c("a < 0.2", "0.2 <= a <= 0.4", "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8"))) %>%
+  ggplot(aes(x = alpha_group, y = percent, fill = sex)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  scale_x_discrete(labels = c("Low", "Low-med", "Med", "Med-high", "High")) +
+  labs(x = "alpha band") +
+  facet_wrap(~gene_id) +
+  theme_bw()
+```
+
+
+```{r}
+rrbs_plot5_sex("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", "/researchers/caitlin.page/cf_nano/r_output/emseq_healthy_788.parquet", "chrX", dau_healthy_sex$start[2], dau_healthy_sex$end[2]) +
+  geom_beta_sex(betas, plot.height = 0.5, style = "smooth") 
+```
+
+```{r}
+props_sex %>% filter(gene_id == dau_healthy_sex$region_id[2]) %>% mutate(alpha_group = factor(alpha_group, levels = c("a < 0.2", "0.2 <= a <= 0.4", "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8"))) %>%
+  ggplot(aes(x = alpha_group, y = percent, fill = sex)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  scale_x_discrete(labels = c("Low", "Low-med", "Med", "Med-high", "High")) +
+  labs(x = "alpha band") +
+  facet_wrap(~gene_id) +
+  theme_bw()
+```
+```{r}
+props_sex %>% filter(sex == "male") %>% group_by(alpha_group) %>% summarise(min = min(percent), max = max(percent), mean = mean(percent), median = median(percent))
+```
+
+```{r}
+props_sex %>% filter(sex == "male") %>%
+  ggplot(aes(x = alpha_group, y = percent)) +
+  geom_boxplot()
+
+props_sex %>%
+  ggplot(aes(x = alpha_group, y = percent, fill = sex)) +
+  geom_boxplot()
+```
+```{r}
+props_sex %>% mutate(seqnames = sub(":.*", "", gene_id), seqnames = factor(seqnames, levels = seqs)) %>%
+  ggplot(aes(x = alpha_group, y = percent, fill = sex)) +
+  geom_boxplot() +
+  facet_wrap(~ seqnames)
+```
+
+
+```{r}
+props_sex %>%
+  ggplot(aes(x = percent, colour = sex)) +
+  geom_density() +
+  facet_wrap(~alpha_group)
+```
+
+```{r}
+props_sex %>% filter(sex == "male", !alpha_group %in% "a < 0.2", percent > 0.5) %>% .[17:22,]
+```
+
+* the X ones
+```{r}
+rrbs_plot5_sex("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", "/researchers/caitlin.page/cf_nano/r_output/emseq_healthy_788.parquet", "chrX", 40078501, 40079000) +
+  geom_beta_sex(betas, plot.height = 0.5, style = "smooth") 
+
+props_sex %>% filter(gene_id == "chrX:40078501-40079000") %>% mutate(alpha_group = factor(alpha_group, levels = c("a < 0.2", "0.2 <= a <= 0.4", "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8"))) %>%
+  ggplot(aes(x = alpha_group, y = percent, fill = sex)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  scale_x_discrete(labels = c("Low", "Low-med", "Med", "Med-high", "High")) +
+  labs(x = "alpha band") +
+  facet_wrap(~gene_id) +
+  theme_bw()
+```
+* ooh this is interesting
+* female is very bimodal, and male is very methylated
+* could this be an example of like X inactivation in female? - how it's bimodal - so the methylated X is the inactivated one?
+
+```{r}
+dau_healthy_sex
+```
+
+* just as another way to visualise, what about that step plot where it goes up one for every thing that makes us happy (ie X chrom)
+```{r}
+dau_healthy_sex %>%
+  mutate(count = cumsum(seqnames == "chrX"), x_axis = cumsum(seqnames != "chrX")) %>% .[1:200,]
+```
+
+
+```{r}
+dau_healthy_sex %>%
+  mutate(count = cumsum(seqnames == "chrX"), x_axis = cumsum(seqnames != "chrX")) %>% .[1:200,] %>%
+  ggplot(aes(x = x_axis, y = count)) +
+  geom_line()
+```
+* I did something wrong with the x-axis here
+* I think it's that it only goes across when it's wrong
+* that's closer but I think i'm still doing it wrong
+* because I'm pretty sure I do want the rank on the x - but also it must not be
+* but not the priority
+
+
+## read coverage in significant tiles
+```{r}
+props_sex <- dau_counts %>% filter(gene_id %in% filter(dau_healthy_sex, FDR < 0.05)$region_id) %>% 
+  mutate(alpha_group = sub(".*_", "", .$transcript), alpha_group = factor(alpha_group, levels = c("a < 0.2", "0.2 <= a <= 0.4", "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8"))) %>%
+  mutate(female = rowSums(.[, c("healthy_785", "healthy_786", "healthy_787", "healthy_788", "healthy_789")], na.rm = TRUE),
+         male = rowSums(.[, c("healthy_036", "healthy_037")], na.rm = TRUE)) %>% .[,9:12] %>% 
+  group_by(gene_id) %>% mutate(female_p = female/sum(female), male_p = male/sum(male)) %>% 
+  pivot_longer(cols = c(female, male), names_to = "sex", values_to = "count") %>%
+  mutate(percent = ifelse(sex == "female", female_p, male_p)) %>%
+  select(-female_p, -male_p) %>%
+  ungroup() %>% group_by(gene_id, sex) %>%
+  mutate(tile_coverage = sum(count))
+```
+
+```{r}
+props_sex %>% distinct(gene_id, sex, tile_coverage) %>%
+  ggplot(aes(x = tile_coverage, colour = sex)) +
+  geom_density()
+
+props_sex %>% distinct(gene_id, sex, tile_coverage) %>%
+  ggplot(aes(x = log2(tile_coverage), colour = sex)) +
+  geom_density()
+```
+```{r}
+props_sex %>% distinct(gene_id, sex, tile_coverage) %>% filter(sex == "male") %>% .$tile_coverage %>% summary()
+props_sex %>% distinct(gene_id, sex, tile_coverage) %>% filter(sex == "female") %>% .$tile_coverage %>% summary()
+```
+* there are 2 male, 5 female
+```{r}
+props_sex %>% distinct(gene_id, sex, tile_coverage) %>% filter(sex == "male") %>% mutate(tile_coverage = tile_coverage/2) %>% .$tile_coverage %>% summary(.)
+props_sex %>% distinct(gene_id, sex, tile_coverage) %>% filter(sex == "female") %>% mutate(tile_coverage = tile_coverage/5) %>% .$tile_coverage %>% summary()
+```
+* this is more per sample, still a lot more coverage
+
+```{r}
+props_sex %>% distinct(gene_id, sex, tile_coverage) %>%
+  mutate(tile_coverage = ifelse(sex == "male", tile_coverage/2, tile_coverage/5)) %>% ungroup() %>% 
+  mutate(seqnames = sub(":.*", "", .$gene_id), seqnames = factor(seqnames, levels = seqs)) %>%
+  ggplot(aes(x = seqnames, fill = sex, y = tile_coverage)) +
+  geom_boxplot()
+```
+
+
+```{r}
+props_sex
+```
+
+```{r}
+dau_counts
+```
+
+
+## overlap significant tiles and genes
+```{r}
+library(TxDb.Hsapiens.UCSC.hg38.knownGene)
+```
+
+```{r}
+genes_txdb <- genes(TxDb.Hsapiens.UCSC.hg38.knownGene)
+```
+```{r}
+betas_d <- betas %>% filter(seqnames %in% seqs) %>% mutate(cov = meth_count_pos + unmeth_count_pos) %>% filter(cov > 2) %>% distinct(seqnames, start)
+```
+```{r}
+genes_txdb <- find_overlaps(genes_txdb, as_granges(mutate(betas_d, width = 1))) %>% data.frame() %>% group_by(seqnames, start, end, width, strand, gene_id) %>%
+  summarise(n_cg = n()) %>% as_granges()
+```
+
+```{r}
+genes_sex <- find_overlaps(genes_txdb, as_granges(filter(dau_healthy_sex, FDR < 0.05))) %>% data.frame()
+```
+
+## run gene set testing
+
+```{r}
+library(missMethyl)
+library(GO.db)
+library(org.Hs.eg.db)
+```
+
+```{r}
+source("../code/runGST.R")
+gene_try <- genes_sex
+gene_info <- genes_txdb %>% data.frame() %>% mutate(is_de = ifelse(gene_id %in% gene_try$gene_id, 1, 0)) %>% distinct(gene_id, n_cg, is_de, width)
+
+run_test <- list(
+  sig.eg = gene_info %>% filter(is_de == 1) %>% .$gene_id,
+  universe = gene_info$gene_id,
+  freq = gene_info$n_cg,
+  de = gene_info$is_de,
+  equiv = gene_info$n_cg
 )
 
-# --- Run across all 70 combinations ---
-results <- lapply(all_combos, run_analysis)
-
-# --- Combine into one data frame ---
-results_df <- bind_rows(results)
-
-saveRDS(results_df, "/researchers/caitlin.page/cf_nano/r_output/dtu_tiles_emseq_healthy_all_fp.rds")
+gst <- run_miss_methyl_b(run_test, method = "Wallenius")
 ```
+```{r}
+saveRDS(gst, "/researchers/caitlin.page/cf_nano/r_output/gst_emseq_healthy_sex.rds")
+```
+
+
+```{r}
+tile_prop <- function(read_data_path_a, read_data_path_b, tiles, cols_from_tiles = NULL) {
+
+  # ── 1. Read only the matching rows — never loads unmatched data into RAM ───
+  con <- dbConnect(duckdb())
+  duckdb::dbWriteTable(con, "tiles_temp", tiles, overwrite = TRUE)
+  on.exit(duckdb::dbRemoveTable(con, "tiles_temp"), add = TRUE)
+  
+  
+  # Build SELECT clause for tile columns
+  if (is.null(cols_from_tiles)) {
+    # Exclude coordinate cols to avoid clashes with parquet
+    tile_cols <- setdiff(colnames(tiles), c("seqnames", "start", "end"))
+  } else {
+    tile_cols <- cols_from_tiles
+  }
+  
+  tile_select <- if (length(tile_cols) > 0) {
+    paste(glue::glue(', t."{tile_cols}"'), collapse = "")
+  } else ""
+  
+  read_data_a <- dbGetQuery(con, glue::glue("
+    SELECT b.*{tile_select}
+    FROM read_parquet('{read_data_path_a}') b
+    JOIN tiles_temp t
+      ON b.seqnames = t.seqnames
+     AND b.start <= t.end
+     AND b.end   >= t.start
+  "))
+  
+  read_data_b <- dbGetQuery(con, glue::glue("
+    SELECT b.*{tile_select}
+    FROM read_parquet('{read_data_path_b}') b
+    JOIN tiles_temp t
+      ON b.seqnames = t.seqnames
+     AND b.start <= t.end
+     AND b.end   >= t.start
+  "))
+  
+  read_data_a <- read_data_a %>% 
+  mutate(sample = case_when(sample == "a1" ~ "healthy_785",
+                            sample == "a2" ~ "healthy_036",
+                            sample == "a3" ~ "healthy_787",
+                            sample == "b1" ~ "healthy_786",
+                            sample == "b2" ~ "healthy_037",
+                            TRUE ~ "healthy_789")) %>%
+    mutate(sex = ifelse(sample %in% c("healthy_036", "healthy_037"), "male", "female"))
+  read_data_b$sex <- "female"
+    read_data <- rbind(read_data_a, read_data_b)
+  read_data
+}
+```
+
+props_med <- tile_prop("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", "/researchers/caitlin.page/cf_nano/r_output/emseq_all_cancer.parquet", 
+          dau_basictiles[ranks,])
+props_med <- props_med[,c(1:14,16:24)]
+props_med <- props_med %>%
+  mutate(
+    alpha_group = case_when(
+      alpha < 0.2  ~ "a < 0.2",
+      alpha > 0.8  ~ "a > 0.8",
+      alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+      alpha < 0.6  ~ "0.4 < a < 0.6",
+      TRUE         ~ "0.6 <= a <= 0.8"
+    )
+  ) %>% mutate(alpha_group = factor(alpha_group, levels = c("a < 0.2", "0.2 <= a <= 0.4", "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8"))) %>%
+  count(type, dtu_rank, region_id, alpha_group, name = "tile_band_count") %>%
+  group_by(region_id, dtu_rank, type) %>%
+  mutate(prop_alpha_in_tile = tile_band_count / sum(tile_band_count)) %>%
+  ungroup() %>%
+  select(region_id, dtu_rank, alpha_group, type, prop_alpha_in_tile) %>%
+  pivot_wider(names_from = type, values_from = prop_alpha_in_tile) %>%
+  mutate(prop_change = cancer - healthy)
+
+props_med %>% filter(dtu_rank == ranks_[1]) %>% mutate(alpha_group = factor(alpha_group, levels = c("a < 0.2", "0.2 <= a <= 0.4", "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8"))) %>% pivot_longer(cols = c(cancer, healthy), names_to = "type", values_to = "percent") %>%
+  ggplot(aes(x = alpha_group, y = percent, fill = type)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  scale_fill_manual(values = c("cancer" = "#C0622A", "healthy" = "#1B3A6B")) +
+  scale_x_discrete(labels = c("Low", "Low-med", "Med", "Med-high", "High")) +
+  labs(x = "alpha band") +
+  facet_wrap(~region_id) +
+  theme_bw()
+
+
+
+```{r}
+rrbs_plot5_sex_df <- function(read_data_path_a, read_data_path_b, chrom, region_start, region_end,
+                       jit_amount = 0.1) {
+  set.seed(42)
+
+  # ── 1. Read only the matching rows — never loads unmatched data into RAM ───
+  con <- dbConnect(duckdb())
+  on.exit(dbDisconnect(con))
+  
+  read_data_a <- dbGetQuery(con, glue::glue("
+    SELECT *
+    FROM read_parquet('{read_data_path_a}')
+    WHERE seqnames = '{chrom}'
+      AND \"start\" >= {region_start}
+      AND \"end\"   <= {region_end}
+  "))
+  
+  read_data_b <- dbGetQuery(con, glue::glue("
+    SELECT *
+    FROM read_parquet('{read_data_path_b}')
+    WHERE seqnames = '{chrom}'
+      AND \"start\" >= {region_start}
+      AND \"end\"   <= {region_end}
+  "))
+  
+  read_data_a <- read_data_a %>% 
+  mutate(sample = case_when(sample == "a1" ~ "healthy_785",
+                            sample == "a2" ~ "healthy_036",
+                            sample == "a3" ~ "healthy_787",
+                            sample == "b1" ~ "healthy_786",
+                            sample == "b2" ~ "healthy_037",
+                            TRUE ~ "healthy_789")) %>%
+    mutate(sex = ifelse(sample %in% c("healthy_036", "healthy_037"), "male", "female"))
+  read_data_b$sex <- "female"
+  
+  read_data <- rbind(read_data_a, read_data_b)
+  
+  jitter_amount <- runif(nrow(read_data), -jit_amount, jit_amount)
+  read_data$alpha_jit <- read_data$alpha + jitter_amount
+  read_data <- data.frame(read_data)
+  
+  read_data <- read_data %>% mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                 alpha > 0.8 ~ "a > 0.8",
+                                 alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                 alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                 TRUE ~ "0.6 <= a <= 0.8"))
+  read_data <- read_data %>% mutate(alpha_group = factor(alpha_group, levels = c("a < 0.2", "0.2 <= a <= 0.4", "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8")))
+  
+  # Add jittered coordinates to new columns in the data frame
+  long_data <- read_data %>%
+    mutate(meth_status = strsplit(meth_pattern, ""), start = strsplit(genom_positions, ",")) %>%
+    unnest(meth_status, start) %>%
+    mutate(start = as.double(start))
+  list(read_data, long_data)
+}
+check_s <- rrbs_plot5_sex_df("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", "/researchers/caitlin.page/cf_nano/r_output/emseq_healthy_788.parquet", "chrX", dau_healthy_sex$start[2], dau_healthy_sex$end[2])
+```
+
+```{r}
+check_s[[1]] %>% distinct(sample, sex)
+```
+
+## alpha band level results
+
+```{r}
+dau_healthy_sex_aband <- readRDS("/researchers/caitlin.page/cf_nano/r_output/dtu_basictiles_emseq_healthy_sex_aband.rds")
+```
+```{r}
+dau_healthy_sex_aband %>%
+  ggplot(aes(x = FDR)) +
+  geom_density()
+```
+
+```{r}
+dau_healthy_sex_aband %>% filter(FDR < 0.05) %>% 
+  mutate(alpha_band = sub(".*_", "", .$transcript)) %>%
+  group_by(region_id) %>% summarise(n_band = n())
+```
+
+* only have 3 significant bands with this data 
+* not useful for interpreting the results
+
+```{r}
+dau_healthy_sex_aband %>% mutate(alpha_band = sub(".*_", "", .$transcript)) %>% 
+  filter(FDR < 0.05)
+```
+* expect alpha band level results to correlate with region level where in significant tiles, had majority of male low
+
+
+```{r}
+props_sex_aband <- dau_counts %>% filter(gene_id %in% filter(dau_healthy_sex_aband, FDR < 0.05)$region_id) %>% 
+  mutate(alpha_group = sub(".*_", "", .$transcript), alpha_group = factor(alpha_group, levels = c("a < 0.2", "0.2 <= a <= 0.4", "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8"))) %>%
+  mutate(female = rowSums(.[, c("healthy_785", "healthy_786", "healthy_787", "healthy_788", "healthy_789")], na.rm = TRUE),
+         male = rowSums(.[, c("healthy_036", "healthy_037")], na.rm = TRUE)) %>% .[,9:12] %>% 
+  group_by(gene_id) %>% mutate(female = female/sum(female), male = male/sum(male)) %>%
+  pivot_longer(cols = c(female, male), names_to = "sex", values_to = "percent")
+```
+
+```{r}
+rrbs_plot5_sex("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", "/researchers/caitlin.page/cf_nano/r_output/emseq_healthy_788.parquet", "chr7", 4204501, 205000) 
+ # geom_beta_sex(betas, plot.height = 0.5, style = "smooth") 
+
+props_sex_aband %>% filter(gene_id == "chr7:4204501-4205000") %>% mutate(alpha_group = factor(alpha_group, levels = c("a < 0.2", "0.2 <= a <= 0.4", "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8"))) %>%
+  ggplot(aes(x = alpha_group, y = percent, fill = sex)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  scale_x_discrete(labels = c("Low", "Low-med", "Med", "Med-high", "High")) +
+  labs(x = "alpha band") +
+  facet_wrap(~gene_id) +
+  theme_bw()
+```
+
+
+```{r}
+rrbs_plot5_sex("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", "/researchers/caitlin.page/cf_nano/r_output/emseq_healthy_788.parquet", "chr5", 141179501, 141180000) 
+ # geom_beta_sex(betas, plot.height = 0.5, style = "smooth") 
+
+props_sex_aband %>% filter(gene_id == "chr5:141179501-141180000") %>% mutate(alpha_group = factor(alpha_group, levels = c("a < 0.2", "0.2 <= a <= 0.4", "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8"))) %>%
+  ggplot(aes(x = alpha_group, y = percent, fill = sex)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  scale_x_discrete(labels = c("Low", "Low-med", "Med", "Med-high", "High")) +
+  labs(x = "alpha band") +
+  facet_wrap(~gene_id) +
+  theme_bw()
+```
+
+# DMR identification
+
+```{r, eval=FALSE}
+betas <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_betas_healthy.rds")
+betas_c <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_betas_cancer.rds")
+b <- rbind(betas %>% data.frame(), betas_c %>% data.frame())
+b <- b %>% filter(seqnames == "chr1")
+b$cov <- b$meth_count_pos + b$unmeth_count_pos
+cols <- c("sample", "seqnames", "start", "meth_count_pos", "unmeth_count_pos", "cov")
+b <- b[,cols] %>% pivot_wider(names_from = sample, values_from = c(meth_count_pos, unmeth_count_pos, cov))
+b[is.na(b)] <- 0
+
+samples <- c(unique(betas$sample), unique(betas_c$sample))
+sample_stuff <- c(Type = c("healthy", "healthy", "healthy", "healthy", "healthy", "healthy", "cancer", "cancer", "cancer", "cancer", "cancer", "cancer")) %>% data.frame()
+rownames(sample_stuff) <- samples
+
+ranges <- b[,1:2]
+meth <- b[,3:14]
+colnames(meth) <- samples
+cov <- b[,27:38]
+colnames(cov) <- samples
+
+#### bsseq
+## make BSseq object
+bseq <- bsseq::BSseq(M = as.matrix(meth),
+                     Cov = as.matrix(cov), pData = sample_stuff,
+                     chr = ranges$seqnames, pos = as.numeric(ranges$start),
+                     sampleNames = samples)
+bseq <- sort(bseq)
+bseq <- bseq[which(rowSums(getCoverage(bseq) >= 10) == ncol(bseq)), ] 
+param <- BiocParallel::SnowParam(workers = 8, type = "SOCK")
+bs_batch1 <- BSmooth(bseq[, 1:6],  BPPARAM = param)
+bs_batch2 <- BSmooth(bseq[, 7:12], BPPARAM = param)
+
+# Combine afterwards
+bsmooth_obj <- bsseq::combine(bs_batch1, bs_batch2)
+
+#bsmooth_obj <- BSmooth(BSseq = bseq, verbose = TRUE)
+
+bsmooth_obj <- bsmooth_obj[keep,]
+saveRDS(bsmooth_obj, "/researchers/caitlin.page/cf_nano/r_output/bsmooth_obj_emseq_chr1.rds")
+```
+all_samples <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_all_healthy.rds")
+all_samples <- all_samples %>%
+  mutate(sample = case_when(sample == "a1" ~ "healthy_785",
+                            sample == "a2" ~ "healthy_036",
+                            sample == "a3" ~ "healthy_787",
+                            sample == "b1" ~ "healthy_786",
+                            sample == "b2" ~ "healthy_037",
+                            TRUE ~ "healthy_789"))
+```{r}
+betas_788 <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy_788.rds")
+```
+
+
+```{r}
+betas_788 <- betas_788 %>%
+    mutate(meth_status = strsplit(meth_pattern, ""), start = strsplit(genom_positions, ",")) %>%
+    unnest(meth_status, start) %>%
+    mutate(start = as.double(start))
+```
+
+```{r}
+betas_for_wgbs <- function(reads) {
+  # Split entire columns at once (vectorised, not row-wise)
+  meth_split <- strsplit(reads$meth_pattern, "")
+  pos_split  <- lapply(strsplit(reads$genom_positions, ","), as.double)
+  n          <- lengths(meth_split)   # CpGs per read
+
+  # Unnest with rep/unlist — much faster than tidyr::unnest
+  dt <- data.table(
+    sample      = rep(reads$sample,   n),
+    seqnames    = rep(reads$seqnames, n),
+    start       = unlist(pos_split,   use.names = FALSE),
+    meth_status = unlist(meth_split,  use.names = FALSE)
+  )
+
+  # Count M/U and compute beta in one grouped pass
+  result <- dt[, {
+    m <- sum(meth_status == "M")
+    u <- sum(meth_status == "U")
+    list(meth_count_pos = m, unmeth_count_pos = u, beta = m / (m + u))
+  }, keyby = .(sample, seqnames, start)]
+
+  # Collapse across samples (matches original behaviour)
+  unique(result[, .(sample, seqnames, start, meth_count_pos, unmeth_count_pos, beta)])
+}
+```
+
+
+```{r}
+betas_788 <- betas_for_wgbs(betas_788)
+```
+
+```{r}
+bsmooth_obj <- readRDS("/researchers/caitlin.page/cf_nano/r_output/bsmooth_obj_emseq_healthy.rds")
+```
+
+```{r}
+library(DMRcate)
+### dmrcate
+tissue <- factor(c("male", "male", "female", "female", "female", "female", "female"), levels = c("male", "female"))
+
+#Regular matrix design
+design <- model.matrix(~tissue)
+methdesign <- edgeR::modelMatrixMeth(design)
+
+#failed here because no significance - good
+seq_annot <- sequencing.annotate(bsmooth_obj, methdesign, all.cov = TRUE,
+                                 coef = 14, fdr=0.05)
+
+seq_dmrcate.res <- dmrcate(seq_annot, C=2, min.cpgs = 5)
+
+dmrcate_seq_dmr <- extractRanges(seq_dmrcate.res, genome = "hg38")
+dmrcate_seq_dmr <- dmrcate_seq_dmr %>% data.frame()
+dmrcate_seq_anno <- seq_annot@ranges %>% data.frame()
+
+saveRDS(dmrcate_seq_dmr, "/researchers/caitlin.page/cf_nano/r_output/dmr_emseq_healthy_sex.rds")
+saveRDS(dmrcate_seq_anno, "/researchers/caitlin.page/cf_nano/r_output/dm_emseq_healthy_sex.rds")
+```
+
 
 
