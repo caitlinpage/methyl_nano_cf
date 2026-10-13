@@ -1,0 +1,373 @@
+---
+title: "sexBasedHealthyDMR"
+author: "caitlinpage"
+date: "2026-10-13"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+# DMR identification
+
+```{r, eval=FALSE}
+betas <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_betas_healthy.rds")
+betas_c <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_betas_cancer.rds")
+b <- rbind(betas %>% data.frame(), betas_c %>% data.frame())
+b <- b %>% filter(seqnames == "chr1")
+b$cov <- b$meth_count_pos + b$unmeth_count_pos
+cols <- c("sample", "seqnames", "start", "meth_count_pos", "unmeth_count_pos", "cov")
+b <- b[,cols] %>% pivot_wider(names_from = sample, values_from = c(meth_count_pos, unmeth_count_pos, cov))
+b[is.na(b)] <- 0
+
+samples <- c(unique(betas$sample), unique(betas_c$sample))
+sample_stuff <- c(Type = c("healthy", "healthy", "healthy", "healthy", "healthy", "healthy", "cancer", "cancer", "cancer", "cancer", "cancer", "cancer")) %>% data.frame()
+rownames(sample_stuff) <- samples
+
+ranges <- b[,1:2]
+meth <- b[,3:14]
+colnames(meth) <- samples
+cov <- b[,27:38]
+colnames(cov) <- samples
+
+#### bsseq
+## make BSseq object
+bseq <- bsseq::BSseq(M = as.matrix(meth),
+                     Cov = as.matrix(cov), pData = sample_stuff,
+                     chr = ranges$seqnames, pos = as.numeric(ranges$start),
+                     sampleNames = samples)
+bseq <- sort(bseq)
+bseq <- bseq[which(rowSums(getCoverage(bseq) >= 10) == ncol(bseq)), ] 
+param <- BiocParallel::SnowParam(workers = 8, type = "SOCK")
+bs_batch1 <- BSmooth(bseq[, 1:6],  BPPARAM = param)
+bs_batch2 <- BSmooth(bseq[, 7:12], BPPARAM = param)
+
+# Combine afterwards
+bsmooth_obj <- bsseq::combine(bs_batch1, bs_batch2)
+
+#bsmooth_obj <- BSmooth(BSseq = bseq, verbose = TRUE)
+
+bsmooth_obj <- bsmooth_obj[keep,]
+saveRDS(bsmooth_obj, "/researchers/caitlin.page/cf_nano/r_output/bsmooth_obj_emseq_chr1.rds")
+```
+all_samples <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_all_healthy.rds")
+all_samples <- all_samples %>%
+  mutate(sample = case_when(sample == "a1" ~ "healthy_785",
+                            sample == "a2" ~ "healthy_036",
+                            sample == "a3" ~ "healthy_787",
+                            sample == "b1" ~ "healthy_786",
+                            sample == "b2" ~ "healthy_037",
+                            TRUE ~ "healthy_789"))
+                            
+
+
+
+```{r}
+betas_788 <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy_788.rds")
+betas_788$sample <- "healthy_788"
+```
+mm
+
+```{r}
+betas_788 <- betas_788 %>%
+    mutate(meth_status = strsplit(meth_pattern, ""), start = strsplit(genom_positions, ",")) %>%
+    unnest(meth_status, start) %>%
+    mutate(start = as.double(start))
+```
+
+```{r}
+betas_for_wgbs <- function(reads) {
+  # Split entire columns at once (vectorised, not row-wise)
+  meth_split <- strsplit(reads$meth_pattern, "")
+  pos_split  <- lapply(strsplit(reads$genom_positions, ","), as.double)
+  n          <- lengths(meth_split)   # CpGs per read
+
+  # Unnest with rep/unlist — much faster than tidyr::unnest
+  dt <- data.table(
+    sample      = rep(reads$sample,   n),
+    seqnames    = rep(reads$seqnames, n),
+    start       = unlist(pos_split,   use.names = FALSE),
+    meth_status = unlist(meth_split,  use.names = FALSE)
+  )
+
+  # Count M/U and compute beta in one grouped pass
+  result <- dt[, {
+    m <- sum(meth_status == "M")
+    u <- sum(meth_status == "U")
+    list(meth_count_pos = m, unmeth_count_pos = u, beta = m / (m + u))
+  }, keyby = .(sample, seqnames, start)]
+
+  # Collapse across samples (matches original behaviour)
+  unique(result[, .(sample, seqnames, start, meth_count_pos, unmeth_count_pos, beta)])
+}
+```
+mmm
+
+```{r}
+betas_788_b <- betas_for_wgbs(betas_788)
+betas_788_b <- betas_788_b %>% filter(seqnames %in% seqs)
+```
+```{r}
+betas_788_b$cov <- betas_788_b$meth_count_pos + betas_788_b$unmeth_count_pos
+```
+
+samples <- c(unique(betas$sample), unique(betas_c$sample))
+sample_stuff <- c(Type = c("female")) %>% data.frame()
+rownames(sample_stuff) <- samples
+
+ranges <- b[,1:2]
+meth <- b[,3:14]
+colnames(meth) <- samples
+cov <- b[,27:38]
+colnames(cov) <- samples
+
+#### bsseq
+## make BSseq object
+bseq <- bsseq::BSseq(M = as.matrix(meth),
+                     Cov = as.matrix(cov), pData = sample_stuff,
+                     chr = ranges$seqnames, pos = as.numeric(ranges$start),
+                     sampleNames = samples)
+bseq <- sort(bseq)
+bseq <- bseq[which(rowSums(getCoverage(bseq) >= 10) == ncol(bseq)), ] 
+param <- BiocParallel::SnowParam(workers = 8, type = "SOCK")
+bs_batch1 <- BSmooth(bseq[, 1:6],  BPPARAM = param)
+```{r}
+bsmooth_obj <- readRDS("/researchers/caitlin.page/cf_nano/r_output/bsmooth_obj_emseq_healthy.rds")
+bsmooth_obj
+```
+```{r}
+bsmooth_obj$Type
+```
+```{r}
+bsmooth_obj@rowRanges
+```
+```{r}
+bsmooth_obj@colData
+```
+```{r}
+bsmooth_obj@assays
+```
+```{r}
+bsmooth_obj@assays@data$coef
+```
+
+
+# problem - original version didn't have sex chromosomes - so need to redo and add them back in
+
+```{r}
+all_samples <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_all_healthy.rds")
+
+all_samples <- all_samples %>% data.frame() %>% filter(seqnames %in% seqs)
+```
+```{r}
+unique(all_samples$seqnames)
+```
+
+```{r}
+library(plyranges)
+library(dplyr)
+library(stringr)
+library(TxDb.Hsapiens.UCSC.hg38.knownGene)
+library(BSgenome.Hsapiens.UCSC.hg38)
+library(ggplot2)
+library(DMRcate)
+library(bsseq)
+library(edgeR)
+```
+
+
+```{r}
+all_samples <- all_samples %>%
+  mutate(sample = case_when(sample == "a1" ~ "healthy_785",
+                            sample == "a2" ~ "healthy_036",
+                            sample == "a3" ~ "healthy_787",
+                            sample == "b1" ~ "healthy_786",
+                            sample == "b2" ~ "healthy_037",
+                            TRUE ~ "healthy_789"))
+
+all_samples_sex <- all_samples %>% filter(seqnames %in% c("chrX", "chrY"))
+```
+```{r}
+all_samples_sex <- all_samples_sex %>%
+    mutate(meth_status = strsplit(meth_pattern, ""), start = strsplit(genom_positions, ",")) %>%
+    unnest(meth_status, start) %>%
+    mutate(start = as.double(start))
+```
+```{r}
+all_samples_sex <- betas_for_wgbs(all_samples_sex)
+all_samples_sex$cov <- all_samples_sex$meth_count_pos + all_samples_sex$unmeth_count_pos
+all_samples_sex <- data.frame(all_samples_sex)
+```
+
+* for sex chrom of rest
+```{r}
+cols <- c("sample", "seqnames", "start", "meth_count_pos", "unmeth_count_pos", "cov")
+b <- all_samples_sex[,cols] %>% pivot_wider(names_from = sample, values_from = c(meth_count_pos, unmeth_count_pos, cov))
+b[is.na(b)] <- 0
+```
+
+```{r}
+samples <- unique(all_samples_sex$sample)
+sample_stuff <- c(Type = c("male", "male", "female", "female", "female", "female")) %>% data.frame()
+rownames(sample_stuff) <- samples
+
+ranges <- b[,1:2]
+meth <- b[,3:8]
+colnames(meth) <- samples
+cov <- b[,15:20]
+colnames(cov) <- samples
+
+#### bsseq
+## make BSseq object
+bseq <- bsseq::BSseq(M = as.matrix(meth),
+                     Cov = as.matrix(cov), pData = sample_stuff,
+                     chr = ranges$seqnames, pos = as.numeric(ranges$start),
+                     sampleNames = samples)
+bseq <- sort(bseq)
+bseq <- bseq[which(rowSums(getCoverage(bseq) >= 10) == ncol(bseq)), ] 
+#param <- BiocParallel::SnowParam(workers = 8, type = "SOCK")
+bs_batch1 <- BSmooth(bseq)
+```
+```{r}
+ranges
+```
+
+* for 788
+
+```{r}
+cols <- c("sample", "seqnames", "start", "meth_count_pos", "unmeth_count_pos", "cov")
+b <- data.frame(betas_788_b)
+
+samples <- unique(b$sample)
+sample_stuff <- c(Type = c("female")) %>% data.frame()
+rownames(sample_stuff) <- samples
+
+ranges <- b[,2:3]
+meth <- b[,4]
+#colnames(meth) <- samples
+cov <- b[,7]
+#colnames(cov) <- samples
+
+#### bsseq
+## make BSseq object
+bseq <- bsseq::BSseq(M = as.matrix(meth),
+                     Cov = as.matrix(cov), pData = sample_stuff,
+                     chr = ranges$seqnames, pos = as.numeric(ranges$start),
+                     sampleNames = samples)
+bseq <- sort(bseq)
+bseq <- bseq[which(rowSums(getCoverage(bseq) >= 10) == ncol(bseq)), ] 
+#param <- BiocParallel::SnowParam(workers = 8, type = "SOCK")
+bs_batch1_788 <- BSmooth(bseq)
+```
+
+
+* put them all together
+```{r}
+bsmooth_obj
+```
+```{r}
+sampleNames(bsmooth_obj)
+sampleNames(bs_batch1)
+sampleNames(bs_batch1_788)
+```
+
+```{r}
+pData(bsmooth_obj)
+pData(bs_batch1)
+pData(bs_batch1_788)
+```
+```{r}
+colnames(pData(bsmooth_obj))
+colnames(pData(bs_batch1)) <- "Type"
+colnames(pData(bs_batch1_788)) <- "Type"
+```
+
+```{r}
+pData(bsmooth_obj) <- pData(bs_batch1)
+pData(bs_batch1)
+pData(bs_batch1_788)
+```
+
+```{r}
+bs_combined <- rbind(bsmooth_obj, bs_batch1)
+```
+```{r}
+bs_combined@rowRanges
+```
+```{r}
+bs_batch1_788@rowRanges
+```
+
+
+```{r}
+bs_combined <- combine(bs_combined, bs_batch1_788)
+```
+
+```{r}
+bs_combined_ <- BSmooth(bs_combined)
+```
+```{r}
+sampleNames(bs_combined_)
+```
+
+```{r}
+pData(bs_combined_)
+```
+```{r}
+rowRanges(bs_combined_)
+```
+
+* dmr detectuib
+
+```{r}
+library(DMRcate)
+```
+
+```{r}
+design
+```
+```{r}
+methdesign
+```
+
+```{r}
+### dmrcate
+tissue <- factor(c("male", "male", "female", "female", "female", "female", "female"), levels = c("male", "female"))
+
+#Regular matrix design
+design <- model.matrix(~tissue)
+methdesign <- edgeR::modelMatrixMeth(design)
+
+#failed here because no significance - good
+seq_annot <- sequencing.annotate(bs_combined_, methdesign, all.cov = TRUE,
+                                 coef = "tissuefemale", fdr=0.05)
+
+seq_dmrcate.res <- dmrcate(seq_annot, C=2, min.cpgs = 5)
+
+dmrcate_seq_dmr <- extractRanges(seq_dmrcate.res, genome = "hg38")
+dmrcate_seq_dmr <- dmrcate_seq_dmr %>% data.frame()
+dmrcate_seq_anno <- seq_annot@ranges %>% data.frame()
+
+saveRDS(dmrcate_seq_dmr, "/researchers/caitlin.page/cf_nano/r_output/dmr_emseq_healthy_sex.rds")
+saveRDS(dmrcate_seq_anno, "/researchers/caitlin.page/cf_nano/r_output/dm_emseq_healthy_sex.rds")
+```
+
+
+# analyse dmrs
+
+* would expect more dmrs on X chromosome, same as with dau
+
+```{r}
+dmrcate_seq_dmr %>% tail()
+```
+```{r}
+dmrcate_seq_dmr %>% group_by(seqnames) %>% summarise(n=n())
+```
+
+```{r}
+dmrcate_seq_dmr %>% mutate(seqnames = factor(seqnames, levels = seqs)) %>%
+  ggplot(aes(x = seqnames, fill = seqnames)) +
+    geom_bar() +
+  theme(legend.position = "none")
+```
+* so all dmrs were found on chromosome X
+* that's good
