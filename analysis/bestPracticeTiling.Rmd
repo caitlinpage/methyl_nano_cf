@@ -1,0 +1,15 @@
+---
+title: "bestPracticeTiling"
+author: "caitlinpage"
+date: "2026-10-15"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+## Introduction
+
+```{r}
+
+```
+
