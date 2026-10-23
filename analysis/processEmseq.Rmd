@@ -716,3 +716,22 @@ saveRDS(ts.gene_optiles, "/researchers/caitlin.page/cf_nano/r_output/dtu_tiles_e
 ```
 mmmmmmmmmmm
 mmm
+```{r}
+y <- DGEList(as.matrix(dtu_optile[,2:13]), group = c(1,1,1,1,1,1,2,2,2,2,2,2), genes = dtu_optile[,c("gene_id", "transcript")])
+design <- model.matrix(~ c(1,1,1,1,1,1,2,2,2,2,2,2), data = y$samples)
+fit <- glmQLFit(y, design, robust=TRUE)
+ds <- diffSpliceDGE(fit, coef = 2, geneid = "gene_id", exonid = "transcript")
+ts.gene_optiles <- topSpliceDGE(ds, test = "gene", number = Inf)
+
+
+ts.gene_optiles <- ts.gene_optiles %>%
+  mutate(region_id = gene_id) %>%
+  separate_wider_delim(gene_id, delim = ":", names = c("seqnames", "gene_id")) %>%
+  mutate(seqnames = gsub("chrchr", "chr", seqnames)) %>%
+  separate_wider_delim(gene_id, delim = "-", names = c("start", "end"))
+ts.gene_optiles$start <- as.double(ts.gene_optiles$start)
+ts.gene_optiles$end <- as.double(ts.gene_optiles$end)
+ts.gene_optiles$dtu_rank <- 1:nrow(ts.gene_optiles)
+saveRDS(ts.gene_optiles, "/researchers/caitlin.page/cf_nano/r_output/dtu_tiles_emseq_cancer_healthy.rds")
+```
+
