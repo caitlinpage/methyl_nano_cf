@@ -1,0 +1,678 @@
+---
+title: "allEmseq"
+author: "caitlinpage"
+date: "2026-10-19"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+## Introduction
+
+
+```{r}
+library(BSgenome.Hsapiens.UCSC.hg38)
+library(data.table)
+library(plyranges)
+library(tidyr)
+library(stringr)
+library(dplyr)
+library(ggplot2)
+```
+
+# Obtain beta values
+```{r}
+seqs <- c("chr1", "chr2", "chr3", "chr4", "chr5", "chr6", "chr7", "chr8", "chr9", "chr10", "chr11", "chr12", "chr13", "chr14", "chr15", "chr16", "chr17", "chr18", "chr19", "chr20", "chr21", "chr22", "chrX", "chrY")
+```
+
+```{r}
+seqs <- c(GenomicRanges::seqnames(BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38)[1:22], "chrX", "chrY")
+
+cg_sites <- lapply(seqs, function(x) {
+  cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38[[x]])),
+        seqnames = x
+  )}) %>% bind_rows()
+
+```
+
+```{r}
+process_wgbs_short <- function(bismark, bed = NULL) {
+  read <- bismark
+  names(read) <- c("read_id", "strand", "seqnames", "start", "meth_status")
+  read$end <- read$start
+
+  read_overlap <- read
+  setDT(read_overlap)
+  read_overlap[, meth_status := ifelse(meth_status == "Z", "M", "U")]
+  read_overlap[, meth_pattern := paste0(meth_status, collapse = ""), by = read_id]
+  read_overlap[, num_meth := str_count(meth_pattern, pattern = "M")]
+  read_overlap[, total := str_length(meth_pattern)]
+  read_overlap[, alpha := num_meth/total]
+  read_overlap[, genom_positions := paste0(start, collapse = ","), by = read_id]
+
+  read_overlap <- read_overlap %>% .[order(.$read_id),]
+
+  read_overlap[, read_start := min(start), by = read_id]
+  read_overlap[, read_end := max(start), by = read_id]
+
+  read_overlap <- data.frame(read_overlap)
+  read_overlap$start <- read_overlap$read_start
+  read_overlap$end <- read_overlap$read_end
+
+  cols <- c("seqnames", "start", "end", "read_start", "read_end", "strand", "read_id", "meth_pattern", "num_meth", "total", "alpha", "genom_positions")
+
+  read_overlap <- read_overlap[,cols]
+  read_overlap <- distinct(read_overlap)
+  read_overlap
+}
+```
+```{r}
+cancer_files <- list.files("/researchers/caitlin.page/cf_nano/fastq_tothill_emseq_cancer/emseq_cancer")[grep("CpG_OT", list.files("/researchers/caitlin.page/cf_nano/fastq_tothill_emseq_cancer/emseq_cancer"))]
+```
+* 1031, 1035, 0791, 0455, 1033, 1032, 0790, 1034
+* 455 and 1033 are same patient
+```{r}
+cancer_files <- cancer_files[grep(c("1031|1035|0791|0455|1033|1032|0790|1034"), cancer_files)]
+```
+```{r}
+c <- as.character(c(0455, 0790, 0791, 1031, 1032, 1033, 1034, 1035))
+```
+
+```{r}
+path <- "/researchers/caitlin.page/cf_nano/fastq_tothill_emseq_cancer/emseq_cancer/"
+```
+```{r}
+paste0(path, cancer_files[2])
+```
+```{r}
+bis
+```
+
+```{r}
+bis <- fread(paste0(path, cancer_files[1]))
+a1 <- process_wgbs_short(bis)
+  a1 <- data.frame(a1)
+  a1 <- a1 %>% filter(seqnames %in% seqs)
+  a1$sample <- paste0("cancer_", c[1])
+  saveRDS(a1, paste0("/researchers/caitlin.page/cf_nano/r_output/emseq_cancer_", c[1], ".rds"))
+```
+mmmmm
+mmmmmmm
+```{r}
+for(i in 2:8) {
+  bis <- fread(paste0(path, cancer_files[i]))
+  a1 <- process_wgbs_short(bis)
+  a1 <- data.frame(a1)
+  a1 <- a1 %>% filter(seqnames %in% seqs)
+  a1$sample <- paste0("cancer_", c[i])
+  saveRDS(a1, paste0("/researchers/caitlin.page/cf_nano/r_output/emseq_cancer_", c[i], ".rds"))
+}
+```
+
+```{r}
+paste0("/researchers/caitlin.page/cf_nano/r_output/emseq_cancer_", c[5], ".rds")
+```
+
+
+```{r}
+df <- read.table("/researchers/caitlin.page/cf_nano/r_output/emseq_cancer_PRJ240790.tsv")
+```
+
+
+
+
+```{r}
+betas_for_wgbs <- function(reads) {
+  # Split entire columns at once (vectorised, not row-wise)
+  meth_split <- strsplit(reads$meth_pattern, "")
+  pos_split  <- lapply(strsplit(reads$genom_positions, ","), as.double)
+  n          <- lengths(meth_split)   # CpGs per read
+
+  # Unnest with rep/unlist — much faster than tidyr::unnest
+  dt <- data.table(
+    sample      = rep(reads$sample,   n),
+    seqnames    = rep(reads$seqnames, n),
+    start       = unlist(pos_split,   use.names = FALSE),
+    meth_status = unlist(meth_split,  use.names = FALSE)
+  )
+
+  # Count M/U and compute beta in one grouped pass
+  result <- dt[, {
+    m <- sum(meth_status == "M")
+    u <- sum(meth_status == "U")
+    list(meth_count_pos = m, unmeth_count_pos = u, beta = m / (m + u))
+  }, keyby = .(seqnames, start)]
+
+  # Collapse across samples (matches original behaviour)
+  unique(result[, .(seqnames, start, meth_count_pos, unmeth_count_pos, beta)])
+}
+```
+
+
+```{r}
+b <- read.table("/researchers/caitlin.page/cf_nano/r_output/beta_PRJ240790.tsv", header = TRUE)
+```
+
+```{r}
+b2 <- read.table("/researchers/caitlin.page/cf_nano/r_output/beta_PRJ240791.tsv", header = TRUE)
+```
+
+
+```{r}
+b3 <- read.table("/researchers/caitlin.page/cf_nano/r_output/beta_PRJ230455.tsv", header = TRUE)
+b4 <- read.table("/researchers/caitlin.page/cf_nano/r_output/beta_PRJ241033.tsv", header = TRUE)
+b5 <- read.table("/researchers/caitlin.page/cf_nano/r_output/beta_PRJ241034.tsv", header = TRUE)
+b6 <- read.table("/researchers/caitlin.page/cf_nano/r_output/beta_PRJ241031.tsv", header = TRUE)
+b7 <- read.table("/researchers/caitlin.page/cf_nano/r_output/beta_PRJ241035.tsv", header = TRUE)
+b8 <- read.table("/researchers/caitlin.page/cf_nano/r_output/beta_PRJ241032.tsv", header = TRUE)
+```
+```{r}
+library(purrr)
+```
+
+```{r}
+dfs <- list(
+  b_0455 = b3 %>% select(seqnames, start, beta = beta),
+  b_0790 = b %>% select(seqnames, start, beta = beta),
+  b_0791 = b2 %>% select(seqnames, start, beta = beta),
+  b_1031 = b6 %>% select(seqnames, start, beta = beta),
+  b_1032 = b8 %>% select(seqnames, start, beta = beta),
+  b_1033 = b4 %>% select(seqnames, start, beta = beta),
+  b_1034 = b5 %>% select(seqnames, start, beta = beta),
+  b_1035 = b7 %>% select(seqnames, start, beta = beta))
+```
+
+
+```{r}
+betas_rest <- imap(dfs, ~ .x %>% rename(!!.y := beta)) %>%
+  reduce(full_join, by = c("seqnames", "start"))
+```
+
+
+```{r}
+dfs <- list(
+  m_0455 = b3 %>% select(seqnames, start, meth = meth_count_pos),
+  m_0790 = b %>% select(seqnames, start, meth = meth_count_pos),
+  m_0791 = b2 %>% select(seqnames, start, meth = meth_count_pos),
+  m_1031 = b6 %>% select(seqnames, start, meth = meth_count_pos),
+  m_1032 = b8 %>% select(seqnames, start, meth = meth_count_pos),
+  m_1033 = b4 %>% select(seqnames, start, meth = meth_count_pos),
+  m_1034 = b5 %>% select(seqnames, start, meth = meth_count_pos),
+  m_1035 = b7 %>% select(seqnames, start, meth = meth_count_pos))
+meth_rest <- imap(dfs, ~ .x %>% rename(!!.y := meth)) %>%
+  reduce(full_join, by = c("seqnames", "start"))
+```
+
+```{r}
+dfs <- list(
+  u_0455 = b3 %>% select(seqnames, start, unmeth = unmeth_count_pos),
+  u_0790 = b %>% select(seqnames, start, unmeth = unmeth_count_pos),
+  u_0791 = b2 %>% select(seqnames, start, unmeth = unmeth_count_pos),
+  u_1031 = b6 %>% select(seqnames, start, unmeth = unmeth_count_pos),
+  u_1032 = b8 %>% select(seqnames, start, unmeth = unmeth_count_pos),
+  u_1033 = b4 %>% select(seqnames, start, unmeth = unmeth_count_pos),
+  u_1034 = b5 %>% select(seqnames, start, unmeth = unmeth_count_pos),
+  u_1035 = b7 %>% select(seqnames, start, unmeth = unmeth_count_pos))
+unmeth_rest <- imap(dfs, ~ .x %>% rename(!!.y := unmeth)) %>%
+  reduce(full_join, by = c("seqnames", "start"))
+```
+
+```{r}
+dfs <- list(
+  c_0455 = b3 %>% mutate(cov = unmeth_count_pos + meth_count_pos) %>% select(seqnames, start, cov),
+  c_0790 = b %>% mutate(cov = unmeth_count_pos + meth_count_pos) %>% select(seqnames, start, cov),
+  c_0791 = b2 %>% mutate(cov = unmeth_count_pos + meth_count_pos) %>% select(seqnames, start, cov),
+  c_1031 = b6 %>% mutate(cov = unmeth_count_pos + meth_count_pos) %>% select(seqnames, start, cov),
+  c_1032 = b8 %>% mutate(cov = unmeth_count_pos + meth_count_pos) %>% select(seqnames, start, cov),
+  c_1033 = b4 %>% mutate(cov = unmeth_count_pos + meth_count_pos) %>% select(seqnames, start, cov),
+  c_1034 = b5 %>% mutate(cov = unmeth_count_pos + meth_count_pos) %>% select(seqnames, start, cov),
+  c_1035 = b7 %>% mutate(cov = unmeth_count_pos + meth_count_pos) %>% select(seqnames, start, cov))
+cov_rest <- imap(dfs, ~ .x %>% rename(!!.y := cov)) %>%
+  reduce(full_join, by = c("seqnames", "start"))
+```
+
+```{r}
+library(tidyr)
+```
+
+
+
+```{r}
+betas_healthy <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_betas_healthy.rds")
+betas_cancer <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_betas_cancer.rds")
+```
+
+```{r}
+healthy_cov <- betas_healthy %>% data.frame() %>% mutate(cov = meth_count_pos + unmeth_count_pos) %>%
+  select(seqnames, start, sample, cov) %>%
+  pivot_wider(
+    names_from  = sample,
+    values_from = cov
+  )
+```
+
+```{r}
+cancer_cov <- betas_cancer %>% data.frame() %>% mutate(cov = meth_count_pos + unmeth_count_pos) %>%
+  select(seqnames, start, sample, cov) %>%
+  pivot_wider(
+    names_from  = sample,
+    values_from = cov
+  )
+```
+
+```{r}
+all_cov <- full_join(healthy_cov, cancer_cov, by = c("seqnames", "start")) %>% full_join(., cov_rest, by = c("seqnames", "start")) %>% filter(seqnames %in% seqs)
+```
+
+```{r}
+healthy_b <- betas_healthy %>% data.frame() %>% 
+  select(seqnames, start, sample, beta) %>%
+  pivot_wider(
+    names_from  = sample,
+    values_from = beta
+  )
+
+cancer_b <- betas_cancer %>% data.frame() %>% 
+  select(seqnames, start, sample, beta) %>%
+  pivot_wider(
+    names_from  = sample,
+    values_from = beta
+  )
+
+all_beta <- full_join(healthy_b, cancer_b, by = c("seqnames", "start")) %>% full_join(., betas_rest, by = c("seqnames", "start")) %>% filter(seqnames %in% seqs)
+```
+
+
+# make a pca plot of all these samples
+
+* technically I think a couple are still missing but whatever
+
+```{r}
+all_cov
+```
+
+```{r}
+library(edgeR)
+```
+```{r}
+plotMDS(as.matrix(all_beta[,3:22]), top = 50000, labels = colnames(all_beta)[3:22], main = "MDS")
+```
+
+## filter the betas
+
+```{r}
+sample_cols <- setdiff(names(all_cov), c("seqnames", "start"))
+```
+
+```{r}
+all_cov_filt <- all_cov[rowSums(all_cov[, sample_cols] >= 10, na.rm = FALSE) == length(sample_cols),]
+all_cov_filt <- na.omit(all_cov_filt)
+```
+
+
+```{r}
+all_beta_filt <- all_beta %>% semi_join(all_cov_filt, by = c("seqnames", "start"))
+```
+
+
+```{r}
+plotMDS(as.matrix(all_beta_filt[,3:22]), top = 10000, labels = colnames(all_beta_filt)[3:22], main = "MDS")
+```
+
+
+```{r}
+plotMDS(as.matrix(all_beta_filt[,3:22]), top = 500000, labels = colnames(all_beta_filt)[3:22], main = "MDS")
+```
+
+```{r}
+all_beta
+```
+
+## take out sex?
+
+```{r}
+plotMDS(as.matrix(filter(all_beta_filt, !seqnames %in% c("chrX", "chrY"))[,3:22]), top = 500000, labels = colnames(all_beta_filt)[3:22], main = "MDS")
+```
+
+```{r}
+saveRDS(all_beta, "/researchers/caitlin.page/cf_nano/r_output/emseq_betas_more.rds")
+saveRDS(all_cov, "/researchers/caitlin.page/cf_nano/r_output/emseq_betas_cov_more.rds")
+```
+
+
+```{r}
+metadata <- read.csv("/researchers/caitlin.page/cf_nano/r_output/PPGL_twist_annotated.csv")
+```
+
+```{r}
+all_beta_c <- all_beta[,c(1:2,9:22)]
+```
+
+```{r}
+plotMDS(as.matrix(filter(all_beta_filt, !seqnames %in% c("chrX", "chrY"))[,3:22]), top = 500000, labels = colnames(all_beta_filt)[3:22], main = "MDS")
+```
+```{r}
+metadata_filt <- metadata %>% 
+  mutate(my_col_name = case_when(
+                                 lib_ID == "LPRJ241035" ~ "b_1035",
+                                 lib_ID == "LPRJ241034" ~ "b_1034",
+                                 lib_ID == "LPRJ241033" ~ "b_1033",
+                                 lib_ID == "LPRJ241032" ~ "b_1032",
+                                 lib_ID == "LPRJ241031" ~ "b_1031",
+                                 lib_ID == "LPRJ240791" ~ "b_0791",
+                                 lib_ID == "LPRJ240790" ~ "b_0790",
+                                 lib_ID == "LPRJ230455" ~ "b_0455",
+                                 lib_ID == "LPRJ230457" ~ "cancer_0457",
+                                 lib_ID == "LPRJ230456" ~ "cancer_0456",
+                                 lib_ID == "LPRJ230454" ~ "cancer_0454",
+                                 lib_ID == "LPRJ230225" ~ "cancer_0225",
+                                 lib_ID == "LPRJ230224" ~ "cancer_0224",
+                                 lib_ID == "LPRJ230223" ~ "cancer_0223"))
+metadata_filt <- metadata_filt %>% filter(!is.na(my_col_name))
+```
+
+```{r}
+patients <- unique(metadata_filt$patient)
+colours <- setNames(
+  c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00",
+    "#A65628", "#F781BF", "#999999", "#00BCD4", "#FFEB3B"),
+  patients
+)
+```
+
+```{r}
+metadata_filt <- metadata_filt %>%
+  mutate(colour = colours[as.character(patient)],
+         patient = factor(patient))
+metadata_filt <- metadata_filt[match(colnames(all_beta_c)[3:16], metadata_filt$my_col_name),]
+```
+
+```{r}
+col_vec <- colours[as.character(metadata_filt$patient)]
+```
+
+
+```{r}
+?plotMDS
+```
+
+# coloured by patient
+
+```{r}
+patients <- unique(metadata_filt$patient)
+colours <- setNames(
+  c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00",
+    "#A65628", "#F781BF", "#999999", "#00BCD4", "#FFEB3B"),
+  patients
+)
+metadata_filt <- metadata_filt %>%
+  mutate(colour = colours[as.character(patient)],
+         patient = factor(patient))
+metadata_filt <- metadata_filt[match(colnames(all_beta_c)[3:16], metadata_filt$my_col_name),]
+col_vec <- colours[as.character(metadata_filt$patient)]
+plotMDS(as.matrix(filter(all_beta_filt, !seqnames %in% c("chrX", "chrY"))[,9:22]), col = col_vec, top = 500000, labels = colnames(all_beta_filt)[9:22], main = "MDS")
+legend("topright",
+       legend = patients,
+       col = colours[as.character(patients)],
+       pch = 16,
+       cex = 0.8)
+```
+
+## all dims
+```{r}
+plotMDS(as.matrix(all_beta_filt[,9:22]), col = col_vec, top = 500000, labels = colnames(all_beta_filt)[9:22], dim.plot = c(2,3), main = "Dim 2 vs 3")
+legend("topright",
+       legend = patients,
+       col = colours[as.character(patients)],
+       pch = 16,
+       cex = 0.8)
+
+plotMDS(as.matrix(all_beta_filt[,9:22]), col = col_vec, top = 500000, labels = colnames(all_beta_filt)[9:22], dim.plot = c(3,4), main = "Dim 3 vs 4")
+legend("topright",
+       legend = patients,
+       col = colours[as.character(patients)],
+       pch = 16,
+       cex = 0.8)
+
+plotMDS(as.matrix(all_beta_filt[,9:22]), col = col_vec, top = 500000, labels = colnames(all_beta_filt)[9:22], dim.plot = c(4,5), main = "Dim 4 vs 5")
+legend("topright",
+       legend = patients,
+       col = colours[as.character(patients)],
+       pch = 16,
+       cex = 0.8)
+```
+
+
+# coloured by sex
+
+```{r}
+sex <- unique(metadata_filt$sex)
+colours <- setNames(
+  c("#E41A1C", "#377EB8"),
+  sex
+)
+
+metadata_filt <- metadata_filt %>%
+  mutate(colour = colours[as.character(sex)],
+         sex = factor(sex))
+#metadata_filt <- metadata_filt[match(colnames(all_beta_c)[3:16], metadata_filt$my_col_name),]
+
+col_vec <- colours[as.character(metadata_filt$sex)]
+
+plotMDS(as.matrix(filter(all_beta_filt, !seqnames %in% c("chrX", "chrY"))[,9:22]), col = col_vec, top = 500000, labels = colnames(all_beta_filt)[9:22], main = "MDS")
+legend("topright",
+       legend = sex,
+       col = colours[as.character(sex)],
+       pch = 16,
+       cex = 0.8)
+
+plotMDS(as.matrix(all_beta_filt[,9:22]), col = col_vec, top = 500000, labels = colnames(all_beta_filt)[9:22], main = "MDS")
+legend("topright",
+       legend = sex,
+       col = colours[as.character(sex)],
+       pch = 16,
+       cex = 0.8)
+```
+```{r}
+sex <- unique(metadata_filt$sex)
+colours <- setNames(
+  c("#E41A1C", "#377EB8"),
+  sex
+)
+
+metadata_filt <- metadata_filt %>%
+  mutate(colour = colours[as.character(sex)],
+         sex = factor(sex))
+#metadata_filt <- metadata_filt[match(colnames(all_beta_c)[3:16], metadata_filt$my_col_name),]
+
+col_vec <- c(rep(colours[1], times = 2), rep(colours[2], times = 4), colours[as.character(metadata_filt$sex)])
+
+plotMDS(as.matrix(all_beta_filt[,3:22]), col = col_vec, top = 500000, labels = colnames(all_beta_filt)[3:22], main = "MDS")
+legend("topright",
+       legend = sex,
+       col = colours[as.character(sex)],
+       pch = 16,
+       cex = 0.8)
+```
+*036 and 037 are male, rest healthy female
+
+```{r}
+plotMDS(as.matrix(all_beta_filt[,3:22]), col = col_vec, top = 500000, labels = colnames(all_beta_filt)[3:22], dim.plot = c(2,3), main = "Dim 2 vs 3")
+legend("topright",
+       legend = sex,
+       col = colours[as.character(sex)],
+       pch = 16,
+       cex = 0.8)
+
+plotMDS(as.matrix(all_beta_filt[,3:22]), col = col_vec, top = 500000, labels = colnames(all_beta_filt)[3:22], dim.plot = c(3,4), main = "Dim 3 vs 4")
+legend("topright",
+       legend = sex,
+       col = colours[as.character(sex)],
+       pch = 16,
+       cex = 0.8)
+
+plotMDS(as.matrix(all_beta_filt[,3:22]), col = col_vec, top = 500000, labels = colnames(all_beta_filt)[3:22], dim.plot = c(4,5), main = "Dim 4 vs 5")
+legend("topright",
+       legend = sex,
+       col = colours[as.character(sex)],
+       pch = 16,
+       cex = 0.8)
+```
+
+
+# ichor fraction
+```{r}
+ichor <- sort(unique(metadata_filt$ichor_fraction))
+colours <- setNames(
+  c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00",
+    "#A65628", "#F781BF", "#999999", "#00BCD4", "#17BECF",
+    "#8C564B"),
+  ichor
+)
+col_vec <- colours[as.character(metadata_filt$ichor_fraction)]
+plotMDS(as.matrix(all_beta_filt[,9:22]), col = col_vec, top = 500000, labels = colnames(all_beta_filt)[9:22], main = "MDS")
+legend("topright",
+       legend = ichor,
+       col = colours[as.character(ichor)],
+       pch = 16,
+       cex = 0.8)
+```
+```{r}
+if_g <- c("0", "<5", "5<if<10", "10<if<20", "30<if<40", ">50")
+```
+
+```{r}
+metadata_filt <- metadata_filt %>% 
+  mutate(ichor_group = case_when(ichor_fraction == 0 ~ "0",
+                                 ichor_fraction > 0 & ichor_fraction < 5 ~ "<5",
+                                 ichor_fraction > 5 & ichor_fraction < 10 ~ "5<if<10",
+                                 ichor_fraction > 10 & ichor_fraction < 20 ~ "10<if<20",
+                                 ichor_fraction > 30 & ichor_fraction < 40 ~ "30<if<40",
+                                 ichor_fraction > 50 ~ ">50"))
+ichor <- if_g
+colours <- setNames(
+  c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00",
+    "#A65628"),
+  ichor
+)
+col_vec <- colours[as.character(metadata_filt$ichor_group)]
+plotMDS(as.matrix(all_beta_filt[,9:22]), col = col_vec, top = 500000, labels = colnames(all_beta_filt)[9:22], main = "MDS")
+legend("bottomright",
+       legend = ichor,
+       col = colours[as.character(ichor)],
+       pch = 16,
+       cex = 0.8)
+```
+* healthy would also have
+```{r}
+col_vec <- c(rep(colours[1], times = 6), colours[as.character(metadata_filt$ichor_group)])
+plotMDS(as.matrix(all_beta_filt[,3:22]), col = col_vec, top = 500000, labels = colnames(all_beta_filt)[3:22], main = "MDS")
+legend("bottomright",
+       legend = ichor,
+       col = colours[as.character(ichor)],
+       pch = 16,
+       cex = 0.8)
+```
+
+## dims
+
+```{r}
+plotMDS(as.matrix(all_beta_filt[,3:22]), col = col_vec, top = 500000, labels = colnames(all_beta_filt)[3:22], dim.plot = c(2,3), main = "Dim 2 vs 3")
+legend("topright",
+       legend = ichor,
+       col = colours[as.character(ichor)],
+       pch = 16,
+       cex = 0.8)
+
+plotMDS(as.matrix(all_beta_filt[,3:22]), col = col_vec, top = 500000, labels = colnames(all_beta_filt)[3:22], dim.plot = c(3,4), main = "Dim 3 vs 4")
+legend("topright",
+       legend = ichor,
+       col = colours[as.character(ichor)],
+       pch = 16,
+       cex = 0.8)
+plotMDS(as.matrix(all_beta_filt[,3:22]), col = col_vec, top = 500000, labels = colnames(all_beta_filt)[3:22], dim.plot = c(4,5), main = "Dim 4 vs 5")
+legend("topright",
+       legend = ichor,
+       col = colours[as.character(ichor)],
+       pch = 16,
+       cex = 0.8)
+```
+
+
+
+
+# cancer subtype
+
+```{r}
+unique(metadata_filt$genotype)
+```
+
+```{r}
+subtype <- unique(metadata_filt$genotype)
+colours <- setNames(
+  c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00",
+    "#A65628"),
+  subtype
+)
+col_vec <- colours[as.character(metadata_filt$genotype)]
+plotMDS(as.matrix(all_beta_filt[,9:22]), col = col_vec, top = 500000, labels = colnames(all_beta_filt)[9:22], main = "MDS")
+legend("bottomright",
+       legend = subtype,
+       col = colours[as.character(subtype)],
+       pch = 16,
+       cex = 0.8)
+```
+
+
+## dims
+
+```{r}
+plotMDS(as.matrix(all_beta_filt[,9:22]), col = col_vec, top = 500000, labels = colnames(all_beta_filt)[9:22], dim.plot = c(2,3), main = "Dim 2 vs 3")
+legend("bottomright",
+       legend = subtype,
+       col = colours[as.character(subtype)],
+       pch = 16,
+       cex = 0.8)
+
+plotMDS(as.matrix(all_beta_filt[,9:22]), col = col_vec, top = 500000, labels = colnames(all_beta_filt)[9:22], dim.plot = c(3,4), main = "Dim 3 vs 4")
+legend("bottomright",
+       legend = subtype,
+       col = colours[as.character(subtype)],
+       pch = 16,
+       cex = 0.8)
+
+plotMDS(as.matrix(all_beta_filt[,9:22]), col = col_vec, top = 500000, labels = colnames(all_beta_filt)[9:22], dim.plot = c(4,5), main = "Dim 4 vs 5")
+legend("bottomright",
+       legend = subtype,
+       col = colours[as.character(subtype)],
+       pch = 16,
+       cex = 0.8)
+```
+
+*hmm
+
+
+```{r}
+
+```
+
+plotMDS(beta_matrix, top = 10000000, labels = colnames(beta_matrix), main = "MDS of Beta Values")
+```{r}
+beta_matrix <- betas %>% filter(seqnames %in% seqs) %>%
+  select(sample, seqnames, start, beta) %>%
+  pivot_wider(names_from = sample, values_from = beta) %>%
+  select(-seqnames, -start) %>%
+  as.matrix()
+
+beta_matrix <- beta_matrix[complete.cases(beta_matrix), ]
+
+# plotMDS uses top 500 most variable CpGs by default
+plotMDS(beta_matrix, labels = colnames(beta_matrix), main = "MDS of Beta Values")
+```
+
+
+```{r, eval=FALSE}
+betas <- betas_for_wgbs(all_samples)
+saveRDS(betas, "/researchers/caitlin.page/cf_nano/r_output/emseq_betas_healthy.rds")
+```
+
