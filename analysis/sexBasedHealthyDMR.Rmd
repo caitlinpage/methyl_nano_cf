@@ -371,3 +371,91 @@ dmrcate_seq_dmr %>% mutate(seqnames = factor(seqnames, levels = seqs)) %>%
 ```
 * so all dmrs were found on chromosome X
 * that's good
+```{r}
+dmrcate_seq_dmr <- readRDS("/researchers/caitlin.page/cf_nano/r_output/dmr_emseq_healthy_sex.rds")
+dmrcate_seq_dmr$rank <- 1:nrow(dmrcate_seq_dmr)
+```
+
+# gst
+
+```{r}
+cpgs_tested <- rbind(betas_788_b %>% data.frame() %>% distinct(seqnames, start) %>% mutate(end = start, width = 1), 
+      all_samples_sex %>% distinct(seqnames, start) %>% mutate(end = start, width = 1),
+      bsmooth_obj@rowRanges %>% data.frame() %>% .[,1:4]) %>% distinct()
+```
+
+
+
+```{r}
+library(TxDb.Hsapiens.UCSC.hg38.knownGene)
+```
+
+```{r}
+genes_txdb <- genes(TxDb.Hsapiens.UCSC.hg38.knownGene)
+```
+```{r}
+#betas_d <- cpgs_tested %>% filter(seqnames %in% seqs) %>% mutate(cov = meth_count_pos + unmeth_count_pos) %>% filter(cov > 2) %>% distinct(seqnames, start)
+```
+```{r}
+genes_txdb <- find_overlaps(genes_txdb, as_granges(mutate(cpgs_tested, width = 1))) %>% data.frame() %>% group_by(seqnames, start, end, width, strand, gene_id) %>%
+  summarise(n_cg = n()) %>% as_granges()
+```
+
+```{r}
+genes_sex <- find_overlaps(genes_txdb, as_granges(dmrcate_seq_dmr)) %>% data.frame()
+```
+
+```{r}
+library(missMethyl)
+library(GO.db)
+library(org.Hs.eg.db)
+```
+mmm
+```{r}
+source("../code/runGST.R")
+gene_try <- genes_sex
+gene_info <- genes_txdb %>% data.frame() %>% mutate(is_de = ifelse(gene_id %in% gene_try$gene_id, 1, 0)) %>% distinct(gene_id, n_cg, is_de, width)
+
+run_test <- list(
+  sig.eg = gene_info %>% filter(is_de == 1) %>% .$gene_id,
+  universe = gene_info$gene_id,
+  freq = gene_info$n_cg,
+  de = gene_info$is_de,
+  equiv = gene_info$n_cg
+)
+
+gst_dmr <- run_miss_methyl_b(run_test, method = "Wallenius")
+```
+```{r}
+saveRDS(gst_dmr, "/researchers/caitlin.page/cf_nano/r_output/gst_emseq_healthy_sex_dmr.rds")
+```
+
+```{r}
+gst_dmr <- gst_dmr[[1]]
+```
+
+```{r}
+gst_dmr %>% filter(FDR < 0.05)
+```
+```{r}
+nrow(health_c)
+```
+
+```{r}
+health_pos <- bsmooth_obj@rowRanges
+health_m <- bsmooth_obj@assays@data$M
+health_c <- bsmooth_obj@assays@data$Cov
+```
+
+```{r}
+health_b <- health_m/health_c
+nrow(data.frame(health_pos))
+health_b <- cbind(data.frame(health_pos), health_b)
+```
+
+
+```{r}
+betas_788_b
+```
+
+
