@@ -50,3 +50,14 @@ ede elbow-detection algorithm from the R package inflection to the empirical SD 
 # CMRs Calling co-methylated regions
 
 
+# what we will focus on
+
+* we can compare to them with the variably methylated regions
+* they do a mann-whitney u test
+* I can run that as well
+* but thing with that is it only works on 2 samples
+* which means it a nice comparison point to us as we are not limited like that
+
+
+
+## could start that in a healthy male x female way?
