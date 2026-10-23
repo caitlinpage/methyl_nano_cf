@@ -8,7 +8,7 @@ library(dplyr)
 library(OpTiles)
 library(edgeR)
 
-seqs <- seqnames(BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38)[1:22]
+seqs <- c(seqnames(BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38)[1:22], "chrX", "chrY")
 
 cg_sites <- lapply(seqs, function(x) {
   cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38[[x]])),
