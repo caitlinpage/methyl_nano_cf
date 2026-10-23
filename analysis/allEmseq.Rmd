@@ -11,7 +11,6 @@ editor_options:
 
 
 ```{r}
-library(BSgenome.Hsapiens.UCSC.hg38)
 library(data.table)
 library(plyranges)
 library(tidyr)
@@ -25,15 +24,7 @@ library(ggplot2)
 seqs <- c("chr1", "chr2", "chr3", "chr4", "chr5", "chr6", "chr7", "chr8", "chr9", "chr10", "chr11", "chr12", "chr13", "chr14", "chr15", "chr16", "chr17", "chr18", "chr19", "chr20", "chr21", "chr22", "chrX", "chrY")
 ```
 
-```{r}
-seqs <- c(GenomicRanges::seqnames(BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38)[1:22], "chrX", "chrY")
 
-cg_sites <- lapply(seqs, function(x) {
-  cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38[[x]])),
-        seqnames = x
-  )}) %>% bind_rows()
-
-```
 
 ```{r}
 process_wgbs_short <- function(bismark, bed = NULL) {
@@ -69,26 +60,13 @@ process_wgbs_short <- function(bismark, bed = NULL) {
 ```{r}
 cancer_files <- list.files("/researchers/caitlin.page/cf_nano/fastq_tothill_emseq_cancer/emseq_cancer")[grep("CpG_OT", list.files("/researchers/caitlin.page/cf_nano/fastq_tothill_emseq_cancer/emseq_cancer"))]
 ```
-* 1031, 1035, 0791, 0455, 1033, 1032, 0790, 1034
-* 455 and 1033 are same patient
+
 ```{r}
 cancer_files <- cancer_files[grep(c("1031|1035|0791|0455|1033|1032|0790|1034"), cancer_files)]
 ```
-```{r}
-c <- as.character(c(0455, 0790, 0791, 1031, 1032, 1033, 1034, 1035))
-```
 
-```{r}
-path <- "/researchers/caitlin.page/cf_nano/fastq_tothill_emseq_cancer/emseq_cancer/"
-```
-```{r}
-paste0(path, cancer_files[2])
-```
-```{r}
-bis
-```
 
-```{r}
+```{r, eval=FALSE}
 bis <- fread(paste0(path, cancer_files[1]))
 a1 <- process_wgbs_short(bis)
   a1 <- data.frame(a1)
@@ -96,30 +74,14 @@ a1 <- process_wgbs_short(bis)
   a1$sample <- paste0("cancer_", c[1])
   saveRDS(a1, paste0("/researchers/caitlin.page/cf_nano/r_output/emseq_cancer_", c[1], ".rds"))
 ```
-mmmmm
-mmmmmmm
-```{r}
-for(i in 2:8) {
-  bis <- fread(paste0(path, cancer_files[i]))
-  a1 <- process_wgbs_short(bis)
-  a1 <- data.frame(a1)
-  a1 <- a1 %>% filter(seqnames %in% seqs)
-  a1$sample <- paste0("cancer_", c[i])
-  saveRDS(a1, paste0("/researchers/caitlin.page/cf_nano/r_output/emseq_cancer_", c[i], ".rds"))
-}
-```
 
-```{r}
-paste0("/researchers/caitlin.page/cf_nano/r_output/emseq_cancer_", c[5], ".rds")
-```
+* rewrote the functions as bash script and ran as an sbatch job
+* results saved as tsv file
+* then same to get betas - rewrote as bash script and ran sbatch job
 
-
-```{r}
+```{r, eval=FALSE}
 df <- read.table("/researchers/caitlin.page/cf_nano/r_output/emseq_cancer_PRJ240790.tsv")
 ```
-
-
-
 
 ```{r}
 betas_for_wgbs <- function(reads) {
@@ -148,17 +110,15 @@ betas_for_wgbs <- function(reads) {
 }
 ```
 
+# build df with beta values from all samples
 
 ```{r}
 b <- read.table("/researchers/caitlin.page/cf_nano/r_output/beta_PRJ240790.tsv", header = TRUE)
+head(b)
 ```
 
-```{r}
+```{r, eval=FALSE}
 b2 <- read.table("/researchers/caitlin.page/cf_nano/r_output/beta_PRJ240791.tsv", header = TRUE)
-```
-
-
-```{r}
 b3 <- read.table("/researchers/caitlin.page/cf_nano/r_output/beta_PRJ230455.tsv", header = TRUE)
 b4 <- read.table("/researchers/caitlin.page/cf_nano/r_output/beta_PRJ241033.tsv", header = TRUE)
 b5 <- read.table("/researchers/caitlin.page/cf_nano/r_output/beta_PRJ241034.tsv", header = TRUE)
@@ -170,7 +130,7 @@ b8 <- read.table("/researchers/caitlin.page/cf_nano/r_output/beta_PRJ241032.tsv"
 library(purrr)
 ```
 
-```{r}
+```{r, eval=FALSE}
 dfs <- list(
   b_0455 = b3 %>% select(seqnames, start, beta = beta),
   b_0790 = b %>% select(seqnames, start, beta = beta),
@@ -183,13 +143,13 @@ dfs <- list(
 ```
 
 
-```{r}
+```{r, eval=FALSE}
 betas_rest <- imap(dfs, ~ .x %>% rename(!!.y := beta)) %>%
   reduce(full_join, by = c("seqnames", "start"))
 ```
 
 
-```{r}
+```{r, eval=FALSE}
 dfs <- list(
   m_0455 = b3 %>% select(seqnames, start, meth = meth_count_pos),
   m_0790 = b %>% select(seqnames, start, meth = meth_count_pos),
@@ -203,7 +163,7 @@ meth_rest <- imap(dfs, ~ .x %>% rename(!!.y := meth)) %>%
   reduce(full_join, by = c("seqnames", "start"))
 ```
 
-```{r}
+```{r, eval=FALSE}
 dfs <- list(
   u_0455 = b3 %>% select(seqnames, start, unmeth = unmeth_count_pos),
   u_0790 = b %>% select(seqnames, start, unmeth = unmeth_count_pos),
@@ -217,7 +177,7 @@ unmeth_rest <- imap(dfs, ~ .x %>% rename(!!.y := unmeth)) %>%
   reduce(full_join, by = c("seqnames", "start"))
 ```
 
-```{r}
+```{r, eval=FALSE}
 dfs <- list(
   c_0455 = b3 %>% mutate(cov = unmeth_count_pos + meth_count_pos) %>% select(seqnames, start, cov),
   c_0790 = b %>% mutate(cov = unmeth_count_pos + meth_count_pos) %>% select(seqnames, start, cov),
@@ -235,14 +195,12 @@ cov_rest <- imap(dfs, ~ .x %>% rename(!!.y := cov)) %>%
 library(tidyr)
 ```
 
-
-
-```{r}
+```{r, eval=FALSE}
 betas_healthy <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_betas_healthy.rds")
 betas_cancer <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_betas_cancer.rds")
 ```
 
-```{r}
+```{r, eval=FALSE}
 healthy_cov <- betas_healthy %>% data.frame() %>% mutate(cov = meth_count_pos + unmeth_count_pos) %>%
   select(seqnames, start, sample, cov) %>%
   pivot_wider(
@@ -251,7 +209,7 @@ healthy_cov <- betas_healthy %>% data.frame() %>% mutate(cov = meth_count_pos + 
   )
 ```
 
-```{r}
+```{r, eval=FALSE}
 cancer_cov <- betas_cancer %>% data.frame() %>% mutate(cov = meth_count_pos + unmeth_count_pos) %>%
   select(seqnames, start, sample, cov) %>%
   pivot_wider(
@@ -260,11 +218,11 @@ cancer_cov <- betas_cancer %>% data.frame() %>% mutate(cov = meth_count_pos + un
   )
 ```
 
-```{r}
+```{r, eval=FALSE}
 all_cov <- full_join(healthy_cov, cancer_cov, by = c("seqnames", "start")) %>% full_join(., cov_rest, by = c("seqnames", "start")) %>% filter(seqnames %in% seqs)
 ```
 
-```{r}
+```{r, eval=FALSE}
 healthy_b <- betas_healthy %>% data.frame() %>% 
   select(seqnames, start, sample, beta) %>%
   pivot_wider(
@@ -282,13 +240,25 @@ cancer_b <- betas_cancer %>% data.frame() %>%
 all_beta <- full_join(healthy_b, cancer_b, by = c("seqnames", "start")) %>% full_join(., betas_rest, by = c("seqnames", "start")) %>% filter(seqnames %in% seqs)
 ```
 
+```{r, eval=FALSE}
+saveRDS(all_beta, "/researchers/caitlin.page/cf_nano/r_output/emseq_betas_more.rds")
+saveRDS(all_cov, "/researchers/caitlin.page/cf_nano/r_output/emseq_betas_cov_more.rds")
+```
+
+## load in files
+
+```{r}
+all_beta <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_betas_more.rds")
+all_cov <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_betas_cov_more.rds")
+```
+
 
 # make a pca plot of all these samples
 
 * technically I think a couple are still missing but whatever
 
 ```{r}
-all_cov
+head(all_cov)
 ```
 
 ```{r}
@@ -307,6 +277,7 @@ sample_cols <- setdiff(names(all_cov), c("seqnames", "start"))
 ```{r}
 all_cov_filt <- all_cov[rowSums(all_cov[, sample_cols] >= 10, na.rm = FALSE) == length(sample_cols),]
 all_cov_filt <- na.omit(all_cov_filt)
+c(all = nrow(all_cov), filt = nrow(all_cov_filt))
 ```
 
 
@@ -324,19 +295,11 @@ plotMDS(as.matrix(all_beta_filt[,3:22]), top = 10000, labels = colnames(all_beta
 plotMDS(as.matrix(all_beta_filt[,3:22]), top = 500000, labels = colnames(all_beta_filt)[3:22], main = "MDS")
 ```
 
-```{r}
-all_beta
-```
 
 ## take out sex?
 
 ```{r}
 plotMDS(as.matrix(filter(all_beta_filt, !seqnames %in% c("chrX", "chrY"))[,3:22]), top = 500000, labels = colnames(all_beta_filt)[3:22], main = "MDS")
-```
-
-```{r}
-saveRDS(all_beta, "/researchers/caitlin.page/cf_nano/r_output/emseq_betas_more.rds")
-saveRDS(all_cov, "/researchers/caitlin.page/cf_nano/r_output/emseq_betas_cov_more.rds")
 ```
 
 
@@ -345,6 +308,7 @@ metadata <- read.csv("/researchers/caitlin.page/cf_nano/r_output/PPGL_twist_anno
 ```
 
 ```{r}
+#cancer only
 all_beta_c <- all_beta[,c(1:2,9:22)]
 ```
 
@@ -371,30 +335,6 @@ metadata_filt <- metadata %>%
 metadata_filt <- metadata_filt %>% filter(!is.na(my_col_name))
 ```
 
-```{r}
-patients <- unique(metadata_filt$patient)
-colours <- setNames(
-  c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00",
-    "#A65628", "#F781BF", "#999999", "#00BCD4", "#FFEB3B"),
-  patients
-)
-```
-
-```{r}
-metadata_filt <- metadata_filt %>%
-  mutate(colour = colours[as.character(patient)],
-         patient = factor(patient))
-metadata_filt <- metadata_filt[match(colnames(all_beta_c)[3:16], metadata_filt$my_col_name),]
-```
-
-```{r}
-col_vec <- colours[as.character(metadata_filt$patient)]
-```
-
-
-```{r}
-?plotMDS
-```
 
 # coloured by patient
 
@@ -603,9 +543,6 @@ legend("topright",
 
 # cancer subtype
 
-```{r}
-unique(metadata_filt$genotype)
-```
 
 ```{r}
 subtype <- unique(metadata_filt$genotype)
@@ -649,30 +586,4 @@ legend("bottomright",
        cex = 0.8)
 ```
 
-*hmm
-
-
-```{r}
-
-```
-
-plotMDS(beta_matrix, top = 10000000, labels = colnames(beta_matrix), main = "MDS of Beta Values")
-```{r}
-beta_matrix <- betas %>% filter(seqnames %in% seqs) %>%
-  select(sample, seqnames, start, beta) %>%
-  pivot_wider(names_from = sample, values_from = beta) %>%
-  select(-seqnames, -start) %>%
-  as.matrix()
-
-beta_matrix <- beta_matrix[complete.cases(beta_matrix), ]
-
-# plotMDS uses top 500 most variable CpGs by default
-plotMDS(beta_matrix, labels = colnames(beta_matrix), main = "MDS of Beta Values")
-```
-
-
-```{r, eval=FALSE}
-betas <- betas_for_wgbs(all_samples)
-saveRDS(betas, "/researchers/caitlin.page/cf_nano/r_output/emseq_betas_healthy.rds")
-```
 
