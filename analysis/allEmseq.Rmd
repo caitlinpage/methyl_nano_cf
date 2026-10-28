@@ -11,12 +11,20 @@ editor_options:
 
 
 ```{r}
-library(data.table)
+library(BSgenome.Hsapiens.UCSC.hg38)
 library(plyranges)
-library(tidyr)
-library(stringr)
+library(data.table)
 library(dplyr)
+library(tidyr)
 library(ggplot2)
+library(stringr)
+library(edgeR)
+library(duckdb)
+library(arrow)
+library(ggVennDiagram)
+library(GO.db)
+library(org.Hs.eg.db)
+library(TxDb.Hsapiens.UCSC.hg38.knownGene)
 ```
 
 # Obtain beta values
@@ -586,4 +594,354 @@ legend("bottomright",
        cex = 0.8)
 ```
 
+# DAU
 
+
+
+CpG_OT_PRJ240788_LPRJ240788_S4_L004_R1_001_bismark_bt2_pe.txt
+```{r}
+all_samples <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_all_healthy.rds")
+```
+
+```{r}
+all_samples <- all_samples %>% data.frame() %>% filter(seqnames %in% seqs)
+em_healthy_788 <- em_healthy_788 %>% data.frame() %>% filter(seqnames %in% seqs)
+em_healthy_788$start <- em_healthy_788$read_start
+em_healthy_788$end <- em_healthy_788$read_end
+em_healthy_788$sample <- "healthy_788"
+```
+
+
+```{r}
+cols <- c("seqnames", "read_start", "read_end", "strand", "read_id", "sample", "meth_pattern", "num_meth", "total", "alpha", "genom_positions")
+```
+
+
+```{r}
+all_samples <- all_samples %>%
+  mutate(sample = case_when(sample == "a1" ~ "healthy_785",
+                            sample == "a2" ~ "healthy_036",
+                            sample == "a3" ~ "healthy_787",
+                            sample == "b1" ~ "healthy_786",
+                            sample == "b2" ~ "healthy_037",
+                            TRUE ~ "healthy_789"))
+
+all_samples <- rbind(all_samples, distinct(em_healthy_788[,colnames(all_samples)]))
+```
+
+
+
+
+
+#####
+
+# DAU 
+
+
+```{r}
+# Get chromosome lengths for standard chromosomes only
+seqinfo_hg38 <- seqlengths(BSgenome.Hsapiens.UCSC.hg38)
+std_chroms <- grepl("^chr([1-9]|1[0-9]|2[0-2]|X|Y|M)$", names(seqinfo_hg38))
+seqinfo_hg38 <- seqinfo_hg38[std_chroms]
+
+# Tile into 500 bp non-overlapping windows
+tiles_500bp <- GenomicRanges::tileGenome(seqinfo_hg38, tilewidth = 500, cut.last.tile.in.chrom = TRUE)
+
+# Add a tile number column
+tiles_500bp <- tiles_500bp %>%
+  data.frame() %>%
+  mutate(tile_num = 1:n()) %>%
+  as_granges()
+
+# cpgs
+seqs <- c(seqnames(BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38)[1:22], "chrX", "chrY")
+
+cg_sites <- lapply(seqs, function(x) {
+  cbind(data.frame(Biostrings::matchPattern("CG", BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38[[x]])),
+        seqnames = x
+  )}) %>% bind_rows()
+
+tiles_500bp_cg <- find_overlaps(tiles_500bp, as_granges(cg_sites)) %>% data.frame() %>%
+  group_by(tile_num) %>% mutate(n_cg = n())
+tiles_500bp_cg <- tiles_500bp_cg %>% ungroup() %>% distinct()
+
+tiles_500bp_cg$tile_id <- paste0(tiles_500bp_cg$seqnames, ":", tiles_500bp_cg$start, "-", tiles_500bp_cg$end)
+
+tiles_500bp_cg
+```
+
+
+```{r}
+a1 <- read.table("/researchers/caitlin.page/cf_nano/r_output/emseq_cancer_PRJ241035.tsv", header=TRUE)
+a1$sample <- "cancer_PRJ241035"
+a <- read.table("/researchers/caitlin.page/cf_nano/r_output/emseq_cancer_PRJ241034.tsv", header=TRUE)
+a$sample <- "cancer_PRJ241034"
+b <- read.table("/researchers/caitlin.page/cf_nano/r_output/emseq_cancer_PRJ241033.tsv", header=TRUE)
+b$sample <- "cancer_PRJ241033"
+c <- read.table("/researchers/caitlin.page/cf_nano/r_output/emseq_cancer_PRJ241032.tsv", header=TRUE)
+c$sample <- "cancer_PRJ241032"
+```
+
+```{r}
+d <- read.table("/researchers/caitlin.page/cf_nano/r_output/emseq_cancer_PRJ241031.tsv", header=TRUE)
+d$sample <- "cancer_PRJ241031"
+e <- read.table("/researchers/caitlin.page/cf_nano/r_output/emseq_cancer_PRJ230455.tsv", header=TRUE)
+e$sample <- "cancer_PRJ230455"
+f <- read.table("/researchers/caitlin.page/cf_nano/r_output/emseq_cancer_PRJ240790.tsv", header=TRUE)
+f$sample <- "cancer_PRJ240790"
+g <- read.table("/researchers/caitlin.page/cf_nano/r_output/emseq_cancer_PRJ240791.tsv", header=TRUE)
+g$sample <- "cancer_PRJ240791"
+```
+
+
+```{r}
+all_rest <- rbind(a,b,c,d,e,f,g)
+```
+
+```{r}
+overlap_pos <- find_overlaps(as_granges(tiles_500bp_cg), as_granges(all_rest)) %>% data.frame()
+```
+
+
+```{r}
+all_samples_h <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_all_healthy.rds")
+```
+
+```{r}
+all_samples <- all_samples %>% data.frame() %>% filter(seqnames %in% seqs)
+em_healthy_788 <- em_healthy_788 %>% data.frame() %>% filter(seqnames %in% seqs)
+em_healthy_788$start <- em_healthy_788$read_start
+em_healthy_788$end <- em_healthy_788$read_end
+em_healthy_788$sample <- "healthy_788"
+```
+
+
+```{r}
+cols <- c("seqnames", "read_start", "read_end", "strand", "read_id", "sample", "meth_pattern", "num_meth", "total", "alpha", "genom_positions")
+```
+
+
+```{r}
+all_samples <- all_samples %>%
+  mutate(sample = case_when(sample == "a1" ~ "healthy_785",
+                            sample == "a2" ~ "healthy_036",
+                            sample == "a3" ~ "healthy_787",
+                            sample == "b1" ~ "healthy_786",
+                            sample == "b2" ~ "healthy_037",
+                            TRUE ~ "healthy_789"))
+
+all_samples <- rbind(all_samples, distinct(em_healthy_788[,colnames(all_samples)]))
+```
+
+* this will have to wait
+* sample set up takes longer than I have right now
+
+```{r}
+overlap_pos <- find_overlaps(as_granges(tiles_500bp_cg), as_granges(all_samples)) %>% data.frame()
+```
+
+
+```{r}
+overlap_pos
+```
+
+
+```{r}
+# dtu
+dtu_optile <- overlap_pos %>% filter(total >= 3) %>%
+  distinct(sample, read_id, alpha, tile_id) %>%
+  mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                 alpha > 0.8 ~ "a > 0.8",
+                                 alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                 alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                 TRUE ~ "0.6 <= a <= 0.8"))
+
+dtu_optile <- dtu_optile %>%
+  mutate(transcript = paste0(tile_id, "_", alpha_group)) %>%
+  group_by(sample, transcript) %>%
+  summarise(transcript_count = n()) %>% ungroup() %>% data.frame()
+
+# build matrix of "transcript" counts - transcript rows, sample as columns
+dtu_optile <- dtu_optile %>% pivot_wider(names_from = sample, values_from = transcript_count)
+dtu_optile[is.na(dtu_optile)] <- 0
+dtu_optile$gene_id <- sub("_.*", "", dtu_optile$transcript)
+```
+
+```{r}
+dtu_counts_healthy <- readRDS("/researchers/caitlin.page/cf_nano/r_output/sex_healthy_test_tile_counts.rds")
+```
+
+```{r}
+dtu_counts_healthy %>% mutate(s = gsub(":.*", "", .$gene_id)) %>% .$s %>% unique()
+```
+
+```{r}
+dau_counts <- full_join(dtu_counts_healthy, dtu_optile, by = c("transcript", "gene_id"))
+```
+
+```{r}
+saveRDS(dau_counts, "/researchers/caitlin.page/cf_nano/r_output/dau_counts_every_emseq.rds") #redo when it is all
+```
+
+* now the cancer
+
+```{r}
+test_a <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_cancer_0457.rds")
+```
+```{r}
+dau_counts <- readRDS("/researchers/caitlin.page/cf_nano/r_output/dau_counts_every_emseq.rds")
+```
+mm
+```{r}
+sam <- c("/researchers/caitlin.page/cf_nano/r_output/emseq_cancer_0457.rds", "/researchers/caitlin.page/cf_nano/r_output/emseq_cancer_0456.rds",
+         "/researchers/caitlin.page/cf_nano/r_output/emseq_cancer_0454.rds", "/researchers/caitlin.page/cf_nano/r_output/emseq_cancer_0225.rds",
+         "/researchers/caitlin.page/cf_nano/r_output/emseq_cancer_0224.rds", "/researchers/caitlin.page/cf_nano/r_output/emseq_cancer_0223.rds")
+for(i in 1:6) {
+  a <- readRDS(sam[i])
+  overlap_pos <- find_overlaps(as_granges(tiles_500bp_cg), as_granges(a)) %>% data.frame()
+  dtu_optile <- overlap_pos %>% filter(total >= 3) %>%
+  distinct(sample, read_id, alpha, tile_id) %>%
+  mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                 alpha > 0.8 ~ "a > 0.8",
+                                 alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                 alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                 TRUE ~ "0.6 <= a <= 0.8"),
+         transcript = paste0(tile_id, "_", alpha_group)) %>%
+    group_by(sample, transcript) %>%
+  summarise(transcript_count = n()) %>% ungroup() %>% data.frame()
+  dtu_optile <- dtu_optile %>% pivot_wider(names_from = sample, values_from = transcript_count)
+  dtu_optile[is.na(dtu_optile)] <- 0
+  dtu_optile$gene_id <- sub("_.*", "", dtu_optile$transcript)
+  dau_counts <- full_join(dau_counts, dtu_optile, by = c("transcript", "gene_id"))
+}
+```
+```{r}
+dau_counts[is.na(dau_counts)] <- 0
+```
+
+
+# DAU with all of these samples, include in design the sex, and same patient, and same genotype
+
+```{r}
+dau_counts
+```
+all healthy, then cancer
+* indiv (we have to assume healthy all different)
+1,2,3,4,5,6,7,8,9,10,11,12,8,13,14,15,16,17,17,17
+* genotype (giving all cancer the same of nothing), 2 is sdhb, 3 sdhd, 4 unknown, 5 ccnd, 6 sdha, ret
+1,1,1,1,1,1,1,2,3,3,4,5,2,6,4,7,3,4,4,4
+
+
+```{r}
+y <- DGEList(as.matrix(dau_counts[,c(2:8,10:22)]), group = c(rep(1, times = 7),rep(2, times = 13)), genes = dau_counts[,c("gene_id", "transcript")])
+```
+
+```{r}
+group <- factor(c(rep(1, times = 7),rep(2, times = 13)), levels = c(1,2))
+sex <- factor(c(1,1,2,2,2,2,2,1,2,2,1,1,1,1,1,1,2,1,1,1), levels = c(1,2)) # 1 male, 2 female
+patient <- c(1,2,3,4,5,6,7,8,9,10,11,12,8,13,14,15,16,17,17,17)
+genotype <- c(1,1,1,1,1,1,1,2,3,3,4,5,2,6,4,7,3,4,4,4) # healthy 1, 2 is sdhb, 3 sdhd, 4 unknown, 5 ccnd, 6 sdha, ret
+```
+
+```{r}
+design <- model.matrix(~ group + sex + patient + genotype , data = y$samples)
+```
+
+mmmmm
+
+
+```{r}
+fit <- glmQLFit(y, design, robust=TRUE)
+ds <- diffSpliceDGE(fit, coef = 2, geneid = "gene_id", exonid = "transcript")
+ts.gene_optiles <- topSpliceDGE(ds, test = "gene", number = Inf)
+
+
+ts.gene_optiles <- ts.gene_optiles %>%
+  mutate(region_id = gene_id) %>%
+  separate_wider_delim(gene_id, delim = ":", names = c("seqnames", "gene_id")) %>%
+  mutate(seqnames = gsub("chrchr", "chr", seqnames)) %>%
+  separate_wider_delim(gene_id, delim = "-", names = c("start", "end"))
+ts.gene_optiles$start <- as.double(ts.gene_optiles$start)
+ts.gene_optiles$end <- as.double(ts.gene_optiles$end)
+ts.gene_optiles$dtu_rank <- 1:nrow(ts.gene_optiles)
+saveRDS(ts.gene_optiles, "/researchers/caitlin.page/cf_nano/r_output/dtu_basictiles_emseq_cancer_healthy_all_factors.rds")
+```
+# analyse results
+
+```{r}
+ts.gene_optiles %>% filter(FDR < 0.05)
+```
+* this is very conservative this time
+
+```{r}
+ts.gene_optiles %>% filter(FDR < 0.05) %>%
+  ggplot(aes(x = factor(seqnames, levels = seqs), fill = seqnames)) +
+  geom_bar() +
+  theme(legend.position = "none")
+```
+
+
+```{r}
+dau_counts_sig <- dau_counts %>% filter(gene_id %in% filter(ts.gene_optiles, FDR < 0.05)$region_id)
+```
+
+## plot proportions
+```{r}
+dau_counts_sig <- dau_counts_sig %>% pivot_longer(names_to = "sample", values_to = "count", cols = !c(gene_id, transcript))
+dau_counts_sig <- dau_counts_sig %>% mutate(alpha_group = gsub(".*_", "", transcript), 
+                                            alpha_group = factor(alpha_group, levels = c("a < 0.2", "0.2 <= a <= 0.4", "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8")))
+dau_counts_sig <- dau_counts_sig %>% mutate(group = gsub("_.*", "", sample)) 
+dau_counts_sig_prop <- dau_counts_sig %>% group_by(transcript, gene_id, alpha_group, group) %>% summarise(sum_group = sum(count)) %>%
+  ungroup() %>% group_by(gene_id, group) %>% mutate(prop = sum_group/sum(sum_group))
+```
+props_sex <- dau_counts %>% filter(gene_id %in% filter(dau_healthy_sex, FDR < 0.05)$region_id) %>% 
+  mutate(alpha_group = sub(".*_", "", .$transcript), alpha_group = factor(alpha_group, levels = c("a < 0.2", "0.2 <= a <= 0.4", "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8"))) %>%
+  mutate(female = rowSums(.[, c("healthy_785", "healthy_786", "healthy_787", "healthy_788", "healthy_789")], na.rm = TRUE),
+         male = rowSums(.[, c("healthy_036", "healthy_037")], na.rm = TRUE)) %>% .[,9:12] %>% 
+  group_by(gene_id) %>% mutate(female = female/sum(female), male = male/sum(male)) %>%
+  pivot_longer(cols = c(female, male), names_to = "sex", values_to = "percent")
+
+```{r}
+p <- list()
+
+for(i in 1:20) {
+p[[i]] <- dau_counts_sig_prop %>% filter(gene_id == ts.gene_optiles$region_id[i]) %>% mutate(alpha_group = factor(alpha_group, levels = c("a < 0.2", "0.2 <= a <= 0.4", "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8"))) %>%
+  ggplot(aes(x = alpha_group, y = prop, fill = group)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  scale_x_discrete(labels = c("Low", "Low-med", "Med", "Med-high", "High")) +
+  labs(x = "alpha band") +
+  facet_wrap(~gene_id) +
+  theme_bw()
+}
+for(i in 1:20) {
+  print(p[[i]])
+}
+```
+
+* these don't look very good
+
+
+
+
+```{r}
+overlap_pos
+```
+
+
+p <- list()
+p2 <- list()
+for(i in 2:10) {
+p[[i]] <- rrbs_plot5_sex("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", "/researchers/caitlin.page/cf_nano/r_output/emseq_healthy_788.parquet", ranks$seqnames[i], ranks$start[i], ranks$end[i]) #+ geom_beta_sex(betas, plot.height = 0.5, style = "smooth") 
+
+p2[[i]] <- props_sex %>% filter(gene_id == ranks$region_id[i]) %>% mutate(alpha_group = factor(alpha_group, levels = c("a < 0.2", "0.2 <= a <= 0.4", "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8"))) %>%
+  ggplot(aes(x = alpha_group, y = percent, fill = sex)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  scale_x_discrete(labels = c("Low", "Low-med", "Med", "Med-high", "High")) +
+  labs(x = "alpha band") +
+  facet_wrap(~gene_id) +
+  theme_bw()
+}
+for(i in 2:10) {
+  print(p[[i]])
+  print(p2[[i]])
+}
