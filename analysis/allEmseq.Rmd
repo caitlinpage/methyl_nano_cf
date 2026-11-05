@@ -9,6 +9,9 @@ editor_options:
 
 ## Introduction
 
+```{r}
+dau_counts
+```
 
 ```{r}
 library(BSgenome.Hsapiens.UCSC.hg38)
@@ -199,9 +202,7 @@ cov_rest <- imap(dfs, ~ .x %>% rename(!!.y := cov)) %>%
   reduce(full_join, by = c("seqnames", "start"))
 ```
 
-```{r}
-library(tidyr)
-```
+
 
 ```{r, eval=FALSE}
 betas_healthy <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_betas_healthy.rds")
@@ -833,26 +834,73 @@ all healthy, then cancer
 
 
 ```{r}
-y <- DGEList(as.matrix(dau_counts[,c(2:8,10:22)]), group = c(rep(1, times = 7),rep(2, times = 13)), genes = dau_counts[,c("gene_id", "transcript")])
+y <- DGEList(as.matrix(dau_counts[,c(2:8,10:22)]), condition = c(rep(0, times = 7),rep(1, times = 13)), genes = dau_counts[,c("gene_id", "transcript")])
 ```
 
 ```{r}
-group <- factor(c(rep(1, times = 7),rep(2, times = 13)), levels = c(1,2))
-sex <- factor(c(1,1,2,2,2,2,2,1,2,2,1,1,1,1,1,1,2,1,1,1), levels = c(1,2)) # 1 male, 2 female
-patient <- c(1,2,3,4,5,6,7,8,9,10,11,12,8,13,14,15,16,17,17,17)
-genotype <- c(1,1,1,1,1,1,1,2,3,3,4,5,2,6,4,7,3,4,4,4) # healthy 1, 2 is sdhb, 3 sdhd, 4 unknown, 5 ccnd, 6 sdha, ret
+#fail version
+condition <- factor(c(rep(0, times = 7),rep(1, times = 13)), levels = c(0,1))
+sex <- factor(c(0,0,1,1,1,1,1,0,1,1,0,0,0,0,0,0,1,0,0,0), levels = c(0,1)) # 1 male, 2 female
+#patient <- c(1,2,3,4,5,6,7,8,9,10,11,12,8,13,14,15,16,17,17,17)
+patient <- cbind(c(0,1,rep(0, times = 18)), c(0,0,1,rep(0, times = 17)), c(rep(0, times = 3),1,rep(0,times = 16)),
+                 c(rep(0, times = 4),1,rep(0,times = 15)),c(rep(0, times = 5),1,rep(0,times = 14)), c(rep(0, times = 6),1,rep(0,times = 13)),
+                 c(rep(0, times = 7),1,rep(0,times = 4),1,rep(0, times = 7)), c(rep(0, times = 8),1,rep(0,times = 11)), 
+                 c(rep(0, times = 9),1,rep(0,times = 10)),
+                 c(rep(0, times = 10),1,rep(0,times = 9)), c(rep(0, times = 11),1,rep(0,times = 8)), c(rep(0, times = 13),1,rep(0, times = 6)), 
+                 c(rep(0, times = 14),1,rep(0, times = 5)), c(rep(0, times = 15),1,rep(0, times = 4)), 
+                 c(rep(0, times = 16),1,rep(0, times = 3)), c(rep(0, times = 17),rep(1, times = 3)))
+#genotype <- c(1,1,1,1,1,1,1,2,3,3,4,5,2,6,4,7,3,4,4,4) # healthy 1, 2 is sdhb, 3 sdhd, 4 unknown, 5 ccnd, 6 sdha, ret
+genotype <- cbind(c(rep(0, times = 7),1,rep(0,times = 4),1,rep(0,times = 7)), 
+                  c(rep(0, times = 8),1,1,rep(0,times = 6),1,rep(0,times = 3)), c(rep(0, times = 10),1,rep(0,times = 3),1,rep(0,times = 2),1,1,1),
+                  c(rep(0, times = 11),1,rep(0,times = 8)), c(rep(0, times = 13),1,rep(0,times = 6)),
+                  c(rep(0, times = 15),1,rep(0,times = 4)))
 ```
 
 ```{r}
-design <- model.matrix(~ group + sex + patient + genotype , data = y$samples)
+#v2
+condition <- factor(c(rep(0, times = 7),rep(1, times = 13)), levels = c(0,1))
+sex <- factor(c(0,0,1,1,1,1,1,0,1,1,0,0,0,0,0,0,1,0,0,0), levels = c(0,1)) # 1 male, 2 female
+#patient <- c(1,2,3,4,5,6,7,8,9,10,11,12,8,13,14,15,16,17,17,17) #only the patients that have multiple
+patient <- cbind(c(rep(0, times = 7),1,rep(0,times = 4),1,rep(0, times = 7)), c(rep(0, times = 17),rep(1, times = 3)))
+#genotype <- c(1,1,1,1,1,1,1,2,3,3,4,5,2,6,4,7,3,4,4,4) # healthy 1, 2 is sdhb, 3 sdhd, 4 unknown, 5 ccnd, 6 sdha, ret
+genotype <- cbind(#c(rep(0, times = 7),1,rep(0,times = 4),1,rep(0,times = 7)), 
+                  c(rep(0, times = 8),1,1,rep(0,times = 6),1,rep(0,times = 3)), 
+                  c(rep(0, times = 10),1,rep(0,times = 3),1,rep(0,times = 2),1,1,1))
 ```
 
-mmmmm
+```{r}
+design <- model.matrix(~ sex + patient + genotype + condition, data = y$samples)
+```
+
+* oops problem patient 1 and genotype 1 are same thing
+* remove genotype 1 because patient 1 better match (more important)
+* if it works like this I'll also add back in the last 2 genotypes - only 1 sample each
+
+* it's a column per thing situation
+* except now it fails because I have more columns than I have samples
+```{r}
+design <- model.matrix(~ sex + genotype, data = y$samples)
+ncol(y) - ncol(design)
+```
 
 
+
+
+```{r}
+design <- model.matrix(~ sex + condition, data = y$samples) # this ran and got 22 dau
+ncol(y) - ncol(design)
+```
+* take out patient so it will run
+
+* also it failed with patient and without genotype
+
+* leave out the first genotype because it's implied
+
+
+mm
 ```{r}
 fit <- glmQLFit(y, design, robust=TRUE)
-ds <- diffSpliceDGE(fit, coef = 2, geneid = "gene_id", exonid = "transcript")
+ds <- diffSpliceDGE(fit, coef = "condition1", geneid = "gene_id", exonid = "transcript")
 ts.gene_optiles <- topSpliceDGE(ds, test = "gene", number = Inf)
 
 
@@ -864,15 +912,46 @@ ts.gene_optiles <- ts.gene_optiles %>%
 ts.gene_optiles$start <- as.double(ts.gene_optiles$start)
 ts.gene_optiles$end <- as.double(ts.gene_optiles$end)
 ts.gene_optiles$dtu_rank <- 1:nrow(ts.gene_optiles)
-saveRDS(ts.gene_optiles, "/researchers/caitlin.page/cf_nano/r_output/dtu_basictiles_emseq_cancer_healthy_all_factors.rds")
+saveRDS(ts.gene_optiles, "/researchers/caitlin.page/cf_nano/r_output/dtu_basictiles_emseq_cancer_healthy_all_factors2.rds")
 ```
+```{r}
+rownames(y$samples)[17:20]
+colSums(y$counts)[c(rownames(y$samples)[17:20])]
+```
+
+```{r}
+colSums(y$counts)[c(rownames(y$samples)[1:16])]
+```
+
+```{r}
+colMeans(y$counts == 0)[c(rownames(y$samples)[17:20])]
+```
+
+```{r}
+colMeans(y$counts == 0)[c(rownames(y$samples)[1:16])]
+```
+
+```{r}
+fit$design[,2]
+```
+
+
+
 # analyse results
 
 ```{r}
-ts.gene_optiles %>% filter(FDR < 0.05)
+dau_emseq <- readRDS("/researchers/caitlin.page/cf_nano/r_output/dtu_basictiles_emseq_cancer_healthy_all_factors.rds")
+```
+
+```{r}
+dau_emseq <- ts.gene_optiles
+```
+
+```{r}
+dau_emseq %>% filter(FDR < 0.05)
 ```
 * this is very conservative this time
-
+* how is this getting worse
 ```{r}
 ts.gene_optiles %>% filter(FDR < 0.05) %>%
   ggplot(aes(x = factor(seqnames, levels = seqs), fill = seqnames)) +
@@ -918,8 +997,70 @@ for(i in 1:20) {
 }
 ```
 
-* these don't look very good
+* these look ok but they're not incredible
 
+* newesr with
+```{r}
+p <- list()
+
+for(i in 1:7) {
+p[[i]] <- dau_counts_sig_prop %>% filter(gene_id == ts.gene_optiles$region_id[i]) %>% mutate(alpha_group = factor(alpha_group, levels = c("a < 0.2", "0.2 <= a <= 0.4", "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8"))) %>%
+  ggplot(aes(x = alpha_group, y = prop, fill = group)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  scale_x_discrete(labels = c("Low", "Low-med", "Med", "Med-high", "High")) +
+  labs(x = "alpha band") +
+  facet_wrap(~gene_id) +
+  theme_bw()
+}
+for(i in 1:7) {
+  print(p[[i]])
+}
+```
+
+I'm not convinced
+
+
+# round 3
+
+```{r}
+#v2
+condition <- factor(c(rep(0, times = 7),rep(1, times = 13)), levels = c(0,1))
+sex <- factor(c(0,0,1,1,1,1,1,0,1,1,0,0,0,0,0,0,1,0,0,0), levels = c(0,1)) # 1 male, 2 female
+#patient <- c(1,2,3,4,5,6,7,8,9,10,11,12,8,13,14,15,16,17,17,17) #only the patients that have multiple
+patient <- cbind(c(rep(0, times = 7),1,rep(0,times = 4),1,rep(0, times = 7)), c(rep(0, times = 17),rep(1, times = 3)))
+#genotype <- c(1,1,1,1,1,1,1,2,3,3,4,5,2,6,4,7,3,4,4,4) # healthy 1, 2 is sdhb, 3 sdhd, 4 unknown, 5 ccnd, 6 sdha, ret
+genotype <- cbind(#c(rep(0, times = 7),1,rep(0,times = 4),1,rep(0,times = 7)), 
+                  c(rep(0, times = 8),1,1,rep(0,times = 6),1,rep(0,times = 3)), 
+                  c(rep(0, times = 10),1,rep(0,times = 3),1,rep(0,times = 2),1,1,1), 
+                  c(rep(0, times = 11),1,rep(0,times = 8)), c(rep(0, times = 13),1,rep(0,times = 6)),
+                  c(rep(0, times = 15),1,rep(0,times = 4)))
+```
+
+```{r}
+design <- model.matrix(~ sex + patient + genotype + condition, data = y$samples)
+```
+
+```{r}
+fit <- glmQLFit(y, design, robust=TRUE)
+ds <- diffSpliceDGE(fit, coef = "condition1", geneid = "gene_id", exonid = "transcript")
+ts.gene_optiles <- topSpliceDGE(ds, test = "gene", number = Inf)
+
+
+ts.gene_optiles <- ts.gene_optiles %>%
+  mutate(region_id = gene_id) %>%
+  separate_wider_delim(gene_id, delim = ":", names = c("seqnames", "gene_id")) %>%
+  mutate(seqnames = gsub("chrchr", "chr", seqnames)) %>%
+  separate_wider_delim(gene_id, delim = "-", names = c("start", "end"))
+ts.gene_optiles$start <- as.double(ts.gene_optiles$start)
+ts.gene_optiles$end <- as.double(ts.gene_optiles$end)
+ts.gene_optiles$dtu_rank <- 1:nrow(ts.gene_optiles)
+saveRDS(ts.gene_optiles, "/researchers/caitlin.page/cf_nano/r_output/dtu_basictiles_emseq_cancer_healthy_all_factors3.rds")
+```
+
+
+```{r}
+ts.gene_optiles
+```
 
 
 
@@ -945,3 +1086,243 @@ for(i in 2:10) {
   print(p[[i]])
   print(p2[[i]])
 }
+
+
+
+
+
+# why did the results with all look bad?
+
+* maybe it's the samples with 0 tumour fraction?
+* Or maybe the test went wrong?
+* because the results had change in proportions within a condition
+* just not between conditions
+
+* it kinda has me concerned that it's taking something else from the design matrix to use but I can't figure out how it would do that
+* because I state the coef to use
+* or maybe I should be using the contrast argument
+
+
+* ooh do I have enough samples to compare 2 genotypes? - the one that imprints and another one
+* SDHD has maternal allele silenced, inherited paternally
+
+* could do to unknown, or to sdhb
+
+# sdhd vs sdhb
+
+* ooh do I have enough samples to compare 2 genotypes? - the one that imprints and another one
+* SDHD has maternal allele silenced, inherited paternally
+
+* could do to unknown, or to sdhb
+
+* so I think this just means there should be something in the sdhd genes of those samples
+* and epigen silencing of maternal would mean should have more methylated reads there then in the other genotypes
+
+
+```{r}
+dau_counts
+```
+
+USE no healthy, only genotypes 2(sdhb) and 3 (sdhd) relabeled 0 and 1
+all healthy| , then cancer
+10,11
+1,2
+* indiv (we have to assume healthy all different)
+1,2,3,4,5,6,7| ,8,9,10,11,12,8,13,14,15,16,17,17,17 - USE 8-10,15-16
+* sex
+1,1,2,2,2,2,2| ,1,2,2,1,1,1,1,1,1,2,1,1,1)
+* genotype (giving all cancer the same of nothing), 2 is sdhb, 3 sdhd, 4 unknown, 5 ccnd, 6 sdha, ret
+1,1,1,1,1,1,1| ,2,3,3,4,5,2,6,4,7,3,4,4,4
+```{r}
+y <- DGEList(as.matrix(dau_counts[,c(10:12,15,19)]), condition = c(0,1,1,0,1), genes = dau_counts[,c("gene_id", "transcript")])
+condition <- factor(c(0,1,1,0,1), levels = c(0,1))
+sex <- factor(c(0,1,1,2), levels = c(1,2)) # 1 male, 2 female # can't include sex because all sdhd are female, sdhb male, exact match 
+patient <- c(1,0,0,1,0) # can't do patient either because matches exactly with group
+design <- model.matrix(~ condition, data = y$samples) # sex matches the grouping so have to remove it
+
+fit <- glmQLFit(y, design, robust=TRUE)
+ds <- diffSpliceDGE(fit, coef = "condition1", geneid = "gene_id", exonid = "transcript")
+ts.gene_optiles_geno <- topSpliceDGE(ds, test = "gene", number = Inf)
+
+
+ts.gene_optiles_geno <- ts.gene_optiles_geno %>%
+  mutate(region_id = gene_id) %>%
+  separate_wider_delim(gene_id, delim = ":", names = c("seqnames", "gene_id")) %>%
+  mutate(seqnames = gsub("chrchr", "chr", seqnames)) %>%
+  separate_wider_delim(gene_id, delim = "-", names = c("start", "end"))
+ts.gene_optiles_geno$start <- as.double(ts.gene_optiles_geno$start)
+ts.gene_optiles_geno$end <- as.double(ts.gene_optiles_geno$end)
+ts.gene_optiles_geno$dtu_rank <- 1:nrow(ts.gene_optiles_geno)
+saveRDS(ts.gene_optiles_geno, "/researchers/caitlin.page/cf_nano/r_output/dtu_basictiles_emseq_cancer_healthy_sdhd_vs_sdhb.rds")
+```
+```{r} 
+ts.gene_optiles_geno %>% filter(FDR < 0.05)
+```
+
+
+##
+
+```{r}
+dau_counts_sig <- dau_counts[,c(1,9,10:12,15,19)] %>% filter(gene_id %in% filter(ts.gene_optiles_geno, FDR < 0.05)$region_id)
+dau_counts_sig <- dau_counts_sig %>% pivot_longer(names_to = "sample", values_to = "count", cols = !c(gene_id, transcript))
+dau_counts_sig <- dau_counts_sig %>% mutate(alpha_group = gsub(".*_", "", transcript), 
+                                            alpha_group = factor(alpha_group, levels = c("a < 0.2", "0.2 <= a <= 0.4", "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8")))
+dau_counts_sig <- dau_counts_sig %>% mutate(sample = gsub(".*_", "", sample),
+                                            group = ifelse(sample %in% c("PRJ230455", "PRJ241033"), "SDHB", "SDHD")) 
+dau_counts_sig_prop <- dau_counts_sig %>% group_by(transcript, gene_id, alpha_group, group) %>% summarise(sum_group = sum(count)) %>%
+  ungroup() %>% group_by(gene_id, group) %>% mutate(prop = sum_group/sum(sum_group))
+
+p <- list()
+
+for(i in 1:20) {
+p[[i]] <- dau_counts_sig_prop %>% filter(gene_id == ts.gene_optiles_geno$region_id[i]) %>% mutate(alpha_group = factor(alpha_group, levels = c("a < 0.2", "0.2 <= a <= 0.4", "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8"))) %>%
+  ggplot(aes(x = alpha_group, y = prop, fill = group)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  scale_x_discrete(labels = c("Low", "Low-med", "Med", "Med-high", "High")) +
+  labs(x = "alpha band") +
+  facet_wrap(~gene_id) +
+  theme_bw()
+}
+for(i in 1:20) {
+  print(p[[i]])
+}
+```
+
+* SDHD samples are female - and SDHD has X inactivation, so we should see a kinda bimodal distrib - high meth on X for the inactive allele
+* also these results are also sex driven - all the sdhd are female, and sdhb male
+
+```{r}
+dau_counts[1:5,c(1,9,10:12,15,19)] %>% pivot_longer(names_to = "sample", values_to = "count", cols = !c(gene_id, transcript))
+dau_counts_sig_prop %>% ungroup() %>% distinct(group)
+```
+
+all healthy, then cancer
+* indiv (we have to assume healthy all different)
+1,2,3,4,5,6,7,8,9,10,11,12,8,13,14,15,16,17,17,17
+* genotype (giving all cancer the same of nothing), 2 is sdhb, 3 sdhd, 4 unknown, 5 ccnd, 6 sdha, ret
+1,1,1,1,1,1,1,2,3,3,4,5,2,6,4,7,3,4,4,4
+
+# compare 
+
+```{r}
+#v2
+condition <- factor(c(rep(0, times = 7),rep(1, times = 13)), levels = c(0,1))
+sex <- factor(c(0,0,1,1,1,1,1,0,1,1,0,0,0,0,0,0,1,0,0,0), levels = c(0,1)) # 1 male, 2 female
+#patient <- c(1,2,3,4,5,6,7,8,9,10,11,12,8,13,14,15,16,17,17,17) #only the patients that have multiple
+patient <- cbind(c(rep(0, times = 7),1,rep(0,times = 4),1,rep(0, times = 7)), c(rep(0, times = 17),rep(1, times = 3)))
+#genotype <- c(1,1,1,1,1,1,1,2,3,3,4,5,2,6,4,7,3,4,4,4) # healthy 1, 2 is sdhb, 3 sdhd, 4 unknown, 5 ccnd, 6 sdha, ret
+genotype <- cbind(#c(rep(0, times = 7),1,rep(0,times = 4),1,rep(0,times = 7)), 
+                  c(rep(0, times = 8),1,1,rep(0,times = 6),1,rep(0,times = 3)), 
+                  c(rep(0, times = 10),1,rep(0,times = 3),1,rep(0,times = 2),1,1,1))
+```
+
+```{r}
+y <- DGEList(as.matrix(dau_counts[,c(2:8,10:22)]), condition = c(rep(0, times = 7),rep(1, times = 13)), genes = dau_counts[,c("gene_id", "transcript")])
+```
+
+
+```{r}
+design <- model.matrix(~ sex + patient + genotype + condition, data = y$samples)
+```
+
+```{r}
+fit <- glmQLFit(y, design, robust=TRUE)
+ds <- diffSpliceDGE(fit, coef = "condition1", geneid = "gene_id", exonid = "transcript")
+ts.gene_optiles <- topSpliceDGE(ds, test = "gene", number = Inf)
+
+
+ts.gene_optiles <- ts.gene_optiles %>%
+  mutate(region_id = gene_id) %>%
+  separate_wider_delim(gene_id, delim = ":", names = c("seqnames", "gene_id")) %>%
+  mutate(seqnames = gsub("chrchr", "chr", seqnames)) %>%
+  separate_wider_delim(gene_id, delim = "-", names = c("start", "end"))
+ts.gene_optiles$start <- as.double(ts.gene_optiles$start)
+ts.gene_optiles$end <- as.double(ts.gene_optiles$end)
+ts.gene_optiles$dtu_rank <- 1:nrow(ts.gene_optiles)
+saveRDS(ts.gene_optiles, "/researchers/caitlin.page/cf_nano/r_output/dtu_basictiles_emseq_cancer_healthy_all_factors3.rds")
+```
+
+
+# compare sex (as condition)
+
+```{r}
+#v2
+condition <- factor(c(rep(0, times = 7),rep(1, times = 13)), levels = c(0,1))
+sex <- factor(c(0,0,1,1,1,1,1,0,1,1,0,0,0,0,0,0,1,0,0,0), levels = c(0,1)) # 1 male, 2 female
+#patient <- c(1,2,3,4,5,6,7,8,9,10,11,12,8,13,14,15,16,17,17,17) #only the patients that have multiple
+patient <- cbind(c(rep(0, times = 7),1,rep(0,times = 4),1,rep(0, times = 7)), c(rep(0, times = 17),rep(1, times = 3)))
+#genotype <- c(1,1,1,1,1,1,1,2,3,3,4,5,2,6,4,7,3,4,4,4) # healthy 1, 2 is sdhb, 3 sdhd, 4 unknown, 5 ccnd, 6 sdha, ret
+genotype <- cbind(#c(rep(0, times = 7),1,rep(0,times = 4),1,rep(0,times = 7)), 
+                  c(rep(0, times = 8),1,1,rep(0,times = 6),1,rep(0,times = 3)), 
+                  c(rep(0, times = 10),1,rep(0,times = 3),1,rep(0,times = 2),1,1,1))
+```
+
+```{r}
+y <- DGEList(as.matrix(dau_counts[,c(2:8,10:22)]), sex = c(0,0,1,1,1,1,1,0,1,1,0,0,0,0,0,0,1,0,0,0), genes = dau_counts[,c("gene_id", "transcript")])
+```
+
+```{r}
+ts.gene_optiles %>% filter(FDR < 0.05)
+```
+
+```{r}
+design <- model.matrix(~ sex + patient + genotype + condition, data = y$samples)
+```
+
+```{r}
+fit <- glmQLFit(y, design, robust=TRUE)
+ds <- diffSpliceDGE(fit, coef = "sex1", geneid = "gene_id", exonid = "transcript")
+ts.gene_optiles <- topSpliceDGE(ds, test = "gene", number = Inf)
+
+
+ts.gene_optiles <- ts.gene_optiles %>%
+  mutate(region_id = gene_id) %>%
+  separate_wider_delim(gene_id, delim = ":", names = c("seqnames", "gene_id")) %>%
+  mutate(seqnames = gsub("chrchr", "chr", seqnames)) %>%
+  separate_wider_delim(gene_id, delim = "-", names = c("start", "end"))
+ts.gene_optiles$start <- as.double(ts.gene_optiles$start)
+ts.gene_optiles$end <- as.double(ts.gene_optiles$end)
+ts.gene_optiles$dtu_rank <- 1:nrow(ts.gene_optiles)
+saveRDS(ts.gene_optiles, "/researchers/caitlin.page/cf_nano/r_output/dtu_basictiles_emseq_cancer_healthy_all_factors_sex.rds")
+```
+mmmmm
+it's working yay
+but results won't be done in time boo
+```{r}
+ts.gene_optiles %>% filter(FDR < 0.05)
+```
+
+```{r}
+cbind(colnames(dau_counts)[c(2:8,10:22)], sex) %>% data.frame() %>% filter(sex == "1") %>% .$V1
+```
+
+```{r}
+s <- cbind(colnames(dau_counts)[c(2:8,10:22)], sex) %>% data.frame() %>% filter(sex == "1") %>% .$V1
+```
+
+```{r}
+dau_counts_sig <- dau_counts %>% filter(gene_id %in% filter(ts.gene_optiles, FDR < 0.05)$region_id)
+dau_counts_sig <- dau_counts_sig %>% pivot_longer(names_to = "sample", values_to = "count", cols = !c(gene_id, transcript))
+dau_counts_sig <- dau_counts_sig %>% mutate(alpha_group = gsub(".*_", "", transcript), 
+                                            alpha_group = factor(alpha_group, levels = c("a < 0.2", "0.2 <= a <= 0.4", "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8")))
+dau_counts_sig <- dau_counts_sig %>% mutate(#sample = gsub(".*_", "", sample),
+                                            group = ifelse(sample %in% s, "male", "female")) 
+dau_counts_sig_prop <- dau_counts_sig %>% group_by(transcript, gene_id, alpha_group, group) %>% summarise(sum_group = sum(count)) %>%
+  ungroup() %>% group_by(gene_id, group) %>% mutate(prop = sum_group/sum(sum_group))
+
+p <- list()
+
+for(i in 1:20) {
+p[[i]] <- dau_counts_sig_prop %>% filter(gene_id == ts.gene_optiles$region_id[i]) %>% mutate(alpha_group = factor(alpha_group, levels = c("a < 0.2", "0.2 <= a <= 0.4", "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8"))) %>%
+  ggplot(aes(x = alpha_group, y = prop, fill = group)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  scale_x_discrete(labels = c("Low", "Low-med", "Med", "Med-high", "High")) +
+  labs(x = "alpha band") +
+  facet_wrap(~gene_id) +
+  theme_bw()
+}
+for(i in 1:20) {
+  print(p[[i]])
+}
+```
+
