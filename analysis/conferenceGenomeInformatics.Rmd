@@ -1,0 +1,458 @@
+---
+title: "conferenceGenomeInformatics"
+author: "caitlinpage"
+date: "2026-11-12"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+## Introduction
+
+```{r}
+library(BSgenome.Hsapiens.UCSC.hg38)
+library(plyranges)
+library(data.table)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(stringr)
+library(edgeR)
+library(duckdb)
+library(arrow)
+library(ggVennDiagram)
+library(GO.db)
+library(org.Hs.eg.db)
+library(TxDb.Hsapiens.UCSC.hg38.knownGene)
+```
+
+
+```{r}
+rrbs_plot_eg <- function(read_data_path_a, chrom, region_start, region_end, cpgs = cg_sites,
+                       jit_amount = 0.1) {
+  set.seed(42)
+
+  # ── 1. Read only the matching rows — never loads unmatched data into RAM ───
+  con <- dbConnect(duckdb())
+  on.exit(dbDisconnect(con))
+  
+  read_data_a <- dbGetQuery(con, glue::glue("
+    SELECT *
+    FROM read_parquet('{read_data_path_a}')
+    WHERE seqnames = '{chrom}'
+      AND \"start\" >= {region_start}
+      AND \"end\"   <= {region_end}
+  "))
+  
+  
+  read_data_a$type <- "healthy"
+  
+  read_data <- read_data_a
+  
+  jitter_amount <- runif(nrow(read_data), -jit_amount, jit_amount)
+  read_data$alpha_jit <- read_data$alpha + jitter_amount
+  read_data <- data.frame(read_data)
+  
+  read_data <- read_data %>% mutate(alpha_group = case_when(alpha < 0.2 ~ "a < 0.2",
+                                 alpha > 0.8 ~ "a > 0.8",
+                                 alpha >= 0.2 & alpha <= 0.4 ~ "0.2 <= a <= 0.4",
+                                 alpha > 0.4 & alpha < 0.6 ~ "0.4 < a < 0.6",
+                                 TRUE ~ "0.6 <= a <= 0.8"))
+  read_data <- read_data %>% mutate(alpha_group = factor(alpha_group, levels = c("a < 0.2", "0.2 <= a <= 0.4", "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8")))
+  
+  # Add jittered coordinates to new columns in the data frame
+  long_data <- read_data %>%
+    mutate(meth_status = strsplit(meth_pattern, ""), start = strsplit(genom_positions, ",")) %>%
+    unnest(meth_status, start) %>%
+    mutate(start = as.double(start))
+
+  chr <- unique(read_data$seqnames)
+  min_start <- min(read_data$read_start)
+  max_end <- max(read_data$read_end)
+  
+  plot <- read_data %>%
+    ggplot() +
+    geom_segment(aes(x = read_start, xend = read_end,
+                     y = alpha_jit, yend = alpha_jit, colour = alpha_group)) +
+    geom_point(data = long_data,
+               aes(x = start, y = alpha_jit,
+                   fill = meth_status, colour = alpha_group), shape = 21) +
+    scale_fill_manual(values = c("U" = "white", "M" = "black")) +
+    facet_wrap(~ type, nrow=2) +
+    labs(title = paste0(chr, ":", min_start, "-", max_end)) +
+    theme_bw() +
+    labs(x = "genomic position")
+  plot
+}
+```
+
+
+```{r}
+geom_beta <- function(all_b, style = "line", plot.space=1, plot.height=1) {
+    structure(list(all_b = all_b, style = style, plot.space = plot.space,
+        plot.height = plot.height),
+        class = "beta"
+    )
+}
+
+ggplot_add.beta <- function(object, plot, object_name) {
+plot2 <- plot
+    while (inherits(plot2, "patchwork")) {
+        plot2 <- plot2[[1]]
+    }
+    plot.data <- plot2$labels$title
+    plot.data <- stringr::str_split_1(plot.data, ":")
+    # prepare plot range
+    # the plot region are not normal, so start is minimum value
+    plot.chr <- plot.data[1]
+    plot.data <- stringr::str_split_1(plot.data[2], "-")
+    plot.region.start <- plot.data[1] %>% as.numeric()
+    plot.region.end <- plot.data[2] %>% as.numeric()
+    
+    all_b <- object$all_b
+    plot.space <- object$plot.space
+    plot.height <- object$plot.height
+    style <- object$style
+    
+ #   all_b <- all_b %>%
+#  tidyr::pivot_longer(cols = c(cancer_0223, cancer_0224, cancer_0225, cancer_0454, cancer_0456, cancer_0457, healthy_036, healthy_037, healthy_785, healthy_786, healthy_787, healthy_789), names_to = "sample", values_to = "beta") %>% mutate(type = substr(sample, 1, 1)) %>% filter(seqnames.x %in% plot.chr,
+       #                         start.x >= plot.region.start,
+      #                          start.x <= plot.region.end)
+    all_b <- all_b %>%
+      mutate(type = substr(sample, 1, 1)) %>%
+      filter(seqnames %in% plot.chr,
+                                start >= plot.region.start,
+                                start <= plot.region.end)
+    
+    if(style == "line") {
+      b_plot <- all_b %>%
+  ggplot(aes(x = start, y = beta, colour = type)) +
+  geom_line() +
+  theme_bw() +
+        scale_color_manual(values = c("c" = "#C0622A", "h" = "#1B3A6B"),
+                           labels = c("c" = "cancer", "h" = "healthy")) +
+        labs(x = "genomic position")
+    } else if (style == "smooth") {
+      b_plot <- all_b %>%
+  ggplot(aes(x = start, y = beta, colour = type)) +
+        geom_smooth() +
+        theme_bw() +
+        scale_color_manual(values = c("c" = "#C0622A", "h" = "#1B3A6B"),
+                           labels = c("c" = "cancer", "h" = "healthy")) +
+        labs(x = "genomic position")
+    }
+    else {
+    b_plot <- all_b %>%
+  ggplot(aes(x = start, y = beta, colour = type)) +
+  geom_point(alpha = 0.3) +
+      theme_bw() +
+      scale_color_manual(values = c("c" = "#C0622A", "h" = "#1B3A6B"),
+                         labels = c("c" = "cancer", "h" = "healthy")) +
+      labs(x = "genomic position")
+    }
+    
+    patchwork::wrap_plots(plot + ggplot2::theme(plot.margin = ggplot2::margin(t = plot.space, b = plot.space)),
+        b_plot,
+        ncol = 1, heights = c(1, plot.height)
+    )
+}
+```
+```{r}
+geom_beta2 <- function(all_b, style = "line", plot.space=1, plot.height=1) {
+    structure(list(all_b = all_b, style = style, plot.space = plot.space,
+        plot.height = plot.height),
+        class = "beta2"
+    )
+}
+
+ggplot_add.beta2 <- function(object, plot, object_name) {
+plot2 <- plot
+    while (inherits(plot2, "patchwork")) {
+        plot2 <- plot2[[1]]
+    }
+    plot.data <- plot2$labels$title
+    plot.data <- stringr::str_split_1(plot.data, ":")
+    # prepare plot range
+    # the plot region are not normal, so start is minimum value
+    plot.chr <- plot.data[1]
+    plot.data <- stringr::str_split_1(plot.data[2], "-")
+    plot.region.start <- plot.data[1] %>% as.numeric()
+    plot.region.end <- plot.data[2] %>% as.numeric()
+    
+    all_b <- object$all_b
+    plot.space <- object$plot.space
+    plot.height <- object$plot.height
+    style <- object$style
+    
+ #   all_b <- all_b %>%
+#  tidyr::pivot_longer(cols = c(cancer_0223, cancer_0224, cancer_0225, cancer_0454, cancer_0456, cancer_0457, healthy_036, healthy_037, healthy_785, healthy_786, healthy_787, healthy_789), names_to = "sample", values_to = "beta") %>% mutate(type = substr(sample, 1, 1)) %>% filter(seqnames.x %in% plot.chr,
+       #                         start.x >= plot.region.start,
+      #                          start.x <= plot.region.end)
+    all_b <- all_b %>%
+      mutate(type = substr(sample, 1, 1)) %>%
+      filter(seqnames %in% plot.chr,
+                                start >= plot.region.start,
+                                start <= plot.region.end)
+    
+    if(style == "line") {
+      b_plot <- all_b %>%
+  ggplot(aes(x = start, y = beta, colour = sample)) +
+  geom_line() +
+  theme_bw() +
+        labs(x = "genomic position")
+    } else if (style == "smooth") {
+      b_plot <- all_b %>%
+  ggplot(aes(x = start, y = beta, colour = sample)) +
+        geom_smooth() +
+        theme_bw() +
+        labs(x = "genomic position")
+    }
+    else {
+    b_plot <- all_b %>%
+  ggplot(aes(x = start, y = beta, colour = sample)) +
+  geom_point(alpha = 0.3) +
+      theme_bw() +
+      labs(x = "genomic position")
+    }
+    
+    patchwork::wrap_plots(plot + ggplot2::theme(plot.margin = ggplot2::margin(t = plot.space, b = plot.space)),
+        b_plot,
+        ncol = 1, heights = c(1, plot.height)
+    )
+}
+```
+
+# Plot requests
+
+## Region: Beta = 0.5, A bimodal
+
+## Region: Beta = 0.5, A more variable
+
+* look first in older analysis file (damn it was with the rrbs data)
+
+* get betas - find tiles with strings of beta = 0.5, then plot
+* also this can just be from healthy if it's there (smaller file)
+
+```{r}
+betas_healthy <- readRDS("/researchers/caitlin.page/cf_nano/r_output/emseq_betas_healthy.rds")
+```
+```{r}
+seqs <- c("chr1", "chr2", "chr3", "chr4", "chr5", "chr6", "chr7", "chr8", "chr9", "chr10", "chr11", "chr12", "chr13", "chr14", "chr15", "chr16", "chr17", "chr18", "chr19", "chr20", "chr21", "chr22", "chrX", "chrY")
+```
+
+```{r}
+betas_healthy <- betas_healthy[betas_healthy$seqnames %in% seqs,]
+betas_healthy$type <- "healthy"
+```
+
+```{r}
+unique(betas_healthy$sample)
+```
+
+```{r}
+betas_pos <- betas_healthy %>% distinct(seqnames, start) %>% .[order(.$start),] %>% group_by(seqnames) %>% mutate(index = 1:n(), index = paste0(seqnames, ":", index))
+betas_pos <- betas_pos %>% ungroup() %>% data.frame()
+betas_pos <- betas_pos %>% mutate(pos = paste0(seqnames, ":", start))
+```
+
+
+```{r}
+betas_healthy_wide <- betas_healthy %>% ungroup() %>% mutate(sum_col = meth_count_pos + unmeth_count_pos) %>% filter(sum_col > 10) %>% .[,c(1:3,6)] %>% .[order(.$start),] %>% pivot_wider(names_from = sample, values_from = beta)
+betas_healthy_wide <- betas_healthy_wide %>% ungroup() %>% mutate(pos = paste0(seqnames, ":", start)) %>% data.frame() %>% 
+  mutate(index = betas_pos[match(.$pos, betas_pos$pos), "index"])
+```
+```{r}
+betas_healthy_wide_filt <- na.omit(betas_healthy_wide)
+```
+
+```{r}
+
+# Define sample columns
+sample_cols <- c("healthy_037", "healthy_787", "healthy_786",
+                 "healthy_785", "healthy_789", "healthy_036")
+n_samples <- length(sample_cols)
+
+# 1. Flag rows where majority (> half) of samples are in [0.4, 0.6]
+df <- betas_healthy_wide_filt %>%
+  mutate(
+    n_in_range       = rowSums(across(all_of(sample_cols), ~ .x >= 0.4 & .x <= 0.6)),
+    majority_in_range = n_in_range > n_samples / 2
+  )
+
+# 2. Parse the index column into chromosome and numeric index
+df <- df %>%
+  mutate(
+    chr_part = sub(":.*", "", index),
+    idx_num  = as.integer(sub(".*:", "", index))
+  )
+
+# 3. Detect consecutive runs (same chr, idx increments by 1)
+df <- df %>%
+  arrange(chr_part, idx_num) %>%
+  group_by(chr_part) %>%
+  mutate(
+    new_run = majority_in_range != lag(majority_in_range, default = !majority_in_range[1]) |
+              idx_num != lag(idx_num, default = idx_num[1] - 1) + 1,
+    run_id  = cumsum(new_run)
+  ) %>%
+  ungroup()
+
+# 4. Summarise the consecutive runs
+consecutive_runs <- df %>%
+  filter(majority_in_range) %>%
+  group_by(chr_part, run_id) %>%
+  summarise(
+    start_index  = first(index),
+    end_index    = last(index),
+    start_pos    = first(start),
+    end_pos      = last(start),
+    n_positions  = n(),
+    mean_n_in_range = mean(n_in_range),
+    .groups = "drop"
+  ) %>%
+  filter(n_positions >= 2)   # adjust: >= 1 to keep single-position hits too
+
+print(consecutive_runs)
+```
+
+```{r}
+test_regions <- consecutive_runs %>% filter(n_positions > 5)
+test_regions %>% mutate(width = end_pos - start_pos)
+```
+
+```{r}
+rrbs_plot_eg("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", test_regions[1,]$chr_part, test_regions[1,]$start_pos - 200, test_regions[1,]$end_pos + 200, jit_amount = 0.05) +
+  geom_beta2(betas_healthy)
+```
+
+```{r}
+p <- list()
+for(i in 1:nrow(test_regions)) {
+p[[i]] <- rrbs_plot_eg("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", test_regions[i,]$chr_part, test_regions[i,]$start_pos - 100, test_regions[i,]$end_pos + 100, jit_amount = 0.05) +
+  geom_beta(betas_healthy)
+}
+for(i in 1:nrow(test_regions)) {
+  print(p[[i]])
+}
+```
+
+
+```{r}
+p <- list()
+for(i in 1:nrow(test_regions)) {
+p[[i]] <- rrbs_plot_eg("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", test_regions[i,]$chr_part, test_regions[i,]$start_pos - 100, test_regions[i,]$end_pos + 100, jit_amount = 0.05) +
+  geom_beta(betas_healthy, style = "smooth")
+}
+for(i in 1:nrow(test_regions)) {
+  print(p[[i]])
+}
+```
+
+```{r}
+p <- list()
+for(i in 1:nrow(test_regions)) {
+p[[i]] <- rrbs_plot_eg("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", test_regions[i,]$chr_part, test_regions[i,]$start_pos - 100, test_regions[i,]$end_pos + 100, jit_amount = 0.05) +
+  geom_beta2(betas_healthy)
+}
+for(i in 1:nrow(test_regions)) {
+  print(p[[i]])
+}
+```
+
+* with the nas
+```{r}
+sample_cols <- c("healthy_037", "healthy_787", "healthy_786",
+                 "healthy_785", "healthy_789", "healthy_036")
+
+df <- betas_healthy_wide %>%
+  mutate(
+    n_non_na    = rowSums(!is.na(across(all_of(sample_cols)))),
+    n_in_range  = rowSums(across(all_of(sample_cols), ~ !is.na(.x) & .x >= 0.4 & .x <= 0.6)),
+    majority_in_range = n_non_na > 0 & n_in_range > n_non_na / 2
+  )
+
+# Parse index
+df <- df %>%
+  mutate(
+    chr_part = sub(":.*", "", index),
+    idx_num  = as.integer(sub(".*:", "", index))
+  )
+
+# Detect consecutive runs
+df <- df %>%
+  arrange(chr_part, idx_num) %>%
+  group_by(chr_part) %>%
+  mutate(
+    new_run = majority_in_range != lag(majority_in_range, default = !majority_in_range[1]) |
+              idx_num != lag(idx_num, default = idx_num[1] - 1) + 1,
+    run_id  = cumsum(new_run)
+  ) %>%
+  ungroup()
+
+# Summarise
+consecutive_runs <- df %>%
+  filter(majority_in_range) %>%
+  group_by(chr_part, run_id) %>%
+  summarise(
+    start_index     = first(index),
+    end_index       = last(index),
+    start_pos    = first(start),
+    end_pos      = last(start),
+    n_positions     = n(),
+    min_n_non_na    = min(n_non_na),   # so you can see data density
+    .groups = "drop"
+  ) %>%
+  filter(n_positions >= 2)
+
+print(consecutive_runs)
+```
+
+
+```{r}
+test_regions2 <- consecutive_runs %>% filter(n_positions > 5) %>% mutate(width = end_pos - start_pos) %>% .[order(.$width, decreasing = TRUE),]
+```
+
+
+```{r}
+p <- list()
+for(i in 1:10) {
+p[[i]] <- rrbs_plot_eg("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", test_regions2[i,]$chr_part, test_regions2[i,]$start_pos - 100, test_regions2[i,]$end_pos + 100, jit_amount = 0.05) +
+  geom_beta(betas_healthy, style = "smooth")
+}
+for(i in 1:10) {
+  print(p[[i]])
+}
+```
+
+```{r}
+p <- list()
+for(i in 1:10) {
+p[[i]] <- rrbs_plot_eg("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", test_regions2[i,]$chr_part, test_regions2[i,]$start_pos - 100, test_regions2[i,]$end_pos + 100, jit_amount = 0.05) +
+  geom_beta2(betas_healthy)
+}
+for(i in 1:10) {
+  print(p[[i]])
+}
+```
+
+
+
+
+
+
+
+## Overlap autosomal sex regions to known regions (paper results)
+
+
+
+rrbs_plot5("/researchers/caitlin.page/cf_nano/r_output/emseq_healthy.parquet", "/researchers/caitlin.page/cf_nano/r_output/emseq_all_cancer.parquet", "chr2", 237371501, 237372000) +
+  geom_beta(betas_all, plot.height = 0.5, style = "smooth") 
+
+props %>% filter(dtu_rank == 76) %>% mutate(alpha_group = factor(alpha_group, levels = c("a < 0.2", "0.2 <= a <= 0.4", "0.4 < a < 0.6", "0.6 <= a <= 0.8", "a > 0.8"))) %>% pivot_longer(cols = c(cancer, healthy), names_to = "type", values_to = "percent") %>%
+  ggplot(aes(x = alpha_group, y = percent, fill = type)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  scale_fill_manual(values = c("cancer" = "#C0622A", "healthy" = "#1B3A6B")) +
+  scale_x_discrete(labels = c("Low", "Low-med", "Med", "Med-high", "High")) +
+  labs(x = "alpha band") +
+  facet_wrap(~region_id) +
+  theme_bw()
