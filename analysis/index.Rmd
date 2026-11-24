@@ -401,3 +401,7 @@ metheor runs entropy, haplotype, epi-allele etc methods
 How many groups to break alpha into
 And also GST to sense check results
 [group sizes](dtuDiffGroupsAndGst.html)
+
+
+
+[mds plots](pcaPlots.html)
