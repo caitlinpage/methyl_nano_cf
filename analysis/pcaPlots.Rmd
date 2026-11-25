@@ -591,3 +591,252 @@ legend("bottomright",
        cex = 0.8)
 ```
 
+# NEW LOOK HERE FOR MULTIPLE FACTORS ON ONE
+
+
+# colour and shape as factors
+
+* tumour purity, tumour normal (do normals group with 0 tumour purity?)
+
+
+
+
+```{r}
+metadata_healthy <- cbind(colnames(all_beta)[3:8], colnames(all_beta)[3:8], 40:45, c(1,1,1,1,1,1), c(NA, NA, NA, NA, NA, NA), c("M", "M", "F", "F", "F", "F"),
+      c(rep("cf", times = 6)), c(rep("healthy", times = 6)), c(rep(0, times = 6)), colnames(all_beta)[3:8], c(rep("#E41A1C", times = 6)), c(rep(0, times = 6)))
+colnames(metadata_healthy) <- colnames(metadata_filt)
+metadata_filt_all <- rbind(metadata_healthy, metadata_filt)
+```
+
+```{r}
+mds <- plotMDS(as.matrix(all_beta_filt[,3:22]), plot = FALSE)
+```
+
+```{r}
+df <- data.frame(
+  x             = mds$x,
+  y             = mds$y,
+  sample        = colnames(all_beta_filt[,3:22]),
+  individual    = metadata_filt_all$patient,
+  sex           = metadata_filt_all$sex,
+  tissue        = metadata_filt_all$tissue,
+  genotype      = metadata_filt_all$genotype,
+  ichor_fraction = as.double(metadata_filt_all$ichor_fraction)
+)
+```
+
+```{r}
+# --- Shared base layer ---
+base <- ggplot(df, aes(x = x, y = y)) +
+  labs(x = "MDS dim 1", y = "MDS dim 2") +
+  theme_bw(base_size = 11)
+
+# --- Individual panels ---
+p1 <- base +
+  geom_point(aes(colour = tissue, shape = sex), size = 4) +
+  geom_text(aes(label = individual), vjust = -0.9, size = 2.5, show.legend = FALSE) +
+  labs(title = "Tissue & Sex", colour = "Tissue", shape = "Sex")
+
+p2 <- base +
+  geom_point(aes(colour = genotype, shape = sex), size = 4) +
+  geom_text(aes(label = individual), vjust = -0.9, size = 2.5, show.legend = FALSE) +
+  labs(title = "Genotype & Sex", colour = "Genotype", shape = "Sex")
+
+p3 <- base +
+  geom_point(aes(colour = ichor_fraction, shape = sex), size = 4) +
+  scale_colour_gradient(low = "lightyellow", high = "darkred") +
+  geom_text(aes(label = individual), vjust = -0.9, size = 2.5, show.legend = FALSE) +
+  labs(title = "Ichor fraction & Sex", colour = "Ichor\nfraction", shape = "Sex")
+
+p4 <- base +
+  geom_point(aes(colour = individual, shape = sex), size = 4) +
+  labs(title = "Individual & Sex", colour = "Individual", shape = "Sex")
+```
+
+```{r}
+p1
+p2
+p3
+p4
+```
+
+# use variable cpgs
+```{r}
+mat <- as.matrix(all_beta_filt[,3:22])
+```
+
+```{r}
+# Keep top 10% most variable CpGs
+row_vars <- matrixStats::rowVars(mat)  # matrixStats package
+keep <- row_vars > quantile(row_vars, 0.90)
+mat_filtered <- mat[keep, ]
+
+mds <- plotMDS(mat_filtered, plot = FALSE)
+df <- data.frame(
+  x             = mds$x,
+  y             = mds$y,
+  sample        = colnames(all_beta_filt[,3:22]),
+  individual    = metadata_filt_all$patient,
+  sex           = metadata_filt_all$sex,
+  tissue        = metadata_filt_all$tissue,
+  genotype      = metadata_filt_all$genotype,
+  ichor_fraction = as.double(metadata_filt_all$ichor_fraction)
+)
+```
+
+
+```{r}
+# --- Shared base layer ---
+base <- ggplot(df, aes(x = x, y = y)) +
+  labs(x = "MDS dim 1", y = "MDS dim 2") +
+  theme_bw(base_size = 11)
+
+# --- Individual panels ---
+p1 <- base +
+  geom_point(aes(colour = tissue, shape = sex), size = 4) +
+  geom_text(aes(label = individual), vjust = -0.9, size = 2.5, show.legend = FALSE) +
+  labs(title = "Tissue & Sex", colour = "Tissue", shape = "Sex")
+
+p2 <- base +
+  geom_point(aes(colour = genotype, shape = sex), size = 4) +
+  geom_text(aes(label = individual), vjust = -0.9, size = 2.5, show.legend = FALSE) +
+  labs(title = "Genotype & Sex", colour = "Genotype", shape = "Sex")
+
+p3 <- base +
+  geom_point(aes(colour = ichor_fraction, shape = sex), size = 4) +
+  scale_colour_gradient(low = "lightyellow", high = "darkred") +
+  geom_text(aes(label = individual), vjust = -0.9, size = 2.5, show.legend = FALSE) +
+  labs(title = "Ichor fraction & Sex", colour = "Ichor\nfraction", shape = "Sex")
+
+p4 <- base +
+  geom_point(aes(colour = individual, shape = sex), size = 4) +
+  labs(title = "Individual & Sex", colour = "Individual", shape = "Sex")
+
+p1
+p2
+p3
+p4
+```
+
+# pca
+
+```{r}
+row_vars <- matrixStats::rowVars(mat)  # matrixStats package
+mat_var  <- mat[row_vars > quantile(row_vars, 0.90), ]
+pca <- prcomp(t(mat_var), scale. = FALSE)
+var_exp <- round(summary(pca)$importance[2, ] * 100, 1)
+
+df_pca2 <- data.frame(
+  PC1      = pca$x[,1],
+  PC2      = pca$x[,2],
+  pca$x[,3:5],  # keep extra PCs to explore
+  metadata_filt_all
+)
+df_pca <- data.frame(pca$x[, 1:10], metadata_filt_all)
+
+
+
+ggplot(df_pca, aes(PC1, PC2, colour = tissue, shape = sex)) +
+  geom_point(size = 4) +
+  geom_text(aes(label = patient), vjust = -0.8, size = 2.5, show.legend = FALSE) +
+  labs(x = paste0("PC1 (", var_exp[1], "%)"),
+       y = paste0("PC2 (", var_exp[2], "%)")) +
+  theme_bw()
+```
+
+
+```{r}
+var_df <- data.frame(
+  PC  = 1:20,
+  var = summary(pca)$importance[2, 1:20] * 100
+)
+
+ggplot(var_df, aes(PC, var)) +
+  geom_col(fill = "steelblue") +
+  geom_line(aes(group = 1)) +
+  geom_point() +
+  labs(x = "PC", y = "% variance explained") +
+  theme_bw()
+```
+
+```{r}
+plot_pc <- function(pcx, pcy, colour_var, shape_var = NULL) {
+  aes_map <- if (!is.null(shape_var)) {
+    aes(.data[[pcx]], .data[[pcy]], colour = .data[[colour_var]], shape = .data[[shape_var]])
+  } else {
+    aes(.data[[pcx]], .data[[pcy]], colour = .data[[colour_var]])
+  }
+  ggplot(df_pca, aes_map) +
+    geom_point(size = 3) +
+    labs(x = paste0(pcx, " (", var_exp[as.integer(gsub("PC","",pcx))], "%)"),
+         y = paste0(pcy, " (", var_exp[as.integer(gsub("PC","",pcy))], "%)")) +
+    theme_bw(base_size = 10) +
+    theme(legend.position = "bottom")
+}
+
+plot_pc("PC1","PC2","tissue","sex") 
+plot_pc("PC1","PC3","tissue","sex")
+plot_pc("PC2","PC3","tissue","sex") 
+plot_pc("PC1","PC2","genotype","sex")
+```
+
+```{r}
+
+pc_cols   <- paste0("PC", 1:10)
+meta_vars <- c("sex", "tissue", "genotype", "ichor_fraction", "patient")
+
+cor_df <- expand.grid(PC = pc_cols, variable = meta_vars, stringsAsFactors = FALSE)
+
+cor_df$r2 <- mapply(function(pc, var) {
+  x  <- df_pca[[pc]]
+  y  <- df_pca[[var]]
+  ok <- complete.cases(x, y)   # <-- this is the key line
+  x  <- x[ok]
+  y  <- y[ok]
+  if (length(x) < 3) return(NA)
+  if (is.numeric(y)) {
+    cor(x, y)^2
+  } else {
+    summary(lm(x ~ factor(y)))$r.squared
+  }
+}, cor_df$PC, cor_df$variable)
+
+ggplot(cor_df, aes(x = PC, y = variable, fill = r2)) +
+  geom_tile() +
+  geom_text(aes(label = round(r2, 2)), size = 3) +
+  scale_fill_gradient(low = "white", high = "steelblue", limits = c(0, 1)) +
+  labs(title = "R² of each PC ~ metadata variable", fill = "R²") +
+  theme_bw()
+```
+
+
+
+
+
+```{r}
+if_g <- c("0", "<5", "5<if<10", "10<if<20", "30<if<40", ">50")
+```
+
+```{r}
+metadata_filt <- metadata_filt %>% 
+  mutate(ichor_group = case_when(ichor_fraction == 0 ~ "0",
+                                 ichor_fraction > 0 & ichor_fraction < 5 ~ "<5",
+                                 ichor_fraction > 5 & ichor_fraction < 10 ~ "5<if<10",
+                                 ichor_fraction > 10 & ichor_fraction < 20 ~ "10<if<20",
+                                 ichor_fraction > 30 & ichor_fraction < 40 ~ "30<if<40",
+                                 ichor_fraction > 50 ~ ">50"))
+ichor <- if_g
+colours <- setNames(
+  c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00",
+    "#A65628"),
+  ichor
+)
+col_vec <- colours[as.character(metadata_filt$ichor_group)]
+plotMDS(as.matrix(all_beta_filt[,9:22]), col = col_vec, labels = colnames(all_beta_filt)[9:22], main = "MDS")
+legend("bottomright",
+       legend = ichor,
+       col = colours[as.character(ichor)],
+       pch = 16,
+       cex = 0.8)
+```
+
